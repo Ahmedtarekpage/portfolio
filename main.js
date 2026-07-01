@@ -769,8 +769,8 @@ if (VIEW !== "full") {
   if (!main) return;
   const ORDER = {
     full: ["about", "educator", "builder", "work", "skills", "contact"],
-    product: ["work", "builder", "educator", "skills", "contact"],
-    educator: ["educator", "builder", "work", "skills", "contact"],
+    product: ["work", "skills", "contact"],
+    educator: ["educator", "skills", "contact"],
   }[VIEW];
   // remove sections not used by this view (e.g. the generic 3-chapter #about)
   ["about", "educator", "builder", "work", "skills", "contact"].forEach((id) => {
@@ -786,6 +786,8 @@ if (VIEW !== "full") {
   // point the hero primary button at the first content section of this view
   const primary = document.querySelector(".hero__actions .btn--primary");
   if (primary) primary.setAttribute("href", VIEW === "product" ? "#work" : "#educator");
+  // the persona switcher is redundant on a single-identity page (and links to removed sections)
+  if (VIEW !== "full") { const persona = document.querySelector(".persona"); if (persona) persona.remove(); }
   // mark active view in the footer switcher
   document.querySelectorAll("[data-view-link]").forEach((a) => {
     if (a.getAttribute("data-view-link") === VIEW) a.classList.add("is-current");
