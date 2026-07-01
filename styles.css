@@ -114,6 +114,25 @@ main { position: relative; z-index: 2; }
 }
 .nav__links a:hover { color: var(--ink); }
 .nav__links a:hover::after { width: 100%; }
+.nav__right { display: flex; align-items: center; gap: 14px; }
+.nav__lang {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: .95rem;
+  font-weight: 600;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-brd);
+  background: var(--glass);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .3s, box-shadow .3s, transform .2s, color .3s;
+}
+.nav__lang:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 20px rgba(56,232,255,.3);
+  transform: translateY(-1px);
+}
 .nav__cta {
   font-size: .9rem;
   padding: 9px 20px;
@@ -721,3 +740,48 @@ main { position: relative; z-index: 2; }
   * { animation: none !important; }
   html { scroll-behavior: auto; }
 }
+
+/* =========================================================
+   ARABIC / RTL
+   ========================================================= */
+body.ar { font-family: "Cairo", "Inter", sans-serif; }
+body.ar * { font-family: "Cairo", "Inter", sans-serif; }
+
+/* right-align body text in Arabic; keep centered sections centered */
+[dir="rtl"] body { text-align: right; }
+[dir="rtl"] .contact,
+[dir="rtl"] .hero__scroll { text-align: center; }
+[dir="rtl"] .contact__form { text-align: right; }
+
+/* mirror the gradient accent bar on cards */
+[dir="rtl"] .prod::before { left: auto; right: 0; }
+
+/* flip the stat divider */
+[dir="rtl"] .stat {
+  border-left: none;
+  border-right: 1px solid var(--glass-brd);
+  padding-left: 0;
+  padding-right: 16px;
+}
+
+/* flip bullet lists */
+[dir="rtl"] .prod__built li { padding-left: 0; padding-right: 20px; }
+[dir="rtl"] .prod__built li::before { left: auto; right: 0; }
+
+/* scroll progress grows from the right in Arabic */
+[dir="rtl"] .scroll-progress { left: auto; right: 0; }
+
+/* keep Latin brand mark upright */
+[dir="rtl"] .nav__brand,
+[dir="rtl"] .hero__photo-fallback { direction: ltr; }
+
+/* Arabic is cursive — remove Latin letter-spacing that breaks glyph joining */
+body.ar .hero__eyebrow,
+body.ar .section__index,
+body.ar .hero__title,
+body.ar .section__title,
+body.ar .contact__title,
+body.ar .prod__kind,
+body.ar .prod__name,
+body.ar .prod__label,
+body.ar .cookie__text { letter-spacing: normal; }

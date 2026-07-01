@@ -1,6 +1,297 @@
 import * as THREE from "three";
 
 /* =========================================================
+   i18n — language + translation layer
+   ========================================================= */
+let LANG = "en";
+try { LANG = localStorage.getItem("lang") || "en"; } catch (e) {}
+
+// Arabic translations for dynamic (card/skill) strings.
+// t() returns the Arabic value in AR mode, else the original English key.
+const AR = {
+  // --- places ---
+  "Remote · Part-Time": "عن بُعد · دوام جزئي",
+  "Estonia · Remote": "إستونيا · عن بُعد",
+  "UAE · Remote": "الإمارات · عن بُعد",
+  "Dubai, UAE · Hybrid": "دبي، الإمارات · هجين",
+  "Cairo, Egypt · Hybrid": "القاهرة، مصر · هجين",
+  "Saudi Arabia · Remote": "السعودية · عن بُعد",
+  "Nagoya, Japan": "ناغويا، اليابان",
+  "Udacity · DECI (Egypt Gov)": "يوداسيتي · DECI (حكومة مصر)",
+  "Dubai, UAE": "دبي، الإمارات",
+  "Alexandria, Egypt": "الإسكندرية، مصر",
+  "Global · Remote": "عالمي · عن بُعد",
+  "Worldwide · Remote": "حول العالم · عن بُعد",
+  "USA · Remote": "الولايات المتحدة · عن بُعد",
+  // --- roles ---
+  "AI Product Manager": "مدير منتج ذكاء اصطناعي",
+  "Product Manager": "مدير منتج",
+  "Contestant — 1st Place, RoboCup Junior Egypt": "متسابق — المركز الأول، روبوكب جونيور مصر",
+  "STEAM Session Lead": "قائد جلسات STEAM",
+  "STEAM & Robotics Instructor": "مدرّس STEAM والروبوتيات",
+  "ICT & Robotics Instructor": "مدرّس تقنية المعلومات والروبوتيات",
+  "Super Tutor & Python Instructor": "معلّم متميّز ومدرّس بايثون",
+  "EdTech Software Engineer & STEAM Instructor": "مهندس برمجيات تعليمية ومدرّس STEAM",
+  "Python Developer — SaaS": "مطوّر بايثون — SaaS",
+  "Junior Python Developer": "مطوّر بايثون مبتدئ",
+  // --- kinds ---
+  "AI EdTech Platform": "منصة تعليم بالذكاء الاصطناعي",
+  "Video-Security SaaS": "SaaS لأمن الفيديو",
+  "AI Education & Robotics": "تعليم بالذكاء الاصطناعي وروبوتيات",
+  "B2B Travel Platform": "منصة سفر B2B",
+  "B2C Events App (iOS/Android)": "تطبيق فعاليات B2C (iOS/Android)",
+  "GovTech · Confidential": "تقنية حكومية · سرّي",
+  "🏆 Robotics Champion": "🏆 بطل روبوتيات",
+  "National STEAM Program": "برنامج STEAM وطني",
+  "Robotics · Top Schools": "روبوتيات · مدارس مرموقة",
+  "Makerspace · Roots": "ميكرسبيس · البدايات",
+  "Tutoring at Scale": "تدريس واسع النطاق",
+  "Top 3% Worldwide": "أفضل 3% عالميًا",
+  "Automation Product": "منتج أتمتة",
+  "Data Engineering": "هندسة بيانات",
+  // --- what (summaries) ---
+  "An AI-powered tutoring platform that gives students on-demand, personalized learning — built with Claude and a single engineer to prove that AI-augmented teams can ship a full product.":
+    "منصة تدريس مدعومة بالذكاء الاصطناعي تمنح الطلاب تعلّمًا مخصّصًا عند الطلب — بُنيت باستخدام Claude ومهندس واحد لإثبات أن الفرق المعزّزة بالذكاء الاصطناعي قادرة على إطلاق منتج متكامل.",
+  "A platform that protects video content with encryption — including live-stream protection — and helps creators publish on schedule.":
+    "منصة تحمي محتوى الفيديو بالتشفير — بما في ذلك حماية البث المباشر — وتساعد صنّاع المحتوى على النشر في الوقت المحدد.",
+  "A portfolio of B2B/B2C digital products — AI education platforms, e-commerce, mobile apps and VR — delivered for international clients at Top Rated Plus (Upwork top 3%).":
+    "محفظة من المنتجات الرقمية B2B/B2C — منصات تعليم بالذكاء الاصطناعي وتجارة إلكترونية وتطبيقات وواقع افتراضي — سُلّمت لعملاء دوليين بتصنيف Top Rated Plus (أفضل 3% على Upwork).",
+  "A B2B Islamic tourism platform managing VIP travel experiences through a cloud-based dynamic dashboard.":
+    "منصة سياحة إسلامية B2B تدير تجارب سفر لكبار الشخصيات عبر لوحة تحكم سحابية ديناميكية.",
+  "A B2C arts & culture events platform — iOS/Android apps plus an admin dashboard — connecting audiences with organizers and artists.":
+    "منصة فعاليات فنية وثقافية B2C — تطبيقات iOS/Android مع لوحة تحكم إدارية — تربط الجمهور بالمنظّمين والفنانين.",
+  "A confidential government project for Saudi Arabia — a custom web application built around Matterport 3D-capture technology, delivered under strict compliance requirements. Details are protected under NDA.":
+    "مشروع حكومي سرّي للسعودية — تطبيق ويب مخصّص مبني حول تقنية Matterport للتصوير ثلاثي الأبعاد، سُلّم وفق متطلبات امتثال صارمة. التفاصيل محمية باتفاقية عدم إفصاح.",
+  "Where it all began. Designed and programmed autonomous robots that took 1st place at RoboCup Junior Egypt — then represented Egypt at the international finals in Nagoya, Japan.":
+    "حيث بدأ كل شيء. صمّمت وبرمجت روبوتات ذاتية القيادة حصلت على المركز الأول في روبوكب جونيور مصر — ثم مثّلت مصر في النهائيات الدولية في ناغويا، اليابان.",
+  "A national initiative with the Egyptian government teaching Computer Fundamentals, AI and Python to students at scale.":
+    "مبادرة وطنية مع الحكومة المصرية لتدريس أساسيات الحاسب والذكاء الاصطناعي وبايثون للطلاب على نطاق واسع.",
+  "Taught robotics and programming to teenagers in Dubai's top-tier schools — American School of Dubai (ASD), JESS and Kings' Schools.":
+    "درّست الروبوتيات والبرمجة للمراهقين في أرقى مدارس دبي — المدرسة الأمريكية بدبي (ASD) وJESS ومدارس Kings'.",
+  "The foundation years — teaching ICT and science through inquiry-based, hands-on STEAM: Python, robotics, electronics and AI in a makerspace setting.":
+    "سنوات التأسيس — تدريس تقنية المعلومات والعلوم عبر تعلّم استقصائي عملي في STEAM: بايثون وروبوتيات وإلكترونيات وذكاء اصطناعي داخل بيئة ميكرسبيس.",
+  "Independent teaching across leading platforms — 1,000+ tutoring hours on Preply, 650+ students on almentor, and LEGO robotics coaching for WRO competitions.":
+    "تدريس مستقل عبر منصات رائدة — أكثر من 1000 ساعة تدريس على Preply، و650+ طالبًا على almentor، وتدريب روبوتيات LEGO لمسابقات WRO.",
+  "Built and delivered AI-integrated EdTech projects for global clients — leading development teams to ship scalable, custom learning solutions and automation tools.":
+    "بنيت وسلّمت مشاريع تعليمية مدمجة بالذكاء الاصطناعي لعملاء حول العالم — بقيادة فرق تطوير لإطلاق حلول تعلّم مخصّصة وقابلة للتوسّع وأدوات أتمتة.",
+  "Built 'Linker' — a Python SaaS tool that automatically applies to LinkedIn job postings, streamlining the job-search workflow end to end.":
+    "بنيت 'Linker' — أداة SaaS بلغة بايثون تتقدّم تلقائيًا لوظائف LinkedIn، وتبسّط رحلة البحث عن عمل من البداية للنهاية.",
+  "Built a real-estate data product scraping U.S. state listings, then cleaning and structuring the data into usable, accurate datasets.":
+    "بنيت منتج بيانات عقاري يجمع قوائم الولايات الأمريكية، ثم ينظّف البيانات ويهيكلها في مجموعات دقيقة قابلة للاستخدام.",
+  // --- built bullets ---
+  "Took the platform from concept to launch — product vision, roadmap, and go-to-market.":
+    "قدت المنصة من الفكرة إلى الإطلاق — رؤية المنتج وخارطة الطريق واستراتيجية الطرح.",
+  "Designed and optimized the AI-engine pipeline powering the tutoring experience.":
+    "صمّمت وحسّنت مسار محرّك الذكاء الاصطناعي المشغّل لتجربة التدريس.",
+  "Defined the KPIs and growth loops driving post-launch scaling.":
+    "حدّدت مؤشرات الأداء وحلقات النمو التي تقود التوسّع بعد الإطلاق.",
+  "Shipped encrypted data protection for live-stream content, end-to-end validated with QA.":
+    "أطلقت حماية بيانات مشفّرة لمحتوى البث المباشر، تم التحقق منها كاملةً مع فريق الجودة.",
+  "Led a delay-prevention feature that predicts optimal upload times for on-time availability.":
+    "قدت ميزة لمنع التأخير تتنبأ بأفضل أوقات الرفع لضمان التوفّر في الموعد.",
+  "Turned user research into analytics feature specs, managing the backlog in Jira.":
+    "حوّلت أبحاث المستخدمين إلى مواصفات ميزات تحليلية، مع إدارة قائمة المهام في Jira.",
+  "Owned product roadmaps for AI-driven educational robotics products.":
+    "امتلكت خرائط طريق المنتجات لمنتجات الروبوتيات التعليمية المدفوعة بالذكاء الاصطناعي.",
+  "Ran discovery & stakeholder management for clients across 6 countries.":
+    "أدرت الاكتشاف وإدارة أصحاب المصلحة لعملاء في 6 دول.",
+  "Established a product-first model with flexible pricing for 50+ enterprise clients.":
+    "أسّست نموذجًا يركّز على المنتج بتسعير مرن لأكثر من 50 عميلًا مؤسسيًا.",
+  "Owned product vision & strategy for the VIP experience management system.":
+    "امتلكت رؤية واستراتيجية المنتج لنظام إدارة تجارب كبار الشخصيات.",
+  "Delivered an integrated booking system and real-time availability + CMS features.":
+    "سلّمت نظام حجز متكامل وميزات توفّر لحظي ونظام إدارة محتوى.",
+  "Aligned engineering, design and business teams around one roadmap.":
+    "وحّدت فرق الهندسة والتصميم والأعمال حول خارطة طريق واحدة.",
+  "Owned the full lifecycle from discovery through launch and iteration.":
+    "امتلكت دورة الحياة الكاملة من الاكتشاف حتى الإطلاق والتحسين.",
+  "Ran user research & market analysis to define and prioritize the roadmap.":
+    "أجريت أبحاث المستخدمين وتحليل السوق لتحديد وترتيب أولويات خارطة الطريق.",
+  "Led a cross-functional team of 8 over a 12-month cycle.":
+    "قدت فريقًا متعدّد التخصصات من 8 أفراد على مدى 12 شهرًا.",
+  "Managed the project from proposal to delivery under strict compliance requirements.":
+    "أدرت المشروع من العرض حتى التسليم وفق متطلبات امتثال صارمة.",
+  "Led Matterport integration via a custom web app that improved usability.":
+    "قدت دمج Matterport عبر تطبيق ويب مخصّص حسّن سهولة الاستخدام.",
+  "Designed team-management pipelines and tracked delivery in Jira.":
+    "صمّمت مسارات إدارة الفريق وتتبّعت التسليم في Jira.",
+  "Optimized decision-making algorithms for autonomous task execution.":
+    "حسّنت خوارزميات اتخاذ القرار لتنفيذ المهام ذاتيًا.",
+  "Competed on the world stage at the RoboCup international finals.":
+    "تنافست على المسرح العالمي في نهائيات روبوكب الدولية.",
+  "Delivered 100+ virtual STEAM lessons to 3,000+ students over 3 years.":
+    "قدّمت أكثر من 100 درس STEAM افتراضي لأكثر من 3000 طالب خلال 3 سنوات.",
+  "Designed hands-on coding & electronics projects — +30% engagement.":
+    "صمّمت مشاريع برمجة وإلكترونيات عملية — +30% تفاعل.",
+  "Ran weekly assessments with feedback — +20% student performance.":
+    "أجريت تقييمات أسبوعية مع تغذية راجعة — +20% أداء الطلاب.",
+  "Built interactive, project-based robotics modules — +40% engagement.":
+    "بنيت وحدات روبوتيات تفاعلية قائمة على المشاريع — +40% تفاعل.",
+  "Introduced students to real robotics-engineering concepts.":
+    "عرّفت الطلاب على مفاهيم هندسة الروبوتيات الحقيقية.",
+  "Ran makerspace activities with microcontrollers, sensors and automation.":
+    "أدرت أنشطة ميكرسبيس بالمتحكّمات والحسّاسات والأتمتة.",
+  "Won 1st place in Best Designs at robotics competitions.":
+    "فزت بالمركز الأول لأفضل التصاميم في مسابقات الروبوتيات.",
+  "Represented the team internationally in Nagoya, Japan.":
+    "مثّلت الفريق دوليًا في ناغويا، اليابان.",
+  "Delivered 1,000+ hours of Python, AI & robotics tutoring (95% satisfaction).":
+    "قدّمت أكثر من 1000 ساعة تدريس في بايثون والذكاء الاصطناعي والروبوتيات (رضا 95%).",
+  "Taught 650+ students on almentor — +25% retention & completion.":
+    "درّست أكثر من 650 طالبًا على almentor — +25% في البقاء والإتمام.",
+  "Coached LEGO Mindstorms teams for World Robot Olympiad (WRO).":
+    "درّبت فرق LEGO Mindstorms لأولمبياد الروبوت العالمي (WRO).",
+  "Managed AI-integrated EdTech projects, leading dev teams to delivery.":
+    "أدرت مشاريع تعليمية مدمجة بالذكاء الاصطناعي، بقيادة فرق التطوير حتى التسليم.",
+  "Delivered custom e-learning platforms and automation tools.":
+    "سلّمت منصات تعلّم إلكتروني مخصّصة وأدوات أتمتة.",
+  "Earned $80K+ in freelance revenue at Top 3% worldwide standing.":
+    "حقّقت أكثر من 80 ألف دولار كإيرادات عمل حر ضمن أفضل 3% عالميًا.",
+  "Developed the Linker automation product in Python.":
+    "طوّرت منتج الأتمتة Linker بلغة بايثون.",
+  "Drove a 40% increase in job-application efficiency.":
+    "حقّقت زيادة 40% في كفاءة التقديم على الوظائف.",
+  "Designed a scraping pipeline for U.S. real-estate data.":
+    "صمّمت مسار جمع بيانات للعقارات الأمريكية.",
+  "Cleaned and formatted data into Google Sheets for reliable analysis.":
+    "نظّفت البيانات ونسّقتها في Google Sheets لتحليل موثوق.",
+  // --- impact chips ---
+  "Concept → Launch": "من الفكرة إلى الإطلاق",
+  "Built with Claude": "بُني باستخدام Claude",
+  "AI-augmented team": "فريق معزّز بالذكاء الاصطناعي",
+  "Live-stream encryption": "تشفير البث المباشر",
+  "Delay-prevention": "منع التأخير",
+  "Analytics": "تحليلات",
+  "10,000+ users": "+10,000 مستخدم",
+  "+40% YoY revenue": "+40% إيرادات سنويًا",
+  "95% satisfaction": "رضا 95%",
+  "+60% retention": "+60% احتفاظ",
+  "+40% booking efficiency": "+40% كفاءة الحجز",
+  "+35% engagement": "+35% تفاعل",
+  "50+ partners": "+50 شريك",
+  "+30% acquisition": "+30% اكتساب",
+  "+45% conversions": "+45% تحويلات",
+  "99.5% uptime": "99.5% تشغيل",
+  "200+ organizers": "+200 منظّم",
+  "Saudi Government": "الحكومة السعودية",
+  "Matterport integration": "دمج Matterport",
+  "Custom web app": "تطبيق ويب مخصّص",
+  "🥇 1st Place — Egypt": "🥇 المركز الأول — مصر",
+  "🌏 International finals — Japan": "🌏 النهائيات الدولية — اليابان",
+  "3,000+ students": "+3,000 طالب",
+  "100+ lessons": "+100 درس",
+  "+30% engagement": "+30% تفاعل",
+  "ASD · JESS · Kings'": "ASD · JESS · Kings'",
+  "+40% engagement": "+40% تفاعل",
+  "🥇 Best Design award": "🥇 جائزة أفضل تصميم",
+  "Makerspace": "ميكرسبيس",
+  "Hybrid teaching": "تدريس هجين",
+  "1,000+ hours": "+1,000 ساعة",
+  "650+ students": "+650 طالب",
+  "$80K+ delivered": "+80 ألف دولار",
+  "Top 3% globally": "أفضل 3% عالميًا",
+  "Led dev teams": "قيادة فرق التطوير",
+  "+40% efficiency": "+40% كفاءة",
+  "Python SaaS": "بايثون SaaS",
+  "Data pipelines": "مسارات بيانات",
+  "Web scraping": "جمع بيانات الويب",
+  // --- link labels ---
+  "Visit Ashrhly": "زيارة Ashrhly",
+  "Visit Inkrypt Videos": "زيارة Inkrypt Videos",
+  "Watch overview": "شاهد النظرة العامة",
+  "Visit Sakeenah Tours": "زيارة Sakeenah Tours",
+  "App Store": "App Store",
+  "LinkedIn": "LinkedIn",
+  // --- skill category titles ---
+  "Product Management": "إدارة المنتجات",
+  "AI & Emerging Tech": "الذكاء الاصطناعي والتقنيات الناشئة",
+  "STEAM Education & Pedagogy": "تعليم STEAM وطرق التدريس",
+  "Programming & Physical Computing": "البرمجة والحوسبة الفيزيائية",
+  "Engineering & Data": "الهندسة والبيانات",
+  "Methodologies & Tools": "المنهجيات والأدوات",
+  // --- misc ---
+  "What I did": "ما قمت به",
+  "Under NDA": "تحت اتفاقية عدم إفصاح",
+};
+const t = (s) => (LANG === "ar" ? AR[s] || s : s);
+
+// Static (HTML) translations, keyed by data-i18n attribute. Values may contain markup.
+const STATIC = {
+  en: {
+    "nav.story": "Story", "nav.journey": "Journey", "nav.products": "Products",
+    "nav.skills": "Skills", "nav.contact": "Contact", "nav.cta": "Let's talk",
+    "hero.eyebrow": "EDUCATOR · ENGINEER · AI PRODUCT MANAGER",
+    "hero.name": "Ahmed Tarek", "hero.surname": "Mourssi",
+    "hero.sub": "Ten years turning technology into impact — from teaching kids to build <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas. This is that journey.",
+    "hero.btnPrimary": "Read my story", "hero.btnGhost": "Get in touch",
+    "hero.stat1": "Years in tech & education", "hero.stat2": "Students taught",
+    "hero.stat3": "Product users reached", "hero.stat4": "Top-rated globally",
+    "hero.badge": "Open to work", "hero.scroll": "Scroll",
+    "story.index": "01 · THE STORY",
+    "story.title": "One journey,<br /><span class=\"grad\">three chapters.</span>",
+    "story.lead": "I started out teaching children to build robots and write their first lines of code. To teach it well, I had to <strong>build it myself</strong> — so I became an engineer. And to build things that truly mattered, I learned to <strong>lead the whole product</strong>. Educator, engineer, product manager — three chapters, one throughline: <strong>making technology create real impact for real people.</strong>",
+    "story.c1label": "Chapter One", "story.c1h": "The Educator",
+    "story.c1p": "10 years of STEAM & CS teaching, 3,000+ students, RoboCup champion. Where the curiosity started.",
+    "story.c2label": "Chapter Two", "story.c2h": "The Builder",
+    "story.c2p": "Python, automation and EdTech engineering — Top 3% globally on Upwork, $80K+ delivered.",
+    "story.c3label": "Chapter Three", "story.c3h": "The Product Manager",
+    "story.c3p": "Leading AI-powered platforms from zero to launch, aligning engineering, design & ops.",
+    "edu.index": "CHAPTER ONE", "edu.title": "The Educator",
+    "edu.lead": "Before I built products, I built <strong>curiosity</strong>. A decade teaching STEAM, robotics and code across the UAE, USA, Saudi Arabia and Egypt — and a RoboCup title that started it all.",
+    "build.index": "CHAPTER TWO", "build.title": "The Builder",
+    "build.lead": "To teach technology well, I learned to <strong>build it</strong> — Python automation, data tooling and EdTech platforms, delivered to clients worldwide at the top of the field.",
+    "work.index": "CHAPTER THREE", "work.title": "The Product Manager",
+    "work.lead": "Today I lead products end-to-end. Not a list of job titles — the actual products I built, the problem each solved, and where you can go see them for yourself.",
+    "skills.index": "04 · TOOLKIT", "skills.title": "Skills & toolkit",
+    "contact.index": "05 · CONTACT",
+    "contact.title": "Let's build<br /><span class=\"grad\">something great.</span>",
+    "contact.sub": "Open to <strong>Product Manager</strong>, <strong>AI Product</strong> and <strong>STEAM / EdTech leadership</strong> roles. Based in Dubai, working globally.",
+    "form.name": "Your name", "form.email": "Your email",
+    "form.company": "Company / role (optional)", "form.message": "What role or project do you have in mind?",
+    "form.submit": "Send message", "contact.email": "Email", "contact.phone": "Phone", "contact.linkedin": "LinkedIn",
+    "footer.copy": "© 2026 Ahmed Tarek Mourssi",
+    "cookie.text": "This site uses privacy-friendly analytics (Google Analytics & Microsoft Clarity) to understand how visitors engage. Nothing loads until you choose.",
+    "cookie.decline": "Decline", "cookie.accept": "Accept",
+  },
+  ar: {
+    "nav.story": "القصة", "nav.journey": "الرحلة", "nav.products": "المنتجات",
+    "nav.skills": "المهارات", "nav.contact": "تواصل", "nav.cta": "لنتحدّث",
+    "hero.eyebrow": "مُعلّم · مهندس · مدير منتج ذكاء اصطناعي",
+    "hero.name": "أحمد طارق", "hero.surname": "مرسي",
+    "hero.sub": "عشر سنوات في تحويل التقنية إلى أثر — من تعليم الأطفال بناء <strong>الروبوتات</strong>، إلى هندسة أدوات <strong>التعليم التقني</strong>، إلى قيادة <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية. الفضول نفسه، ومساحة أكبر. هذه هي الرحلة.",
+    "hero.btnPrimary": "اقرأ قصتي", "hero.btnGhost": "تواصل معي",
+    "hero.stat1": "سنوات في التقنية والتعليم", "hero.stat2": "طالب تم تدريسهم",
+    "hero.stat3": "مستخدم وصلت إليهم المنتجات", "hero.stat4": "الأعلى تقييمًا عالميًا",
+    "hero.badge": "متاح للعمل", "hero.scroll": "مرّر",
+    "story.index": "01 · القصة",
+    "story.title": "رحلة واحدة،<br /><span class=\"grad\">ثلاثة فصول.</span>",
+    "story.lead": "بدأت بتعليم الأطفال بناء الروبوتات وكتابة أولى أسطر الكود. ولأعلّمه جيّدًا كان عليّ أن <strong>أبنيه بنفسي</strong> — فأصبحت مهندسًا. ولأبني ما يهمّ فعلًا، تعلّمت أن <strong>أقود المنتج بالكامل</strong>. مُعلّم، مهندس، مدير منتج — ثلاثة فصول وخيط واحد: <strong>جعل التقنية تُحدث أثرًا حقيقيًا في حياة الناس.</strong>",
+    "story.c1label": "الفصل الأول", "story.c1h": "المُعلّم",
+    "story.c1p": "عشر سنوات في تدريس STEAM وعلوم الحاسب، أكثر من 3000 طالب، وبطل روبوكب. من هنا بدأ الفضول.",
+    "story.c2label": "الفصل الثاني", "story.c2h": "المُهندس",
+    "story.c2p": "بايثون وأتمتة وهندسة تعليم تقني — ضمن أفضل 3% عالميًا على Upwork، وأكثر من 80 ألف دولار منجزة.",
+    "story.c3label": "الفصل الثالث", "story.c3h": "مدير المنتج",
+    "story.c3p": "قيادة منصات مدعومة بالذكاء الاصطناعي من الصفر حتى الإطلاق، مع توحيد فرق الهندسة والتصميم والعمليات.",
+    "edu.index": "الفصل الأول", "edu.title": "المُعلّم",
+    "edu.lead": "قبل أن أبني المنتجات، بنيت <strong>الفضول</strong>. عقد من تدريس STEAM والروبوتيات والبرمجة عبر الإمارات وأمريكا والسعودية ومصر — ولقب روبوكب الذي بدأ كل شيء.",
+    "build.index": "الفصل الثاني", "build.title": "المُهندس",
+    "build.lead": "لأعلّم التقنية جيّدًا، تعلّمت أن <strong>أبنيها</strong> — أتمتة بايثون وأدوات بيانات ومنصات تعليم تقني، سُلّمت لعملاء حول العالم في قمة المجال.",
+    "work.index": "الفصل الثالث", "work.title": "مدير المنتج",
+    "work.lead": "اليوم أقود المنتجات من البداية للنهاية. ليست قائمة مسمّيات وظيفية — بل المنتجات الحقيقية التي بنيتها، والمشكلة التي حلّها كلٌّ منها، وأين يمكنك رؤيتها بنفسك.",
+    "skills.index": "04 · الأدوات", "skills.title": "المهارات والأدوات",
+    "contact.index": "05 · تواصل",
+    "contact.title": "لنبنِ<br /><span class=\"grad\">شيئًا عظيمًا.</span>",
+    "contact.sub": "متاح لأدوار <strong>مدير منتج</strong> و<strong>منتجات الذكاء الاصطناعي</strong> و<strong>قيادة STEAM / التعليم التقني</strong>. مقيم في دبي، وأعمل عالميًا.",
+    "form.name": "اسمك", "form.email": "بريدك الإلكتروني",
+    "form.company": "الشركة / المنصب (اختياري)", "form.message": "ما الدور أو المشروع الذي تفكّر فيه؟",
+    "form.submit": "إرسال الرسالة", "contact.email": "البريد", "contact.phone": "الهاتف", "contact.linkedin": "لينكدإن",
+    "footer.copy": "© 2026 أحمد طارق مرسي",
+    "cookie.text": "يستخدم هذا الموقع تحليلات محترمة للخصوصية (Google Analytics وMicrosoft Clarity) لفهم كيفية تفاعل الزوّار. لا يتم تحميل أي شيء حتى تختار.",
+    "cookie.decline": "رفض", "cookie.accept": "قبول",
+  },
+};
+
+/* =========================================================
    DATA (from resume)
    ========================================================= */
 // Each product: what it is, my role, what I actually built, the impact, and a live link.
@@ -274,14 +565,14 @@ const SKILLS = [
    ========================================================= */
 function linkBtn(j) {
   if (j.nda) {
-    return `<span class="prod__cta prod__cta--nda"><span class="prod__lock">🔒</span> Under NDA</span>`;
+    return `<span class="prod__cta prod__cta--nda"><span class="prod__lock">🔒</span> ${t("Under NDA")}</span>`;
   }
   const links = j.links || [];
   if (!links.length) return "";
   return `<div class="prod__ctas">` + links
     .map((l, k) =>
       `<a class="prod__cta${k > 0 ? " prod__cta--ghost" : ""}" href="${l.url}" target="_blank" rel="noopener">
-        ${l.label} <span class="prod__cta-arrow">↗</span></a>`
+        ${t(l.label)} <span class="prod__cta-arrow">↗</span></a>`
     )
     .join("") + `</div>`;
 }
@@ -289,19 +580,19 @@ function cardHTML(j, i) {
   return `
   <article class="prod glass reveal${j.featured ? " prod--featured" : ""}" style="--d:${Math.min(i * 0.05, 0.3)}s">
     <div class="prod__top">
-      <span class="prod__kind">${j.kind}</span>
+      <span class="prod__kind">${t(j.kind)}</span>
       <span class="prod__date">${j.date}</span>
     </div>
     <h3 class="prod__name">${j.company}</h3>
-    <p class="prod__role">${j.role} · ${j.place}</p>
-    <p class="prod__what">${j.what}</p>
+    <p class="prod__role">${t(j.role)} · ${t(j.place)}</p>
+    <p class="prod__what">${t(j.what)}</p>
     <div class="prod__section">
-      <span class="prod__label">${j.builtLabel || "What I did"}</span>
-      <ul class="prod__built">${j.built.map((b) => `<li>${b}</li>`).join("")}</ul>
+      <span class="prod__label">${t("What I did")}</span>
+      <ul class="prod__built">${j.built.map((b) => `<li>${t(b)}</li>`).join("")}</ul>
     </div>
-    <div class="prod__impact">${j.impact.map((m) => `<span class="prod__metric">${m}</span>`).join("")}</div>
+    <div class="prod__impact">${j.impact.map((m) => `<span class="prod__metric">${t(m)}</span>`).join("")}</div>
     <div class="prod__foot">
-      <div class="prod__tags">${j.tags.map((t) => `<span class="job__tag">${t}</span>`).join("")}</div>
+      <div class="prod__tags">${j.tags.map((tag) => `<span class="job__tag">${tag}</span>`).join("")}</div>
       ${linkBtn(j)}
     </div>
   </article>`;
@@ -310,18 +601,63 @@ function renderInto(id, list) {
   const el = document.getElementById(id);
   if (el) el.innerHTML = list.map(cardHTML).join("");
 }
-renderInto("eduTimeline", EDUCATOR);
-renderInto("buildTimeline", BUILDER);
-renderInto("timeline", JOBS);
+function renderCards() {
+  renderInto("eduTimeline", EDUCATOR);
+  renderInto("buildTimeline", BUILDER);
+  renderInto("timeline", JOBS);
+  const skillsGrid = document.getElementById("skillsGrid");
+  if (skillsGrid) {
+    skillsGrid.innerHTML = SKILLS.map(
+      (s, i) => `
+      <div class="skillcat reveal" style="--d:${i * 0.08}s">
+        <h3>${t(s.title)}</h3>
+        <div class="skillcat__chips">${s.chips.map((c) => `<span class="chip">${c}</span>`).join("")}</div>
+      </div>`
+    ).join("");
+  }
+}
 
-const skillsGrid = document.getElementById("skillsGrid");
-skillsGrid.innerHTML = SKILLS.map(
-  (s, i) => `
-  <div class="skillcat reveal" style="--d:${i * 0.08}s">
-    <h3>${s.title}</h3>
-    <div class="skillcat__chips">${s.chips.map((c) => `<span class="chip">${c}</span>`).join("")}</div>
-  </div>`
-).join("");
+/* =========================================================
+   APPLY LANGUAGE (static text + direction) & TOGGLE
+   ========================================================= */
+function applyStatic() {
+  const dict = STATIC[LANG] || STATIC.en;
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+  document.body.classList.toggle("ar", LANG === "ar");
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const v = dict[el.getAttribute("data-i18n")];
+    if (v != null) el.innerHTML = v;
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+    const v = dict[el.getAttribute("data-i18n-ph")];
+    if (v != null) el.setAttribute("placeholder", v);
+  });
+  const tg = document.getElementById("langToggle");
+  if (tg) {
+    tg.textContent = LANG === "ar" ? "EN" : "ع";
+    tg.setAttribute("aria-label", LANG === "ar" ? "Switch to English" : "التبديل إلى العربية");
+  }
+  try { localStorage.setItem("lang", LANG); } catch (e) {}
+}
+
+// initial paint
+renderCards();
+applyStatic();
+
+// toggle handler
+const langToggle = document.getElementById("langToggle");
+if (langToggle) {
+  langToggle.addEventListener("click", () => {
+    LANG = LANG === "ar" ? "en" : "ar";
+    renderCards();
+    applyStatic();
+    // re-rendered cards are new nodes; reveal them immediately (user already scrolled)
+    document
+      .querySelectorAll("#eduTimeline .reveal, #buildTimeline .reveal, #timeline .reveal, #skillsGrid .reveal")
+      .forEach((el) => el.classList.add("in"));
+  });
+}
 
 /* =========================================================
    REVEAL ON SCROLL

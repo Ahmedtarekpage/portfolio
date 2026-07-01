@@ -57,7 +57,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script type="importmap">
   {
@@ -82,13 +82,16 @@
   <nav class="nav" id="nav">
     <a href="#hero" class="nav__brand">AT<span>.</span></a>
     <div class="nav__links">
-      <a href="#about">Story</a>
-      <a href="#educator">Journey</a>
-      <a href="#work">Products</a>
-      <a href="#skills">Skills</a>
-      <a href="#contact">Contact</a>
+      <a href="#about" data-i18n="nav.story">Story</a>
+      <a href="#educator" data-i18n="nav.journey">Journey</a>
+      <a href="#work" data-i18n="nav.products">Products</a>
+      <a href="#skills" data-i18n="nav.skills">Skills</a>
+      <a href="#contact" data-i18n="nav.contact">Contact</a>
     </div>
-    <a href="#contact" class="nav__cta">Let's talk</a>
+    <div class="nav__right">
+      <button type="button" class="nav__lang" id="langToggle" aria-label="التبديل إلى العربية">ع</button>
+      <a href="#contact" class="nav__cta" data-i18n="nav.cta">Let's talk</a>
+    </div>
   </nav>
 
   <main>
@@ -96,26 +99,26 @@
     <section class="hero" id="hero">
       <div class="hero__grid">
       <div class="hero__inner">
-        <p class="hero__eyebrow reveal">EDUCATOR · ENGINEER · AI PRODUCT MANAGER</p>
+        <p class="hero__eyebrow reveal" data-i18n="hero.eyebrow">EDUCATOR · ENGINEER · AI PRODUCT MANAGER</p>
         <h1 class="hero__title">
-          <span class="reveal" style="--d:.05s">Ahmed Tarek</span>
-          <span class="reveal grad" style="--d:.15s">Mourssi</span>
+          <span class="reveal" style="--d:.05s" data-i18n="hero.name">Ahmed Tarek</span>
+          <span class="reveal grad" style="--d:.15s" data-i18n="hero.surname">Mourssi</span>
         </h1>
-        <p class="hero__sub reveal" style="--d:.28s">
+        <p class="hero__sub reveal" style="--d:.28s" data-i18n="hero.sub">
           Ten years turning technology into impact — from teaching kids to build
           <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading
           <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas.
           This is that journey.
         </p>
         <div class="hero__actions reveal" style="--d:.4s">
-          <a href="#educator" class="btn btn--primary">Read my story</a>
-          <a href="#contact" class="btn btn--ghost">Get in touch</a>
+          <a href="#educator" class="btn btn--primary" data-i18n="hero.btnPrimary">Read my story</a>
+          <a href="#contact" class="btn btn--ghost" data-i18n="hero.btnGhost">Get in touch</a>
         </div>
         <div class="hero__stats reveal" style="--d:.55s">
-          <div class="stat"><span class="stat__num" data-count="10" data-suffix="+">0</span><span class="stat__label">Years in tech &amp; education</span></div>
-          <div class="stat"><span class="stat__num" data-count="3000" data-suffix="+">0</span><span class="stat__label">Students taught</span></div>
-          <div class="stat"><span class="stat__num" data-count="10000" data-suffix="+">0</span><span class="stat__label">Product users reached</span></div>
-          <div class="stat"><span class="stat__num" data-count="3" data-suffix="%">0</span><span class="stat__label">Top-rated globally</span></div>
+          <div class="stat"><span class="stat__num" data-count="10" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat1">Years in tech &amp; education</span></div>
+          <div class="stat"><span class="stat__num" data-count="3000" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat2">Students taught</span></div>
+          <div class="stat"><span class="stat__num" data-count="10000" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat3">Product users reached</span></div>
+          <div class="stat"><span class="stat__num" data-count="3" data-suffix="%">0</span><span class="stat__label" data-i18n="hero.stat4">Top-rated globally</span></div>
         </div>
       </div>
 
@@ -131,12 +134,12 @@
           <span class="hero__photo-fallback">AT</span>
         </div>
         <span class="hero__photo-badge">
-          <span class="hero__photo-dot"></span> Open to work
+          <span class="hero__photo-dot"></span> <span data-i18n="hero.badge">Open to work</span>
         </span>
       </div>
       </div>
       <div class="hero__scroll">
-        <span>Scroll</span>
+        <span data-i18n="hero.scroll">Scroll</span>
         <div class="hero__scroll-line"></div>
       </div>
     </section>
@@ -144,11 +147,11 @@
     <!-- ABOUT -->
     <section class="section about" id="about">
       <div class="section__head">
-        <span class="section__index">01 · THE STORY</span>
-        <h2 class="section__title reveal">One journey,<br /><span class="grad">three chapters.</span></h2>
+        <span class="section__index" data-i18n="story.index">01 · THE STORY</span>
+        <h2 class="section__title reveal" data-i18n="story.title">One journey,<br /><span class="grad">three chapters.</span></h2>
       </div>
       <div class="about__grid">
-        <p class="about__lead reveal">
+        <p class="about__lead reveal" data-i18n="story.lead">
           I started out teaching children to build robots and write their first lines of code.
           To teach it well, I had to <strong>build it myself</strong> — so I became an engineer.
           And to build things that truly mattered, I learned to <strong>lead the whole product</strong>.
@@ -157,19 +160,19 @@
         </p>
         <div class="about__cards">
           <div class="glass tilt reveal">
-            <span class="about__chapter">Chapter One</span>
-            <h3>The Educator</h3>
-            <p>10 years of STEAM &amp; CS teaching, 3,000+ students, RoboCup champion. Where the curiosity started.</p>
+            <span class="about__chapter" data-i18n="story.c1label">Chapter One</span>
+            <h3 data-i18n="story.c1h">The Educator</h3>
+            <p data-i18n="story.c1p">10 years of STEAM &amp; CS teaching, 3,000+ students, RoboCup champion. Where the curiosity started.</p>
           </div>
           <div class="glass tilt reveal" style="--d:.1s">
-            <span class="about__chapter">Chapter Two</span>
-            <h3>The Builder</h3>
-            <p>Python, automation and EdTech engineering — Top 3% globally on Upwork, $80K+ delivered.</p>
+            <span class="about__chapter" data-i18n="story.c2label">Chapter Two</span>
+            <h3 data-i18n="story.c2h">The Builder</h3>
+            <p data-i18n="story.c2p">Python, automation and EdTech engineering — Top 3% globally on Upwork, $80K+ delivered.</p>
           </div>
           <div class="glass tilt reveal" style="--d:.2s">
-            <span class="about__chapter">Chapter Three</span>
-            <h3>The Product Manager</h3>
-            <p>Leading AI-powered platforms from zero to launch, aligning engineering, design &amp; ops.</p>
+            <span class="about__chapter" data-i18n="story.c3label">Chapter Three</span>
+            <h3 data-i18n="story.c3h">The Product Manager</h3>
+            <p data-i18n="story.c3p">Leading AI-powered platforms from zero to launch, aligning engineering, design &amp; ops.</p>
           </div>
         </div>
       </div>
@@ -178,9 +181,9 @@
     <!-- CHAPTER ONE — EDUCATOR -->
     <section class="section work" id="educator">
       <div class="section__head">
-        <span class="section__index">CHAPTER ONE</span>
-        <h2 class="section__title reveal">The Educator</h2>
-        <p class="section__lead reveal" style="--d:.1s">
+        <span class="section__index" data-i18n="edu.index">CHAPTER ONE</span>
+        <h2 class="section__title reveal" data-i18n="edu.title">The Educator</h2>
+        <p class="section__lead reveal" style="--d:.1s" data-i18n="edu.lead">
           Before I built products, I built <strong>curiosity</strong>. A decade teaching STEAM,
           robotics and code across the UAE, USA, Saudi Arabia and Egypt — and a RoboCup title
           that started it all.
@@ -194,9 +197,9 @@
     <!-- CHAPTER TWO — BUILDER -->
     <section class="section work" id="builder">
       <div class="section__head">
-        <span class="section__index">CHAPTER TWO</span>
-        <h2 class="section__title reveal">The Builder</h2>
-        <p class="section__lead reveal" style="--d:.1s">
+        <span class="section__index" data-i18n="build.index">CHAPTER TWO</span>
+        <h2 class="section__title reveal" data-i18n="build.title">The Builder</h2>
+        <p class="section__lead reveal" style="--d:.1s" data-i18n="build.lead">
           To teach technology well, I learned to <strong>build it</strong> — Python automation,
           data tooling and EdTech platforms, delivered to clients worldwide at the top of the field.
         </p>
@@ -209,9 +212,9 @@
     <!-- CHAPTER THREE — PRODUCT MANAGER -->
     <section class="section work" id="work">
       <div class="section__head">
-        <span class="section__index">CHAPTER THREE</span>
-        <h2 class="section__title reveal">The Product Manager</h2>
-        <p class="section__lead reveal" style="--d:.1s">
+        <span class="section__index" data-i18n="work.index">CHAPTER THREE</span>
+        <h2 class="section__title reveal" data-i18n="work.title">The Product Manager</h2>
+        <p class="section__lead reveal" style="--d:.1s" data-i18n="work.lead">
           Today I lead products end-to-end. Not a list of job titles — the actual products I built,
           the problem each solved, and where you can go see them for yourself.
         </p>
@@ -224,8 +227,8 @@
     <!-- SKILLS -->
     <section class="section skills" id="skills">
       <div class="section__head">
-        <span class="section__index">03</span>
-        <h2 class="section__title reveal">Skills &amp; toolkit</h2>
+        <span class="section__index" data-i18n="skills.index">04 · TOOLKIT</span>
+        <h2 class="section__title reveal" data-i18n="skills.title">Skills &amp; toolkit</h2>
       </div>
       <div class="skills__grid" id="skillsGrid">
         <!-- injected by main.js -->
@@ -235,53 +238,53 @@
     <!-- CONTACT -->
     <section class="section contact" id="contact">
       <div class="contact__inner">
-        <span class="section__index">04</span>
-        <h2 class="contact__title reveal">Let's build<br /><span class="grad">something great.</span></h2>
-        <p class="contact__sub reveal" style="--d:.1s">
+        <span class="section__index" data-i18n="contact.index">05 · CONTACT</span>
+        <h2 class="contact__title reveal" data-i18n="contact.title">Let's build<br /><span class="grad">something great.</span></h2>
+        <p class="contact__sub reveal" style="--d:.1s" data-i18n="contact.sub">
           Open to <strong>Product Manager</strong>, <strong>AI Product</strong> and <strong>STEAM / EdTech leadership</strong> roles. Based in Dubai, working globally.
         </p>
         <form class="contact__form reveal" id="contactForm" style="--d:.15s" novalidate>
           <div class="form__row">
-            <input type="text" name="name" placeholder="Your name" required autocomplete="name" />
-            <input type="email" name="email" placeholder="Your email" required autocomplete="email" />
+            <input type="text" name="name" placeholder="Your name" data-i18n-ph="form.name" required autocomplete="name" />
+            <input type="email" name="email" placeholder="Your email" data-i18n-ph="form.email" required autocomplete="email" />
           </div>
-          <input type="text" name="company" placeholder="Company / role (optional)" autocomplete="organization" />
-          <textarea name="message" rows="4" placeholder="What role or project do you have in mind?" required></textarea>
+          <input type="text" name="company" placeholder="Company / role (optional)" data-i18n-ph="form.company" autocomplete="organization" />
+          <textarea name="message" rows="4" placeholder="What role or project do you have in mind?" data-i18n-ph="form.message" required></textarea>
           <input type="hidden" name="_subject" value="New message from your portfolio" />
-          <button type="submit" class="btn btn--primary form__submit">Send message <span class="prod__cta-arrow">↗</span></button>
+          <button type="submit" class="btn btn--primary form__submit"><span data-i18n="form.submit">Send message</span> <span class="prod__cta-arrow">↗</span></button>
           <p class="form__status" id="formStatus" role="status" aria-live="polite"></p>
         </form>
 
         <div class="contact__links reveal" style="--d:.28s">
           <a class="contact__link" href="mailto:se.ahmedtprofile@gmail.com">
-            <span class="contact__link-label">Email</span>
+            <span class="contact__link-label" data-i18n="contact.email">Email</span>
             <span class="contact__link-val">se.ahmedtprofile@gmail.com</span>
           </a>
           <a class="contact__link" href="tel:+971588558039">
-            <span class="contact__link-label">Phone</span>
+            <span class="contact__link-label" data-i18n="contact.phone">Phone</span>
             <span class="contact__link-val">+971 58 855 8039</span>
           </a>
           <a class="contact__link" href="https://linkedin.com/in/ahmedtarekpage" target="_blank" rel="noopener">
-            <span class="contact__link-label">LinkedIn</span>
+            <span class="contact__link-label" data-i18n="contact.linkedin">LinkedIn</span>
             <span class="contact__link-val">/in/ahmedtarekpage</span>
           </a>
         </div>
       </div>
       <footer class="footer">
-        <span>© 2026 Ahmed Tarek Mourssi</span>
+        <span data-i18n="footer.copy">© 2026 Ahmed Tarek Mourssi</span>
       </footer>
     </section>
   </main>
 
   <!-- cookie consent -->
   <div class="cookie" id="cookieBanner" hidden>
-    <p class="cookie__text">
+    <p class="cookie__text" data-i18n="cookie.text">
       This site uses privacy-friendly analytics (Google Analytics &amp; Microsoft Clarity)
       to understand how visitors engage. Nothing loads until you choose.
     </p>
     <div class="cookie__actions">
-      <button class="cookie__btn cookie__btn--ghost" id="cookieDecline">Decline</button>
-      <button class="cookie__btn cookie__btn--accept" id="cookieAccept">Accept</button>
+      <button class="cookie__btn cookie__btn--ghost" id="cookieDecline" data-i18n="cookie.decline">Decline</button>
+      <button class="cookie__btn cookie__btn--accept" id="cookieAccept" data-i18n="cookie.accept">Accept</button>
     </div>
   </div>
 
