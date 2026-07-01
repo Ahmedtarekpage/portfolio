@@ -3,6 +3,7 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/product", "destination": "/index.html" },
-    { "source": "/educator", "destination": "/index.html" }
+    { "source": "/educator", "destination": "/index.html" },
+    { "source": "/full", "destination": "/index.html" }
   ]
 }

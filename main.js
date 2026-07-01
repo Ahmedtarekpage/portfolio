@@ -705,9 +705,10 @@ function applyStatic() {
 const VIEW = (() => {
   const p = location.pathname.replace(/\/+$/, "").toLowerCase();
   const q = new URLSearchParams(location.search).get("view");
-  if (p.endsWith("/product") || q === "product") return "product";
   if (p.endsWith("/educator") || q === "educator") return "educator";
-  return "full";
+  if (p.endsWith("/full") || q === "full") return "full";
+  if (p.endsWith("/product") || q === "product") return "product";
+  return "product"; // default landing = product-only page
 })();
 
 // Per-view hero + section-label overrides (merged into STATIC before paint).
