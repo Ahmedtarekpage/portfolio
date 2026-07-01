@@ -501,7 +501,7 @@ const EDUCATOR = [
     ],
     impact: ["1,000+ hours", "650+ students", "95% satisfaction"],
     tags: ["Python", "Scratch", "LEGO Robotics"],
-    localVideo: { src: "assets/almentor.mp4", poster: "assets/almentor-poster.png" },
+    localVideo: { src: "assets/almentor.mp4", poster: "assets/almentor-poster.jpg" },
     links: [{ url: "https://www.almentor.net/courses/Python-Warm-Up-for-Machine-Learning", label: "View course" }],
   },
 ];
