@@ -355,7 +355,7 @@ const JOBS = [
     ],
     impact: ["10,000+ users", "+40% YoY revenue", "95% satisfaction", "+60% retention"],
     tags: ["AI EdTech", "VR", "E-commerce", "Top Rated Plus"],
-    links: [{ url: "https://www.youtube.com/watch?v=TAHexuZxpxA", label: "Watch overview" }],
+    video: { id: "TAHexuZxpxA", poster: "assets/awasis-1.jpg" },
   },
   {
     date: "Feb 2024 — Oct 2024",
