@@ -351,7 +351,6 @@ const JOBS = [
     ],
     impact: ["10,000+ users", "+40% YoY revenue", "95% satisfaction", "+60% retention"],
     tags: ["AI EdTech", "VR", "E-commerce", "Top Rated Plus"],
-    images: ["assets/awasis-1.jpg", "assets/awasis-2.jpg", "assets/awasis-3.jpg"],
     links: [{ url: "https://www.youtube.com/watch?v=TAHexuZxpxA", label: "Watch overview" }],
   },
   {
@@ -483,6 +482,7 @@ const EDUCATOR = [
     ],
     impact: ["🥇 Best Design award", "Makerspace", "Hybrid teaching"],
     tags: ["Arduino", "Electronics", "Robotics"],
+    images: ["assets/awasis-1.jpg", "assets/awasis-2.jpg", "assets/awasis-3.jpg"],
     links: [],
   },
   {
