@@ -32,6 +32,7 @@ const AR = {
   "EdTech Software Engineer & STEAM Instructor": "مهندس برمجيات تعليمية ومدرّس STEAM",
   "Python Developer — SaaS": "مطوّر بايثون — SaaS",
   "Junior Python Developer": "مطوّر بايثون مبتدئ",
+  "Senior Python Developer": "مطوّر بايثون أول",
   // --- kinds ---
   "AI EdTech Platform": "منصة تعليم بالذكاء الاصطناعي",
   "Video-Security SaaS": "SaaS لأمن الفيديو",
@@ -529,7 +530,7 @@ const BUILDER = [
   {
     date: "2023",
     place: "Saudi Arabia · Remote",
-    role: "Python Developer — SaaS",
+    role: "Senior Python Developer",
     company: "Modernint (Linker)",
     kind: "Automation Product",
     what: "Built 'Linker' — a Python SaaS tool that automatically applies to LinkedIn job postings, streamlining the job-search workflow end to end.",
@@ -544,7 +545,7 @@ const BUILDER = [
   {
     date: "2022 — 2023",
     place: "USA · Remote",
-    role: "Junior Python Developer",
+    role: "Senior Python Developer",
     company: "Peakregroup",
     kind: "Data Engineering",
     what: "Built a real-estate data product scraping U.S. state listings, then cleaning and structuring the data into usable, accurate datasets.",
