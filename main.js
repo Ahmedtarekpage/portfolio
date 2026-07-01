@@ -482,6 +482,7 @@ const EDUCATOR = [
     ],
     impact: ["🥇 Best Design award", "Makerspace", "Hybrid teaching"],
     tags: ["Arduino", "Electronics", "Robotics"],
+    localVideo: { src: "assets/awasis.mp4", poster: "assets/awasis-1.jpg" },
     images: ["assets/awasis-1.jpg", "assets/awasis-2.jpg", "assets/awasis-3.jpg"],
     links: [],
   },
@@ -611,6 +612,12 @@ function cardHTML(j, i) {
     ${j.video
       ? `<div class="prod__video" data-yt="${j.video.id}">
           <img class="prod__video-poster" src="${j.video.poster}" alt="${j.company}" loading="lazy" />
+          <button class="prod__video-play" aria-label="Play video"><span>▶</span></button>
+        </div>`
+      : ""}
+    ${j.localVideo
+      ? `<div class="prod__video" data-mp4="${j.localVideo.src}">
+          <img class="prod__video-poster" src="${j.localVideo.poster}" alt="${j.company}" loading="lazy" />
           <button class="prod__video-play" aria-label="Play video"><span>▶</span></button>
         </div>`
       : ""}
@@ -852,8 +859,14 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   const box = e.target.closest(".prod__video");
   if (!box || box.dataset.loaded) return;
-  const id = box.dataset.yt;
   box.dataset.loaded = "1";
+  if (box.dataset.mp4) {
+    box.innerHTML =
+      `<video src="${box.dataset.mp4}" controls autoplay playsinline preload="metadata"></video>`;
+    if (window.gtag) gtag("event", "video_play", { src: box.dataset.mp4 });
+    return;
+  }
+  const id = box.dataset.yt;
   box.innerHTML =
     `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1" ` +
     `title="RoboCup video" frameborder="0" ` +
