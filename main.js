@@ -106,20 +106,138 @@ const JOBS = [
     tags: ["GovTech", "Compliance", "Matterport", "Jira"],
     nda: true,
   },
+];
+
+/* ---- CHAPTER ONE — The Educator (STEAM / robotics / CS teaching) ---- */
+const EDUCATOR = [
+  {
+    date: "2017",
+    place: "Nagoya, Japan",
+    role: "Contestant — 1st Place, RoboCup Junior Egypt",
+    company: "RoboCup Federation",
+    kind: "🏆 Robotics Champion",
+    what: "Where it all began. Designed and programmed autonomous robots that took 1st place at RoboCup Junior Egypt — then represented Egypt at the international finals in Nagoya, Japan.",
+    built: [
+      "Optimized decision-making algorithms for autonomous task execution.",
+      "Competed on the world stage at the RoboCup international finals.",
+    ],
+    impact: ["🥇 1st Place — Egypt", "🌏 International finals — Japan"],
+    tags: ["Robotics", "Autonomous systems", "Algorithms"],
+    links: [],
+    featured: true,
+  },
   {
     date: "Aug 2022 — Jan 2026",
     place: "Udacity · DECI (Egypt Gov)",
-    role: "Session Lead",
+    role: "STEAM Session Lead",
     company: "Digital Egypt Cubs Initiative",
-    kind: "STEAM Education Program",
-    what: "A national initiative (with the Egyptian government) teaching Computer Fundamentals, AI and Python to students across levels.",
+    kind: "National STEAM Program",
+    what: "A national initiative with the Egyptian government teaching Computer Fundamentals, AI and Python to students at scale.",
     built: [
-      "Delivered 100+ virtual STEAM lessons over 3 years.",
-      "Designed hands-on coding & electronics projects that lifted engagement.",
-      "Ran weekly assessments with structured feedback.",
+      "Delivered 100+ virtual STEAM lessons to 3,000+ students over 3 years.",
+      "Designed hands-on coding & electronics projects — +30% engagement.",
+      "Ran weekly assessments with feedback — +20% student performance.",
     ],
-    impact: ["100+ lessons", "3 years", "AI & Python"],
-    tags: ["STEAM", "AI / Python", "Education"],
+    impact: ["3,000+ students", "100+ lessons", "+30% engagement"],
+    tags: ["STEAM", "AI / Python", "Curriculum"],
+    links: [],
+  },
+  {
+    date: "2024",
+    place: "Dubai, UAE",
+    role: "STEAM & Robotics Instructor",
+    company: "Alpha M Educational Services",
+    kind: "Robotics · Top Schools",
+    what: "Taught robotics and programming to teenagers in Dubai's top-tier schools — American School of Dubai (ASD), JESS and Kings' Schools.",
+    built: [
+      "Built interactive, project-based robotics modules — +40% engagement.",
+      "Introduced students to real robotics-engineering concepts.",
+    ],
+    impact: ["ASD · JESS · Kings'", "+40% engagement"],
+    tags: ["Robotics", "Project-based", "STEM"],
+    links: [],
+  },
+  {
+    date: "2016 — 2020",
+    place: "Alexandria, Egypt",
+    role: "ICT & Robotics Instructor",
+    company: "AWASIS Science",
+    kind: "Makerspace · Roots",
+    what: "The foundation years — teaching ICT and science through inquiry-based, hands-on STEAM: Python, robotics, electronics and AI in a makerspace setting.",
+    built: [
+      "Ran makerspace activities with microcontrollers, sensors and automation.",
+      "Won 1st place in Best Designs at robotics competitions.",
+      "Represented the team internationally in Nagoya, Japan.",
+    ],
+    impact: ["🥇 Best Design award", "Makerspace", "Hybrid teaching"],
+    tags: ["Arduino", "Electronics", "Robotics"],
+    links: [],
+  },
+  {
+    date: "2020 — 2022",
+    place: "Global · Remote",
+    role: "Super Tutor & Python Instructor",
+    company: "Preply · almentor · Robokids",
+    kind: "Tutoring at Scale",
+    what: "Independent teaching across leading platforms — 1,000+ tutoring hours on Preply, 650+ students on almentor, and LEGO robotics coaching for WRO competitions.",
+    built: [
+      "Delivered 1,000+ hours of Python, AI & robotics tutoring (95% satisfaction).",
+      "Taught 650+ students on almentor — +25% retention & completion.",
+      "Coached LEGO Mindstorms teams for World Robot Olympiad (WRO).",
+    ],
+    impact: ["1,000+ hours", "650+ students", "95% satisfaction"],
+    tags: ["Python", "Scratch", "LEGO Robotics"],
+    links: [],
+  },
+];
+
+/* ---- CHAPTER TWO — The Builder (engineering / automation / EdTech dev) ---- */
+const BUILDER = [
+  {
+    date: "2020 — 2024",
+    place: "Worldwide · Remote",
+    role: "EdTech Software Engineer & STEAM Instructor",
+    company: "Upwork",
+    kind: "Top 3% Worldwide",
+    what: "Built and delivered AI-integrated EdTech projects for global clients — leading development teams to ship scalable, custom learning solutions and automation tools.",
+    built: [
+      "Managed AI-integrated EdTech projects, leading dev teams to delivery.",
+      "Delivered custom e-learning platforms and automation tools.",
+      "Earned $80K+ in freelance revenue at Top 3% worldwide standing.",
+    ],
+    impact: ["$80K+ delivered", "Top 3% globally", "Led dev teams"],
+    tags: ["AI EdTech", "Django", "Automation"],
+    links: [],
+    featured: true,
+  },
+  {
+    date: "2023",
+    place: "Saudi Arabia · Remote",
+    role: "Python Developer — SaaS",
+    company: "Modernint (Linker)",
+    kind: "Automation Product",
+    what: "Built 'Linker' — a Python SaaS tool that automatically applies to LinkedIn job postings, streamlining the job-search workflow end to end.",
+    built: [
+      "Developed the Linker automation product in Python.",
+      "Drove a 40% increase in job-application efficiency.",
+    ],
+    impact: ["+40% efficiency", "Python SaaS"],
+    tags: ["Python", "Selenium", "Automation"],
+    links: [],
+  },
+  {
+    date: "2022 — 2023",
+    place: "USA · Remote",
+    role: "Junior Python Developer",
+    company: "Peakregroup",
+    kind: "Data Engineering",
+    what: "Built a real-estate data product scraping U.S. state listings, then cleaning and structuring the data into usable, accurate datasets.",
+    built: [
+      "Designed a scraping pipeline for U.S. real-estate data.",
+      "Cleaned and formatted data into Google Sheets for reliable analysis.",
+    ],
+    impact: ["Data pipelines", "Web scraping"],
+    tags: ["Python", "Pandas", "Data"],
     links: [],
   },
 ];
@@ -131,22 +249,29 @@ const SKILLS = [
   },
   {
     title: "AI & Emerging Tech",
-    chips: ["Claude", "Large Language Models", "AI Prototyping", "AI Pipeline Optimization", "Prompt Engineering", "AI Tutoring Platforms", "VR Experiences", "Matterport"],
+    chips: ["Claude", "Large Language Models", "AI Prototyping", "AI Pipeline Optimization", "Prompt Engineering", "Computer Vision / OpenCV", "Machine Learning", "VR Experiences", "Matterport"],
+  },
+  {
+    title: "STEAM Education & Pedagogy",
+    chips: ["Project-Based Learning", "Inquiry-Based Learning", "STEM/STEAM Curriculum", "Makerspace Facilitation", "Differentiated Instruction", "Student Assessment", "EdTech Integration", "Workshop & Camp Delivery"],
+  },
+  {
+    title: "Programming & Physical Computing",
+    chips: ["Python", "C++ / C", "JavaScript", "Arduino", "Raspberry Pi", "ESP32 / micro:bit", "Sensors & Circuits", "Robotics (LEGO, VEX)", "ROS", "IoT"],
+  },
+  {
+    title: "Engineering & Data",
+    chips: ["Django", "Flask", "REST APIs", "NumPy / Pandas", "SQL / MySQL", "Selenium", "Web Scraping", "Power BI", "PCB Design (Eagle)", "SOLIDWORKS / CAD"],
   },
   {
     title: "Methodologies & Tools",
-    chips: ["Agile & Scrum", "Jira", "Confluence", "Slack", "Data-Driven Decisions", "Cross-Functional Leadership", "Strategic Planning", "Risk Management", "QA Coordination"],
-  },
-  {
-    title: "Technical",
-    chips: ["Python", "Django", "Flask", "NumPy / Pandas", "SQL / MySQL", "REST APIs", "Selenium", "Web Scraping", "Power BI"],
+    chips: ["Agile & Scrum", "Jira", "Confluence", "Slack", "Google Classroom", "Moodle / Blackboard", "Data-Driven Decisions", "Cross-Functional Leadership", "Risk Management"],
   },
 ];
 
 /* =========================================================
    INJECT CONTENT
    ========================================================= */
-const timeline = document.getElementById("timeline");
 function linkBtn(j) {
   if (j.nda) {
     return `<span class="prod__cta prod__cta--nda"><span class="prod__lock">🔒</span> Under NDA</span>`;
@@ -160,8 +285,8 @@ function linkBtn(j) {
     )
     .join("") + `</div>`;
 }
-timeline.innerHTML = JOBS.map(
-  (j, i) => `
+function cardHTML(j, i) {
+  return `
   <article class="prod glass reveal${j.featured ? " prod--featured" : ""}" style="--d:${Math.min(i * 0.05, 0.3)}s">
     <div class="prod__top">
       <span class="prod__kind">${j.kind}</span>
@@ -171,7 +296,7 @@ timeline.innerHTML = JOBS.map(
     <p class="prod__role">${j.role} · ${j.place}</p>
     <p class="prod__what">${j.what}</p>
     <div class="prod__section">
-      <span class="prod__label">What I built</span>
+      <span class="prod__label">${j.builtLabel || "What I did"}</span>
       <ul class="prod__built">${j.built.map((b) => `<li>${b}</li>`).join("")}</ul>
     </div>
     <div class="prod__impact">${j.impact.map((m) => `<span class="prod__metric">${m}</span>`).join("")}</div>
@@ -179,8 +304,15 @@ timeline.innerHTML = JOBS.map(
       <div class="prod__tags">${j.tags.map((t) => `<span class="job__tag">${t}</span>`).join("")}</div>
       ${linkBtn(j)}
     </div>
-  </article>`
-).join("");
+  </article>`;
+}
+function renderInto(id, list) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = list.map(cardHTML).join("");
+}
+renderInto("eduTimeline", EDUCATOR);
+renderInto("buildTimeline", BUILDER);
+renderInto("timeline", JOBS);
 
 const skillsGrid = document.getElementById("skillsGrid");
 skillsGrid.innerHTML = SKILLS.map(

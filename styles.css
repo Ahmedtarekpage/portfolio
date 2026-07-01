@@ -364,6 +364,15 @@ main { position: relative; z-index: 2; }
   border-color: rgba(56,232,255,.4);
   box-shadow: 0 20px 60px -20px rgba(56,232,255,.35);
 }
+.about__chapter {
+  display: block;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: .72rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
 .glass h3 { font-family: "Space Grotesk", sans-serif; font-size: 1.2rem; margin-bottom: 10px; }
 .glass p { color: var(--muted); font-size: .98rem; }
 
