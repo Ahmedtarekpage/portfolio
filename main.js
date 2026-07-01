@@ -1109,54 +1109,5 @@ if (aurora && !reduceMotion) {
   })();
 }
 
-/* =========================================================
-   SCROLL-DRIVEN HERO PARALLAX
-   ========================================================= */
-const heroInner = document.querySelector(".hero__inner");
-const heroPhoto = document.querySelector(".hero__photo");
-const heroScroll = document.querySelector(".hero__scroll");
-if (!reduceMotion && (heroInner || heroPhoto)) {
-  let ticking = false;
-  const onHeroScroll = () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      const y = window.scrollY;
-      const p = Math.min(y / window.innerHeight, 1);
-      if (heroInner) {
-        heroInner.style.transform = `translateY(${y * 0.16}px)`;
-        heroInner.style.opacity = String(1 - p * 0.85);
-      }
-      if (heroPhoto) heroPhoto.style.transform = `translateY(${y * 0.06}px)`;
-      if (heroScroll) heroScroll.style.opacity = String(Math.max(0, 1 - p * 2));
-      ticking = false;
-    });
-  };
-  window.addEventListener("scroll", onHeroScroll, { passive: true });
-}
-
-/* =========================================================
-   SCROLL-LINKED SECTION DEPTH (subtle rise as sections enter)
-   ========================================================= */
-if (!reduceMotion) {
-  const depthEls = document.querySelectorAll(".section__head, .persona");
-  let dTick = false;
-  const onDepth = () => {
-    if (dTick) return;
-    dTick = true;
-    requestAnimationFrame(() => {
-      const vh = window.innerHeight;
-      depthEls.forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.top < vh && r.bottom > 0) {
-          // -1 (below) → 0 (centered): gentle parallax on the section heading
-          const rel = (r.top - vh * 0.5) / vh; // ~ -0.5..0.5 across viewport
-          el.style.transform = `translateY(${rel * -18}px)`;
-        }
-      });
-      dTick = false;
-    });
-  };
-  window.addEventListener("scroll", onDepth, { passive: true });
-  onDepth();
-}
+/* Scroll-driven hero fade + section-depth parallax intentionally removed —
+   no fade/motion tied to scrolling. Content stays fully static as you scroll. */
