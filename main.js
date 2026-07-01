@@ -800,7 +800,9 @@ if (VIEW !== "full") {
 // Wire the Résumé download + Book-a-call buttons from SITE_CONFIG.
 (function wireCTAs() {
   const cfg = window.SITE_CONFIG || {};
-  const urls = { resume: cfg.RESUME_URL, book: cfg.BOOKING_URL };
+  // educator page hands out the CS-instructor CV; product/full use the PM CV
+  const resumeUrl = (VIEW === "educator" && cfg.RESUME_URL_EDU) ? cfg.RESUME_URL_EDU : cfg.RESUME_URL;
+  const urls = { resume: resumeUrl, book: cfg.BOOKING_URL };
   document.querySelectorAll("[data-cta]").forEach((el) => {
     const url = (urls[el.dataset.cta] || "").trim();
     if (url && url.indexOf("XXX") === -1) {
