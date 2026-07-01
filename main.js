@@ -428,7 +428,8 @@ const EDUCATOR = [
       "assets/robocup-5.jpg",
       "assets/robocup-6.jpg",
     ],
-    links: [{ url: "https://www.youtube.com/watch?v=QEfibag-4l4", label: "Watch RoboCup video" }],
+    video: { id: "QEfibag-4l4", poster: "assets/robocup-2.jpg" },
+    links: [],
     featured: true,
   },
   {
@@ -602,6 +603,12 @@ function cardHTML(j, i) {
     <h3 class="prod__name">${j.company}</h3>
     <p class="prod__role">${t(j.role)} · ${t(j.place)}</p>
     <p class="prod__what">${t(j.what)}</p>
+    ${j.video
+      ? `<div class="prod__video" data-yt="${j.video.id}">
+          <img class="prod__video-poster" src="${j.video.poster}" alt="${j.company}" loading="lazy" />
+          <button class="prod__video-play" aria-label="Play video"><span>▶</span></button>
+        </div>`
+      : ""}
     ${(j.images && j.images.length)
       ? `<div class="prod__gallery">${j.images
           .map((src) => `<a class="prod__shot" href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${j.company}" loading="lazy" onerror="this.closest('.prod__shot').remove()" /></a>`)
@@ -832,6 +839,66 @@ document.addEventListener("click", (e) => {
     });
   }
 });
+
+/* =========================================================
+   INLINE VIDEO — click poster to load & play the embed
+   ========================================================= */
+document.addEventListener("click", (e) => {
+  const box = e.target.closest(".prod__video");
+  if (!box || box.dataset.loaded) return;
+  const id = box.dataset.yt;
+  box.dataset.loaded = "1";
+  box.innerHTML =
+    `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1" ` +
+    `title="RoboCup video" frameborder="0" ` +
+    `allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  if (window.gtag) gtag("event", "video_play", { id });
+});
+
+/* =========================================================
+   LIGHTBOX — click a gallery image to view full-screen
+   ========================================================= */
+const lb = document.getElementById("lightbox");
+const lbImg = lb ? lb.querySelector(".lightbox__img") : null;
+let lbGroup = [];
+let lbIndex = 0;
+
+function lbShow(i) {
+  lbIndex = (i + lbGroup.length) % lbGroup.length;
+  lbImg.src = lbGroup[lbIndex];
+}
+function lbOpen(group, i) {
+  lbGroup = group;
+  lb.classList.add("open");
+  document.body.style.overflow = "hidden";
+  lbShow(i);
+}
+function lbClose() {
+  lb.classList.remove("open");
+  document.body.style.overflow = "";
+  lbImg.src = "";
+}
+
+if (lb) {
+  document.addEventListener("click", (e) => {
+    const shot = e.target.closest(".prod__shot");
+    if (!shot) return;
+    e.preventDefault();
+    const gallery = shot.closest(".prod__gallery");
+    const shots = [...gallery.querySelectorAll(".prod__shot")];
+    lbOpen(shots.map((s) => s.getAttribute("href")), shots.indexOf(shot));
+  });
+  lb.querySelector(".lightbox__close").addEventListener("click", lbClose);
+  lb.querySelector(".lightbox__prev").addEventListener("click", () => lbShow(lbIndex - 1));
+  lb.querySelector(".lightbox__next").addEventListener("click", () => lbShow(lbIndex + 1));
+  lb.addEventListener("click", (e) => { if (e.target === lb) lbClose(); });
+  document.addEventListener("keydown", (e) => {
+    if (!lb.classList.contains("open")) return;
+    if (e.key === "Escape") lbClose();
+    else if (e.key === "ArrowLeft") lbShow(lbIndex - 1);
+    else if (e.key === "ArrowRight") lbShow(lbIndex + 1);
+  });
+}
 
 /* =========================================================
    CUSTOM CURSOR
