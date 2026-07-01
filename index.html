@@ -8,6 +8,45 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="apple-touch-icon" href="favicon.svg" />
   <meta name="theme-color" content="#05060c" />
+
+  <!-- ============================================================
+       ANALYTICS + FORM CONFIG
+       Paste your real IDs below. Leave the "XXX" placeholders to
+       keep each feature disabled (no errors, no network calls).
+       ============================================================ -->
+  <script>
+    window.SITE_CONFIG = {
+      GA4_ID: "G-XXXXXXXXXX",     // Google Analytics 4 — Measurement ID (Admin → Data Streams)
+      CLARITY_ID: "XXXXXXXXXX",   // Microsoft Clarity — Project ID (Settings → Overview)
+      FORMSPREE_ID: "XXXXXXXXXX"  // Formspree — the code after formspree.io/f/______
+    };
+  </script>
+  <script>
+    (function () {
+      var c = window.SITE_CONFIG || {};
+      var valid = function (v) { return v && v.indexOf("XXX") === -1; };
+      // Google Analytics 4
+      if (valid(c.GA4_ID)) {
+        var g = document.createElement("script");
+        g.async = true;
+        g.src = "https://www.googletagmanager.com/gtag/js?id=" + c.GA4_ID;
+        document.head.appendChild(g);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { dataLayer.push(arguments); };
+        gtag("js", new Date());
+        gtag("config", c.GA4_ID);
+      }
+      // Microsoft Clarity
+      if (valid(c.CLARITY_ID)) {
+        (function (m, a, g, e, s) {
+          m[e] = m[e] || function () { (m[e].q = m[e].q || []).push(arguments); };
+          s = a.createElement(g); s.async = 1;
+          s.src = "https://www.clarity.ms/tag/" + c.CLARITY_ID;
+          var y = a.getElementsByTagName(g)[0]; y.parentNode.insertBefore(s, y);
+        })(window, document, "script", "clarity");
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -156,7 +195,19 @@
         <p class="contact__sub reveal" style="--d:.1s">
           Open to AI Product Manager & Product Manager roles. Based in Dubai, working globally.
         </p>
-        <div class="contact__links reveal" style="--d:.2s">
+        <form class="contact__form reveal" id="contactForm" style="--d:.15s" novalidate>
+          <div class="form__row">
+            <input type="text" name="name" placeholder="Your name" required autocomplete="name" />
+            <input type="email" name="email" placeholder="Your email" required autocomplete="email" />
+          </div>
+          <input type="text" name="company" placeholder="Company / role (optional)" autocomplete="organization" />
+          <textarea name="message" rows="4" placeholder="What role or project do you have in mind?" required></textarea>
+          <input type="hidden" name="_subject" value="New message from your portfolio" />
+          <button type="submit" class="btn btn--primary form__submit">Send message <span class="prod__cta-arrow">↗</span></button>
+          <p class="form__status" id="formStatus" role="status" aria-live="polite"></p>
+        </form>
+
+        <div class="contact__links reveal" style="--d:.28s">
           <a class="contact__link" href="mailto:se.ahmedtprofile@gmail.com">
             <span class="contact__link-label">Email</span>
             <span class="contact__link-val">se.ahmedtprofile@gmail.com</span>

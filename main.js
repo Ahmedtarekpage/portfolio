@@ -253,6 +253,71 @@ const statObs = new IntersectionObserver(
 document.querySelectorAll(".stat__num").forEach((el) => statObs.observe(el));
 
 /* =========================================================
+   CONTACT FORM (Formspree) + fallback to email
+   ========================================================= */
+const EMAIL = "se.ahmedtprofile@gmail.com";
+const form = document.getElementById("contactForm");
+if (form) {
+  const status = document.getElementById("formStatus");
+  const btn = form.querySelector(".form__submit");
+  const cfg = window.SITE_CONFIG || {};
+  const hasFormspree = cfg.FORMSPREE_ID && cfg.FORMSPREE_ID.indexOf("XXX") === -1;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+
+    // No Formspree ID yet → open the visitor's email client pre-filled.
+    if (!hasFormspree) {
+      const body =
+        `Name: ${data.get("name")}\nEmail: ${data.get("email")}\n` +
+        `Company: ${data.get("company") || "-"}\n\n${data.get("message")}`;
+      window.location.href =
+        `mailto:${EMAIL}?subject=${encodeURIComponent("Portfolio enquiry")}` +
+        `&body=${encodeURIComponent(body)}`;
+      return;
+    }
+
+    btn.disabled = true;
+    status.className = "form__status";
+    status.textContent = "Sending…";
+    try {
+      const res = await fetch(`https://formspree.io/f/${cfg.FORMSPREE_ID}`, {
+        method: "POST",
+        body: data,
+        headers: { Accept: "application/json" },
+      });
+      if (res.ok) {
+        form.reset();
+        status.textContent = "Thanks — your message is on its way. I'll be in touch soon.";
+        status.className = "form__status is-ok";
+        if (window.gtag) gtag("event", "generate_lead", { form: "contact" });
+      } else {
+        status.textContent = `Something went wrong. You can email me directly at ${EMAIL}.`;
+        status.className = "form__status is-err";
+      }
+    } catch {
+      status.textContent = `Network issue. You can email me directly at ${EMAIL}.`;
+      status.className = "form__status is-err";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+/* Track outbound "Visit product" clicks (only if GA is active) */
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".prod__cta[href]");
+  if (link && window.gtag) {
+    gtag("event", "product_click", {
+      product: link.closest(".prod")?.querySelector(".prod__name")?.textContent || "unknown",
+      url: link.href,
+    });
+  }
+});
+
+/* =========================================================
    CUSTOM CURSOR
    ========================================================= */
 const cursor = document.getElementById("cursorGlow");
