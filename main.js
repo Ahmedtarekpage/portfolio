@@ -523,7 +523,7 @@ const BUILDER = [
     impact: ["$80K+ delivered", "Top 3% globally", "Led dev teams"],
     tags: ["AI EdTech", "Django", "Automation"],
     video: { id: "TAHexuZxpxA", poster: "assets/upwork-video-poster.jpg" },
-    images: ["assets/upwork.jpg"],
+    bg: "assets/upwork.jpg",
     links: [],
     featured: true,
   },
@@ -604,7 +604,7 @@ function linkBtn(j) {
 }
 function cardHTML(j, i) {
   return `
-  <article class="prod glass reveal${j.featured ? " prod--featured" : ""}" style="--d:${Math.min(i * 0.05, 0.3)}s">
+  <article class="prod glass reveal${j.featured ? " prod--featured" : ""}${j.bg ? " prod--bg" : ""}" style="--d:${Math.min(i * 0.05, 0.3)}s${j.bg ? `; --card-bg:url('${j.bg}')` : ""}">
     <div class="prod__top">
       <span class="prod__kind">${t(j.kind)}</span>
       <span class="prod__date">${j.date}</span>

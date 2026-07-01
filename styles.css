@@ -495,6 +495,21 @@ main { position: relative; z-index: 2; }
 }
 .prod:hover::before { transform: scaleY(1); }
 .prod--featured { grid-column: 1 / -1; }
+
+/* card background image (e.g. Upwork Top Rated Plus) */
+.prod--bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--card-bg);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.10;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+.prod--bg > * { position: relative; z-index: 1; }
 .prod--featured .prod__what { font-size: 1.12rem; }
 
 .prod__top {
