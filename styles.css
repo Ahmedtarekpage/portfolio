@@ -570,6 +570,12 @@ main { position: relative; z-index: 2; }
   cursor: pointer;
   box-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.8);
 }
+.prod__video--dark {
+  background:
+    radial-gradient(circle at 28% 30%, rgba(139, 92, 255, 0.45), transparent 55%),
+    radial-gradient(circle at 72% 72%, rgba(56, 232, 255, 0.4), transparent 55%),
+    #0a0d1a;
+}
 .prod__video-poster {
   position: absolute;
   inset: 0;

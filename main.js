@@ -500,6 +500,7 @@ const EDUCATOR = [
     ],
     impact: ["1,000+ hours", "650+ students", "95% satisfaction"],
     tags: ["Python", "Scratch", "LEGO Robotics"],
+    localVideo: { src: "assets/almentor.mp4" },
     links: [],
   },
 ];
@@ -616,8 +617,8 @@ function cardHTML(j, i) {
         </div>`
       : ""}
     ${j.localVideo
-      ? `<div class="prod__video" data-mp4="${j.localVideo.src}">
-          <img class="prod__video-poster" src="${j.localVideo.poster}" alt="${j.company}" loading="lazy" />
+      ? `<div class="prod__video${j.localVideo.poster ? "" : " prod__video--dark"}" data-mp4="${j.localVideo.src}">
+          ${j.localVideo.poster ? `<img class="prod__video-poster" src="${j.localVideo.poster}" alt="${j.company}" loading="lazy" />` : ""}
           <button class="prod__video-play" aria-label="Play video"><span>▶</span></button>
         </div>`
       : ""}
