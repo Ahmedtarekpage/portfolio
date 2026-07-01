@@ -338,6 +338,7 @@ const JOBS = [
     ],
     impact: ["Live-stream encryption", "Delay-prevention", "Analytics"],
     tags: ["Video Security", "SaaS", "Agile / Jira", "QA"],
+    images: ["assets/inkrypt-1.jpg"],
     links: [{ url: "https://inkryptvideos.com", label: "Visit Inkrypt Videos" }],
   },
   {
@@ -370,6 +371,7 @@ const JOBS = [
     ],
     impact: ["+40% booking efficiency", "+35% engagement", "50+ partners"],
     tags: ["B2B", "Booking Systems", "CMS", "Cloud Dashboard"],
+    images: ["assets/sakina-1.jpg"],
     links: [{ url: "https://sakeenahtours.com/", label: "Visit Sakeenah Tours" }],
   },
   {
