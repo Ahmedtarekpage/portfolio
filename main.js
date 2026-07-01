@@ -30,6 +30,9 @@ const AR = {
   "ICT & Robotics Instructor": "مدرّس تقنية المعلومات والروبوتيات",
   "Super Tutor & Python Instructor": "معلّم متميّز ومدرّس بايثون",
   "EdTech Software Engineer & STEAM Instructor": "مهندس برمجيات تعليمية ومدرّس STEAM",
+  "Senior Software Engineer → Product Manager": "مهندس برمجيات أول ← مدير منتج",
+  "Joined as a senior software engineer; progressed into product management.":
+    "بدأت كمهندس برمجيات أول، ثم تطوّرت إلى إدارة المنتجات.",
   "Python Developer — SaaS": "مطوّر بايثون — SaaS",
   "Junior Python Developer": "مطوّر بايثون مبتدئ",
   "Senior Python Developer": "مطوّر بايثون أول",
@@ -73,6 +76,8 @@ const AR = {
     "تدريس مستقل عبر منصات رائدة — أكثر من 1000 ساعة تدريس على Preply، و650+ طالبًا على almentor، وتدريب روبوتيات LEGO لمسابقات WRO.",
   "Built and delivered AI-integrated EdTech projects for global clients — leading development teams to ship scalable, custom learning solutions and automation tools.":
     "بنيت وسلّمت مشاريع تعليمية مدمجة بالذكاء الاصطناعي لعملاء حول العالم — بقيادة فرق تطوير لإطلاق حلول تعلّم مخصّصة وقابلة للتوسّع وأدوات أتمتة.",
+  "Started as a senior software engineer building AI-integrated EdTech products for global clients, then grew into a product manager role — owning roadmaps and leading development teams to ship scalable, custom learning solutions and automation tools.":
+    "بدأت كمهندس برمجيات أول أبني منتجات تعليمية مدمجة بالذكاء الاصطناعي لعملاء حول العالم، ثم تطوّرت إلى دور مدير منتج — أمتلك خرائط الطريق وأقود فرق التطوير لإطلاق حلول تعلّم مخصّصة وقابلة للتوسّع وأدوات أتمتة.",
   "Built 'Linker' — a Python SaaS tool that automatically applies to LinkedIn job postings, streamlining the job-search workflow end to end.":
     "بنيت 'Linker' — أداة SaaS بلغة بايثون تتقدّم تلقائيًا لوظائف LinkedIn، وتبسّط رحلة البحث عن عمل من البداية للنهاية.",
   "Built a real-estate data product scraping U.S. state listings, then cleaning and structuring the data into usable, accurate datasets.":
@@ -515,11 +520,12 @@ const BUILDER = [
   {
     date: "2020 — 2024",
     place: "Worldwide · Remote",
-    role: "EdTech Software Engineer & STEAM Instructor",
+    role: "Senior Software Engineer → Product Manager",
     company: "Upwork",
     kind: "Top 3% Worldwide",
-    what: "Built and delivered AI-integrated EdTech projects for global clients — leading development teams to ship scalable, custom learning solutions and automation tools.",
+    what: "Started as a senior software engineer building AI-integrated EdTech products for global clients, then grew into a product manager role — owning roadmaps and leading development teams to ship scalable, custom learning solutions and automation tools.",
     built: [
+      "Joined as a senior software engineer; progressed into product management.",
       "Managed AI-integrated EdTech projects, leading dev teams to delivery.",
       "Delivered custom e-learning platforms and automation tools.",
       "Earned $80K+ in freelance revenue at Top 3% worldwide standing.",
