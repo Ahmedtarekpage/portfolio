@@ -229,7 +229,7 @@ const STATIC = {
     "nav.story": "Story", "nav.journey": "Journey", "nav.products": "Products",
     "nav.skills": "Skills", "nav.contact": "Contact", "nav.cta": "Let's talk",
     "hero.eyebrow": "EDUCATOR · ENGINEER · AI PRODUCT MANAGER",
-    "hero.name": "Ahmed Tarek", "hero.surname": "Mourssi",
+    "hero.name": "Ahmed", "hero.surname": "Tarek",
     "hero.sub": "Ten years turning technology into impact — from teaching kids to build <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas. This is that journey.",
     "hero.btnPrimary": "Read my story", "hero.btnGhost": "Get in touch",
     "persona.label": "What are you hiring for? Jump straight to it →",
@@ -262,7 +262,7 @@ const STATIC = {
     "form.submit": "Send message", "contact.email": "Email", "contact.phone": "Phone", "contact.linkedin": "LinkedIn",
     "cta.book": "📅 Book a call", "cta.cv": "⬇ Download CV",
     "views.full": "Full story", "views.product": "Product", "views.educator": "Educator",
-    "footer.copy": "© 2026 Ahmed Tarek Mourssi",
+    "footer.copy": "© 2026 Ahmed Tarek",
     "cookie.text": "This site uses privacy-friendly analytics (Google Analytics & Microsoft Clarity) to understand how visitors engage. Nothing loads until you choose.",
     "cookie.decline": "Decline", "cookie.accept": "Accept",
   },
@@ -270,7 +270,7 @@ const STATIC = {
     "nav.story": "القصة", "nav.journey": "الرحلة", "nav.products": "المنتجات",
     "nav.skills": "المهارات", "nav.contact": "تواصل", "nav.cta": "لنتحدّث",
     "hero.eyebrow": "مُعلّم · مهندس · مدير منتج ذكاء اصطناعي",
-    "hero.name": "أحمد طارق", "hero.surname": "مرسي",
+    "hero.name": "أحمد", "hero.surname": "طارق",
     "hero.sub": "عشر سنوات في تحويل التقنية إلى أثر — من تعليم الأطفال بناء <strong>الروبوتات</strong>، إلى هندسة أدوات <strong>التعليم التقني</strong>، إلى قيادة <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية. الفضول نفسه، ومساحة أكبر. هذه هي الرحلة.",
     "hero.btnPrimary": "اقرأ قصتي", "hero.btnGhost": "تواصل معي",
     "persona.label": "عمّن تبحث للتوظيف؟ انتقل مباشرةً →",
@@ -303,7 +303,7 @@ const STATIC = {
     "form.submit": "إرسال الرسالة", "contact.email": "البريد", "contact.phone": "الهاتف", "contact.linkedin": "لينكدإن",
     "cta.book": "📅 احجز مكالمة", "cta.cv": "⬇ تحميل السيرة الذاتية",
     "views.full": "القصة الكاملة", "views.product": "المنتجات", "views.educator": "التعليم",
-    "footer.copy": "© 2026 أحمد طارق مرسي",
+    "footer.copy": "© 2026 أحمد طارق",
     "cookie.text": "يستخدم هذا الموقع تحليلات محترمة للخصوصية (Google Analytics وMicrosoft Clarity) لفهم كيفية تفاعل الزوّار. لا يتم تحميل أي شيء حتى تختار.",
     "cookie.decline": "رفض", "cookie.accept": "قبول",
   },
@@ -754,9 +754,9 @@ const VIEW_TEXT = {
 };
 
 const VIEW_TITLE = {
-  full: { en: "Ahmed Tarek Mourssi — Educator, Builder & AI Product Manager", ar: "أحمد طارق مرسي — مُعلّم ومهندس ومدير منتج ذكاء اصطناعي" },
-  product: { en: "Ahmed Tarek Mourssi — AI Product Manager", ar: "أحمد طارق مرسي — مدير منتج ذكاء اصطناعي" },
-  educator: { en: "Ahmed Tarek Mourssi — STEAM Educator & Robotics Instructor", ar: "أحمد طارق مرسي — مُعلّم STEAM ومدرّس روبوتيات" },
+  full: { en: "Ahmed Tarek — Educator, Builder & AI Product Manager", ar: "أحمد طارق — مُعلّم ومهندس ومدير منتج ذكاء اصطناعي" },
+  product: { en: "Ahmed Tarek — AI Product Manager", ar: "أحمد طارق — مدير منتج ذكاء اصطناعي" },
+  educator: { en: "Ahmed Tarek — STEAM Educator & Robotics Instructor", ar: "أحمد طارق — مُعلّم STEAM ومدرّس روبوتيات" },
 };
 
 if (VIEW !== "full") {
