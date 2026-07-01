@@ -526,7 +526,7 @@ const BUILDER = [
     ],
     impact: ["$80K+ delivered", "Top 3% globally", "Led dev teams"],
     tags: ["AI EdTech", "Django", "Automation"],
-    images: ["assets/upwork.jpg"],
+    images: ["assets/upwork.jpg", "assets/upwork-2.jpg"],
     links: [],
     featured: true,
   },
