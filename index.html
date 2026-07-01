@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ahmed Tarek Mourssi — AI Product Manager</title>
+  <meta name="description" content="Ahmed Tarek Mourssi — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D background canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- custom cursor glow -->
+  <div class="cursor-glow" id="cursorGlow"></div>
+
+  <!-- scroll progress -->
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <a href="#hero" class="nav__brand">AT<span>.</span></a>
+    <div class="nav__links">
+      <a href="#about">About</a>
+      <a href="#work">Experience</a>
+      <a href="#skills">Skills</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a href="#contact" class="nav__cta">Let's talk</a>
+  </nav>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <div class="hero__grid">
+      <div class="hero__inner">
+        <p class="hero__eyebrow reveal">AI PRODUCT MANAGER · DUBAI, UAE</p>
+        <h1 class="hero__title">
+          <span class="reveal" style="--d:.05s">Ahmed Tarek</span>
+          <span class="reveal grad" style="--d:.15s">Mourssi</span>
+        </h1>
+        <p class="hero__sub reveal" style="--d:.28s">
+          I turn ambitious ideas into shipped products — leading strategy and
+          cross-functional delivery across <strong>EdTech, SaaS and B2B/B2C</strong>,
+          building with <strong>AI &amp; LLMs</strong> to move faster than teams 10&times; the size.
+        </p>
+        <div class="hero__actions reveal" style="--d:.4s">
+          <a href="#work" class="btn btn--primary">View my work</a>
+          <a href="#contact" class="btn btn--ghost">Get in touch</a>
+        </div>
+        <div class="hero__stats reveal" style="--d:.55s">
+          <div class="stat"><span class="stat__num" data-count="7" data-suffix="+">0</span><span class="stat__label">Years in product</span></div>
+          <div class="stat"><span class="stat__num" data-count="10000" data-suffix="+">0</span><span class="stat__label">End users served</span></div>
+          <div class="stat"><span class="stat__num" data-count="50" data-suffix="+">0</span><span class="stat__label">Enterprise clients</span></div>
+          <div class="stat"><span class="stat__num" data-count="3" data-suffix="%">0</span><span class="stat__label">Top-rated on Upwork</span></div>
+        </div>
+      </div>
+
+      <div class="hero__photo reveal" style="--d:.35s">
+        <div class="hero__photo-ring"></div>
+        <div class="hero__photo-frame">
+          <img
+            src="assets/ahmed.jpg"
+            alt="Ahmed Tarek Mourssi"
+            class="hero__photo-img"
+            onerror="this.style.display='none'; this.parentElement.classList.add('is-empty');"
+          />
+          <span class="hero__photo-fallback">AT</span>
+        </div>
+        <span class="hero__photo-badge">
+          <span class="hero__photo-dot"></span> Open to work
+        </span>
+      </div>
+      </div>
+      <div class="hero__scroll">
+        <span>Scroll</span>
+        <div class="hero__scroll-line"></div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="section about" id="about">
+      <div class="section__head">
+        <span class="section__index">01</span>
+        <h2 class="section__title reveal">Product thinking,<br /><span class="grad">AI-native execution.</span></h2>
+      </div>
+      <div class="about__grid">
+        <p class="about__lead reveal">
+          I'm an AI Product Manager with <strong>7 years</strong> leading end-to-end product
+          strategy and delivery. I've launched platforms from zero, aligned engineering,
+          design and operations squads, and used LLMs — including <strong>Claude</strong> —
+          to compress build cycles and ship lean.
+        </p>
+        <div class="about__cards">
+          <div class="glass tilt reveal">
+            <h3>Strategy → Launch</h3>
+            <p>Roadmaps, discovery, prioritization and KPI-led growth — concept to live product.</p>
+          </div>
+          <div class="glass tilt reveal" style="--d:.1s">
+            <h3>AI-augmented delivery</h3>
+            <p>LLM-driven prototyping and pipeline optimization that lets small teams ship big.</p>
+          </div>
+          <div class="glass tilt reveal" style="--d:.2s">
+            <h3>Cross-functional lead</h3>
+            <p>Engineering, design & ops in sync — Agile, Jira, and data-driven decisions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPERIENCE -->
+    <section class="section work" id="work">
+      <div class="section__head">
+        <span class="section__index">02</span>
+        <h2 class="section__title reveal">Products I've shipped</h2>
+        <p class="section__lead reveal" style="--d:.1s">
+          Not a list of job titles — the actual products I built, the problem each solved,
+          and where you can go see them for yourself.
+        </p>
+      </div>
+      <div class="products" id="timeline">
+        <!-- injected by main.js -->
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="section skills" id="skills">
+      <div class="section__head">
+        <span class="section__index">03</span>
+        <h2 class="section__title reveal">Skills &amp; toolkit</h2>
+      </div>
+      <div class="skills__grid" id="skillsGrid">
+        <!-- injected by main.js -->
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="section contact" id="contact">
+      <div class="contact__inner">
+        <span class="section__index">04</span>
+        <h2 class="contact__title reveal">Let's build<br /><span class="grad">something great.</span></h2>
+        <p class="contact__sub reveal" style="--d:.1s">
+          Open to AI Product Manager & Product Manager roles. Based in Dubai, working globally.
+        </p>
+        <div class="contact__links reveal" style="--d:.2s">
+          <a class="contact__link" href="mailto:se.ahmedtprofile@gmail.com">
+            <span class="contact__link-label">Email</span>
+            <span class="contact__link-val">se.ahmedtprofile@gmail.com</span>
+          </a>
+          <a class="contact__link" href="tel:+971588558039">
+            <span class="contact__link-label">Phone</span>
+            <span class="contact__link-val">+971 58 855 8039</span>
+          </a>
+          <a class="contact__link" href="https://linkedin.com/in/ahmedtarekpage" target="_blank" rel="noopener">
+            <span class="contact__link-label">LinkedIn</span>
+            <span class="contact__link-val">/in/ahmedtarekpage</span>
+          </a>
+        </div>
+      </div>
+      <footer class="footer">
+        <span>© 2026 Ahmed Tarek Mourssi</span>
+        <span>Built with Three.js · Designed for the future</span>
+      </footer>
+    </section>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Vercel
+.vercel
+
+# macOS
+.DS_Store
+
+# Node (in case tooling is added later)
+node_modules/
+npm-debug.log*
