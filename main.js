@@ -615,12 +615,18 @@ function linkBtn(j) {
     )
     .join("") + `</div>`;
 }
+// Show a clean "Since {start-year}" label instead of a full date range.
+function sinceLabel(date) {
+  const m = String(date).match(/\d{4}/); // first year in the range = when it started
+  if (!m) return date;
+  return (LANG === "ar" ? "منذ " : "Since ") + m[0];
+}
 function cardHTML(j, i) {
   return `
   <article class="prod glass reveal${j.featured ? " prod--featured" : ""}${j.bg ? " prod--bg" : ""}" style="--d:${Math.min(i * 0.05, 0.3)}s${j.bg ? `; --card-bg:url('${j.bg}')` : ""}">
     <div class="prod__top">
       <span class="prod__kind">${t(j.kind)}</span>
-      <span class="prod__date">${j.date}</span>
+      <span class="prod__date">${sinceLabel(j.date)}</span>
     </div>
     <h3 class="prod__name">${j.company}</h3>
     <p class="prod__role">${t(j.role)} · ${t(j.place)}</p>
