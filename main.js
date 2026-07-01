@@ -224,6 +224,9 @@ const STATIC = {
     "hero.name": "Ahmed Tarek", "hero.surname": "Mourssi",
     "hero.sub": "Ten years turning technology into impact — from teaching kids to build <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas. This is that journey.",
     "hero.btnPrimary": "Read my story", "hero.btnGhost": "Get in touch",
+    "persona.label": "What are you hiring for? Jump straight to it →",
+    "persona.pm": "Product Manager", "persona.pmSub": "AI · SaaS · B2B/B2C",
+    "persona.edu": "Educator / STEAM", "persona.eduSub": "Robotics · CS · Curriculum",
     "hero.stat1": "Years in tech & education", "hero.stat2": "Students taught",
     "hero.stat3": "Product users reached", "hero.stat4": "Top-rated globally",
     "hero.badge": "Open to work", "hero.scroll": "Scroll",
@@ -260,6 +263,9 @@ const STATIC = {
     "hero.name": "أحمد طارق", "hero.surname": "مرسي",
     "hero.sub": "عشر سنوات في تحويل التقنية إلى أثر — من تعليم الأطفال بناء <strong>الروبوتات</strong>، إلى هندسة أدوات <strong>التعليم التقني</strong>، إلى قيادة <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية. الفضول نفسه، ومساحة أكبر. هذه هي الرحلة.",
     "hero.btnPrimary": "اقرأ قصتي", "hero.btnGhost": "تواصل معي",
+    "persona.label": "عمّن تبحث للتوظيف؟ انتقل مباشرةً →",
+    "persona.pm": "مدير منتج", "persona.pmSub": "ذكاء اصطناعي · SaaS · B2B/B2C",
+    "persona.edu": "مُعلّم / STEAM", "persona.eduSub": "روبوتيات · علوم حاسب · مناهج",
     "hero.stat1": "سنوات في التقنية والتعليم", "hero.stat2": "طالب تم تدريسهم",
     "hero.stat3": "مستخدم وصلت إليهم المنتجات", "hero.stat4": "الأعلى تقييمًا عالميًا",
     "hero.badge": "متاح للعمل", "hero.scroll": "مرّر",
@@ -376,6 +382,7 @@ const JOBS = [
     ],
     impact: ["+30% acquisition", "+45% conversions", "99.5% uptime", "200+ organizers"],
     tags: ["B2C", "iOS / Android", "Team of 8", "Admin Dashboard"],
+    images: ["assets/alafein-1.jpg", "assets/alafein-2.jpg", "assets/alafein-3.jpg"],
     links: [
       { url: "https://apps.apple.com/eg/app/alafein/id1611144819", label: "App Store" },
       { url: "https://www.linkedin.com/showcase/alafein/posts/?feedView=all", label: "LinkedIn" },
@@ -431,6 +438,7 @@ const EDUCATOR = [
     ],
     impact: ["3,000+ students", "100+ lessons", "+30% engagement"],
     tags: ["STEAM", "AI / Python", "Curriculum"],
+    images: ["assets/udacity-1.jpg", "assets/udacity-2.jpg"],
     links: [],
   },
   {
@@ -498,6 +506,7 @@ const BUILDER = [
     ],
     impact: ["$80K+ delivered", "Top 3% globally", "Led dev teams"],
     tags: ["AI EdTech", "Django", "Automation"],
+    images: ["assets/upwork.jpg"],
     links: [],
     featured: true,
   },
@@ -586,6 +595,11 @@ function cardHTML(j, i) {
     <h3 class="prod__name">${j.company}</h3>
     <p class="prod__role">${t(j.role)} · ${t(j.place)}</p>
     <p class="prod__what">${t(j.what)}</p>
+    ${(j.images && j.images.length)
+      ? `<div class="prod__gallery">${j.images
+          .map((src) => `<a class="prod__shot" href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${j.company}" loading="lazy" onerror="this.closest('.prod__shot').remove()" /></a>`)
+          .join("")}</div>`
+      : ""}
     <div class="prod__section">
       <span class="prod__label">${t("What I did")}</span>
       <ul class="prod__built">${j.built.map((b) => `<li>${t(b)}</li>`).join("")}</ul>
@@ -859,9 +873,19 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-/* --- particle field --- */
-const COUNT = window.innerWidth < 700 ? 1400 : 3000;
+/* --- colour palette --- */
+const PALETTE = [
+  new THREE.Color(0x38e8ff), // cyan
+  new THREE.Color(0x8b5cff), // violet
+  new THREE.Color(0xff5cc8), // pink
+  new THREE.Color(0x37f5a0), // green
+  new THREE.Color(0xffb347), // amber
+];
+
+/* --- particle field (multi-colour) --- */
+const COUNT = window.innerWidth < 700 ? 1600 : 3400;
 const positions = new Float32Array(COUNT * 3);
+const colors = new Float32Array(COUNT * 3);
 const speeds = new Float32Array(COUNT);
 const R = 26;
 for (let i = 0; i < COUNT; i++) {
@@ -869,9 +893,15 @@ for (let i = 0; i < COUNT; i++) {
   positions[i * 3 + 1] = (Math.random() - 0.5) * R * 2;
   positions[i * 3 + 2] = (Math.random() - 0.5) * R;
   speeds[i] = 0.2 + Math.random() * 0.8;
+  // ~55% cyan/white base, rest coloured accents
+  const c = Math.random() < 0.55 ? PALETTE[0] : PALETTE[(Math.random() * PALETTE.length) | 0];
+  colors[i * 3] = c.r;
+  colors[i * 3 + 1] = c.g;
+  colors[i * 3 + 2] = c.b;
 }
 const pGeo = new THREE.BufferGeometry();
 pGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+pGeo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
 function makeSprite() {
   const c = document.createElement("canvas");
@@ -886,12 +916,12 @@ function makeSprite() {
   return new THREE.CanvasTexture(c);
 }
 const pMat = new THREE.PointsMaterial({
-  size: 0.18,
+  size: 0.19,
   map: makeSprite(),
   transparent: true,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
-  color: 0x8fdcff,
+  vertexColors: true,
 });
 const points = new THREE.Points(pGeo, pMat);
 scene.add(points);
@@ -906,6 +936,39 @@ const coreGeo2 = new THREE.IcosahedronGeometry(2.1, 0);
 const coreMat2 = new THREE.MeshBasicMaterial({ color: 0x38e8ff, wireframe: true, transparent: true, opacity: 0.45 });
 const core2 = new THREE.Mesh(coreGeo2, coreMat2);
 scene.add(core2);
+
+/* --- extra colourful floating shapes --- */
+const shapes = [];
+function addShape(geo, color, pos, spin) {
+  const mesh = new THREE.Mesh(
+    geo,
+    new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.5 })
+  );
+  mesh.position.set(pos[0], pos[1], pos[2]);
+  mesh.userData = { spin, base: pos.slice(), phase: pos[0] + pos[1] };
+  scene.add(mesh);
+  shapes.push(mesh);
+}
+addShape(new THREE.TorusKnotGeometry(1.1, 0.34, 90, 12), 0xff5cc8, [-9, 4, -6], 0.4);
+addShape(new THREE.OctahedronGeometry(1.4, 0), 0x37f5a0, [10, -3, -5], 0.55);
+addShape(new THREE.TetrahedronGeometry(1.5, 0), 0xffb347, [8, 6, -8], 0.6);
+addShape(new THREE.TorusGeometry(1.3, 0.28, 16, 60), 0x38e8ff, [-10, -5, -4], -0.5);
+
+// coloured glow lights via big additive sprites
+const glowTex = makeSprite();
+function addGlow(color, pos, size) {
+  const s = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  s.scale.setScalar(size);
+  s.position.set(pos[0], pos[1], pos[2]);
+  s.userData = { base: pos.slice() };
+  scene.add(s);
+  shapes.push(s);
+}
+addGlow(0x8b5cff, [-7, 3, 2], 10);
+addGlow(0xff5cc8, [7, -4, 1], 9);
+addGlow(0x37f5a0, [4, 6, -2], 8);
 
 /* --- pointer parallax --- */
 const pointer = { x: 0, y: 0 };
@@ -939,6 +1002,26 @@ function render() {
 
     const scale = 1 + Math.sin(t * 1.5) * 0.04;
     core2.scale.setScalar(scale);
+
+    // animate the colourful shapes — rotate + float
+    for (const m of shapes) {
+      const u = m.userData;
+      if (u.spin != null) {
+        m.rotation.x = t * u.spin;
+        m.rotation.y = t * u.spin * 0.7;
+        m.position.y = u.base[1] + Math.sin(t * 0.6 + u.phase) * 1.2;
+      } else {
+        // glow sprites drift gently + pulse
+        m.position.x = u.base[0] + Math.sin(t * 0.3 + u.base[1]) * 1.5;
+        m.position.y = u.base[1] + Math.cos(t * 0.25 + u.base[0]) * 1.2;
+        m.material.opacity = 0.35 + Math.sin(t * 0.8 + u.base[0]) * 0.18;
+      }
+    }
+
+    // slowly cycle the fog hue for shifting ambient colour
+    const hue = (t * 0.02) % 1;
+    scene.fog.color.setHSL(0.62 + Math.sin(t * 0.1) * 0.08, 0.6, 0.04);
+    core.material.color.setHSL(hue, 0.7, 0.6);
   }
 
   // parallax + scroll dive

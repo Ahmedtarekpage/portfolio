@@ -69,6 +69,14 @@
   </script>
 </head>
 <body>
+  <!-- animated colour aurora (behind the 3D canvas) -->
+  <div class="aurora" aria-hidden="true">
+    <span class="aurora__blob aurora__blob--1"></span>
+    <span class="aurora__blob aurora__blob--2"></span>
+    <span class="aurora__blob aurora__blob--3"></span>
+    <span class="aurora__blob aurora__blob--4"></span>
+  </div>
+
   <!-- 3D background canvas -->
   <canvas id="bg-canvas"></canvas>
 
@@ -113,6 +121,20 @@
         <div class="hero__actions reveal" style="--d:.4s">
           <a href="#educator" class="btn btn--primary" data-i18n="hero.btnPrimary">Read my story</a>
           <a href="#contact" class="btn btn--ghost" data-i18n="hero.btnGhost">Get in touch</a>
+        </div>
+
+        <div class="persona reveal" style="--d:.5s">
+          <span class="persona__label" data-i18n="persona.label">What are you hiring for?</span>
+          <div class="persona__btns">
+            <a href="#work" class="persona__btn" data-persona="pm">
+              <span class="persona__btn-icon">🚀</span>
+              <span class="persona__btn-text"><strong data-i18n="persona.pm">Product Manager</strong><em data-i18n="persona.pmSub">AI · SaaS · B2B/B2C</em></span>
+            </a>
+            <a href="#educator" class="persona__btn" data-persona="edu">
+              <span class="persona__btn-icon">🎓</span>
+              <span class="persona__btn-text"><strong data-i18n="persona.edu">Educator / STEAM</strong><em data-i18n="persona.eduSub">Robotics · CS · Curriculum</em></span>
+            </a>
+          </div>
         </div>
         <div class="hero__stats reveal" style="--d:.55s">
           <div class="stat"><span class="stat__num" data-count="10" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat1">Years in tech &amp; education</span></div>
