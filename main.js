@@ -423,6 +423,7 @@ const EDUCATOR = [
     impact: ["🥇 1st Place — Egypt", "🌏 International finals — Japan"],
     tags: ["Robotics", "Autonomous systems", "Algorithms"],
     images: [
+      "assets/robocup-japan.jpg",
       "assets/robocup-1.jpg",
       "assets/robocup-2.jpg",
       "assets/robocup-3.jpg",
