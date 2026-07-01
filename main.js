@@ -522,6 +522,7 @@ const BUILDER = [
     ],
     impact: ["$80K+ delivered", "Top 3% globally", "Led dev teams"],
     tags: ["AI EdTech", "Django", "Automation"],
+    video: { id: "TAHexuZxpxA", poster: "assets/upwork-video-poster.jpg" },
     images: ["assets/upwork.jpg"],
     links: [],
     featured: true,
@@ -624,7 +625,7 @@ function cardHTML(j, i) {
         </div>`
       : ""}
     ${(j.images && j.images.length)
-      ? `<div class="prod__gallery">${j.images
+      ? `<div class="prod__gallery${j.images.length === 1 ? " prod__gallery--single" : ""}">${j.images
           .map((src) => `<a class="prod__shot" href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${j.company}" loading="lazy" onerror="this.closest('.prod__shot').remove()" /></a>`)
           .join("")}</div>`
       : ""}

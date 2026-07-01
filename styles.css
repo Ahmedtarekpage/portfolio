@@ -554,6 +554,11 @@ main { position: relative; z-index: 2; }
   box-shadow: 0 14px 40px -16px rgba(56, 232, 255, 0.5);
 }
 .prod--featured .prod__shot img { width: 236px; height: 148px; }
+
+/* single image → show it in full (uncropped), e.g. the Top Rated Plus profile */
+.prod__gallery--single { display: block; }
+.prod__gallery--single .prod__shot { width: 100%; max-width: 560px; }
+.prod__gallery--single .prod__shot img { width: 100%; height: auto; }
 @media (max-width: 560px) { .prod__shot img { width: 168px; height: 106px; } }
 
 /* ---------- inline video (constrained, centered) ---------- */
