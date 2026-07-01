@@ -22,7 +22,11 @@
     };
   </script>
   <script>
-    (function () {
+    // Analytics load only AFTER the visitor consents (see cookie banner).
+    // Defined here so it runs as early as possible once consent exists.
+    window.__initAnalytics = function () {
+      if (window.__analyticsLoaded) return;
+      window.__analyticsLoaded = true;
       var c = window.SITE_CONFIG || {};
       var valid = function (v) { return v && v.indexOf("XXX") === -1; };
       // Google Analytics 4
@@ -45,7 +49,11 @@
           var y = a.getElementsByTagName(g)[0]; y.parentNode.insertBefore(s, y);
         })(window, document, "script", "clarity");
       }
-    })();
+    };
+    // If they already accepted on a previous visit, start immediately.
+    try {
+      if (localStorage.getItem("cookie-consent") === "granted") window.__initAnalytics();
+    } catch (e) {}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -228,6 +236,18 @@
       </footer>
     </section>
   </main>
+
+  <!-- cookie consent -->
+  <div class="cookie" id="cookieBanner" hidden>
+    <p class="cookie__text">
+      This site uses privacy-friendly analytics (Google Analytics &amp; Microsoft Clarity)
+      to understand how visitors engage. Nothing loads until you choose.
+    </p>
+    <div class="cookie__actions">
+      <button class="cookie__btn cookie__btn--ghost" id="cookieDecline">Decline</button>
+      <button class="cookie__btn cookie__btn--accept" id="cookieAccept">Accept</button>
+    </div>
+  </div>
 
   <script type="module" src="main.js"></script>
 </body>

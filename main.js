@@ -253,6 +253,33 @@ const statObs = new IntersectionObserver(
 document.querySelectorAll(".stat__num").forEach((el) => statObs.observe(el));
 
 /* =========================================================
+   COOKIE CONSENT
+   ========================================================= */
+(function () {
+  const banner = document.getElementById("cookieBanner");
+  if (!banner) return;
+  let stored = null;
+  try { stored = localStorage.getItem("cookie-consent"); } catch (e) {}
+
+  function save(v) { try { localStorage.setItem("cookie-consent", v); } catch (e) {} }
+  function hide() { banner.classList.remove("show"); setTimeout(() => (banner.hidden = true), 400); }
+
+  if (!stored) {
+    banner.hidden = false;
+    requestAnimationFrame(() => setTimeout(() => banner.classList.add("show"), 400));
+  }
+  document.getElementById("cookieAccept").addEventListener("click", () => {
+    save("granted");
+    if (window.__initAnalytics) window.__initAnalytics();
+    hide();
+  });
+  document.getElementById("cookieDecline").addEventListener("click", () => {
+    save("denied");
+    hide();
+  });
+})();
+
+/* =========================================================
    CONTACT FORM (Formspree) + fallback to email
    ========================================================= */
 const EMAIL = "se.ahmedtprofile@gmail.com";
