@@ -260,6 +260,8 @@ const STATIC = {
     "form.name": "Your name", "form.email": "Your email",
     "form.company": "Company / role (optional)", "form.message": "What role or project do you have in mind?",
     "form.submit": "Send message", "contact.email": "Email", "contact.phone": "Phone", "contact.linkedin": "LinkedIn",
+    "cta.book": "📅 Book a call", "cta.cv": "⬇ Download CV",
+    "views.full": "Full story", "views.product": "Product", "views.educator": "Educator",
     "footer.copy": "© 2026 Ahmed Tarek Mourssi",
     "cookie.text": "This site uses privacy-friendly analytics (Google Analytics & Microsoft Clarity) to understand how visitors engage. Nothing loads until you choose.",
     "cookie.decline": "Decline", "cookie.accept": "Accept",
@@ -299,6 +301,8 @@ const STATIC = {
     "form.name": "اسمك", "form.email": "بريدك الإلكتروني",
     "form.company": "الشركة / المنصب (اختياري)", "form.message": "ما الدور أو المشروع الذي تفكّر فيه؟",
     "form.submit": "إرسال الرسالة", "contact.email": "البريد", "contact.phone": "الهاتف", "contact.linkedin": "لينكدإن",
+    "cta.book": "📅 احجز مكالمة", "cta.cv": "⬇ تحميل السيرة الذاتية",
+    "views.full": "القصة الكاملة", "views.product": "المنتجات", "views.educator": "التعليم",
     "footer.copy": "© 2026 أحمد طارق مرسي",
     "cookie.text": "يستخدم هذا الموقع تحليلات محترمة للخصوصية (Google Analytics وMicrosoft Clarity) لفهم كيفية تفاعل الزوّار. لا يتم تحميل أي شيء حتى تختار.",
     "cookie.decline": "رفض", "cookie.accept": "قبول",
@@ -694,6 +698,123 @@ function applyStatic() {
   try { localStorage.setItem("lang", LANG); } catch (e) {}
 }
 
+/* =========================================================
+   MULTI-VIEW  —  /  (full story)  ·  /product  ·  /educator
+   One codebase, three focused views over the same content.
+   ========================================================= */
+const VIEW = (() => {
+  const p = location.pathname.replace(/\/+$/, "").toLowerCase();
+  const q = new URLSearchParams(location.search).get("view");
+  if (p.endsWith("/product") || q === "product") return "product";
+  if (p.endsWith("/educator") || q === "educator") return "educator";
+  return "full";
+})();
+
+// Per-view hero + section-label overrides (merged into STATIC before paint).
+const VIEW_TEXT = {
+  product: {
+    en: {
+      "hero.eyebrow": "AI PRODUCT MANAGER · SAAS · GOVTECH",
+      "hero.sub": "I build and lead <strong>AI-powered products</strong> end-to-end — from <strong>SaaS platforms</strong> to <strong>government products</strong> — turning strategy into shipped, measurable outcomes. These are the products I've owned, and where to see them live.",
+      "hero.btnPrimary": "See the products",
+      "work.index": "THE PRODUCTS", "work.title": "AI products I've shipped",
+      "work.lead": "Not a list of job titles — the actual products I built, the problem each solved, and where you can go see them for yourself.",
+      "build.index": "FOUNDATION · ENGINEERING", "build.title": "I build what I manage",
+      "edu.index": "FOUNDATION · TEACHING", "edu.title": "Where the product sense started",
+    },
+    ar: {
+      "hero.eyebrow": "مدير منتج ذكاء اصطناعي · SAAS · تقنية حكومية",
+      "hero.sub": "أبني وأقود <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية — من <strong>منصات SaaS</strong> إلى <strong>منتجات حكومية</strong> — محوّلًا الاستراتيجية إلى نتائج مُطلَقة وقابلة للقياس. هذه هي المنتجات التي امتلكتها، وأين تراها مباشرةً.",
+      "hero.btnPrimary": "شاهد المنتجات",
+      "work.index": "المنتجات", "work.title": "منتجات ذكاء اصطناعي أطلقتها",
+      "work.lead": "ليست قائمة مسمّيات وظيفية — بل المنتجات الحقيقية التي بنيتها، والمشكلة التي حلّها كلٌّ منها، وأين يمكنك رؤيتها بنفسك.",
+      "build.index": "الأساس · الهندسة", "build.title": "أبني ما أديره",
+      "edu.index": "الأساس · التدريس", "edu.title": "من هنا بدأ حسّ المنتج",
+    },
+  },
+  educator: {
+    en: {
+      "hero.eyebrow": "STEAM EDUCATOR · ROBOTICS · CS",
+      "hero.sub": "A decade teaching <strong>STEAM, robotics and code</strong> to 3,000+ students across the UAE, USA, Saudi Arabia and Egypt — RoboCup champion, national-program session lead, and top-rated tutor. This is the teaching journey.",
+      "hero.btnPrimary": "See the teaching",
+      "edu.index": "THE TEACHING", "edu.title": "The Educator",
+      "build.index": "ALSO · AS AN ENGINEER", "build.title": "I build the tech I teach",
+      "work.index": "ALSO · AS A PRODUCT LEADER", "work.title": "And I lead EdTech products",
+    },
+    ar: {
+      "hero.eyebrow": "مُعلّم STEAM · روبوتيات · علوم حاسب",
+      "hero.sub": "عقد من تدريس <strong>STEAM والروبوتيات والبرمجة</strong> لأكثر من 3000 طالب عبر الإمارات وأمريكا والسعودية ومصر — بطل روبوكب، وقائد جلسات لبرنامج وطني، ومعلّم أعلى تقييمًا. هذه هي رحلة التدريس.",
+      "hero.btnPrimary": "شاهد رحلة التدريس",
+      "edu.index": "التدريس", "edu.title": "المُعلّم",
+      "build.index": "أيضًا · كمهندس", "build.title": "أبني التقنية التي أدرّسها",
+      "work.index": "أيضًا · كقائد منتج", "work.title": "وأقود منتجات تعليمية",
+    },
+  },
+};
+
+const VIEW_TITLE = {
+  full: { en: "Ahmed Tarek Mourssi — Educator, Builder & AI Product Manager", ar: "أحمد طارق مرسي — مُعلّم ومهندس ومدير منتج ذكاء اصطناعي" },
+  product: { en: "Ahmed Tarek Mourssi — AI Product Manager", ar: "أحمد طارق مرسي — مدير منتج ذكاء اصطناعي" },
+  educator: { en: "Ahmed Tarek Mourssi — STEAM Educator & Robotics Instructor", ar: "أحمد طارق مرسي — مُعلّم STEAM ومدرّس روبوتيات" },
+};
+
+if (VIEW !== "full") {
+  Object.assign(STATIC.en, VIEW_TEXT[VIEW].en);
+  Object.assign(STATIC.ar, VIEW_TEXT[VIEW].ar);
+}
+
+// Reorder / trim the page sections for the active view.
+(function applyViewLayout() {
+  const main = document.querySelector("main");
+  if (!main) return;
+  const ORDER = {
+    full: ["about", "educator", "builder", "work", "skills", "contact"],
+    product: ["work", "builder", "educator", "skills", "contact"],
+    educator: ["educator", "builder", "work", "skills", "contact"],
+  }[VIEW];
+  // remove sections not used by this view (e.g. the generic 3-chapter #about)
+  ["about", "educator", "builder", "work", "skills", "contact"].forEach((id) => {
+    if (!ORDER.includes(id)) { const el = document.getElementById(id); if (el) el.remove(); }
+  });
+  // re-append in the desired order (hero stays first, untouched)
+  ORDER.forEach((id) => { const el = document.getElementById(id); if (el) main.appendChild(el); });
+  // hide nav links whose target section no longer exists
+  document.querySelectorAll('.nav__links a[href^="#"]').forEach((a) => {
+    const sel = a.getAttribute("href");
+    if (sel.length > 1 && !document.querySelector(sel)) a.style.display = "none";
+  });
+  // point the hero primary button at the first content section of this view
+  const primary = document.querySelector(".hero__actions .btn--primary");
+  if (primary) primary.setAttribute("href", VIEW === "product" ? "#work" : "#educator");
+  // mark active view in the footer switcher
+  document.querySelectorAll("[data-view-link]").forEach((a) => {
+    if (a.getAttribute("data-view-link") === VIEW) a.classList.add("is-current");
+  });
+  document.body.dataset.view = VIEW;
+  document.title = (VIEW_TITLE[VIEW] || VIEW_TITLE.full)[LANG] || (VIEW_TITLE[VIEW] || VIEW_TITLE.full).en;
+})();
+
+// Wire the Résumé download + Book-a-call buttons from SITE_CONFIG.
+(function wireCTAs() {
+  const cfg = window.SITE_CONFIG || {};
+  const urls = { resume: cfg.RESUME_URL, book: cfg.BOOKING_URL };
+  document.querySelectorAll("[data-cta]").forEach((el) => {
+    const url = (urls[el.dataset.cta] || "").trim();
+    if (url && url.indexOf("XXX") === -1) {
+      el.setAttribute("href", url);
+      el.classList.remove("btn--soon");
+      el.removeAttribute("aria-disabled");
+      if (el.dataset.cta === "book") { el.setAttribute("target", "_blank"); el.setAttribute("rel", "noopener"); el.removeAttribute("download"); }
+    } else {
+      el.classList.add("btn--soon");
+      el.setAttribute("aria-disabled", "true");
+      el.removeAttribute("download");
+      el.title = "Coming soon";
+      el.addEventListener("click", (e) => e.preventDefault());
+    }
+  });
+})();
+
 // initial paint
 renderCards();
 applyStatic();
@@ -705,6 +826,8 @@ if (langToggle) {
     LANG = LANG === "ar" ? "en" : "ar";
     renderCards();
     applyStatic();
+    const tt = VIEW_TITLE[VIEW] || VIEW_TITLE.full;
+    document.title = tt[LANG] || tt.en;
     // re-rendered cards are new nodes; reveal them immediately (user already scrolled)
     document
       .querySelectorAll("#eduTimeline .reveal, #buildTimeline .reveal, #timeline .reveal, #skillsGrid .reveal")

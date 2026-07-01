@@ -7,7 +7,7 @@
   <meta name="description" content="Ahmed Tarek Mourssi — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="apple-touch-icon" href="favicon.svg" />
-  <meta name="theme-color" content="#05060c" />
+  <meta name="theme-color" content="#0e0c0a" />
 
   <!-- ============================================================
        ANALYTICS + FORM CONFIG
@@ -18,7 +18,9 @@
     window.SITE_CONFIG = {
       GA4_ID: "G-MQ8TXQH3NX",     // Google Analytics 4 — Measurement ID (Admin → Data Streams)
       CLARITY_ID: "xfso0z6dlc",   // Microsoft Clarity — Project ID (Settings → Overview)
-      FORMSPREE_ID: "xgojnrrq"  // Formspree — the code after formspree.io/f/______
+      FORMSPREE_ID: "xgojnrrq",   // Formspree — the code after formspree.io/f/______
+      RESUME_URL: "",             // e.g. "assets/Ahmed-Tarek-Mourssi-CV.pdf" — leave "" to show a "soon" button
+      BOOKING_URL: ""             // e.g. "https://calendly.com/your-handle/intro" — leave "" to show a "soon" button
     };
   </script>
   <script>
@@ -58,7 +60,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
 </head>
 <body>
   <!-- animated colour aurora (behind the 3D canvas) -->
@@ -109,6 +111,8 @@
         </p>
         <div class="hero__actions reveal" style="--d:.4s">
           <a href="#educator" class="btn btn--primary" data-i18n="hero.btnPrimary">Read my story</a>
+          <a href="#" class="btn btn--book" data-cta="book" data-i18n="cta.book"><span class="btn__icon">📅</span> Book a call</a>
+          <a href="#" class="btn btn--cv" data-cta="resume" download data-i18n="cta.cv"><span class="btn__icon">⬇</span> Download CV</a>
           <a href="#contact" class="btn btn--ghost" data-i18n="hero.btnGhost">Get in touch</a>
         </div>
 
@@ -254,6 +258,10 @@
         <p class="contact__sub reveal" style="--d:.1s" data-i18n="contact.sub">
           Open to <strong>Product Manager</strong>, <strong>AI Product</strong> and <strong>STEAM / EdTech leadership</strong> roles. Based in Dubai, working globally.
         </p>
+        <div class="contact__ctas reveal" style="--d:.16s">
+          <a href="#" class="btn btn--book" data-cta="book" data-i18n="cta.book"><span class="btn__icon">📅</span> Book a call</a>
+          <a href="#" class="btn btn--cv" data-cta="resume" download data-i18n="cta.cv"><span class="btn__icon">⬇</span> Download CV</a>
+        </div>
         <form class="contact__form reveal" id="contactForm" style="--d:.15s" novalidate>
           <div class="form__row">
             <input type="text" name="name" placeholder="Your name" data-i18n-ph="form.name" required autocomplete="name" />
@@ -283,6 +291,11 @@
       </div>
       <footer class="footer">
         <span data-i18n="footer.copy">© 2026 Ahmed Tarek Mourssi</span>
+        <nav class="footer__views" aria-label="Portfolio views">
+          <a href="/" data-view-link="full" data-i18n="views.full">Full story</a>
+          <a href="/product" data-view-link="product" data-i18n="views.product">Product</a>
+          <a href="/educator" data-view-link="educator" data-i18n="views.educator">Educator</a>
+        </nav>
       </footer>
     </section>
   </main>
@@ -307,6 +320,6 @@
     </div>
   </div>
 
-  <script type="module" src="main.js?v=22"></script>
+  <script type="module" src="main.js?v=23"></script>
 </body>
 </html>
