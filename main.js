@@ -198,6 +198,8 @@ const AR = {
   "Visit Inkrypt Videos": "زيارة Inkrypt Videos",
   "Watch overview": "شاهد النظرة العامة",
   "Watch RoboCup video": "شاهد فيديو روبوكب",
+  "In line with child-safeguarding policy, student & classroom photos are not shown.":
+    "التزامًا بسياسة حماية الطفل، لا يتم عرض صور الطلاب أو الفصول الدراسية.",
   "Visit Sakeenah Tours": "زيارة Sakeenah Tours",
   "App Store": "App Store",
   "LinkedIn": "LinkedIn",
@@ -462,6 +464,7 @@ const EDUCATOR = [
     ],
     impact: ["ASD · JESS · Kings'", "+40% engagement"],
     tags: ["Robotics", "Project-based", "STEM"],
+    note: "In line with child-safeguarding policy, student & classroom photos are not shown.",
     links: [],
   },
   {
@@ -619,6 +622,7 @@ function cardHTML(j, i) {
       <ul class="prod__built">${j.built.map((b) => `<li>${t(b)}</li>`).join("")}</ul>
     </div>
     <div class="prod__impact">${j.impact.map((m) => `<span class="prod__metric">${t(m)}</span>`).join("")}</div>
+    ${j.note ? `<p class="prod__note"><span class="prod__note-icon">🛡️</span> ${t(j.note)}</p>` : ""}
     <div class="prod__foot">
       <div class="prod__tags">${j.tags.map((tag) => `<span class="job__tag">${tag}</span>`).join("")}</div>
       ${linkBtn(j)}

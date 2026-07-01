@@ -656,6 +656,20 @@ main { position: relative; z-index: 2; }
   .lightbox__nav { width: 44px; height: 44px; font-size: 1.6rem; }
 }
 
+.prod__note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: .86rem;
+  color: var(--muted);
+  background: rgba(55, 245, 160, 0.06);
+  border: 1px solid rgba(55, 245, 160, 0.28);
+}
+.prod__note-icon { flex-shrink: 0; }
+
 .prod__section { margin-top: 18px; }
 .prod__label {
   font-family: "Space Grotesk", sans-serif;
