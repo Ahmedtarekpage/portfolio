@@ -1,5 +1,3 @@
-import * as THREE from "three";
-
 /* =========================================================
    i18n — language + translation layer
    ========================================================= */
@@ -858,186 +856,75 @@ document.querySelectorAll(".tilt").forEach((card) => {
 });
 
 /* =========================================================
-   THREE.JS BACKGROUND — particle constellation + core
+   BACKGROUND PARALLAX (scroll + pointer) — no WebGL
    ========================================================= */
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const canvas = document.getElementById("bg-canvas");
+const aurora = document.querySelector(".aurora");
+let auroraTX = 0, auroraTY = 0, auroraX = 0, auroraY = 0, lastScroll = window.scrollY || 0;
 
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x05060c, 0.055);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.z = 14;
-
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-/* --- colour palette --- */
-const PALETTE = [
-  new THREE.Color(0x38e8ff), // cyan
-  new THREE.Color(0x8b5cff), // violet
-  new THREE.Color(0xff5cc8), // pink
-  new THREE.Color(0x37f5a0), // green
-  new THREE.Color(0xffb347), // amber
-];
-
-/* --- particle field (multi-colour) --- */
-const COUNT = window.innerWidth < 700 ? 1600 : 3400;
-const positions = new Float32Array(COUNT * 3);
-const colors = new Float32Array(COUNT * 3);
-const speeds = new Float32Array(COUNT);
-const R = 26;
-for (let i = 0; i < COUNT; i++) {
-  positions[i * 3] = (Math.random() - 0.5) * R * 2;
-  positions[i * 3 + 1] = (Math.random() - 0.5) * R * 2;
-  positions[i * 3 + 2] = (Math.random() - 0.5) * R;
-  speeds[i] = 0.2 + Math.random() * 0.8;
-  // ~55% cyan/white base, rest coloured accents
-  const c = Math.random() < 0.55 ? PALETTE[0] : PALETTE[(Math.random() * PALETTE.length) | 0];
-  colors[i * 3] = c.r;
-  colors[i * 3 + 1] = c.g;
-  colors[i * 3 + 2] = c.b;
+if (aurora && !reduceMotion) {
+  window.addEventListener("mousemove", (e) => {
+    auroraTX = (e.clientX / window.innerWidth - 0.5) * 34;
+    auroraTY = (e.clientY / window.innerHeight - 0.5) * 34;
+  });
+  window.addEventListener("scroll", () => { lastScroll = window.scrollY; }, { passive: true });
+  (function auroraLoop() {
+    auroraX += (auroraTX - auroraX) * 0.06;
+    auroraY += (auroraTY - auroraY) * 0.06;
+    aurora.style.transform = `translate3d(${auroraX}px, ${auroraY + lastScroll * 0.08}px, 0)`;
+    aurora.style.filter = `hue-rotate(${lastScroll * 0.04}deg)`;
+    requestAnimationFrame(auroraLoop);
+  })();
 }
-const pGeo = new THREE.BufferGeometry();
-pGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-pGeo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-function makeSprite() {
-  const c = document.createElement("canvas");
-  c.width = c.height = 64;
-  const g = c.getContext("2d");
-  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grd.addColorStop(0, "rgba(255,255,255,1)");
-  grd.addColorStop(0.25, "rgba(120,220,255,0.9)");
-  grd.addColorStop(1, "rgba(120,220,255,0)");
-  g.fillStyle = grd;
-  g.fillRect(0, 0, 64, 64);
-  return new THREE.CanvasTexture(c);
-}
-const pMat = new THREE.PointsMaterial({
-  size: 0.19,
-  map: makeSprite(),
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-  vertexColors: true,
-});
-const points = new THREE.Points(pGeo, pMat);
-scene.add(points);
-
-/* --- glowing wireframe core --- */
-const coreGeo = new THREE.IcosahedronGeometry(3.2, 1);
-const coreMat = new THREE.MeshBasicMaterial({ color: 0x8b5cff, wireframe: true, transparent: true, opacity: 0.28 });
-const core = new THREE.Mesh(coreGeo, coreMat);
-scene.add(core);
-
-const coreGeo2 = new THREE.IcosahedronGeometry(2.1, 0);
-const coreMat2 = new THREE.MeshBasicMaterial({ color: 0x38e8ff, wireframe: true, transparent: true, opacity: 0.45 });
-const core2 = new THREE.Mesh(coreGeo2, coreMat2);
-scene.add(core2);
-
-/* --- extra colourful floating shapes --- */
-const shapes = [];
-function addShape(geo, color, pos, spin) {
-  const mesh = new THREE.Mesh(
-    geo,
-    new THREE.MeshBasicMaterial({ color, wireframe: true, transparent: true, opacity: 0.5 })
-  );
-  mesh.position.set(pos[0], pos[1], pos[2]);
-  mesh.userData = { spin, base: pos.slice(), phase: pos[0] + pos[1] };
-  scene.add(mesh);
-  shapes.push(mesh);
-}
-addShape(new THREE.TorusKnotGeometry(1.1, 0.34, 90, 12), 0xff5cc8, [-9, 4, -6], 0.4);
-addShape(new THREE.OctahedronGeometry(1.4, 0), 0x37f5a0, [10, -3, -5], 0.55);
-addShape(new THREE.TetrahedronGeometry(1.5, 0), 0xffb347, [8, 6, -8], 0.6);
-addShape(new THREE.TorusGeometry(1.3, 0.28, 16, 60), 0x38e8ff, [-10, -5, -4], -0.5);
-
-// coloured glow lights via big additive sprites
-const glowTex = makeSprite();
-function addGlow(color, pos, size) {
-  const s = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  s.scale.setScalar(size);
-  s.position.set(pos[0], pos[1], pos[2]);
-  s.userData = { base: pos.slice() };
-  scene.add(s);
-  shapes.push(s);
-}
-addGlow(0x8b5cff, [-7, 3, 2], 10);
-addGlow(0xff5cc8, [7, -4, 1], 9);
-addGlow(0x37f5a0, [4, 6, -2], 8);
-
-/* --- pointer parallax --- */
-const pointer = { x: 0, y: 0 };
-window.addEventListener("mousemove", (e) => {
-  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-  pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
-});
-
-let scrollY = 0;
-window.addEventListener("scroll", () => { scrollY = window.scrollY; }, { passive: true });
-
-const clock = new THREE.Clock();
-function render() {
-  const t = clock.getElapsedTime();
-  const dt = Math.min(clock.getDelta(), 0.05);
-
-  if (!reduceMotion) {
-    // drift particles upward + wrap
-    const pos = pGeo.attributes.position.array;
-    for (let i = 0; i < COUNT; i++) {
-      pos[i * 3 + 1] += speeds[i] * dt * 0.6;
-      if (pos[i * 3 + 1] > R) pos[i * 3 + 1] = -R;
-    }
-    pGeo.attributes.position.needsUpdate = true;
-
-    points.rotation.y = t * 0.02;
-    core.rotation.x = t * 0.12;
-    core.rotation.y = t * 0.16;
-    core2.rotation.x = -t * 0.18;
-    core2.rotation.y = -t * 0.1;
-
-    const scale = 1 + Math.sin(t * 1.5) * 0.04;
-    core2.scale.setScalar(scale);
-
-    // animate the colourful shapes — rotate + float
-    for (const m of shapes) {
-      const u = m.userData;
-      if (u.spin != null) {
-        m.rotation.x = t * u.spin;
-        m.rotation.y = t * u.spin * 0.7;
-        m.position.y = u.base[1] + Math.sin(t * 0.6 + u.phase) * 1.2;
-      } else {
-        // glow sprites drift gently + pulse
-        m.position.x = u.base[0] + Math.sin(t * 0.3 + u.base[1]) * 1.5;
-        m.position.y = u.base[1] + Math.cos(t * 0.25 + u.base[0]) * 1.2;
-        m.material.opacity = 0.35 + Math.sin(t * 0.8 + u.base[0]) * 0.18;
+/* =========================================================
+   SCROLL-DRIVEN HERO PARALLAX
+   ========================================================= */
+const heroInner = document.querySelector(".hero__inner");
+const heroPhoto = document.querySelector(".hero__photo");
+const heroScroll = document.querySelector(".hero__scroll");
+if (!reduceMotion && (heroInner || heroPhoto)) {
+  let ticking = false;
+  const onHeroScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      const p = Math.min(y / window.innerHeight, 1);
+      if (heroInner) {
+        heroInner.style.transform = `translateY(${y * 0.16}px)`;
+        heroInner.style.opacity = String(1 - p * 0.85);
       }
-    }
-
-    // slowly cycle the fog hue for shifting ambient colour
-    const hue = (t * 0.02) % 1;
-    scene.fog.color.setHSL(0.62 + Math.sin(t * 0.1) * 0.08, 0.6, 0.04);
-    core.material.color.setHSL(hue, 0.7, 0.6);
-  }
-
-  // parallax + scroll dive
-  camera.position.x += (pointer.x * 2.2 - camera.position.x) * 0.04;
-  camera.position.y += (-pointer.y * 1.6 - camera.position.y) * 0.04;
-  const depth = 14 - Math.min(scrollY / 260, 6);
-  camera.position.z += (depth - camera.position.z) * 0.05;
-  camera.lookAt(0, 0, 0);
-
-  renderer.render(scene, camera);
-  requestAnimationFrame(render);
+      if (heroPhoto) heroPhoto.style.transform = `translateY(${y * 0.06}px)`;
+      if (heroScroll) heroScroll.style.opacity = String(Math.max(0, 1 - p * 2));
+      ticking = false;
+    });
+  };
+  window.addEventListener("scroll", onHeroScroll, { passive: true });
 }
-render();
 
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+/* =========================================================
+   SCROLL-LINKED SECTION DEPTH (subtle rise as sections enter)
+   ========================================================= */
+if (!reduceMotion) {
+  const depthEls = document.querySelectorAll(".section__head, .persona");
+  let dTick = false;
+  const onDepth = () => {
+    if (dTick) return;
+    dTick = true;
+    requestAnimationFrame(() => {
+      const vh = window.innerHeight;
+      depthEls.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < vh && r.bottom > 0) {
+          // -1 (below) → 0 (centered): gentle parallax on the section heading
+          const rel = (r.top - vh * 0.5) / vh; // ~ -0.5..0.5 across viewport
+          el.style.transform = `translateY(${rel * -18}px)`;
+        }
+      });
+      dTick = false;
+    });
+  };
+  window.addEventListener("scroll", onDepth, { passive: true });
+  onDepth();
+}
