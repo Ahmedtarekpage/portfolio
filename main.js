@@ -198,6 +198,7 @@ const AR = {
   "Visit Inkrypt Videos": "زيارة Inkrypt Videos",
   "Watch overview": "شاهد النظرة العامة",
   "Watch RoboCup video": "شاهد فيديو روبوكب",
+  "View course": "عرض الدورة",
   "In line with child-safeguarding policy, student & classroom photos are not shown.":
     "التزامًا بسياسة حماية الطفل، لا يتم عرض صور الطلاب أو الفصول الدراسية.",
   "Visit Sakeenah Tours": "زيارة Sakeenah Tours",
@@ -500,8 +501,8 @@ const EDUCATOR = [
     ],
     impact: ["1,000+ hours", "650+ students", "95% satisfaction"],
     tags: ["Python", "Scratch", "LEGO Robotics"],
-    localVideo: { src: "assets/almentor.mp4" },
-    links: [],
+    localVideo: { src: "assets/almentor.mp4", poster: "assets/almentor-poster.png" },
+    links: [{ url: "https://www.almentor.net/courses/Python-Warm-Up-for-Machine-Learning", label: "View course" }],
   },
 ];
 
