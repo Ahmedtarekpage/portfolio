@@ -671,7 +671,11 @@ function startRank(date) {
 function renderInto(id, list) {
   const el = document.getElementById(id);
   if (!el) return;
-  const sorted = [...list].sort((a, b) => startRank(b.date) - startRank(a.date));
+  // featured flagship pinned first, then newest-first by start date
+  const sorted = [...list].sort((a, b) => {
+    if (!!b.featured !== !!a.featured) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+    return startRank(b.date) - startRank(a.date);
+  });
   el.innerHTML = sorted.map(cardHTML).join("");
 }
 function renderCards() {
