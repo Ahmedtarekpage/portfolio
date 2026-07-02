@@ -660,9 +660,19 @@ function cardHTML(j, i) {
     </div>
   </article>`;
 }
+// Sort key = start (month + year) of each entry, for newest-first ordering.
+const _MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+function startRank(date) {
+  const s = String(date).toLowerCase();
+  const y = (s.match(/\d{4}/) || ["0"])[0];
+  const mm = s.match(/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/);
+  return (+y) * 100 + (mm ? _MONTHS[mm[0]] : 1);
+}
 function renderInto(id, list) {
   const el = document.getElementById(id);
-  if (el) el.innerHTML = list.map(cardHTML).join("");
+  if (!el) return;
+  const sorted = [...list].sort((a, b) => startRank(b.date) - startRank(a.date));
+  el.innerHTML = sorted.map(cardHTML).join("");
 }
 function renderCards() {
   renderInto("eduTimeline", EDUCATOR);
