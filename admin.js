@@ -80,10 +80,8 @@
   function boot() {
     api("/api/auth?action=me").then(function (me) {
       if (me.authed) return loadClients();
-      show("view-login");
-      if (!me.hasCredentials) {
-        $("#btnShowSetup").textContent = "First-time setup — register your iPhone";
-      }
+      // one-device policy: setup is only offered while NO passkey exists yet
+      show(me.hasCredentials ? "view-login" : "view-setup");
     }).catch(function (e) {
       show("view-login");
       showErr("#loginError", e.message);
@@ -114,44 +112,24 @@
       .finally(function () { busy(btn, false); });
   });
 
-  $("#btnShowSetup").addEventListener("click", function () { show("view-setup"); });
-  $("#btnBackToLogin").addEventListener("click", function () { show("view-login"); });
-
-  function registerPasskey(secret, label, errSel) {
-    return api("/api/auth?action=register-options", { method: "POST", body: { secret: secret } })
+  $("#btnSetup").addEventListener("click", function () {
+    var btn = this;
+    showErr("#setupError", "");
+    busy(btn, true);
+    api("/api/auth?action=register-options", { method: "POST", body: {} })
       .then(function (options) {
         return SimpleWebAuthnBrowser.startRegistration({ optionsJSON: options });
       })
       .then(function (response) {
         return api("/api/auth?action=register-verify", {
           method: "POST",
-          body: { secret: secret, response: response, label: label || "passkey" },
+          body: { response: response, label: "admin device" },
         });
-      });
-  }
-
-  $("#setupForm").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var btn = this.querySelector("button[type=submit]");
-    showErr("#setupError", "");
-    busy(btn, true);
-    registerPasskey($("#setupSecret").value, $("#setupLabel").value.trim())
-      .then(function () { toast("Passkey registered ✓"); loadClients(); })
-      .catch(function (e) {
-        if (e.name === "InvalidStateError") showErr("#setupError", "This device already has a passkey registered — go back and sign in.");
-        else if (e.name !== "NotAllowedError") showErr("#setupError", e.message || "Setup failed");
       })
-      .finally(function () { busy(btn, false); });
-  });
-
-  $("#btnAddDevice").addEventListener("click", function () {
-    var btn = this;
-    busy(btn, true);
-    registerPasskey("", "extra device")
-      .then(function () { toast("New passkey registered ✓"); })
+      .then(function () { toast("Passkey registered ✓ — this device is now the only key"); loadClients(); })
       .catch(function (e) {
-        if (e.name === "InvalidStateError") toast("This device already has a passkey", true);
-        else if (e.name !== "NotAllowedError") toast(e.message, true);
+        if (e.name === "InvalidStateError") showErr("#setupError", "This device already holds the passkey — reload and sign in.");
+        else if (e.name !== "NotAllowedError") showErr("#setupError", e.message || "Setup failed");
       })
       .finally(function () { busy(btn, false); });
   });

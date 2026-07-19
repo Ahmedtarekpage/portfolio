@@ -31,27 +31,20 @@
         from a computer your browser will show a QR code to scan with the iPhone.</p>
         <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
         <p id="loginError" class="error" hidden></p>
-        <button id="btnShowSetup" class="linklike">First-time setup / add this device</button>
       </div>
     </section>
 
-    <!-- ================= FIRST-TIME SETUP ================= -->
+    <!-- ================= FIRST-TIME SETUP (only while no device is registered) ================= -->
     <section id="view-setup" class="view" hidden>
       <div class="card card--center login-card">
-        <h1>Register a passkey</h1>
-        <p class="muted">Enter the setup secret (the <code>ADMIN_SETUP_SECRET</code> you configured on Vercel),
-        then approve with Face&nbsp;ID / Touch&nbsp;ID.</p>
-        <form id="setupForm" class="form">
-          <label>Setup secret
-            <input type="password" id="setupSecret" autocomplete="off" required />
-          </label>
-          <label>Device name
-            <input type="text" id="setupLabel" placeholder="e.g. Ahmed's iPhone" />
-          </label>
-          <button type="submit" class="btn btn--primary">Create passkey</button>
-        </form>
+        <div class="lock-icon" aria-hidden="true">📱</div>
+        <h1>Register your iPhone</h1>
+        <p class="muted">One device only — after this, setup locks forever and only your iPhone can sign in.</p>
+        <p class="muted"><strong>On a computer:</strong> tap the button below and your browser will show a
+        <strong>QR code</strong> — scan it with the iPhone camera, then confirm with Face&nbsp;ID.<br /><br />
+        <strong>On the iPhone itself:</strong> just tap the button and confirm with Face&nbsp;ID.</p>
+        <button id="btnSetup" class="btn btn--primary">Create passkey</button>
         <p id="setupError" class="error" hidden></p>
-        <button id="btnBackToLogin" class="linklike">← Back to sign in</button>
       </div>
     </section>
 
@@ -60,7 +53,6 @@
       <header class="topbar">
         <h1>Clients</h1>
         <div class="topbar__actions">
-          <button id="btnAddDevice" class="btn btn--ghost btn--sm" title="Register a passkey for another device">+ Passkey</button>
           <button id="btnLogout" class="btn btn--ghost btn--sm">Log out</button>
         </div>
       </header>

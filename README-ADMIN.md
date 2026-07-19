@@ -4,8 +4,10 @@ A private client-hours CRM at **`/admin`**, protected by iPhone passkeys (Face I
 Static frontend + Vercel serverless functions in [api/](api/) + Neon Postgres.
 
 ## What it does
-- **Passkey login** — no passwords. On the iPhone it's Face ID; when you open `/admin`
-  on a laptop, the browser shows a QR code you scan with the iPhone (built into passkeys).
+- **Passkey login, one device only** — no passwords, no secrets. The FIRST device to
+  register (your iPhone) becomes the only key; registration then locks permanently,
+  enforced in the database. On the iPhone it's Face ID; when you open `/admin` on a
+  laptop, the browser shows a QR code you scan with the iPhone (built into passkeys).
 - **Clients** — name, phone, email, nationality, transaction type (Direct / PayPal / …), notes.
 - **Hour packages** — e.g. client pays for 30 hours on 1 Jan; they expire after 1 month
   (configurable 1–24 months per purchase).
@@ -24,19 +26,25 @@ Static frontend + Vercel serverless functions in [api/](api/) + Neon Postgres.
    This automatically adds `DATABASE_URL` to the project.
    Tables are created automatically on first use — no SQL to run.
 
-3. **Add two environment variables** (Project → Settings → Environment Variables):
+3. **Add one environment variable** (Project → Settings → Environment Variables):
 
    | Name | Value |
    |---|---|
    | `SESSION_SECRET` | a long random string — run `openssl rand -hex 32` |
-   | `ADMIN_SETUP_SECRET` | a passphrase you choose — only needed when registering a new device |
 
-4. **Redeploy** (Deployments → ⋯ → Redeploy) so the env vars take effect.
+4. **Redeploy** (Deployments → ⋯ → Redeploy) so the env var takes effect.
 
-5. **Register your iPhone**: open `https://your-domain/admin` **on the iPhone** →
-   *First-time setup* → enter the `ADMIN_SETUP_SECRET` → confirm with Face ID. Done.
-   - To add a laptop later: log in there via QR + iPhone, then use **“+ Passkey”**, or
-     use *First-time setup* with the secret on that device.
+5. **Register your iPhone** (do this promptly after deploying — first device wins):
+   open `https://your-domain/admin` → *Create passkey*.
+   - On the iPhone: confirm with Face ID, done.
+   - On a computer: the browser shows a **QR code** → scan it with the iPhone camera →
+     Face ID. The passkey lives on the iPhone either way.
+   After this, setup is locked: no other device can ever register, and every login
+   (including on computers, via QR) must be approved by that iPhone.
+
+### Lost the phone / want to change the device?
+Open the Neon database (Vercel → Storage → your DB → Query) and run
+`DELETE FROM wa_credentials;` — `/admin` then offers first-time setup again.
 
 ## Local development
 
@@ -73,5 +81,8 @@ vercel dev            # http://localhost:3000/admin
 ## Security notes
 
 - All data endpoints require a valid passkey session (7-day signed, HttpOnly cookie).
-- Registering a new passkey requires either an existing session or `ADMIN_SETUP_SECRET`.
+- Exactly one passkey can ever exist; the guarded INSERT in `api/auth.js` makes a
+  second registration impossible until you wipe `wa_credentials` yourself.
+- Passkeys created on iPhone sync via iCloud Keychain, so your other Apple devices
+  signed into the same Apple ID can also answer the QR — that's still only you.
 - `/admin` is `noindex` and never linked from the public site.

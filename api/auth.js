@@ -3,9 +3,13 @@
 //   GET  /api/auth?action=me               -> { authed, hasCredentials }
 //   POST /api/auth?action=login-options    -> WebAuthn authentication options
 //   POST /api/auth?action=login-verify     -> verify assertion, start session
-//   POST /api/auth?action=register-options -> WebAuthn registration options (setup secret OR logged in)
+//   POST /api/auth?action=register-options -> WebAuthn registration options (ONLY while no device is registered)
 //   POST /api/auth?action=register-verify  -> verify attestation, save credential, start session
 //   POST /api/auth?action=logout
+//
+// Registration is first-device-only: once one passkey exists, registration is
+// permanently closed (enforced with a guarded INSERT). To reset, delete the
+// rows in wa_credentials.
 //
 // The WebAuthn challenge is kept in a short-lived signed cookie, so no server
 // state is needed between the two steps. Signing in from a laptop shows the
@@ -19,7 +23,7 @@ import {
 import { db } from "./_lib/db.js";
 import {
   withErrors, json, rp, sign, verifyToken, parseCookies, setCookie, clearCookie,
-  createSession, destroySession, isAuthed, safeEqual,
+  createSession, destroySession, isAuthed,
 } from "./_lib/util.js";
 
 const RP_NAME = "Ahmed Tarek — Admin";
@@ -37,10 +41,11 @@ function readChallenge(req, res, type) {
   return payload.ch;
 }
 
-function canRegister(req, body) {
-  if (isAuthed(req)) return true;
-  const expected = process.env.ADMIN_SETUP_SECRET;
-  return !!expected && safeEqual(body?.secret || "", expected);
+const LOCKED_MSG = "Setup is locked — the admin device is already registered";
+
+async function credentialCount(sql) {
+  const [{ count }] = await sql`SELECT count(*)::int AS count FROM wa_credentials`;
+  return count;
 }
 
 export default withErrors(async (req, res) => {
@@ -50,8 +55,7 @@ export default withErrors(async (req, res) => {
 
   if (action === "me" && req.method === "GET") {
     const sql = await db();
-    const [{ count }] = await sql`SELECT count(*)::int AS count FROM wa_credentials`;
-    return json(res, 200, { authed: isAuthed(req), hasCredentials: count > 0 });
+    return json(res, 200, { authed: isAuthed(req), hasCredentials: (await credentialCount(sql)) > 0 });
   }
 
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
@@ -96,19 +100,14 @@ export default withErrors(async (req, res) => {
   }
 
   if (action === "register-options") {
-    if (!canRegister(req, body)) return json(res, 403, { error: "Wrong setup secret" });
     const sql = await db();
-    const existing = await sql`SELECT id, transports FROM wa_credentials`;
+    if ((await credentialCount(sql)) > 0) return json(res, 403, { error: LOCKED_MSG });
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID,
       userName: "admin",
       userDisplayName: "Admin",
       attestationType: "none",
-      excludeCredentials: existing.map((c) => ({
-        id: c.id,
-        transports: c.transports ? JSON.parse(c.transports) : undefined,
-      })),
       authenticatorSelection: { residentKey: "required", userVerification: "required" },
     });
     saveChallenge(res, "reg", options.challenge);
@@ -116,7 +115,6 @@ export default withErrors(async (req, res) => {
   }
 
   if (action === "register-verify") {
-    if (!canRegister(req, body)) return json(res, 403, { error: "Wrong setup secret" });
     const challenge = readChallenge(req, res, "reg");
     if (!challenge) return json(res, 400, { error: "Challenge expired — try again" });
 
@@ -131,11 +129,15 @@ export default withErrors(async (req, res) => {
 
     const { credential } = verification.registrationInfo;
     const sql = await db();
-    await sql`INSERT INTO wa_credentials (id, public_key, counter, transports, label)
-      VALUES (${credential.id}, ${Buffer.from(credential.publicKey).toString("base64url")},
-              ${credential.counter}, ${JSON.stringify(credential.transports || [])},
-              ${body.label || "passkey"})
-      ON CONFLICT (id) DO NOTHING`;
+    // guarded insert: succeeds only while the table is empty, so exactly one
+    // device can ever register — no race, no way to add a second passkey
+    const inserted = await sql`INSERT INTO wa_credentials (id, public_key, counter, transports, label)
+      SELECT ${credential.id}, ${Buffer.from(credential.publicKey).toString("base64url")},
+             ${credential.counter}, ${JSON.stringify(credential.transports || [])},
+             ${body.label || "admin device"}
+      WHERE NOT EXISTS (SELECT 1 FROM wa_credentials)
+      RETURNING id`;
+    if (!inserted.length) return json(res, 403, { error: LOCKED_MSG });
     createSession(res);
     return json(res, 200, { ok: true });
   }
