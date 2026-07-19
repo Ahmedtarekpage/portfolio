@@ -127,6 +127,7 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
 
 .iconbtn { background: none; border: none; color: var(--faint); cursor: pointer; font-size: 0.95rem; padding: 4px 6px; border-radius: 8px; }
 .iconbtn:hover { color: var(--c-danger); background: rgba(226, 88, 106, 0.1); }
+.iconbtn--edit:hover { color: var(--blue-2); background: rgba(96, 165, 250, 0.12); }
 
 /* ---------- stat tiles ---------- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }

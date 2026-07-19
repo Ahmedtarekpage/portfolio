@@ -43,6 +43,10 @@ async function migrate(sql) {
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // payment-proof attachment (screenshot or PDF) on purchases
+  await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof BYTEA`;
+  await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof_name TEXT`;
+  await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof_type TEXT`;
   await sql`CREATE TABLE IF NOT EXISTS client_sessions (
     id SERIAL PRIMARY KEY,
     client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,

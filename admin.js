@@ -3,7 +3,16 @@
   "use strict";
 
   var $ = function (sel) { return document.querySelector(sel); };
-  var state = { clientId: null, detail: null };
+  var state = { clientId: null, detail: null, editingSessionId: null };
+
+  function readFileB64(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result).split(",")[1]); };
+      fr.onerror = reject;
+      fr.readAsDataURL(file);
+    });
+  }
 
   /* ---------------- helpers ---------------- */
 
@@ -220,11 +229,13 @@
     pt.innerHTML = "";
     data.packages.forEach(function (p) {
       var expired = String(p.expires_at).slice(0, 10) < todayISO();
+      var paid = p.amount_paid != null ? Number(p.amount_paid).toLocaleString() + " " + esc(p.currency || "") : "—";
+      if (p.has_proof) paid += ' <a href="/api/pdf?proof=' + p.id + '" target="_blank" rel="noopener" title="Payment proof">📷</a>';
       var tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" + fmtDate(p.purchased_at) + (p.note ? '<div class="muted" style="font-size:.78rem">' + esc(p.note) + "</div>" : "") + "</td>" +
         '<td class="num"><strong>' + fmtH(p.hours) + "</strong></td>" +
-        '<td class="num muted">' + (p.amount_paid != null ? Number(p.amount_paid).toLocaleString() + " " + esc(p.currency || "") : "—") + "</td>" +
+        '<td class="num muted">' + paid + "</td>" +
         "<td class=\"muted\">" + fmtDate(p.expires_at) + (expired ? ' <span class="badge badge--warn">expired</span>' : "") + "</td>" +
         '<td><button class="iconbtn" title="Delete purchase">✕</button></td>';
       tr.querySelector(".iconbtn").addEventListener("click", function () {
@@ -246,8 +257,11 @@
         '<td class="num">' + fmtH(s.hours) + "</td>" +
         "<td>" + esc(s.topic || "—") + "</td>" +
         "<td>" + (s.has_pdf ? '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>' : '<span class="muted">—</span>') + "</td>" +
-        '<td><button class="iconbtn" title="Delete session">✕</button></td>';
-      tr.querySelector(".iconbtn").addEventListener("click", function () {
+        '<td class="num">' +
+          '<button class="iconbtn iconbtn--edit" title="Edit session">✎</button>' +
+          '<button class="iconbtn iconbtn--del" title="Delete session">✕</button></td>';
+      tr.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditSession(s); });
+      tr.querySelector(".iconbtn--del").addEventListener("click", function () {
         if (!confirm("Delete this session record?")) return;
         api("/api/sessions?id=" + s.id, { method: "DELETE" })
           .then(function () { return openClient(state.clientId); })
@@ -256,10 +270,34 @@
       st.appendChild(tr);
     });
 
-    // default form dates
+    // default form dates + leave edit mode
+    stopEditSession();
     $("#addPackageForm").elements.purchased_at.value = todayISO();
     $("#addSessionForm").elements.session_date.value = todayISO();
   }
+
+  function startEditSession(s) {
+    state.editingSessionId = s.id;
+    var form = $("#addSessionForm");
+    form.elements.session_date.value = String(s.session_date).slice(0, 10);
+    form.elements.hours.value = Number(s.hours);
+    form.elements.topic.value = s.topic || "";
+    form.elements.pdf.value = "";
+    $("#btnSessionSubmit").textContent = "Update session";
+    $("#btnCancelEdit").hidden = false;
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function stopEditSession() {
+    state.editingSessionId = null;
+    var form = $("#addSessionForm");
+    form.reset();
+    form.elements.session_date.value = todayISO();
+    $("#btnSessionSubmit").textContent = "Record session";
+    $("#btnCancelEdit").hidden = true;
+  }
+
+  $("#btnCancelEdit").addEventListener("click", stopEditSession);
 
   $("#btnEditClient").addEventListener("click", function () {
     var form = $("#editClientForm");
@@ -296,8 +334,21 @@
     var btn = form.querySelector("button[type=submit]");
     var b = formData(form);
     b.client_id = state.clientId;
+    delete b.proof;
+    var file = form.elements.proof.files[0];
+
+    var ready = Promise.resolve();
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) { toast("Attachment is too large (max 3 MB)", true); return; }
+      ready = readFileB64(file).then(function (b64) {
+        b.proof_base64 = b64;
+        b.proof_name = file.name;
+        b.proof_type = file.type;
+      });
+    }
     busy(btn, true);
-    api("/api/packages", { method: "POST", body: b })
+    ready
+      .then(function () { return api("/api/packages", { method: "POST", body: b }); })
       .then(function () { form.reset(); toast("Hours added ✓"); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
@@ -306,7 +357,8 @@
   $("#addSessionForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
     var form = this;
-    var btn = form.querySelector("button[type=submit]");
+    var btn = $("#btnSessionSubmit");
+    var editingId = state.editingSessionId;
     var b = formData(form);
     b.client_id = state.clientId;
     delete b.pdf;
@@ -315,17 +367,19 @@
     var ready = Promise.resolve();
     if (file) {
       if (file.size > 3 * 1024 * 1024) { toast("PDF is too large (max 3 MB)", true); return; }
-      ready = new Promise(function (resolve, reject) {
-        var fr = new FileReader();
-        fr.onload = function () { b.pdf_base64 = String(fr.result).split(",")[1]; b.pdf_name = file.name; resolve(); };
-        fr.onerror = reject;
-        fr.readAsDataURL(file);
+      ready = readFileB64(file).then(function (b64) {
+        b.pdf_base64 = b64;
+        b.pdf_name = file.name;
       });
     }
     busy(btn, true);
     ready
-      .then(function () { return api("/api/sessions", { method: "POST", body: b }); })
-      .then(function () { form.reset(); toast("Session recorded ✓"); return openClient(state.clientId); })
+      .then(function () {
+        return editingId
+          ? api("/api/sessions?id=" + editingId, { method: "PATCH", body: b })
+          : api("/api/sessions", { method: "POST", body: b });
+      })
+      .then(function () { toast(editingId ? "Session updated ✓" : "Session recorded ✓"); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
@@ -393,15 +447,11 @@
       svg.appendChild(xl);
     }
 
-    // step-line paths: solid up to today, dashed after
-    function buildPath(points, startBal, startT, endT) {
-      var d = "M " + x(startT) + " " + y(startBal);
-      var bal = startBal;
-      points.forEach(function (p) {
-        d += " L " + x(p.t) + " " + y(bal) + " L " + x(p.t) + " " + y(p.balance);
-        bal = p.balance;
-      });
-      d += " L " + x(endT) + " " + y(bal);
+    // smooth line: straight segments between events, solid up to today, dashed after
+    function linePath(points, endT) {
+      var d = "M " + x(points[0].t) + " " + y(points[0].balance);
+      for (var i = 1; i < points.length; i++) d += " L " + x(points[i].t) + " " + y(points[i].balance);
+      if (endT != null) d += " L " + x(endT) + " " + y(points[points.length - 1].balance);
       return d;
     }
     var past = pts.filter(function (p) { return p.t <= todayT; });
@@ -410,14 +460,15 @@
 
     if (past.length) {
       // subtle area under the realized line
-      var area = buildPath(past, 0, pts[0].t, todayT) +
-        " L " + x(todayT) + " " + y(0) + " L " + x(pts[0].t) + " " + y(0) + " Z";
+      var area = linePath(past, todayT) +
+        " L " + x(todayT) + " " + y(0) + " L " + x(past[0].t) + " " + y(0) + " Z";
       svg.appendChild(svgEl("path", { d: area, fill: COLORS.line, opacity: 0.07 }));
-      svg.appendChild(svgEl("path", { d: buildPath(past, 0, pts[0].t, todayT), fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-linejoin": "round" }));
+      svg.appendChild(svgEl("path", { d: linePath(past, todayT), fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-linejoin": "round" }));
     }
     if (future.length) {
+      var start = [{ t: todayT, balance: balAtToday }].concat(future);
       svg.appendChild(svgEl("path", {
-        d: buildPath(future, balAtToday, todayT, maxT),
+        d: linePath(start, null),
         fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-dasharray": "5 5", opacity: 0.6,
       }));
     }

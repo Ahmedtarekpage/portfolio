@@ -110,6 +110,10 @@ export default withErrors(async (req, res) => {
       attestationType: "none",
       authenticatorSelection: { residentKey: "required", userVerification: "required" },
     });
+    // Prefer the phone/QR flow on desktop browsers so password-manager
+    // extensions (LastPass etc.) don't grab the passkey. Safari on iPhone
+    // ignores hints and uses Face ID locally, which is what we want.
+    options.hints = ["hybrid", "client-device"];
     saveChallenge(res, "reg", options.challenge);
     return json(res, 200, options);
   }

@@ -154,6 +154,7 @@
             <label>Purchase date *<input name="purchased_at" type="date" required /></label>
             <label>Valid for (months)<input name="months" type="number" min="1" max="24" value="1" /></label>
             <label>Note<input name="note" /></label>
+            <label class="span2">Payment screenshot (image or PDF, max 3 MB)<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" /></label>
             <div class="span2"><button type="submit" class="btn btn--primary">Add hours</button></div>
           </form>
           <div class="table-scroll">
@@ -171,7 +172,10 @@
             <label>Duration (hours) *<input name="hours" type="number" min="0.25" step="0.25" value="1" required /></label>
             <label class="span2">Topic<input name="topic" placeholder="What was the session about?" /></label>
             <label class="span2">Meeting minutes (PDF, max 3 MB)<input name="pdf" type="file" accept="application/pdf" /></label>
-            <div class="span2"><button type="submit" class="btn btn--primary">Record session</button></div>
+            <div class="span2">
+              <button type="submit" class="btn btn--primary" id="btnSessionSubmit">Record session</button>
+              <button type="button" class="btn btn--ghost" id="btnCancelEdit" hidden>Cancel edit</button>
+            </div>
           </form>
           <div class="table-scroll">
             <table class="table" id="sessionsTable">
