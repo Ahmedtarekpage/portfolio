@@ -13,7 +13,7 @@ export default withErrors(async (req, res) => {
   if (token.length < 16) return json(res, 404, { error: "Invalid link" });
 
   const sql = await db();
-  const [client] = await sql`SELECT id, name FROM clients WHERE share_token = ${token}`;
+  const [client] = await sql`SELECT id, name, gender FROM clients WHERE share_token = ${token}`;
   if (!client) return json(res, 404, { error: "This link is not valid anymore" });
 
   const pdfId = Number(req.query.pdf);
@@ -34,5 +34,5 @@ export default withErrors(async (req, res) => {
 
   const { timeline, totals } = computeClient(packages, sessions);
   res.setHeader("Cache-Control", "private, no-store");
-  return json(res, 200, { name: client.name, packages, sessions, timeline, totals });
+  return json(res, 200, { name: client.name, gender: client.gender, packages, sessions, timeline, totals });
 });

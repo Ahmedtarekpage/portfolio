@@ -84,6 +84,15 @@
     return out;
   }
 
+  function avatarHtml(client, extraClass) {
+    var cls = "avatar " + (extraClass || "");
+    if (client.gender === "male" || client.gender === "female") {
+      return '<span class="' + cls + '"><img src="/assets/avatar-' + client.gender + '.svg" alt="" /></span>';
+    }
+    var initial = String(client.name || "?").trim().charAt(0).toUpperCase();
+    return '<span class="' + cls + ' avatar--initial">' + esc(initial) + "</span>";
+  }
+
   /* ---------------- auth ---------------- */
 
   function boot() {
@@ -166,7 +175,7 @@
         var tr = document.createElement("tr");
         tr.className = "rowlink";
         tr.innerHTML =
-          "<td><strong>" + esc(c.name) + "</strong>" + badge + "</td>" +
+          '<td><span class="namecell">' + avatarHtml(c, "avatar--sm") + "<strong>" + esc(c.name) + "</strong></span>" + badge + "</td>" +
           "<td class=\"muted\">" + esc([c.phone, c.email].filter(Boolean).join(" · ") || "—") + "</td>" +
           "<td class=\"muted\">" + esc(c.transaction_type || "—") + "</td>" +
           "<td class=\"num\"><strong>" + fmtH(t.available) + "</strong></td>" +
@@ -207,6 +216,7 @@
   function renderClient(data) {
     var c = data.client, t = data.totals;
     $("#btnRevokeShare").hidden = !c.share_token;
+    $("#cAvatar").outerHTML = avatarHtml(c, "avatar--lg").replace('class="', 'id="cAvatar" class="');
     $("#cName").textContent = c.name;
     $("#cMeta").textContent = [c.phone, c.email, c.nationality, c.transaction_type, c.notes]
       .filter(Boolean).join("  ·  ") || "No contact details yet";
@@ -336,7 +346,7 @@
     var c = state.detail.client;
     form.hidden = !form.hidden;
     if (!form.hidden) {
-      ["name", "phone", "email", "nationality", "transaction_type", "notes"].forEach(function (k) {
+      ["name", "phone", "email", "gender", "nationality", "transaction_type", "notes"].forEach(function (k) {
         if (form.elements[k]) form.elements[k].value = c[k] || "";
       });
     }

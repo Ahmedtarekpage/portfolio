@@ -167,6 +167,50 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
   .form .span2 { grid-column: auto; }
 }
 
+/* ---------- avatars ---------- */
+.client-head { display: flex; align-items: center; gap: 16px; }
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; overflow: hidden; flex: none;
+  background: var(--bg);
+}
+.avatar img { width: 100%; height: 100%; display: block; }
+.avatar--lg { width: 68px; height: 68px; animation: avatarPop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) both, floaty 6s ease-in-out 1.2s infinite; }
+.avatar--sm { width: 30px; height: 30px; }
+.avatar--initial {
+  background: var(--grad); color: var(--btn-ink);
+  font: 700 1.1rem "Space Grotesk", sans-serif;
+}
+.avatar--sm.avatar--initial { font-size: 0.85rem; }
+.namecell { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
+
+/* ---------- animations ---------- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes avatarPop {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.view .card, .tiles .tile, .topbar { animation: fadeUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.view .card:nth-of-type(2), .tiles .tile:nth-child(2) { animation-delay: 0.07s; }
+.view .card:nth-of-type(3), .tiles .tile:nth-child(3) { animation-delay: 0.14s; }
+.tiles .tile:nth-child(4) { animation-delay: 0.21s; }
+.tiles .tile:nth-child(5) { animation-delay: 0.28s; }
+.cols .card:nth-child(1) { animation-delay: 0.18s; }
+.cols .card:nth-child(2) { animation-delay: 0.26s; }
+.tile { transition: transform 0.2s, border-color 0.2s; }
+.tile:hover { transform: translateY(-3px); border-color: rgba(96, 165, 250, 0.35); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);

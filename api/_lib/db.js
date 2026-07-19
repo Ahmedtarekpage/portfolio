@@ -43,6 +43,7 @@ async function migrate(sql) {
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS gender TEXT`;
   // read-only share links for clients
   await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS share_token TEXT`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS clients_share_token_idx ON clients (share_token)`;

@@ -55,9 +55,10 @@ export default withErrors(async (req, res) => {
   if (req.method === "POST") {
     const b = req.body || {};
     if (!b.name || !String(b.name).trim()) return json(res, 400, { error: "Name is required" });
-    const [client] = await sql`INSERT INTO clients (name, phone, email, nationality, transaction_type, notes)
+    const gender = ["male", "female"].includes(b.gender) ? b.gender : null;
+    const [client] = await sql`INSERT INTO clients (name, phone, email, nationality, transaction_type, notes, gender)
       VALUES (${String(b.name).trim()}, ${b.phone || null}, ${b.email || null},
-              ${b.nationality || null}, ${b.transaction_type || null}, ${b.notes || null})
+              ${b.nationality || null}, ${b.transaction_type || null}, ${b.notes || null}, ${gender})
       RETURNING *`;
     return json(res, 201, { client });
   }
@@ -73,7 +74,8 @@ export default withErrors(async (req, res) => {
         email = COALESCE(${b.email ?? null}, email),
         nationality = COALESCE(${b.nationality ?? null}, nationality),
         transaction_type = COALESCE(${b.transaction_type ?? null}, transaction_type),
-        notes = COALESCE(${b.notes ?? null}, notes)
+        notes = COALESCE(${b.notes ?? null}, notes),
+        gender = COALESCE(${["male", "female"].includes(b.gender) ? b.gender : null}, gender)
       WHERE id = ${id} RETURNING *`;
     if (!client) return json(res, 404, { error: "Client not found" });
     return json(res, 200, { client });

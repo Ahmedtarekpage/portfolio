@@ -64,6 +64,13 @@
             <label>Name *<input name="name" required /></label>
             <label>Phone<input name="phone" type="tel" placeholder="+20 …" /></label>
             <label>Email<input name="email" type="email" /></label>
+            <label>Gender
+              <select name="gender">
+                <option value="">—</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </label>
             <label>Nationality<input name="nationality" /></label>
             <label>Transaction type
               <select name="transaction_type">
@@ -108,13 +115,25 @@
       </header>
 
       <div class="card">
-        <h1 id="cName"></h1>
-        <p id="cMeta" class="muted"></p>
+        <div class="client-head">
+          <div class="avatar avatar--lg" id="cAvatar"></div>
+          <div>
+            <h1 id="cName"></h1>
+            <p id="cMeta" class="muted"></p>
+          </div>
+        </div>
         <form id="editClientForm" class="form form--grid" hidden>
           <label>Name *<input name="name" required /></label>
           <label>Phone<input name="phone" /></label>
           <label>Email<input name="email" type="email" /></label>
-          <label>Nationality<input name="nationality" /></label>
+          <label>Gender
+              <select name="gender">
+                <option value="">—</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </label>
+            <label>Nationality<input name="nationality" /></label>
           <label>Transaction type
             <select name="transaction_type">
               <option value="">—</option>

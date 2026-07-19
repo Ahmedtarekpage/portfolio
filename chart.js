@@ -94,11 +94,14 @@
     var future = pts.filter(function (p) { return p.t > todayT; });
     var balAtToday = past.length ? past[past.length - 1].balance : 0;
 
+    var areaEl = null, lineEl = null;
     if (past.length) {
       var area = linePath(past, todayT) +
         " L " + x(todayT) + " " + y(0) + " L " + x(past[0].t) + " " + y(0) + " Z";
-      svg.appendChild(svgEl("path", { d: area, fill: COLORS.line, opacity: 0.07 }));
-      svg.appendChild(svgEl("path", { d: linePath(past, todayT), fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-linejoin": "round" }));
+      areaEl = svgEl("path", { d: area, fill: COLORS.line, opacity: 0.07 });
+      svg.appendChild(areaEl);
+      lineEl = svgEl("path", { d: linePath(past, todayT), fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-linejoin": "round" });
+      svg.appendChild(lineEl);
     }
     if (future.length) {
       var start = [{ t: todayT, balance: balAtToday }].concat(future);
@@ -178,5 +181,32 @@
     overlay.addEventListener("pointerleave", onLeave);
 
     box.appendChild(svg);
+
+    // entrance animation: line draws itself, area fades, markers pop in
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion && lineEl) {
+      try {
+        var len = lineEl.getTotalLength();
+        lineEl.style.strokeDasharray = len;
+        lineEl.style.strokeDashoffset = len;
+        if (areaEl) { areaEl.style.opacity = 0; }
+        var markerEls = svg.querySelectorAll("path[fill='" + COLORS.purchase + "'], rect[fill='" + COLORS.expiry + "'], circle[r='4.5']");
+        markerEls.forEach(function (el, i) {
+          el.style.opacity = 0;
+          el.style.transition = "opacity 0.3s ease " + (0.55 + i * 0.05) + "s";
+        });
+        lineEl.getBoundingClientRect(); // force layout so the transition runs
+        lineEl.style.transition = "stroke-dashoffset 0.9s ease";
+        lineEl.style.strokeDashoffset = 0;
+        if (areaEl) {
+          areaEl.style.transition = "opacity 0.7s ease 0.35s";
+          areaEl.style.opacity = "0.07";
+        }
+        markerEls.forEach(function (el) {
+          var target = el.getAttribute("opacity") || 1;
+          requestAnimationFrame(function () { el.style.opacity = target; });
+        });
+      } catch (e) { /* SVG not measurable — skip animation */ }
+    }
   };
 })();

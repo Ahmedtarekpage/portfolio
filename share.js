@@ -35,6 +35,13 @@
 
   function render(data) {
     current = data;
+    var av = $("#cAvatar");
+    if (data.gender === "male" || data.gender === "female") {
+      av.innerHTML = '<img src="/assets/avatar-' + data.gender + '.svg" alt="" />';
+    } else {
+      av.classList.add("avatar--initial");
+      av.textContent = String(data.name || "?").trim().charAt(0).toUpperCase();
+    }
     $("#cName").textContent = data.name;
     document.title = "Hours overview — " + data.name;
     var t = data.totals;

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Male avatar">
+  <defs>
+    <clipPath id="clip"><circle cx="100" cy="100" r="96"/></clipPath>
+    <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="#16203a"/>
+  <g clip-path="url(#clip)">
+    <path d="M100 130c-40 0-64 24-68 54v16h136v-16c-4-30-28-54-68-54z" fill="url(#shirt)"/>
+    <path d="M88 106h24v30a12 12 0 0 1-24 0z" fill="#d9a679"/>
+    <circle cx="100" cy="84" r="34" fill="#e8b98c"/>
+    <path d="M66 82a34 34 0 0 1 68 0l-2 4c-8-8-20-12-32-12s-24 4-32 12z" fill="#26304a"/>
+    <circle cx="88" cy="88" r="3.4" fill="#1c2434"/>
+    <circle cx="112" cy="88" r="3.4" fill="#1c2434"/>
+    <path d="M91 102q9 7 18 0" stroke="#1c2434" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M100 130l-10 10 10 22 10-22z" fill="#eef2f8" opacity=".9"/>
+  </g>
+  <circle cx="100" cy="100" r="94.5" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3"/>
+</svg>
