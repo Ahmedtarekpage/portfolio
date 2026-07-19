@@ -27,7 +27,9 @@ export default withErrors(async (req, res) => {
     return res.status(200).send(toBuf(row.pdf));
   }
 
-  const packages = await sql`SELECT id, hours, amount_paid, currency, purchased_at, expires_at
+  // NOTE: no amount_paid / currency here — payment amounts are admin-only
+  // and must never be exposed through the public share link.
+  const packages = await sql`SELECT id, hours, purchased_at, expires_at
     FROM hour_packages WHERE client_id = ${client.id} ORDER BY purchased_at DESC, id DESC`;
   const sessions = await sql`SELECT id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf
     FROM client_sessions WHERE client_id = ${client.id} ORDER BY session_date DESC, id DESC`;

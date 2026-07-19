@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=1" />
+  <link rel="stylesheet" href="admin.css?v=3" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -161,8 +161,20 @@
             <span><i class="key key--expiry"></i>expiry</span>
           </div>
         </div>
+        <div class="chart-filter" id="chartFilter">
+          <button type="button" class="chip chip--on" data-range="all">All</button>
+          <button type="button" class="chip" data-range="30">30d</button>
+          <button type="button" class="chip" data-range="90">90d</button>
+          <button type="button" class="chip" data-range="365">1y</button>
+          <span class="chart-filter__dates">
+            <input type="date" name="from" aria-label="From date" />
+            <span class="muted">→</span>
+            <input type="date" name="to" aria-label="To date" />
+          </span>
+        </div>
         <div id="chart" class="chart"></div>
         <div id="chartTip" class="tooltip" hidden></div>
+        <div id="chartDetail" class="chart-detail" hidden></div>
       </div>
 
       <div class="cols">
@@ -211,7 +223,7 @@
     <p id="toast" class="toast" hidden></p>
   </div>
 
-  <script src="chart.js?v=1"></script>
-  <script src="admin.js?v=1"></script>
+  <script src="chart.js?v=2"></script>
+  <script src="admin.js?v=2"></script>
 </body>
 </html>

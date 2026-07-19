@@ -3,7 +3,7 @@
   "use strict";
 
   var $ = function (sel) { return document.querySelector(sel); };
-  var state = { clientId: null, detail: null, editingSessionId: null };
+  var state = { clientId: null, detail: null, editingSessionId: null, chartFrom: null, chartTo: null };
 
   function readFileB64(file) {
     return new Promise(function (resolve, reject) {
@@ -203,6 +203,11 @@
   $("#btnBack").addEventListener("click", function () { state.clientId = null; loadClients(); });
 
   function openClient(id) {
+    if (state.clientId !== id) {
+      state.chartFrom = null;
+      state.chartTo = null;
+      chartRangeCtl.reset();
+    }
     state.clientId = id;
     show("view-loading");
     return api("/api/client?id=" + id).then(function (data) {
@@ -229,6 +234,23 @@
       { label: "Expired", value: fmtH(t.expired), cls: t.expired > 0 ? "tile--warn" : "", sub: "" },
     ];
     if (t.overdraft > 0) tiles.push({ label: "Unpaid hours", value: fmtH(t.overdraft), cls: "tile--danger", sub: "sessions beyond balance" });
+
+    // total paid, grouped by currency (admin-only — never sent to the share page)
+    var paidTotals = {};
+    data.packages.forEach(function (p) {
+      if (p.amount_paid == null) return;
+      var cur = String(p.currency || "").trim().toUpperCase() || "?";
+      paidTotals[cur] = (paidTotals[cur] || 0) + Number(p.amount_paid);
+    });
+    var paidCurs = Object.keys(paidTotals).sort(function (a, b) { return paidTotals[b] - paidTotals[a]; });
+    if (paidCurs.length) {
+      tiles.push({
+        label: "Total paid",
+        value: paidTotals[paidCurs[0]].toLocaleString() + " " + paidCurs[0],
+        cls: "tile--accent",
+        sub: paidCurs.slice(1).map(function (c) { return "+ " + paidTotals[c].toLocaleString() + " " + c; }).join("  ·  "),
+      });
+    }
     $("#tiles").innerHTML = tiles.map(function (x) {
       return '<div class="tile ' + (x.cls || "") + '"><div class="tile__label">' + x.label +
         '</div><div class="tile__value">' + x.value + "</div>" +
@@ -429,7 +451,62 @@
   /* ---------------- balance chart (shared renderer in chart.js) ---------------- */
 
   function renderChart(timeline) {
-    window.renderBalanceChart($("#chart"), $("#chartTip"), timeline);
+    hidePointDetail();
+    window.renderBalanceChart($("#chart"), $("#chartTip"), timeline, {
+      from: state.chartFrom,
+      to: state.chartTo,
+      onPointClick: showPointDetail,
+    });
+  }
+
+  var chartRangeCtl = window.chartRangeControls($("#chartFilter"), function (from, to) {
+    state.chartFrom = from;
+    state.chartTo = to;
+    if (state.detail) renderChart(state.detail.timeline);
+  });
+
+  function hidePointDetail() {
+    $("#chartDetail").hidden = true;
+  }
+
+  function detailRow(label, valueHtml) {
+    return '<div class="muted">' + label + "</div><div>" + valueHtml + "</div>";
+  }
+
+  function showPointDetail(p) {
+    var rows = [
+      detailRow("Date", fmtDate(p.date) + (p.future ? ' <span class="badge badge--warn">upcoming</span>' : "")),
+      detailRow("Event", esc(p.label)),
+      detailRow("Change", (p.delta > 0 ? "+" : "−") + fmtH(Math.abs(p.delta))),
+      detailRow("Balance after", "<strong>" + fmtH(p.balance) + "</strong>"),
+    ];
+    if (p.uncovered > 0) rows.push(detailRow("Not covered", '<span style="color:#ff9aa7">' + fmtH(p.uncovered) + "</span>"));
+
+    if (p.kind === "purchase" || p.kind === "expiry") {
+      var pkg = (state.detail.packages || []).filter(function (x) { return x.id === p.packageId; })[0];
+      if (pkg) {
+        if (p.kind === "purchase") {
+          var paid = pkg.amount_paid != null ? Number(pkg.amount_paid).toLocaleString() + " " + esc(pkg.currency || "") : "—";
+          if (pkg.has_proof) paid += ' <a href="/api/pdf?proof=' + pkg.id + '" target="_blank" rel="noopener">📷 proof</a>';
+          rows.push(detailRow("Amount paid", paid));
+        }
+        rows.push(detailRow("Package", fmtH(pkg.hours) + " bought " + fmtDate(pkg.purchased_at) + ", expires " + fmtDate(pkg.expires_at)));
+        if (pkg.note) rows.push(detailRow("Note", esc(pkg.note)));
+      }
+    }
+    if (p.kind === "session") {
+      var s = (state.detail.sessions || []).filter(function (x) { return x.id === p.sessionId; })[0];
+      if (s) {
+        if (s.topic) rows.push(detailRow("Topic", esc(s.topic)));
+        if (s.has_pdf) rows.push(detailRow("Minutes", '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>'));
+      }
+    }
+
+    var box = $("#chartDetail");
+    box.innerHTML = '<button type="button" class="chart-detail__close" aria-label="Close">✕</button>' +
+      '<div class="chart-detail__grid">' + rows.join("") + "</div>";
+    box.querySelector(".chart-detail__close").addEventListener("click", hidePointDetail);
+    box.hidden = false;
   }
 
   var resizeTimer;

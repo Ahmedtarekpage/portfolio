@@ -149,6 +149,43 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
 .key--session { background: var(--c-session); border-radius: 50%; }
 .key--expiry { background: var(--c-expiry); transform: rotate(45deg); width: 9px; height: 9px; }
 
+/* date-range filter above the chart */
+.chart-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.chip {
+  background: transparent; border: 1px solid var(--glass-brd); color: var(--muted);
+  border-radius: 999px; padding: 5px 14px; cursor: pointer;
+  font: 600 0.78rem "Inter", sans-serif;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.chip:hover { border-color: var(--blue-2); color: var(--ink); }
+.chip--on { background: rgba(96, 165, 250, 0.14); border-color: var(--blue-2); color: var(--blue-2); }
+.chart-filter__dates { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+.chart-filter__dates input {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 5px 8px; font: 400 0.8rem "Inter", sans-serif;
+  color-scheme: dark; outline: none;
+}
+.chart-filter__dates input:focus { border-color: var(--blue); }
+@media (max-width: 640px) {
+  .chart-filter__dates { margin-left: 0; }
+}
+
+/* pinned point-detail panel below the chart */
+.chart-detail {
+  position: relative; margin-top: 12px;
+  background: rgba(96, 165, 250, 0.05); border: 1px solid var(--glass-brd);
+  border-radius: 12px; padding: 14px 34px 14px 16px; font-size: 0.86rem;
+  animation: fadeUp 0.25s ease both;
+}
+.chart-detail__grid { display: grid; grid-template-columns: auto 1fr; gap: 5px 16px; align-items: baseline; }
+.chart-detail__grid > .muted { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); }
+.chart-detail__close {
+  position: absolute; top: 8px; right: 10px;
+  background: none; border: none; color: var(--faint); cursor: pointer;
+  font-size: 0.95rem; padding: 2px 6px; border-radius: 8px;
+}
+.chart-detail__close:hover { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
+
 .tooltip {
   position: absolute; z-index: 10; pointer-events: none;
   background: #1b2333; border: 1px solid var(--glass-brd);

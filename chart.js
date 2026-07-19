@@ -1,5 +1,11 @@
 /* Shared hours-balance chart (SVG line chart) — used by the admin panel and the
-   read-only client share page. Exposes window.renderBalanceChart(box, tip, timeline). */
+   read-only client share page.
+   Exposes:
+     window.renderBalanceChart(box, tip, timeline, opts)
+       opts.from / opts.to  — 'YYYY-MM-DD' bounds; only events inside are shown
+       opts.onPointClick(p) — called with the timeline point when a marker is clicked
+     window.chartRangeControls(bar, onChange) — wires preset chips + date inputs,
+       returns { reset } to silently restore the "All" state. */
 (function () {
   "use strict";
 
@@ -40,7 +46,8 @@
     return Math.ceil(raw / 100) * 100;
   }
 
-  window.renderBalanceChart = function (box, tip, timeline) {
+  window.renderBalanceChart = function (box, tip, timeline, opts) {
+    opts = opts || {};
     box.innerHTML = "";
     tip.hidden = true;
     if (!timeline || !timeline.length) {
@@ -48,17 +55,41 @@
       return;
     }
 
-    var pts = timeline.map(function (p) {
+    var all = timeline.map(function (p) {
       return Object.assign({}, p, { t: new Date(p.date + "T00:00:00Z").getTime() });
     });
     var todayT = new Date(todayISO() + "T00:00:00Z").getTime();
 
+    var fromT = opts.from ? new Date(String(opts.from).slice(0, 10) + "T00:00:00Z").getTime() : null;
+    var toT = opts.to ? new Date(String(opts.to).slice(0, 10) + "T00:00:00Z").getTime() : null;
+    if (fromT != null && toT != null && fromT > toT) { var sw = fromT; fromT = toT; toT = sw; }
+
+    var pts = all.filter(function (p) {
+      return (fromT == null || p.t >= fromT) && (toT == null || p.t <= toT);
+    });
+    if (!pts.length) {
+      box.innerHTML = '<p class="muted center" style="padding:60px 0">No activity in this date range.</p>';
+      return;
+    }
+
     var W = Math.max(box.clientWidth || 600, 320), H = 280;
     var M = { l: 46, r: 18, t: 16, b: 32 };
-    var minT = Math.min(pts[0].t, todayT), maxT = Math.max(pts[pts.length - 1].t, todayT);
+    var minT = fromT != null ? fromT : Math.min(pts[0].t, todayT);
+    var maxT = toT != null ? toT : Math.max(pts[pts.length - 1].t, todayT);
+    if (maxT <= minT) maxT = minT + DAY;
     var pad = Math.max((maxT - minT) * 0.04, DAY);
     minT -= pad; maxT += pad;
-    var yMax = Math.max.apply(null, pts.map(function (p) { return p.balance; }).concat([1])) * 1.1;
+
+    // carry the balance from just before the visible window so the line
+    // starts at the right height instead of at zero
+    var lead = null;
+    if (fromT != null) {
+      for (var li = 0; li < all.length; li++) if (all[li].t < fromT) lead = all[li];
+    }
+    var linePts = pts.slice();
+    if (lead) linePts.unshift({ t: minT, balance: lead.balance, lead: true });
+
+    var yMax = Math.max.apply(null, linePts.map(function (p) { return p.balance; }).concat([1])) * 1.1;
 
     var x = function (t) { return M.l + ((t - minT) / (maxT - minT)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / yMax) * (H - M.t - M.b); };
@@ -90,35 +121,39 @@
       if (endT != null) d += " L " + x(endT) + " " + y(points[points.length - 1].balance);
       return d;
     }
-    var past = pts.filter(function (p) { return p.t <= todayT; });
-    var future = pts.filter(function (p) { return p.t > todayT; });
-    var balAtToday = past.length ? past[past.length - 1].balance : 0;
+    var solidEnd = Math.min(todayT, maxT); // don't draw past the visible window
+    var past = linePts.filter(function (p) { return p.t <= todayT; });
+    var future = linePts.filter(function (p) { return p.t > todayT; });
+    var balAtToday = past.length ? past[past.length - 1].balance : (lead ? lead.balance : 0);
 
     var areaEl = null, lineEl = null;
-    if (past.length) {
-      var area = linePath(past, todayT) +
-        " L " + x(todayT) + " " + y(0) + " L " + x(past[0].t) + " " + y(0) + " Z";
+    if (past.length && solidEnd >= minT) {
+      var area = linePath(past, solidEnd) +
+        " L " + x(solidEnd) + " " + y(0) + " L " + x(past[0].t) + " " + y(0) + " Z";
       areaEl = svgEl("path", { d: area, fill: COLORS.line, opacity: 0.07 });
       svg.appendChild(areaEl);
-      lineEl = svgEl("path", { d: linePath(past, todayT), fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-linejoin": "round" });
+      lineEl = svgEl("path", { d: linePath(past, solidEnd), fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-linejoin": "round" });
       svg.appendChild(lineEl);
     }
     if (future.length) {
-      var start = [{ t: todayT, balance: balAtToday }].concat(future);
+      var dashStart = Math.max(Math.min(todayT, maxT), minT);
+      var start = [{ t: dashStart, balance: balAtToday }].concat(future);
       svg.appendChild(svgEl("path", {
         d: linePath(start, null),
         fill: "none", stroke: COLORS.line, "stroke-width": 2, "stroke-dasharray": "5 5", opacity: 0.6,
       }));
     }
 
-    // today marker + current balance label
-    svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
-    var tl = svgEl("text", { x: x(todayT), y: M.t - 3, "text-anchor": "middle", fill: "#9aa6b8", "font-size": 10 });
-    tl.textContent = "today";
-    svg.appendChild(tl);
-    var bl = svgEl("text", { x: Math.min(x(todayT) + 7, W - M.r - 30), y: y(balAtToday) - 8, fill: "#eef2f8", "font-size": 12, "font-weight": 600 });
-    bl.textContent = fmtH(balAtToday);
-    svg.appendChild(bl);
+    // today marker + current balance label (only when today is inside the window)
+    if (todayT >= minT && todayT <= maxT) {
+      svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
+      var tl = svgEl("text", { x: x(todayT), y: M.t - 3, "text-anchor": "middle", fill: "#9aa6b8", "font-size": 10 });
+      tl.textContent = "today";
+      svg.appendChild(tl);
+      var bl = svgEl("text", { x: Math.min(x(todayT) + 7, W - M.r - 30), y: y(balAtToday) - 8, fill: "#eef2f8", "font-size": 12, "font-weight": 600 });
+      bl.textContent = fmtH(balAtToday);
+      svg.appendChild(bl);
+    }
 
     // event markers (shape encodes the event type; color is secondary)
     var markers = [];
@@ -146,9 +181,10 @@
 
     var overlay = svgEl("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: "transparent" });
     overlay.style.touchAction = "pan-y";
+    if (opts.onPointClick) overlay.style.cursor = "pointer";
     svg.appendChild(overlay);
 
-    function onMove(ev) {
+    function nearest(ev) {
       var rect = svg.getBoundingClientRect();
       var px = ((ev.clientX - rect.left) / rect.width) * W;
       var best = null, bestD = Infinity;
@@ -156,6 +192,11 @@
         var d = Math.abs(m.cx - px);
         if (d < bestD) { bestD = d; best = m; }
       });
+      return best;
+    }
+
+    function onMove(ev) {
+      var best = nearest(ev);
       if (!best) return;
       cross.setAttribute("x1", best.cx); cross.setAttribute("x2", best.cx);
       cross.setAttribute("visibility", "visible");
@@ -163,7 +204,8 @@
       ring.setAttribute("visibility", "visible");
       tip.innerHTML = "<div class=\"muted\">" + fmtDate(best.p.date) + (best.p.future ? " · upcoming" : "") + "</div>" +
         esc(best.p.label) + "<div>Balance: <b>" + fmtH(best.p.balance) + "</b></div>" +
-        (best.p.uncovered > 0 ? '<div style="color:#ff9aa7">' + fmtH(best.p.uncovered) + " not covered by any package</div>" : "");
+        (best.p.uncovered > 0 ? '<div style="color:#ff9aa7">' + fmtH(best.p.uncovered) + " not covered by any package</div>" : "") +
+        (opts.onPointClick ? '<div class="muted">Tap for details</div>' : "");
       tip.hidden = false;
       var bx = box.getBoundingClientRect();
       var left = (best.cx / W) * bx.width + 12;
@@ -179,6 +221,12 @@
     overlay.addEventListener("pointermove", onMove);
     overlay.addEventListener("pointerdown", onMove);
     overlay.addEventListener("pointerleave", onLeave);
+    if (opts.onPointClick) {
+      overlay.addEventListener("click", function (ev) {
+        var best = nearest(ev);
+        if (best) opts.onPointClick(best.p);
+      });
+    }
 
     box.appendChild(svg);
 
@@ -208,5 +256,48 @@
         });
       } catch (e) { /* SVG not measurable — skip animation */ }
     }
+  };
+
+  /* Preset chips ("All", "30d", …) + custom from/to date inputs.
+     onChange(from, to) fires with 'YYYY-MM-DD' strings or nulls. */
+  window.chartRangeControls = function (bar, onChange) {
+    var from = bar.querySelector("input[name=from]");
+    var to = bar.querySelector("input[name=to]");
+    var chips = Array.prototype.slice.call(bar.querySelectorAll(".chip"));
+
+    function iso(d) {
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    function setActive(chip) {
+      chips.forEach(function (c) { c.classList.toggle("chip--on", c === chip); });
+    }
+
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var r = chip.getAttribute("data-range");
+        if (r === "all") {
+          from.value = ""; to.value = "";
+        } else {
+          var end = new Date();
+          from.value = iso(new Date(end.getTime() - Number(r) * DAY));
+          to.value = iso(end);
+        }
+        setActive(chip);
+        onChange(from.value || null, to.value || null);
+      });
+    });
+    [from, to].forEach(function (inp) {
+      inp.addEventListener("change", function () {
+        setActive(null); // custom range — no preset highlighted
+        onChange(from.value || null, to.value || null);
+      });
+    });
+
+    return {
+      reset: function () {
+        from.value = ""; to.value = "";
+        setActive(chips[0] || null);
+      },
+    };
   };
 })();
