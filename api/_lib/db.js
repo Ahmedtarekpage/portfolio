@@ -43,6 +43,9 @@ async function migrate(sql) {
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // read-only share links for clients
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS share_token TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS clients_share_token_idx ON clients (share_token)`;
   // payment-proof attachment (screenshot or PDF) on purchases
   await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof BYTEA`;
   await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof_name TEXT`;

@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/c/:token", "destination": "/share.html" },
     { "source": "/product", "destination": "/index.html" },
     { "source": "/educator", "destination": "/index.html" },
     { "source": "/full", "destination": "/index.html" }

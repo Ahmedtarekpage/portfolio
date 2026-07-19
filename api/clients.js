@@ -3,6 +3,9 @@
 //   POST   /api/clients          -> create { name, phone, email, nationality, transaction_type, notes }
 //   PATCH  /api/clients?id=N     -> update any of the above fields
 //   DELETE /api/clients?id=N     -> delete client (cascades to packages/sessions)
+//   POST   /api/clients?id=N&share=create -> mint (or return existing) read-only share token
+//   POST   /api/clients?id=N&share=revoke -> disable the share link
+import crypto from "node:crypto";
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
@@ -30,6 +33,23 @@ export default withErrors(async (req, res) => {
       return { ...c, totals };
     });
     return json(res, 200, { clients: list });
+  }
+
+  if (req.method === "POST" && req.query.share) {
+    const id = Number(req.query.id);
+    if (!id) return json(res, 400, { error: "id is required" });
+    if (req.query.share === "revoke") {
+      await sql`UPDATE clients SET share_token = NULL WHERE id = ${id}`;
+      return json(res, 200, { ok: true });
+    }
+    const [client] = await sql`SELECT share_token FROM clients WHERE id = ${id}`;
+    if (!client) return json(res, 404, { error: "Client not found" });
+    let token = client.share_token;
+    if (!token) {
+      token = crypto.randomBytes(16).toString("base64url");
+      await sql`UPDATE clients SET share_token = ${token} WHERE id = ${id}`;
+    }
+    return json(res, 200, { token });
   }
 
   if (req.method === "POST") {

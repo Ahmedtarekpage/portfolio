@@ -100,6 +100,8 @@
       <header class="topbar">
         <button id="btnBack" class="btn btn--ghost btn--sm">← Clients</button>
         <div class="topbar__actions">
+          <button id="btnShare" class="btn btn--ghost btn--sm" title="Copy a read-only link for this client">🔗 Share link</button>
+          <button id="btnRevokeShare" class="btn btn--ghost btn--sm" hidden title="Disable the shared link">Revoke link</button>
           <button id="btnEditClient" class="btn btn--ghost btn--sm">Edit</button>
           <button id="btnDeleteClient" class="btn btn--danger btn--sm">Delete</button>
         </div>
@@ -190,6 +192,7 @@
     <p id="toast" class="toast" hidden></p>
   </div>
 
+  <script src="chart.js?v=1"></script>
   <script src="admin.js?v=1"></script>
 </body>
 </html>
