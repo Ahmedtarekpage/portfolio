@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Ahmed Tarek</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#0b0e14" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=1" />
+  <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <!-- ================= LOADING ================= -->
+    <section id="view-loading" class="view">
+      <div class="card card--center"><p class="muted">Loading…</p></div>
+    </section>
+
+    <!-- ================= LOGIN ================= -->
+    <section id="view-login" class="view" hidden>
+      <div class="card card--center login-card">
+        <div class="lock-icon" aria-hidden="true">🔐</div>
+        <h1>Admin</h1>
+        <p class="muted">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
+        from a computer your browser will show a QR code to scan with the iPhone.</p>
+        <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
+        <p id="loginError" class="error" hidden></p>
+        <button id="btnShowSetup" class="linklike">First-time setup / add this device</button>
+      </div>
+    </section>
+
+    <!-- ================= FIRST-TIME SETUP ================= -->
+    <section id="view-setup" class="view" hidden>
+      <div class="card card--center login-card">
+        <h1>Register a passkey</h1>
+        <p class="muted">Enter the setup secret (the <code>ADMIN_SETUP_SECRET</code> you configured on Vercel),
+        then approve with Face&nbsp;ID / Touch&nbsp;ID.</p>
+        <form id="setupForm" class="form">
+          <label>Setup secret
+            <input type="password" id="setupSecret" autocomplete="off" required />
+          </label>
+          <label>Device name
+            <input type="text" id="setupLabel" placeholder="e.g. Ahmed's iPhone" />
+          </label>
+          <button type="submit" class="btn btn--primary">Create passkey</button>
+        </form>
+        <p id="setupError" class="error" hidden></p>
+        <button id="btnBackToLogin" class="linklike">← Back to sign in</button>
+      </div>
+    </section>
+
+    <!-- ================= CLIENT LIST ================= -->
+    <section id="view-list" class="view" hidden>
+      <header class="topbar">
+        <h1>Clients</h1>
+        <div class="topbar__actions">
+          <button id="btnAddDevice" class="btn btn--ghost btn--sm" title="Register a passkey for another device">+ Passkey</button>
+          <button id="btnLogout" class="btn btn--ghost btn--sm">Log out</button>
+        </div>
+      </header>
+
+      <div class="card">
+        <details id="addClientBox">
+          <summary class="btnish">+ Add client</summary>
+          <form id="addClientForm" class="form form--grid">
+            <label>Name *<input name="name" required /></label>
+            <label>Phone<input name="phone" type="tel" placeholder="+20 …" /></label>
+            <label>Email<input name="email" type="email" /></label>
+            <label>Nationality<input name="nationality" /></label>
+            <label>Transaction type
+              <select name="transaction_type">
+                <option value="">—</option>
+                <option>Direct</option>
+                <option>PayPal</option>
+                <option>Bank transfer</option>
+                <option>Wise</option>
+                <option>InstaPay</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label class="span2">Notes<input name="notes" /></label>
+            <div class="span2"><button type="submit" class="btn btn--primary">Save client</button></div>
+          </form>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="table-scroll">
+          <table class="table" id="clientsTable">
+            <thead>
+              <tr><th>Name</th><th>Contact</th><th>Type</th><th class="num">Hours left</th><th>Next expiry</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="clientsEmpty" class="muted center" hidden>No clients yet — add your first one above.</p>
+      </div>
+    </section>
+
+    <!-- ================= CLIENT DETAIL ================= -->
+    <section id="view-client" class="view" hidden>
+      <header class="topbar">
+        <button id="btnBack" class="btn btn--ghost btn--sm">← Clients</button>
+        <div class="topbar__actions">
+          <button id="btnEditClient" class="btn btn--ghost btn--sm">Edit</button>
+          <button id="btnDeleteClient" class="btn btn--danger btn--sm">Delete</button>
+        </div>
+      </header>
+
+      <div class="card">
+        <h1 id="cName"></h1>
+        <p id="cMeta" class="muted"></p>
+        <form id="editClientForm" class="form form--grid" hidden>
+          <label>Name *<input name="name" required /></label>
+          <label>Phone<input name="phone" /></label>
+          <label>Email<input name="email" type="email" /></label>
+          <label>Nationality<input name="nationality" /></label>
+          <label>Transaction type
+            <select name="transaction_type">
+              <option value="">—</option>
+              <option>Direct</option>
+              <option>PayPal</option>
+              <option>Bank transfer</option>
+              <option>Wise</option>
+              <option>InstaPay</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label class="span2">Notes<input name="notes" /></label>
+          <div class="span2"><button type="submit" class="btn btn--primary">Save changes</button></div>
+        </form>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2>Hours balance</h2>
+          <div class="chart-key muted">
+            <span><i class="key key--purchase"></i>purchase</span>
+            <span><i class="key key--session"></i>session</span>
+            <span><i class="key key--expiry"></i>expiry</span>
+          </div>
+        </div>
+        <div id="chart" class="chart"></div>
+        <div id="chartTip" class="tooltip" hidden></div>
+      </div>
+
+      <div class="cols">
+        <div class="card">
+          <div class="card__head"><h2>Hours purchased</h2></div>
+          <form id="addPackageForm" class="form form--grid">
+            <label>Hours *<input name="hours" type="number" min="0.5" step="0.5" required /></label>
+            <label>Amount paid<input name="amount_paid" type="number" min="0" step="0.01" /></label>
+            <label>Currency<input name="currency" value="USD" maxlength="8" /></label>
+            <label>Purchase date *<input name="purchased_at" type="date" required /></label>
+            <label>Valid for (months)<input name="months" type="number" min="1" max="24" value="1" /></label>
+            <label>Note<input name="note" /></label>
+            <div class="span2"><button type="submit" class="btn btn--primary">Add hours</button></div>
+          </form>
+          <div class="table-scroll">
+            <table class="table" id="packagesTable">
+              <thead><tr><th>Bought</th><th class="num">Hours</th><th class="num">Paid</th><th>Expires</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><h2>Sessions</h2></div>
+          <form id="addSessionForm" class="form form--grid">
+            <label>Date *<input name="session_date" type="date" required /></label>
+            <label>Duration (hours) *<input name="hours" type="number" min="0.25" step="0.25" value="1" required /></label>
+            <label class="span2">Topic<input name="topic" placeholder="What was the session about?" /></label>
+            <label class="span2">Meeting minutes (PDF, max 3 MB)<input name="pdf" type="file" accept="application/pdf" /></label>
+            <div class="span2"><button type="submit" class="btn btn--primary">Record session</button></div>
+          </form>
+          <div class="table-scroll">
+            <table class="table" id="sessionsTable">
+              <thead><tr><th>Date</th><th class="num">Hours</th><th>Topic</th><th>Minutes</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p id="toast" class="toast" hidden></p>
+  </div>
+
+  <script src="admin.js?v=1"></script>
+</body>
+</html>
