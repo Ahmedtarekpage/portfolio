@@ -23,7 +23,7 @@ import {
 import { db } from "./_lib/db.js";
 import {
   withErrors, json, rp, sign, verifyToken, parseCookies, setCookie, clearCookie,
-  createSession, destroySession, isAuthed,
+  createSession, destroySession, isAuthed, safeEqual,
 } from "./_lib/util.js";
 
 const RP_NAME = "Ahmed Tarek — Admin";
@@ -63,6 +63,20 @@ export default withErrors(async (req, res) => {
   if (action === "logout") {
     destroySession(res);
     return json(res, 200, { ok: true });
+  }
+
+  // Recovery: wipe registered passkeys (client data untouched) so a new device
+  // can register. Needs the ADMIN_RESET_SECRET env var; used for lost/replaced
+  // phones. curl -X POST '.../api/auth?action=reset' -H 'Content-Type: application/json' -d '{"secret":"…"}'
+  if (action === "reset") {
+    const expected = process.env.ADMIN_RESET_SECRET;
+    if (!expected || !safeEqual(String(body.secret || ""), expected)) {
+      return json(res, 403, { error: "Not allowed" });
+    }
+    const sql = await db();
+    await sql`DELETE FROM wa_credentials`;
+    destroySession(res);
+    return json(res, 200, { ok: true, message: "Passkeys wiped — first-time setup is open again" });
   }
 
   if (action === "login-options") {
