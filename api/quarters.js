@@ -1,8 +1,8 @@
 // Quarterly goals: a date range + per-category weekly-hour targets.
 //   GET    /api/quarters          -> [{id, name, start_date, end_date}], newest first
 //   GET    /api/quarters?id=N     -> quarter + categories (each with computed progress)
-//   POST   /api/quarters          -> { name, start_date, end_date, categories: [{name, weekly_hours}, ...] }
-//   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, categories?: [{id?, name, weekly_hours}, ...] }
+//   POST   /api/quarters          -> { name, start_date, end_date, anti_perfectionist?, categories: [{name, weekly_hours}, ...] }
+//   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, anti_perfectionist?, categories?: [{id?, name, weekly_hours}, ...] }
 //   DELETE /api/quarters?id=N     -> delete quarter (cascades categories; tasks keep their row, category_id -> NULL)
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
@@ -61,7 +61,7 @@ export default withErrors(async (req, res) => {
     }
     const withProgress = categories.map((c) => ({
       ...c,
-      progress: categoryProgress(c, byCategory.get(c.id) || [], quarter.start_date, quarter.end_date),
+      progress: categoryProgress(c, byCategory.get(c.id) || [], quarter.start_date, quarter.end_date, quarter.anti_perfectionist),
     }));
     return json(res, 200, { quarter, categories: withProgress });
   }
@@ -72,8 +72,8 @@ export default withErrors(async (req, res) => {
     if (!isDate(b.start_date) || !isDate(b.end_date)) return json(res, 400, { error: "start_date/end_date must be YYYY-MM-DD" });
     if (b.end_date < b.start_date) return json(res, 400, { error: "end_date must be on or after start_date" });
 
-    const [quarter] = await sql`INSERT INTO quarters (name, start_date, end_date)
-      VALUES (${String(b.name).trim()}, ${b.start_date}::date, ${b.end_date}::date) RETURNING *`;
+    const [quarter] = await sql`INSERT INTO quarters (name, start_date, end_date, anti_perfectionist)
+      VALUES (${String(b.name).trim()}, ${b.start_date}::date, ${b.end_date}::date, ${!!b.anti_perfectionist}) RETURNING *`;
     await saveCategories(sql, quarter.id, b.categories);
     return json(res, 201, { quarter });
   }
@@ -89,7 +89,8 @@ export default withErrors(async (req, res) => {
     const [quarter] = await sql`UPDATE quarters SET
         name = COALESCE(${b.name ?? null}, name),
         start_date = COALESCE(${b.start_date ?? null}::date, start_date),
-        end_date = COALESCE(${b.end_date ?? null}::date, end_date)
+        end_date = COALESCE(${b.end_date ?? null}::date, end_date),
+        anti_perfectionist = COALESCE(${b.anti_perfectionist ?? null}, anti_perfectionist)
       WHERE id = ${id} RETURNING *`;
     if (!quarter) return json(res, 404, { error: "Quarter not found" });
     if (quarter.end_date < quarter.start_date) return json(res, 400, { error: "end_date must be on or after start_date" });

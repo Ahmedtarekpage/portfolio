@@ -63,3 +63,6 @@
 
 .badge--good { color: #6ee7b0; background: rgba(31, 168, 118, 0.16); border: 1px solid rgba(31, 168, 118, 0.45); }
 .badge--muted { color: var(--muted); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-brd); }
+
+.checkline { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
+.checkline input { width: 16px; height: 16px; accent-color: var(--blue); }

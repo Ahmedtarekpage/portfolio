@@ -10,6 +10,7 @@
 const DAY_MS = 86400000;
 
 function toDate(d) {
+  if (d instanceof Date) return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   return new Date(`${String(d).slice(0, 10)}T00:00:00Z`);
 }
 
@@ -21,14 +22,17 @@ function daysBetween(a, b) {
   return Math.round((b - a) / DAY_MS);
 }
 
-/** tasks: rows already filtered to this category, each { task_date, done, actual_hours } */
-export function categoryProgress(category, tasks, quarterStart, quarterEnd, now = new Date()) {
+/** tasks: rows already filtered to this category, each { task_date, done, actual_hours }.
+ *  antiPerfectionist: when true, the target (and pace expectation) count only
+ *  75% of the full weekly x weeks hours — "good enough" instead of 100%. */
+export function categoryProgress(category, tasks, quarterStart, quarterEnd, antiPerfectionist, now = new Date()) {
   const start = toDate(quarterStart);
   const end = toDate(quarterEnd);
   const today = toDate(now);
+  const factor = antiPerfectionist ? 0.75 : 1;
 
   const weeks = (daysBetween(start, end) + 1) / 7;
-  const target = Number(category.weekly_hours) * weeks;
+  const target = Number(category.weekly_hours) * weeks * factor;
 
   const done = tasks
     .filter((t) => t.done && Number(t.actual_hours) > 0)
@@ -43,7 +47,7 @@ export function categoryProgress(category, tasks, quarterStart, quarterEnd, now 
   const actual = running;
 
   const elapsedWeeks = Math.min(Math.max(daysBetween(start, today) + 1, 0), daysBetween(start, end) + 1) / 7;
-  const expectedToDate = Number(category.weekly_hours) * Math.max(elapsedWeeks, 0);
+  const expectedToDate = Number(category.weekly_hours) * Math.max(elapsedWeeks, 0) * factor;
 
   let pace = "on-track";
   if (today < start) pace = "not-started";

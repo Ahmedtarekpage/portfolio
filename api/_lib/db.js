@@ -69,6 +69,8 @@ async function migrate(sql) {
     end_date DATE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // anti-perfectionist mode: count 75% of the full weekly x weeks target as "done"
+  await sql`ALTER TABLE quarters ADD COLUMN IF NOT EXISTS anti_perfectionist BOOLEAN NOT NULL DEFAULT false`;
   await sql`CREATE TABLE IF NOT EXISTS quarter_categories (
     id SERIAL PRIMARY KEY,
     quarter_id INTEGER NOT NULL REFERENCES quarters(id) ON DELETE CASCADE,

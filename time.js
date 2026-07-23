@@ -323,6 +323,14 @@
     box.innerHTML = "";
     if (!data) return;
 
+    if (data.quarter.anti_perfectionist) {
+      var note = document.createElement("p");
+      note.className = "muted";
+      note.style.marginBottom = "4px";
+      note.textContent = "Anti-perfectionist mode is on — targets below already count 75% as done.";
+      box.appendChild(note);
+    }
+
     data.categories.forEach(function (c) {
       var p = c.progress;
       var card = document.createElement("div");
@@ -380,6 +388,7 @@
     form.elements.name.value = q.name;
     form.elements.start_date.value = String(q.start_date).slice(0, 10);
     form.elements.end_date.value = String(q.end_date).slice(0, 10);
+    form.elements.anti_perfectionist.checked = !!q.anti_perfectionist;
     $("#categoryRows").innerHTML = "";
     (state.quarterDetail.categories || []).forEach(function (c) { addCategoryRow(c); });
     if (!state.quarterDetail.categories.length) addCategoryRow();
@@ -412,7 +421,11 @@
         weekly_hours: Number(row.querySelector("[name=cat_hours]").value),
       };
     }).filter(function (c) { return c.name && c.weekly_hours > 0; });
-    var body = { name: b.name, start_date: b.start_date, end_date: b.end_date, categories: categories };
+    var body = {
+      name: b.name, start_date: b.start_date, end_date: b.end_date,
+      anti_perfectionist: form.elements.anti_perfectionist.checked,
+      categories: categories,
+    };
 
     busy(btn, true);
     var editingId = state.editingQuarterId;
