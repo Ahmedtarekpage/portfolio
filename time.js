@@ -168,6 +168,28 @@
 
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  var audioCtx = null;
+  function playCheckSound() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      var t0 = audioCtx.currentTime;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, t0);
+      osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.1);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.2);
+    } catch (e) { /* Web Audio unavailable — fail silently */ }
+  }
+
   function animateCount(el, to, suffix) {
     var from = parseInt(el.textContent, 10) || 0;
     if (reduceMotion || from === to) { el.textContent = to + suffix; return; }
@@ -194,11 +216,14 @@
     tasks.forEach(function (t) {
       var row = document.createElement("div");
       row.className = "task-row" + (t.done ? " task-row--done" : "");
+      row.dataset.id = t.id;
       var meta = [];
       if (t.category_name) meta.push(esc(t.category_name));
       if (t.planned_hours != null) meta.push(fmtH(t.planned_hours) + " planned");
       row.innerHTML =
+        '<span class="task-row__handle" draggable="true" title="Drag to reorder">⠿</span>' +
         '<input type="checkbox" class="task-row__check" ' + (t.done ? "checked" : "") + ' aria-label="Mark done" />' +
+        '<span class="task-row__icon">' + esc(t.icon || "📝") + '</span>' +
         '<div class="task-row__body"><div class="task-row__title">' + esc(t.title) + '</div>' +
         (meta.length ? '<div class="task-row__meta">' + meta.join(" · ") + '</div>' : '') + '</div>' +
         (t.done ? '<input type="number" min="0" step="0.25" class="task-row__actual" title="Actual hours" value="' +
@@ -207,6 +232,7 @@
         '<button type="button" class="iconbtn" title="Delete task">✕</button>';
 
       row.querySelector(".task-row__check").addEventListener("change", function (ev) {
+        if (ev.target.checked) playCheckSound();
         api("/api/tasks?id=" + t.id, { method: "PATCH", body: { done: ev.target.checked } })
           .then(function () { return afterTaskChange(); })
           .catch(function (e) { toast(e.message, true); ev.target.checked = !ev.target.checked; });
@@ -241,10 +267,71 @@
     ]);
   }
 
+  /* ---------------- drag to reorder ---------------- */
+
+  var dragState = null;
+
+  $("#taskList").addEventListener("dragstart", function (ev) {
+    var handle = ev.target.closest(".task-row__handle");
+    var row = handle && handle.closest(".task-row");
+    if (!row) { ev.preventDefault(); return; }
+    dragState = { id: Number(row.dataset.id), el: row };
+    row.classList.add("task-row--dragging");
+    ev.dataTransfer.effectAllowed = "move";
+    ev.dataTransfer.setData("text/plain", String(dragState.id));
+  });
+
+  $("#taskList").addEventListener("dragover", function (ev) {
+    if (!dragState) return;
+    ev.preventDefault();
+    var over = ev.target.closest(".task-row");
+    if (!over || over === dragState.el) return;
+    var rect = over.getBoundingClientRect();
+    var before = (ev.clientY - rect.top) < rect.height / 2;
+    $("#taskList").insertBefore(dragState.el, before ? over : over.nextSibling);
+  });
+
+  $("#taskList").addEventListener("drop", function (ev) { ev.preventDefault(); });
+
+  $("#taskList").addEventListener("dragend", function () {
+    if (!dragState) return;
+    dragState.el.classList.remove("task-row--dragging");
+    var ids = Array.prototype.slice.call($("#taskList").children).map(function (el) { return Number(el.dataset.id); });
+    dragState = null;
+    api("/api/tasks?reorder=1", { method: "PATCH", body: { ids: ids } })
+      .catch(function (e) { toast(e.message, true); loadDay(state.currentDate); });
+  });
+
+  /* ---------------- clear day / duplicate to another day ---------------- */
+
+  $("#duplicateDate").value = addDays(todayISO(), 1);
+
+  $("#btnClearDay").addEventListener("click", function () {
+    if (!confirm("Delete ALL tasks for " + fmtDate(state.currentDate) + "? This can't be undone.")) return;
+    api("/api/tasks?date=" + state.currentDate, { method: "DELETE" })
+      .then(function () { toast("Day cleared"); return afterTaskChange(); })
+      .catch(function (e) { toast(e.message, true); });
+  });
+
+  $("#btnDuplicateDay").addEventListener("click", function () {
+    var to = $("#duplicateDate").value;
+    if (!to) { toast("Pick a date to copy to", true); return; }
+    var btn = this;
+    busy(btn, true);
+    api("/api/tasks?duplicate=1", { method: "POST", body: { from_date: state.currentDate, to_date: to } })
+      .then(function (r) {
+        toast(r.count ? ("Copied " + r.count + " task" + (r.count === 1 ? "" : "s") + " to " + fmtDate(to)) : "No tasks to copy");
+        return to === state.currentDate ? afterTaskChange() : null;
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  });
+
   function startEditTask(t) {
     state.editingTaskId = t.id;
     var form = $("#addTaskForm");
     form.elements.title.value = t.title;
+    form.elements.icon.value = t.icon || "";
     form.elements.category_id.value = t.category_id || "";
     form.elements.planned_hours.value = t.planned_hours != null ? Number(t.planned_hours) : "";
     form.elements.actual_hours.value = t.actual_hours != null ? Number(t.actual_hours) : "";
@@ -273,6 +360,7 @@
     var editingId = state.editingTaskId;
     var body = {
       title: b.title,
+      icon: b.icon || null,
       category_id: b.category_id ? Number(b.category_id) : null,
       planned_hours: b.planned_hours ? Number(b.planned_hours) : null,
     };

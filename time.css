@@ -8,6 +8,15 @@
 }
 .day-nav input[type="date"]:focus { border-color: var(--blue); }
 
+.day-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.day-actions__dup { display: inline-flex; gap: 6px; align-items: center; }
+.day-actions__dup input[type="date"] {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 6px 10px; font: 400 0.85rem "Inter", sans-serif;
+  color-scheme: dark; outline: none;
+}
+.day-actions__dup input[type="date"]:focus { border-color: var(--blue); }
+
 /* ---------- task list ---------- */
 .task-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
 .task-row {
@@ -19,6 +28,17 @@
 }
 .task-row:hover { border-color: rgba(96, 165, 250, 0.25); }
 .task-row--done { opacity: 0.6; }
+.task-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
+.task-row__handle {
+  flex: none; cursor: grab; color: var(--faint); font-size: 0.95rem;
+  padding: 2px 2px; touch-action: none; line-height: 1;
+}
+.task-row__handle:active { cursor: grabbing; }
+.task-row__icon {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  background: rgba(96, 165, 250, 0.1); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.05rem;
+}
 .task-row--done .task-row__title { text-decoration: line-through; transition: text-decoration-color 0.2s ease; }
 /* stagger the first rows in; later ones just settle at the same final delay */
 .task-list .task-row:nth-child(1) { animation-delay: 0s; }

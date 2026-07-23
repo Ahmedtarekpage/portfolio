@@ -90,6 +90,9 @@ async function migrate(sql) {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS tasks_date_idx ON tasks (task_date)`;
   await sql`CREATE INDEX IF NOT EXISTS tasks_category_idx ON tasks (category_id)`;
+  // drag-to-reorder position within a day, and a picked emoji icon per task
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

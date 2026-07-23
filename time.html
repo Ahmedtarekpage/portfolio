@@ -81,6 +81,28 @@
 
         <form id="addTaskForm" class="form form--grid">
           <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
+          <label>Icon
+            <select name="icon">
+              <option value="">— none —</option>
+              <option value="📝">📝 Task</option>
+              <option value="💻">💻 Work</option>
+              <option value="💪">💪 Fitness</option>
+              <option value="📚">📚 Learning</option>
+              <option value="💰">💰 Finance</option>
+              <option value="🎨">🎨 Creative</option>
+              <option value="🧹">🧹 Chores</option>
+              <option value="🩺">🩺 Health</option>
+              <option value="🗣️">🗣️ Meeting</option>
+              <option value="🛠️">🛠️ Build</option>
+              <option value="🧘">🧘 Rest</option>
+              <option value="📞">📞 Call</option>
+              <option value="✈️">✈️ Travel</option>
+              <option value="🍳">🍳 Cook</option>
+              <option value="🛒">🛒 Errand</option>
+              <option value="🎯">🎯 Focus</option>
+              <option value="😴">😴 Sleep</option>
+            </select>
+          </label>
           <label>Category
             <select name="category_id"><option value="">— none —</option></select>
           </label>
@@ -94,6 +116,14 @@
 
         <div class="task-list" id="taskList"></div>
         <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
+
+        <div class="day-actions">
+          <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm">🗑 Clear day</button>
+          <span class="day-actions__dup">
+            <input type="date" id="duplicateDate" aria-label="Duplicate tasks to date" />
+            <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm">📋 Copy tasks here</button>
+          </span>
+        </div>
 
         <div class="card__head" style="margin-top: 22px">
           <h2>Last 14 days</h2>
