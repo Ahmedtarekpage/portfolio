@@ -14,12 +14,25 @@
   display: flex; align-items: center; gap: 10px;
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
   padding: 10px 12px;
+  animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  transition: opacity 0.3s ease, transform 0.15s ease, border-color 0.15s ease;
 }
+.task-row:hover { border-color: rgba(96, 165, 250, 0.25); }
 .task-row--done { opacity: 0.6; }
-.task-row--done .task-row__title { text-decoration: line-through; }
+.task-row--done .task-row__title { text-decoration: line-through; transition: text-decoration-color 0.2s ease; }
+/* stagger the first rows in; later ones just settle at the same final delay */
+.task-list .task-row:nth-child(1) { animation-delay: 0s; }
+.task-list .task-row:nth-child(2) { animation-delay: 0.035s; }
+.task-list .task-row:nth-child(3) { animation-delay: 0.07s; }
+.task-list .task-row:nth-child(4) { animation-delay: 0.105s; }
+.task-list .task-row:nth-child(5) { animation-delay: 0.14s; }
+.task-list .task-row:nth-child(6) { animation-delay: 0.175s; }
+.task-list .task-row:nth-child(n+7) { animation-delay: 0.21s; }
 .task-row__check {
   width: 20px; height: 20px; flex: none; cursor: pointer; accent-color: var(--blue);
+  transition: transform 0.15s ease;
 }
+.task-row__check:active { transform: scale(0.82); }
 .task-row__body { flex: 1; min-width: 0; }
 .task-row__title { font-size: 0.94rem; }
 .task-row__meta { font-size: 0.76rem; color: var(--faint); margin-top: 2px; }
@@ -36,7 +49,7 @@
 .day-bar {
   flex: 1; min-width: 6px; border-radius: 4px 4px 2px 2px;
   background: var(--grad); opacity: 0.35;
-  transition: opacity 0.15s, transform 0.15s;
+  transition: height 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.15s, transform 0.15s;
 }
 .day-bar:hover { opacity: 1; transform: scaleY(1.02); }
 .day-bar--empty { background: var(--glass-brd); opacity: 1; }
@@ -52,7 +65,14 @@
 .category-cards { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
 .category-card {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 14px; padding: 16px;
+  animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
+.category-card:hover { border-color: rgba(96, 165, 250, 0.3); transform: translateY(-2px); }
+.category-cards .category-card:nth-child(1) { animation-delay: 0s; }
+.category-cards .category-card:nth-child(2) { animation-delay: 0.07s; }
+.category-cards .category-card:nth-child(3) { animation-delay: 0.14s; }
+.category-cards .category-card:nth-child(n+4) { animation-delay: 0.2s; }
 .category-card__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .category-card__name { font: 600 1rem "Space Grotesk", sans-serif; }
 .category-card__stats {
@@ -66,3 +86,10 @@
 
 .checkline { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
 .checkline input { width: 16px; height: 16px; accent-color: var(--blue); }
+
+/* toast entrance (scoped to /time — admin.css's #toast has no animation) */
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+#toast:not([hidden]) { animation: toastIn 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) both; }

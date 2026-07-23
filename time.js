@@ -10,6 +10,7 @@
     selectedQuarterId: null,
     quarterDetail: null, // { quarter, categories }
     editingQuarterId: null,
+    editingTaskId: null,
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -157,6 +158,7 @@
   $("#btnToday").addEventListener("click", function () { loadDay(todayISO()); });
 
   function loadDay(date) {
+    if (date !== state.currentDate && state.editingTaskId) stopEditTask();
     state.currentDate = date;
     $("#dayPicker").value = date;
     return api("/api/tasks?date=" + date).then(function (data) {
@@ -164,10 +166,26 @@
     }).catch(function (e) { toast(e.message, true); });
   }
 
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function animateCount(el, to, suffix) {
+    var from = parseInt(el.textContent, 10) || 0;
+    if (reduceMotion || from === to) { el.textContent = to + suffix; return; }
+    var start = null, duration = 450;
+    function step(ts) {
+      if (start == null) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (to - from) * eased) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
   function renderTasks(tasks) {
     var total = tasks.length;
     var done = tasks.filter(function (t) { return t.done; }).length;
-    $("#dayPercent").textContent = (total ? Math.round((done / total) * 100) : 0) + "%";
+    animateCount($("#dayPercent"), total ? Math.round((done / total) * 100) : 0, "%");
     $("#dayCount").textContent = done + " of " + total + " task" + (total === 1 ? "" : "s");
 
     var list = $("#taskList");
@@ -185,6 +203,7 @@
         (meta.length ? '<div class="task-row__meta">' + meta.join(" · ") + '</div>' : '') + '</div>' +
         (t.done ? '<input type="number" min="0" step="0.25" class="task-row__actual" title="Actual hours" value="' +
           (t.actual_hours != null ? Number(t.actual_hours) : '') + '" />' : '') +
+        '<button type="button" class="iconbtn iconbtn--edit" title="Edit task">✎</button>' +
         '<button type="button" class="iconbtn" title="Delete task">✕</button>';
 
       row.querySelector(".task-row__check").addEventListener("change", function (ev) {
@@ -201,10 +220,11 @@
             .catch(function (e) { toast(e.message, true); });
         });
       }
-      row.querySelector(".iconbtn").addEventListener("click", function () {
+      row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditTask(t); });
+      row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
         if (!confirm('Delete task "' + t.title + '"?')) return;
         api("/api/tasks?id=" + t.id, { method: "DELETE" })
-          .then(function () { return afterTaskChange(); })
+          .then(function () { if (state.editingTaskId === t.id) stopEditTask(); return afterTaskChange(); })
           .catch(function (e) { toast(e.message, true); });
       });
       list.appendChild(row);
@@ -221,18 +241,48 @@
     ]);
   }
 
+  function startEditTask(t) {
+    state.editingTaskId = t.id;
+    var form = $("#addTaskForm");
+    form.elements.title.value = t.title;
+    form.elements.category_id.value = t.category_id || "";
+    form.elements.planned_hours.value = t.planned_hours != null ? Number(t.planned_hours) : "";
+    form.elements.actual_hours.value = t.actual_hours != null ? Number(t.actual_hours) : "";
+    $("#actualHoursField").hidden = false;
+    $("#btnTaskSubmit").textContent = "Update task";
+    $("#btnCancelTaskEdit").hidden = false;
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function stopEditTask() {
+    state.editingTaskId = null;
+    var form = $("#addTaskForm");
+    form.reset();
+    $("#actualHoursField").hidden = true;
+    $("#btnTaskSubmit").textContent = "Add task";
+    $("#btnCancelTaskEdit").hidden = true;
+  }
+
+  $("#btnCancelTaskEdit").addEventListener("click", stopEditTask);
+
   $("#addTaskForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
     var form = this;
-    var btn = form.querySelector("button[type=submit]");
+    var btn = $("#btnTaskSubmit");
     var b = formData(form);
-    b.task_date = state.currentDate;
-    if (!b.category_id) delete b.category_id;
-    if (!b.planned_hours) delete b.planned_hours;
+    var editingId = state.editingTaskId;
+    var body = {
+      title: b.title,
+      category_id: b.category_id ? Number(b.category_id) : null,
+      planned_hours: b.planned_hours ? Number(b.planned_hours) : null,
+    };
+    if (editingId) body.actual_hours = b.actual_hours ? Number(b.actual_hours) : null;
+    else body.task_date = state.currentDate;
+
     busy(btn, true);
-    api("/api/tasks", { method: "POST", body: b })
-      .then(function () { form.reset(); return loadDay(state.currentDate); })
-      .then(function () { return loadHistory(); })
+    (editingId ? api("/api/tasks?id=" + editingId, { method: "PATCH", body: body })
+               : api("/api/tasks", { method: "POST", body: body }))
+      .then(function () { toast(editingId ? "Task updated ✓" : "Task added ✓"); stopEditTask(); return afterTaskChange(); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
@@ -252,16 +302,27 @@
     (stats || []).forEach(function (s) { byDate[s.date] = s; });
     var box = $("#dayHistory");
     box.innerHTML = "";
+    var bars = [];
     var d = from;
     while (d <= to) {
       var s = byDate[d];
       var pct = s && s.total ? Math.round((s.done / s.total) * 100) : null;
+      var target = pct == null ? 6 : Math.max(pct, 4);
       var bar = document.createElement("div");
       bar.className = "day-bar" + (pct == null ? " day-bar--empty" : "");
-      bar.style.height = (pct == null ? 6 : Math.max(pct, 4)) + "%";
+      bar.style.height = reduceMotion ? target + "%" : "0%";
       bar.title = fmtDate(d) + (pct == null ? " · no tasks" : " · " + pct + "% (" + s.done + "/" + s.total + ")");
       box.appendChild(bar);
+      bars.push({ el: bar, target: target });
       d = addDays(d, 1);
+    }
+    if (!reduceMotion) {
+      // double rAF: the 0% height must paint before the transition to `target` starts
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          bars.forEach(function (b) { b.el.style.height = b.target + "%"; });
+        });
+      });
     }
   }
 

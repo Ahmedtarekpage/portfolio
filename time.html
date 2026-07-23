@@ -85,7 +85,11 @@
             <select name="category_id"><option value="">— none —</option></select>
           </label>
           <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
-          <div class="span2"><button type="submit" class="btn btn--primary">Add task</button></div>
+          <label id="actualHoursField" hidden>Actual hours<input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+          <div class="span2">
+            <button type="submit" class="btn btn--primary" id="btnTaskSubmit">Add task</button>
+            <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden>Cancel edit</button>
+          </div>
         </form>
 
         <div class="task-list" id="taskList"></div>

@@ -338,10 +338,11 @@
     }
 
     // expected pace: straight line from (start, 0) to (end, target)
-    svg.appendChild(svgEl("path", {
+    var expectedEl = svgEl("path", {
       d: "M " + x(start) + " " + y(0) + " L " + x(end) + " " + y(target),
       fill: "none", stroke: "#5f6b7d", "stroke-width": 1.5, "stroke-dasharray": "5 5",
-    }));
+    });
+    svg.appendChild(expectedEl);
 
     // actual cumulative: stepped line, held flat from the last log up to today
     var color = opts.color || COLORS.line;
@@ -352,7 +353,8 @@
     }
     var extendTo = Math.min(Math.max(todayT, actualPts[actualPts.length - 1].t), end);
     if (extendTo > actualPts[actualPts.length - 1].t) d += " L " + x(extendTo) + " " + y(lastActual);
-    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" }));
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    svg.appendChild(lineEl);
 
     if (todayT >= start && todayT <= end) {
       svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
@@ -365,5 +367,21 @@
     });
 
     box.appendChild(svg);
+
+    // entrance animation: the logged-hours line draws itself in, the pace line fades in after
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) {
+      try {
+        var len = lineEl.getTotalLength();
+        lineEl.style.strokeDasharray = len;
+        lineEl.style.strokeDashoffset = len;
+        expectedEl.style.opacity = 0;
+        lineEl.getBoundingClientRect(); // force layout so the transition runs
+        lineEl.style.transition = "stroke-dashoffset 0.8s ease";
+        lineEl.style.strokeDashoffset = 0;
+        expectedEl.style.transition = "opacity 0.5s ease 0.3s";
+        expectedEl.style.opacity = 1;
+      } catch (e) { /* SVG not measurable — skip animation */ }
+    }
   };
 })();
