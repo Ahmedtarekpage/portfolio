@@ -61,6 +61,33 @@ async function migrate(sql) {
     pdf BYTEA,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // time tracking: quarterly category goals + daily to-do tasks
+  await sql`CREATE TABLE IF NOT EXISTS quarters (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS quarter_categories (
+    id SERIAL PRIMARY KEY,
+    quarter_id INTEGER NOT NULL REFERENCES quarters(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    weekly_hours NUMERIC NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY,
+    task_date DATE NOT NULL,
+    title TEXT NOT NULL,
+    category_id INTEGER REFERENCES quarter_categories(id) ON DELETE SET NULL,
+    planned_hours NUMERIC,
+    actual_hours NUMERIC,
+    done BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS tasks_date_idx ON tasks (task_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS tasks_category_idx ON tasks (category_id)`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

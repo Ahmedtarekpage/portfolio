@@ -1,0 +1,65 @@
+/* Time-tracking page — extends admin.css with day/task/quarter-specific bits. */
+
+.day-nav { display: flex; align-items: center; gap: 6px; }
+.day-nav input[type="date"] {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 6px 10px; font: 400 0.85rem "Inter", sans-serif;
+  color-scheme: dark; outline: none;
+}
+.day-nav input[type="date"]:focus { border-color: var(--blue); }
+
+/* ---------- task list ---------- */
+.task-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.task-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
+  padding: 10px 12px;
+}
+.task-row--done { opacity: 0.6; }
+.task-row--done .task-row__title { text-decoration: line-through; }
+.task-row__check {
+  width: 20px; height: 20px; flex: none; cursor: pointer; accent-color: var(--blue);
+}
+.task-row__body { flex: 1; min-width: 0; }
+.task-row__title { font-size: 0.94rem; }
+.task-row__meta { font-size: 0.76rem; color: var(--faint); margin-top: 2px; }
+.task-row__actual {
+  width: 68px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 5px 8px; font: 400 0.82rem "Inter", sans-serif; outline: none;
+}
+.task-row__actual:focus { border-color: var(--blue); }
+
+/* ---------- 14-day history strip ---------- */
+.day-history {
+  display: flex; align-items: flex-end; gap: 5px; height: 64px; margin-top: 14px;
+}
+.day-bar {
+  flex: 1; min-width: 6px; border-radius: 4px 4px 2px 2px;
+  background: var(--grad); opacity: 0.35;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.day-bar:hover { opacity: 1; transform: scaleY(1.02); }
+.day-bar--empty { background: var(--glass-brd); opacity: 1; }
+
+/* ---------- quarter category rows (create/edit form) ---------- */
+.category-rows { display: flex; flex-direction: column; gap: 8px; }
+.category-row { display: flex; gap: 8px; align-items: center; }
+.category-row input[name="cat_name"] { flex: 1; }
+.category-row input[name="cat_hours"] { width: 100px; flex: none; }
+.category-row__remove { flex: none; }
+
+/* ---------- category progress cards ---------- */
+.category-cards { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.category-card {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 14px; padding: 16px;
+}
+.category-card__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.category-card__name { font: 600 1rem "Space Grotesk", sans-serif; }
+.category-card__stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px; margin: 10px 0 12px; font-size: 0.82rem; color: var(--muted);
+}
+.category-card__stats b { display: block; font-size: 1.05rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.badge--good { color: #6ee7b0; background: rgba(31, 168, 118, 0.16); border: 1px solid rgba(31, 168, 118, 0.45); }
+.badge--muted { color: var(--muted); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-brd); }

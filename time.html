@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Time — Ahmed Tarek</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#0b0e14" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=3" />
+  <link rel="stylesheet" href="time.css?v=1" />
+  <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <!-- ================= LOADING ================= -->
+    <section id="view-loading" class="view">
+      <div class="card card--center"><p class="muted">Loading…</p></div>
+    </section>
+
+    <!-- ================= LOGIN ================= -->
+    <section id="view-login" class="view" hidden>
+      <div class="card card--center login-card">
+        <div class="lock-icon" aria-hidden="true">🔐</div>
+        <h1>Time</h1>
+        <p class="muted">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
+        from a computer your browser will show a QR code to scan with the iPhone.</p>
+        <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
+        <p id="loginError" class="error" hidden></p>
+      </div>
+    </section>
+
+    <!-- ================= FIRST-TIME SETUP (only while no device is registered) ================= -->
+    <section id="view-setup" class="view" hidden>
+      <div class="card card--center login-card">
+        <div class="lock-icon" aria-hidden="true">📱</div>
+        <h1>Register your iPhone</h1>
+        <p class="muted">One device only — after this, setup locks forever and only your iPhone can sign in.</p>
+        <p class="muted"><strong>On a computer:</strong> tap the button below and your browser will show a
+        <strong>QR code</strong> — scan it with the iPhone camera, then confirm with Face&nbsp;ID.<br /><br />
+        <strong>On the iPhone itself:</strong> just tap the button and confirm with Face&nbsp;ID.</p>
+        <button id="btnSetup" class="btn btn--primary">Create passkey</button>
+        <p id="setupError" class="error" hidden></p>
+      </div>
+    </section>
+
+    <!-- ================= APP ================= -->
+    <section id="view-app" class="view" hidden>
+      <header class="topbar">
+        <h1>Time</h1>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost btn--sm" href="/admin">Admin</a>
+          <button id="btnLogout" class="btn btn--ghost btn--sm">Log out</button>
+        </div>
+      </header>
+
+      <!-- ---- Today ---- -->
+      <div class="card">
+        <div class="card__head">
+          <h2>Today's to-do</h2>
+          <div class="day-nav">
+            <button id="btnPrevDay" class="iconbtn" aria-label="Previous day">←</button>
+            <input type="date" id="dayPicker" />
+            <button id="btnNextDay" class="iconbtn" aria-label="Next day">→</button>
+            <button id="btnToday" class="btn btn--ghost btn--sm">Today</button>
+          </div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile tile--accent">
+            <div class="tile__label">Completed</div>
+            <div class="tile__value" id="dayPercent">0%</div>
+            <div class="tile__sub" id="dayCount">0 of 0 tasks</div>
+          </div>
+        </div>
+
+        <form id="addTaskForm" class="form form--grid">
+          <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
+          <label>Category
+            <select name="category_id"><option value="">— none —</option></select>
+          </label>
+          <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+          <div class="span2"><button type="submit" class="btn btn--primary">Add task</button></div>
+        </form>
+
+        <div class="task-list" id="taskList"></div>
+        <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
+
+        <div class="card__head" style="margin-top: 22px">
+          <h2>Last 14 days</h2>
+        </div>
+        <div class="day-history" id="dayHistory"></div>
+      </div>
+
+      <!-- ---- Quarters ---- -->
+      <div class="card">
+        <div class="card__head">
+          <h2>Quarterly goals</h2>
+          <select id="quarterSelect"></select>
+        </div>
+
+        <details id="addQuarterBox">
+          <summary class="btnish">+ New quarter</summary>
+          <form id="quarterForm" class="form">
+            <div class="form form--grid">
+              <label>Name *<input name="name" required placeholder="Q3 2026" /></label>
+              <label>Start date *<input name="start_date" type="date" required /></label>
+              <label>End date *<input name="end_date" type="date" required /></label>
+            </div>
+            <div id="categoryRows" class="category-rows"></div>
+            <button type="button" id="btnAddCategoryRow" class="linklike">+ Add category</button>
+            <div>
+              <button type="submit" class="btn btn--primary" id="btnQuarterSubmit">Save quarter</button>
+              <button type="button" class="btn btn--ghost" id="btnCancelQuarterEdit" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </details>
+
+        <p id="noQuarters" class="muted center" hidden>No quarters yet — create one above.</p>
+        <div id="categoryCards" class="category-cards"></div>
+        <div class="topbar__actions" id="quarterActions" style="justify-content: flex-end; margin-top: 14px" hidden>
+          <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
+          <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
+        </div>
+      </div>
+
+    </section>
+
+    <p id="toast" class="toast" hidden></p>
+  </div>
+
+  <script src="chart.js?v=3"></script>
+  <script src="time.js?v=1"></script>
+</body>
+</html>

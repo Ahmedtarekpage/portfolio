@@ -300,4 +300,70 @@
       },
     };
   };
+
+  /* Quarterly category progress — cumulative logged hours (solid, stepped) vs
+     the straight expected-pace line (dashed) from (start, 0) to (end, target).
+       opts.start / opts.end  — 'YYYY-MM-DD' quarter bounds
+       opts.target            — total target hours for the quarter
+       opts.color             — line color (defaults to COLORS.line) */
+  window.renderProgressChart = function (box, timeline, opts) {
+    opts = opts || {};
+    box.innerHTML = "";
+    var start = new Date(String(opts.start).slice(0, 10) + "T00:00:00Z").getTime();
+    var end = new Date(String(opts.end).slice(0, 10) + "T00:00:00Z").getTime();
+    if (end <= start) end = start + DAY;
+    var target = Number(opts.target) || 0;
+    var todayT = new Date(todayISO() + "T00:00:00Z").getTime();
+
+    var logged = (timeline || []).map(function (p) {
+      return { t: new Date(String(p.date).slice(0, 10) + "T00:00:00Z").getTime(), v: Number(p.cumulative) };
+    });
+    var actualPts = [{ t: start, v: 0 }].concat(logged);
+    var lastActual = actualPts[actualPts.length - 1].v;
+
+    var W = Math.max(box.clientWidth || 600, 260), H = 190;
+    var M = { l: 40, r: 12, t: 14, b: 24 };
+    var yMax = Math.max(target, lastActual, 1) * 1.1;
+    var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
+    var y = function (v) { return H - M.b - (v / yMax) * (H - M.t - M.b); };
+
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Category progress" });
+
+    var step = niceStep(yMax, 3);
+    for (var v = 0; v <= yMax; v += step) {
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: "rgba(255,255,255,0.06)", "stroke-width": 1 }));
+      var lbl = svgEl("text", { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", fill: "#5f6b7d", "font-size": 10 });
+      lbl.textContent = Number.isInteger(v) ? v : v.toFixed(1);
+      svg.appendChild(lbl);
+    }
+
+    // expected pace: straight line from (start, 0) to (end, target)
+    svg.appendChild(svgEl("path", {
+      d: "M " + x(start) + " " + y(0) + " L " + x(end) + " " + y(target),
+      fill: "none", stroke: "#5f6b7d", "stroke-width": 1.5, "stroke-dasharray": "5 5",
+    }));
+
+    // actual cumulative: stepped line, held flat from the last log up to today
+    var color = opts.color || COLORS.line;
+    var d = "M " + x(actualPts[0].t) + " " + y(actualPts[0].v);
+    for (var i = 1; i < actualPts.length; i++) {
+      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i - 1].v);
+      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i].v);
+    }
+    var extendTo = Math.min(Math.max(todayT, actualPts[actualPts.length - 1].t), end);
+    if (extendTo > actualPts[actualPts.length - 1].t) d += " L " + x(extendTo) + " " + y(lastActual);
+    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" }));
+
+    if (todayT >= start && todayT <= end) {
+      svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
+    }
+
+    [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
+      var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: "#5f6b7d", "font-size": 10 });
+      xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+      svg.appendChild(xl);
+    });
+
+    box.appendChild(svg);
+  };
 })();
