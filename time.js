@@ -1,27 +1,16 @@
-/* Time-tracking page logic: passkey auth (shared with /admin), a tabbed app
-   (Home / Elmktb / Analytics) built around an auto-computed Year > Virtual-Year
-   > Cycle > Quarter schedule (see api/_lib/cycle.js). Home is a gallery of
-   tiles — Today + one per category — tap a tile to drill into its detail. */
+/* Time-tracking page logic: passkey auth (shared with /admin), daily to-do list
+   with a completion %, and quarterly category goals with a progress chart. */
 (function () {
   "use strict";
 
   var $ = function (sel) { return document.querySelector(sel); };
   var state = {
     currentDate: todayISO(),
-    activeTab: "home",
-    categories: [],
-    todayInfo: null,
-    cycles: [],
-    currentCycleKey: null,      // the actual current cycle — gallery tiles always reflect this
-    galleryCycleDetail: null,   // current-cycle data, for gallery tile stats
-    selectedCategoryId: null,   // which category's detail is open (Home)
-    selectedCycleKey: null,     // cycle being browsed inside an open category detail
-    cycleDetail: null,
-    analyticsCycleKey: null,
-    analyticsDetail: null,
-    elmktbDetail: null,
+    quarters: [],
+    selectedQuarterId: null,
+    quarterDetail: null, // { quarter, categories }
+    editingQuarterId: null,
     editingTaskId: null,
-    wizard: null,   // active guided-setup run, or null
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -100,57 +89,6 @@
     return out;
   }
 
-  /* ---------------- theme (light/dark, persisted; set pre-paint in <head>) ---------------- */
-
-  function currentTheme() {
-    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-  }
-
-  function applyTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    var btn = $("#btnTheme");
-    if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#eef1f7" : "#0b0e14");
-    try { localStorage.setItem("time-theme", theme); } catch (e) {}
-  }
-
-  applyTheme(currentTheme()); // sync the toggle icon to whatever the pre-paint script already set
-
-  $("#btnTheme").addEventListener("click", function () {
-    var btn = this;
-    applyTheme(currentTheme() === "light" ? "dark" : "light");
-    // reduceMotion is assigned further down but hoisted, and this only runs on a later click
-    if (!reduceMotion) {
-      btn.classList.remove("theme-toggle--spin");
-      void btn.offsetWidth; // restart the animation on repeat clicks
-      btn.classList.add("theme-toggle--spin");
-    }
-    // charts read CSS custom properties at render time — redraw with the new theme's colors
-    if (state.cycleDetail) renderCategoryDetail(state.cycleDetail);
-    if (state.analyticsDetail) renderAnalytics(state.analyticsDetail);
-  });
-
-  /* ---------------- tabs ---------------- */
-
-  function showTab(name) {
-    state.activeTab = name;
-    document.querySelectorAll("#tabbar .tab").forEach(function (btn) {
-      btn.classList.toggle("tab--active", btn.dataset.tab === name);
-    });
-    document.querySelectorAll(".tabpanel").forEach(function (panel) {
-      panel.hidden = panel.dataset.tabpanel !== name;
-    });
-    if (name === "home") openGallery();
-    if (name === "elmktb") loadElmktb();
-    if (name === "analytics") loadAnalyticsDetail(state.analyticsCycleKey);
-  }
-
-  $("#tabbar").addEventListener("click", function (ev) {
-    var btn = ev.target.closest(".tab");
-    if (btn) showTab(btn.dataset.tab);
-  });
-
   /* ---------------- auth ---------------- */
 
   function boot() {
@@ -207,9 +145,8 @@
   function initApp() {
     show("view-loading");
     $("#dayPicker").value = state.currentDate;
-    Promise.all([loadCategories(), loadCyclePicker(), loadDay(state.currentDate), loadHistory()])
-      .then(function () { return loadGalleryCycleDetail(); })
-      .then(function () { openGallery(); show("view-app"); })
+    Promise.all([loadQuarters(), loadDay(state.currentDate), loadHistory()])
+      .then(function () { show("view-app"); })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
   }
 
@@ -270,8 +207,7 @@
   function renderTasks(tasks) {
     var total = tasks.length;
     var done = tasks.filter(function (t) { return t.done; }).length;
-    var pct = total ? Math.round((done / total) * 100) : 0;
-    animateCount($("#dayPercent"), pct, "%");
+    animateCount($("#dayPercent"), total ? Math.round((done / total) * 100) : 0, "%");
     $("#dayCount").textContent = done + " of " + total + " task" + (total === 1 ? "" : "s");
 
     var list = $("#taskList");
@@ -322,14 +258,13 @@
   }
 
   // a task's done/actual-hours change can move the daily % and a category's
-  // cycle progress, so refresh the day, the 14-day strip, the gallery, and
-  // whichever goal/analytics view is currently loaded together
+  // quarterly progress, so refresh the day, the 14-day strip, and the chart together
   function afterTaskChange() {
-    var jobs = [loadDay(state.currentDate), loadHistory(), loadGalleryCycleDetail()];
-    if (!$("#homeDetailCategory").hidden && state.selectedCycleKey) jobs.push(loadCycleDetail(state.selectedCycleKey));
-    if (state.activeTab === "analytics" && state.analyticsCycleKey) jobs.push(loadAnalyticsDetail(state.analyticsCycleKey));
-    if (state.activeTab === "elmktb") jobs.push(loadElmktb());
-    return Promise.all(jobs);
+    return Promise.all([
+      loadDay(state.currentDate),
+      loadHistory(),
+      state.selectedQuarterId ? loadQuarterDetail(state.selectedQuarterId) : Promise.resolve(),
+    ]);
   }
 
   /* ---------------- drag to reorder ---------------- */
@@ -479,12 +414,42 @@
     }
   }
 
-  /* ---------------- persistent categories (task-add dropdown) ---------------- */
+  /* ---------------- quarterly goals ---------------- */
 
-  function loadCategories() {
-    return api("/api/categories").then(function (data) {
-      state.categories = data.categories || [];
-      renderCategorySelect(state.categories);
+  function loadQuarters() {
+    return api("/api/quarters").then(function (data) {
+      state.quarters = data.quarters || [];
+      var sel = $("#quarterSelect");
+      sel.innerHTML = state.quarters.map(function (q) {
+        return '<option value="' + q.id + '">' + esc(q.name) + " (" + fmtDate(q.start_date) + "–" + fmtDate(q.end_date) + ")</option>";
+      }).join("");
+
+      if (!state.quarters.length) {
+        state.selectedQuarterId = null;
+        state.quarterDetail = null;
+        renderCategorySelect([]);
+        renderQuarter(null);
+        return;
+      }
+      var today = todayISO();
+      var pick = state.quarters.filter(function (q) { return q.start_date <= today && today <= q.end_date; })[0]
+        || state.quarters[0];
+      state.selectedQuarterId = pick.id;
+      sel.value = pick.id;
+      return loadQuarterDetail(pick.id);
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  $("#quarterSelect").addEventListener("change", function () {
+    state.selectedQuarterId = Number(this.value);
+    loadQuarterDetail(state.selectedQuarterId);
+  });
+
+  function loadQuarterDetail(id) {
+    return api("/api/quarters?id=" + id).then(function (data) {
+      state.quarterDetail = data;
+      renderCategorySelect(data.categories);
+      renderQuarter(data);
     }).catch(function (e) { toast(e.message, true); });
   }
 
@@ -496,910 +461,143 @@
     if (current) sel.value = current;
   }
 
-  $("#addCategoryForm").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var form = this;
-    var name = form.elements.name.value.trim();
-    if (!name) return;
-    var btn = form.querySelector("button[type=submit]");
-    busy(btn, true);
-    api("/api/categories", { method: "POST", body: { name: name } })
-      .then(function () {
-        form.reset();
-        toast("Category added ✓");
-        return Promise.all([loadCategories(), loadGalleryCycleDetail()]);
-      })
-      .catch(function (e) { toast(e.message, true); })
-      .finally(function () { busy(btn, false); });
-  });
-
-  /* ---------------- cycle status (Home) + picker (category detail/Analytics) ---------------- */
-
-  function renderCycleStatus() {
-    var info = state.todayInfo;
-    var el = $("#cycleStatus");
-    if (!el) return;
-    if (!info) { el.textContent = ""; return; }
-    if (info.phase === "year-end-buffer") {
-      el.textContent = "Year-end buffer — new cycle starts " + fmtDate((info.realYear + 1) + "-01-01");
-    } else if (info.phase === "break") {
-      el.textContent = "Y" + info.virtualYear + " · Break — next cycle starts " + fmtDate(addDays(info.cycleEnd, 1));
-    } else {
-      el.textContent = "Y" + info.virtualYear + " · Cycle " + info.cycleLetter + " · Q" + info.quarterNumber +
-        " · " + fmtDate(info.cycleStart) + "–" + fmtDate(info.cycleEnd);
-    }
-  }
-
-  function cycleOptionsHtml(cycles) {
-    return cycles.map(function (c) {
-      var tag = c.current ? "current" : (c.editable ? "upcoming" : "past");
-      return '<option value="' + c.cycleKey + '">' + esc(c.label) + " (" + fmtDate(c.start) + "–" + fmtDate(c.end) + ") · " + tag + "</option>";
-    }).join("");
-  }
-
-  function loadCyclePicker() {
-    return api("/api/cycle-goals?list=1").then(function (data) {
-      state.todayInfo = data.today;
-      state.cycles = data.cycles || [];
-      renderCycleStatus();
-      var html = cycleOptionsHtml(state.cycles);
-      $("#cycleSelect").innerHTML = html;
-      $("#analyticsCycleSelect").innerHTML = html;
-
-      var today = todayISO();
-      // during a break/buffer there's no "current" cycle — fall back to the
-      // *nearest* upcoming one (matches the server's own default-cycle pick),
-      // not the furthest-out cycle in the window
-      var current = state.cycles.filter(function (c) { return c.current; })[0];
-      var upcoming = state.cycles.filter(function (c) { return c.start > today; })[0];
-      var fallback = current || upcoming || state.cycles[state.cycles.length - 1];
-      state.currentCycleKey = fallback ? fallback.cycleKey : null;
-      if (!state.analyticsCycleKey && fallback) state.analyticsCycleKey = fallback.cycleKey;
-      if (state.analyticsCycleKey) $("#analyticsCycleSelect").value = state.analyticsCycleKey;
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  $("#cycleSelect").addEventListener("change", function () {
-    state.selectedCycleKey = this.value;
-    loadCycleDetail(state.selectedCycleKey);
-  });
-
-  $("#analyticsCycleSelect").addEventListener("change", function () {
-    state.analyticsCycleKey = this.value;
-    loadAnalyticsDetail(state.analyticsCycleKey);
-  });
-
-  /* ---------------- goals: shared rendering for Categories + Elmktb ---------------- */
-
   var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
 
-  function fmtNum(n) {
-    n = Number(n) || 0;
-    return Number.isInteger(n) ? String(n) : n.toFixed(1);
-  }
+  function renderQuarter(data) {
+    $("#noQuarters").hidden = state.quarters.length > 0;
+    $("#quarterSelect").hidden = state.quarters.length === 0;
+    $("#quarterActions").hidden = !data;
+    var box = $("#categoryCards");
+    box.innerHTML = "";
+    if (!data) return;
 
-  function goalPct(g) {
-    return Number(g.target) > 0 ? Math.min(100, Math.round((Number(g.current) / Number(g.target)) * 100)) : 0;
-  }
-
-  function goalRowHtml(g, editable) {
-    var pct = goalPct(g);
-    var dis = editable ? "" : " disabled";
-    return '<div class="goal-row" data-id="' + g.id + '">' +
-      '<div class="goal-row__top">' +
-        '<span class="goal-row__title">' + esc(g.title) + '</span>' +
-        '<span class="goal-row__pct">' + pct + '%</span>' +
-        (editable ? '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
-          '<button type="button" class="iconbtn" title="Delete goal">✕</button>' : '') +
-      '</div>' +
-      '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
-        '" style="width:' + pct + '%"></div></div>' +
-      '<div class="goal-row__nums">' +
-        '<button type="button" class="goal-row__step" data-delta="-1" title="-1"' + dis + '>−</button>' +
-        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '"' + dis + ' />' +
-        '<button type="button" class="goal-row__step" data-delta="1" title="+1"' + dis + '>+</button>' +
-        ' / <b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
-      '</div>' +
-    '</div>';
-  }
-
-  // updates the bar/percentage/input in place, no page-wide reload — used by the
-  // +1/-1 buttons so quick repeated taps (e.g. logging each prayer) feel instant
-  function updateGoalRowUI(row, current, target) {
-    var pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
-    row.querySelector(".goal-row__pct").textContent = pct + "%";
-    var fill = row.querySelector(".goal-row__fill");
-    fill.style.width = pct + "%";
-    fill.classList.toggle("goal-row__fill--done", pct >= 100);
-    row.querySelector(".goal-row__current").value = fmtNum(current);
-  }
-
-  function stepGoal(row, goal, delta, onChange) {
-    var target = Number(goal.target) || 0;
-    var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
-    updateGoalRowUI(row, v, target);
-    goal.current = v; // keep in sync so another quick tap steps from the right base
-    api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
-      .catch(function (e) { toast(e.message, true); onChange(); });
-  }
-
-  // wires interaction for one category's goal rows + its add/edit form. `box`
-  // must contain .goal-row[data-id] elements and, only when editable, an
-  // optional .goal-add-form. `onChange` re-fetches + re-renders after a write.
-  function wireGoals(box, category, cycleKey, editable, onChange) {
-    (category.goals || []).forEach(function (g) {
-      var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
-      if (!row || !editable) return;
-      row.querySelectorAll(".goal-row__step").forEach(function (btn) {
-        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta), onChange); });
-      });
-      row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
-        var v = ev.target.value === "" ? 0 : Number(ev.target.value);
-        api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
-          .then(onChange)
-          .catch(function (e) { toast(e.message, true); });
-      });
-      row.querySelector(".iconbtn--edit").addEventListener("click", function () {
-        var form = box.querySelector(".goal-add-form");
-        if (!form) return;
-        form.elements.title.value = g.title;
-        form.elements.target.value = Number(g.target);
-        form.elements.unit.value = g.unit || "";
-        form.dataset.editingId = g.id;
-        form.querySelector("button[type=submit]").textContent = "Update";
-        form.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
-      row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
-        if (!confirm('Delete goal "' + g.title + '"?')) return;
-        api("/api/goals?id=" + g.id, { method: "DELETE" })
-          .then(onChange)
-          .catch(function (e) { toast(e.message, true); });
-      });
-    });
-
-    if (!editable) return;
-    var addForm = box.querySelector(".goal-add-form");
-    if (!addForm) return;
-    addForm.addEventListener("submit", function (ev) {
-      ev.preventDefault();
-      var form = this;
-      var btn = form.querySelector("button[type=submit]");
-      var editingId = form.dataset.editingId;
-      var body = {
-        title: form.elements.title.value.trim(),
-        target: Number(form.elements.target.value),
-        unit: form.elements.unit.value.trim() || null,
-      };
-      if (!editingId) { body.category_id = category.id; body.cycle_key = cycleKey; }
-      busy(btn, true);
-      (editingId ? api("/api/goals?id=" + editingId, { method: "PATCH", body: body })
-                 : api("/api/goals", { method: "POST", body: body }))
-        .then(function () { toast(editingId ? "Goal updated ✓" : "Goal added ✓"); return onChange(); })
-        .catch(function (e) { toast(e.message, true); })
-        .finally(function () { busy(btn, false); });
-    });
-  }
-
-  /* ---------------- Home gallery: Today tile + one tile per category ---------------- */
-
-  var CATEGORY_ICON_RULES = [
-    [/relig|spirit|pray|faith|azkar/i, "🙏"],
-    [/health|fit|gym|body|workout/i, "💪"],
-    [/cash|money|financ|income|invest/i, "💰"],
-    [/business|career|work|job/i, "💼"],
-    [/learn|study|course|educat|read/i, "📚"],
-    [/brand|market|social|content/i, "🎨"],
-    [/rest|sleep|recover/i, "🧘"],
-    [/travel/i, "✈️"],
-  ];
-
-  function categoryIcon(name) {
-    for (var i = 0; i < CATEGORY_ICON_RULES.length; i++) {
-      if (CATEGORY_ICON_RULES[i][0].test(name)) return CATEGORY_ICON_RULES[i][1];
-    }
-    return "⭐";
-  }
-
-  // a single combined completion % for the tile: hours pace if a weekly
-  // target is set, else the average of the cycle's numeric goals, else none
-  function categoryPct(c) {
-    if (c.weekly_hours != null && Number(c.weekly_hours) > 0 && c.progress && c.progress.target > 0) {
-      return Math.min(100, Math.round((c.progress.actual / c.progress.target) * 100));
-    }
-    var goals = c.goals || [];
-    if (goals.length) {
-      var sum = goals.reduce(function (s, g) { return s + goalPct(g); }, 0);
-      return Math.round(sum / goals.length);
-    }
-    return null;
-  }
-
-  // hours-tracked categories have a real pace (ahead/behind, elapsed-time-aware);
-  // goals-only categories don't, so the ring stays neutral for those
-  var RING_PACE_CLASS = { ahead: "ring__fill--good", "on-track": "ring__fill--good", behind: "ring__fill--danger", "not-started": "ring__fill--muted" };
-  function categoryRingClass(c) {
-    if (c.weekly_hours != null && Number(c.weekly_hours) > 0 && c.progress) return RING_PACE_CLASS[c.progress.pace] || null;
-    return null;
-  }
-
-  var RING_CIRC = 113.1; // 2 * pi * r18
-
-  function ringSvg(pct, colorClass) {
-    var offset = RING_CIRC * (1 - (pct || 0) / 100);
-    return '<svg class="ring" viewBox="0 0 44 44" width="56" height="56" aria-hidden="true">' +
-      '<circle class="ring__track" cx="22" cy="22" r="18" />' +
-      '<circle class="ring__fill' + (colorClass ? ' ' + colorClass : '') + '" cx="22" cy="22" r="18" stroke-dasharray="' + RING_CIRC + '" ' +
-        'stroke-dashoffset="' + (reduceMotion ? offset : RING_CIRC) + '" data-offset="' + offset + '" />' +
-    '</svg>';
-  }
-
-  function galleryTileHtml(opts) {
-    return '<button type="button" class="gallery-tile" data-kind="' + opts.kind + '"' +
-      (opts.id != null ? ' data-id="' + opts.id + '"' : '') + '>' +
-      '<span class="gallery-tile__ring">' + ringSvg(opts.pct, opts.ringClass) + '<span class="gallery-tile__icon">' + opts.icon + '</span></span>' +
-      '<span class="gallery-tile__name">' + esc(opts.name) + '</span>' +
-      '<span class="gallery-tile__pct">' + (opts.pct == null ? esc(opts.sub || "—") : opts.pct + "%") + '</span>' +
-    '</button>';
-  }
-
-  function loadGalleryCycleDetail() {
-    if (!state.currentCycleKey) return Promise.resolve();
-    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(state.currentCycleKey)).then(function (data) {
-      state.galleryCycleDetail = data;
-      if (!$("#homeMain").hidden) renderHomeMain();
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  // Home's "results" line: a one-glance read of where every category stands
-  // this cycle, right under the timing header
-  function renderCycleResults() {
-    var el = $("#cycleResults");
-    var categories = (state.galleryCycleDetail && state.galleryCycleDetail.categories) || [];
-    if (!categories.length) { el.textContent = ""; return; }
-    var withHours = categories.filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0 && c.progress; });
-    var onTrack = withHours.filter(function (c) { return c.progress.pace === "ahead" || c.progress.pace === "on-track"; }).length;
-    var behind = withHours.filter(function (c) { return c.progress.pace === "behind"; }).length;
-    var allGoals = categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
-
-    var parts = [];
-    if (withHours.length) parts.push(onTrack + " of " + withHours.length + " on track" + (behind ? " (" + behind + " behind)" : ""));
-    if (allGoals.length) {
-      var avg = Math.round(allGoals.reduce(function (s, g) { return s + goalPct(g); }, 0) / allGoals.length);
-      parts.push(allGoals.length + " goal" + (allGoals.length === 1 ? "" : "s") + " · " + avg + "% avg");
-    }
-    el.textContent = parts.length ? parts.join(" · ") : "No goals or hour targets set yet for this cycle.";
-  }
-
-  function renderGallery() {
-    var box = $("#galleryGrid");
-    var categories = (state.galleryCycleDetail && state.galleryCycleDetail.categories) || [];
-    box.innerHTML = categories.map(function (c) {
-      return galleryTileHtml({ kind: "category", id: c.id, icon: categoryIcon(c.name), name: c.name, pct: categoryPct(c), ringClass: categoryRingClass(c) });
-    }).join("");
-
-    if (!reduceMotion) {
-      // double rAF: the full-circle (0%) state must paint before animating to the real offset
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          box.querySelectorAll(".ring__fill").forEach(function (el) { el.style.strokeDashoffset = el.dataset.offset; });
-        });
-      });
+    if (data.quarter.anti_perfectionist) {
+      var note = document.createElement("p");
+      note.className = "muted";
+      note.style.marginBottom = "4px";
+      note.textContent = "Anti-perfectionist mode is on — targets below already count 75% as done.";
+      box.appendChild(note);
     }
 
-    box.querySelectorAll(".gallery-tile").forEach(function (btn) {
-      btn.addEventListener("click", function () { openCategory(Number(btn.dataset.id)); });
-    });
-  }
-
-  // read-only summary of every category's hours pace + goals together, for
-  // the current cycle only — no picking, no tapping, just the full picture
-  function overviewCardHtml(c) {
-    var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
-    var hasGoals = (c.goals || []).length > 0;
-    return '<div class="category-card" data-id="' + c.id + '">' +
-      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
-      (hasHours ? '<span class="badge ' + PACE_CLASS[c.progress.pace] + '">' + PACE_LABEL[c.progress.pace] + '</span>' : '') +
-      '</div>' +
-      (hasHours ?
+    data.categories.forEach(function (c) {
+      var p = c.progress;
+      var card = document.createElement("div");
+      card.className = "category-card";
+      card.innerHTML =
+        '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+        '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span></div>' +
         '<div class="category-card__stats">' +
           '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
-          '<div>Cycle target<b>' + fmtH(c.progress.target) + '</b></div>' +
-          '<div>Logged<b>' + fmtH(c.progress.actual) + '</b></div>' +
-          '<div>Remaining<b>' + fmtH(c.progress.remaining) + '</b></div>' +
-        '</div>' +
-        '<div class="chart" style="min-height:150px"></div>'
-        : '') +
-      (hasGoals ?
-        '<div class="goals">' +
-          '<div class="goals__label">Goals</div>' +
-          c.goals.map(function (g) { return goalRowHtml(g, false); }).join("") +
-        '</div>' : '') +
-    '</div>';
-  }
-
-  function renderAllGoalsOverview() {
-    var box = $("#allGoalsOverview");
-    var detail = state.galleryCycleDetail;
-    var categories = (detail && detail.categories) || [];
-    var relevant = categories.filter(function (c) { return (c.weekly_hours != null && Number(c.weekly_hours) > 0) || (c.goals || []).length; });
-    $("#allGoalsEmpty").hidden = relevant.length > 0;
-    box.innerHTML = relevant.map(overviewCardHtml).join("");
-    relevant.forEach(function (c) {
-      if (c.weekly_hours == null || !(Number(c.weekly_hours) > 0)) return;
-      var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
-      window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, { start: detail.start, end: detail.end, target: c.progress.target });
-    });
-  }
-
-  function renderHomeMain() {
-    renderCycleResults();
-    renderGallery();
-    renderAllGoalsOverview();
-  }
-
-  function openGallery() {
-    state.selectedCategoryId = null;
-    state.wizard = null;
-    $("#homeMain").hidden = false;
-    $("#homeDetailCategory").hidden = true;
-    $("#wizardView").hidden = true;
-    renderHomeMain();
-  }
-
-  function openCategory(categoryId) {
-    state.selectedCategoryId = categoryId;
-    state.selectedCycleKey = state.currentCycleKey;
-    $("#homeMain").hidden = true;
-    $("#homeDetailCategory").hidden = false;
-    $("#wizardView").hidden = true;
-    if (state.selectedCycleKey) $("#cycleSelect").value = state.selectedCycleKey;
-    loadCycleDetail(state.selectedCycleKey);
-  }
-
-  document.querySelectorAll(".detail-back").forEach(function (btn) {
-    btn.addEventListener("click", openGallery);
-  });
-
-  /* ---------------- guided setup wizard ----------------
-     Steps: 0 Overview, 1 When to start, 2 Categories, then one goals
-     screen per category (3, 4, 5, ...) — asked one at a time instead of
-     all at once. Each goals screen supports adding/removing any number
-     of goals for that category. Step 3+ only exists with >=1 category;
-     with none, step 2's Next becomes Finish directly. Every goal/target
-     entered targets a single chosen cycle (no "apply to N cycles"). */
-
-  function wizardLastStepIndex() {
-    var w = state.wizard;
-    return w.categories.length ? 2 + w.categories.length : 2;
-  }
-
-  function daysBetweenISO(a, b) {
-    return Math.round((new Date(b + "T00:00:00Z") - new Date(a + "T00:00:00Z")) / 86400000);
-  }
-
-  function daysLeftInYear() {
-    var info = state.todayInfo;
-    if (!info) return null;
-    return Math.max(0, daysBetweenISO(todayISO(), info.realYear + "-12-31"));
-  }
-
-  $("#btnStartWizard").addEventListener("click", function () {
-    state.wizard = {
-      step: 0, startDate: todayISO(), targetCycleKey: null, targetCycle: null,
-      categories: state.categories.slice(), entries: {}, cyclesWindow: [],
-    };
-    $("#homeMain").hidden = true;
-    $("#wizardView").hidden = false;
-    renderWizard();
-    api("/api/cycle-goals?list=1&future=12").then(function (data) {
-      if (!state.wizard) return; // closed before this resolved
-      state.wizard.cyclesWindow = data.cycles || [];
-      resolveWizardTarget();
-      renderWizard();
-    }).catch(function (e) { toast(e.message, true); });
-  });
-
-  function resolveWizardTarget() {
-    var w = state.wizard;
-    if (!w) return;
-    var target = w.startDate || todayISO();
-    var containing = w.cyclesWindow.filter(function (c) { return c.start <= target && target <= c.end; })[0];
-    var upcoming = w.cyclesWindow.filter(function (c) { return c.start > target; })[0];
-    var chosen = containing || upcoming || w.cyclesWindow[w.cyclesWindow.length - 1] || null;
-    w.targetCycle = chosen;
-    w.targetCycleKey = chosen ? chosen.cycleKey : null;
-  }
-
-  function wizardStepInfoHtml() {
-    var info = state.todayInfo;
-    if (!info) return '<p class="muted">Loading…</p>';
-    var line;
-    if (info.phase === "cycle") {
-      var daysLeftCycle = Math.max(0, daysBetweenISO(todayISO(), info.cycleEnd));
-      line = "You're currently in Y" + info.virtualYear + " · Cycle " + info.cycleLetter + " · Q" + info.quarterNumber +
-        ", with " + daysLeftCycle + " day" + (daysLeftCycle === 1 ? "" : "s") + " left in this cycle.";
-    } else if (info.phase === "break") {
-      line = "You're currently on a break (Y" + info.virtualYear + "), ending " + fmtDate(info.cycleEnd) + ".";
-    } else {
-      line = "You're in the year-end buffer — a fresh Y1 Cycle A starts " + fmtDate((info.realYear + 1) + "-01-01") + ".";
-    }
-    var daysLeftYear = daysLeftInYear();
-    return '<p>' + line + '</p>' +
-      '<p>There ' + (daysLeftYear === 1 ? "is" : "are") + ' <b>' + daysLeftYear + '</b> day' + (daysLeftYear === 1 ? "" : "s") +
-      ' left in ' + info.realYear + '.</p>' +
-      '<p class="muted">This quick setup helps you pick when to start, add your categories, and set goals for that cycle.</p>';
-  }
-
-  function wizardStepStartHtml() {
-    var w = state.wizard;
-    return '<label>When do you want to start?' +
-        '<input type="date" id="wizStartDate" min="' + todayISO() + '" value="' + w.startDate + '" />' +
-      '</label>' +
-      '<p class="muted" id="wizStartPreview"></p>';
-  }
-
-  function updateWizardStartPreview() {
-    var w = state.wizard;
-    resolveWizardTarget();
-    var el = $("#wizStartPreview");
-    if (!el) return;
-    if (!w.targetCycle) { el.textContent = "No cycle found around that date — try a different one."; return; }
-    var snapped = w.startDate < w.targetCycle.start;
-    var effectiveStart = snapped ? w.targetCycle.start : w.startDate;
-    var daysRemaining = daysBetweenISO(effectiveStart, w.targetCycle.end) + 1;
-    el.textContent = (snapped ? "That date falls in a break, so you'll start at the next cycle: " : "That's ") +
-      w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ") — " +
-      daysRemaining + " day" + (daysRemaining === 1 ? "" : "s") + " remaining" + (snapped ? " once it starts" : " from your start date") + ".";
-  }
-
-  function wizardStepCategoriesHtml() {
-    var w = state.wizard;
-    return '<div class="wizard-chips" id="wizCategoryChips">' +
-        w.categories.map(function (c) {
-          return '<span class="chip" data-id="' + c.id + '">' + esc(c.name) + '<button type="button" class="chip__remove" title="Delete category">✕</button></span>';
-        }).join("") +
-      '</div>' +
-      '<form id="wizAddCategoryForm" class="gallery-add-form">' +
-        '<input name="name" placeholder="Category (e.g. Religion)" />' +
-        '<button type="submit" class="btn btn--ghost btn--sm">+ Add</button>' +
-      '</form>' +
-      '<p class="muted">✕ deletes a category completely (with confirmation) — not just from this setup run.</p>' +
-      (w.categories.length ? '' : '<p class="muted">Add at least one category, or skip ahead to finish with none yet.</p>');
-  }
-
-  function wizardCategoryEntry(cat) {
-    var w = state.wizard;
-    if (!w.entries[cat.id]) w.entries[cat.id] = { hours: "", goals: [] };
-    return w.entries[cat.id];
-  }
-
-  function wizardStepCategoryGoalHtml(index) {
-    var w = state.wizard;
-    var cat = w.categories[index];
-    if (!cat) return '<p class="muted">Nothing left to configure.</p>';
-    var e = wizardCategoryEntry(cat);
-    var targetLabel = w.targetCycle ? w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ")" : "—";
-    return '<p class="muted">Category ' + (index + 1) + ' of ' + w.categories.length + ' · Starting cycle: <b>' + esc(targetLabel) + '</b></p>' +
-      '<h3 class="wizard-cat-heading">' + esc(cat.name) + '</h3>' +
-      '<label>Weekly hours target (optional)<input type="number" min="0" step="0.5" id="wizCatHours" value="' + (e.hours || "") + '" /></label>' +
-      '<div class="goals__label">Goals</div>' +
-      '<div class="wizard-goal-list" id="wizCatGoalList">' +
-        e.goals.map(function (g, gi) {
-          return '<div class="wizard-goal-item" data-idx="' + gi + '">' +
-            '<span class="wizard-goal-item__title">' + esc(g.title) + '</span>' +
-            '<span class="wizard-goal-item__target">' + fmtNum(g.target) + (g.unit ? ' ' + esc(g.unit) : '') + '</span>' +
-            '<button type="button" class="iconbtn wizard-goal-item__remove" title="Remove goal">✕</button>' +
-          '</div>';
-        }).join("") +
-        (e.goals.length ? '' : '<p class="muted">No goals added for ' + esc(cat.name) + ' yet.</p>') +
-      '</div>' +
-      '<form id="wizCatGoalForm" class="goal-add-form">' +
-        '<input name="title" placeholder="Goal (e.g. Job applications)" />' +
-        '<input name="target" type="number" min="0.01" step="any" placeholder="Target" />' +
-        '<input name="unit" placeholder="unit" />' +
-        '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
-      '</form>';
-  }
-
-  function renderWizard() {
-    var w = state.wizard;
-    if (!w) return;
-    var last = wizardLastStepIndex();
-    var label, body;
-    if (w.step === 0) { label = "Overview"; body = wizardStepInfoHtml(); }
-    else if (w.step === 1) { label = "When to start"; body = wizardStepStartHtml(); }
-    else if (w.step === 2) { label = "Categories"; body = wizardStepCategoriesHtml(); }
-    else {
-      var idx = w.step - 3;
-      label = (w.categories[idx] && w.categories[idx].name) || "Goal";
-      body = wizardStepCategoryGoalHtml(idx);
-    }
-    $("#wizardStepLabel").textContent = "Step " + (w.step + 1) + " of " + (last + 1) + " · " + label;
-    $("#btnWizardBack").hidden = w.step === 0;
-    $("#btnWizardNext").textContent = w.step >= last ? "Finish" : "Next";
-    $("#wizardBody").innerHTML = body;
-    wireWizardStep();
-  }
-
-  // keeps the hours input's current (uncommitted) value from being lost
-  // when a goal add/remove re-renders this same category step
-  function commitCurrentCategoryHours() {
-    var w = state.wizard;
-    if (w.step < 3) return;
-    var cat = w.categories[w.step - 3];
-    var hoursInput = $("#wizCatHours");
-    if (cat && hoursInput) wizardCategoryEntry(cat).hours = hoursInput.value;
-  }
-
-  function wireWizardStep() {
-    var w = state.wizard;
-    if (w.step === 1) {
-      var dateInput = $("#wizStartDate");
-      dateInput.addEventListener("change", function () {
-        w.startDate = dateInput.value || todayISO();
-        updateWizardStartPreview();
-      });
-      updateWizardStartPreview();
-    }
-    if (w.step === 2) {
-      document.querySelectorAll("#wizCategoryChips .chip__remove").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var id = Number(btn.closest(".chip").dataset.id);
-          var cat = w.categories.filter(function (c) { return c.id === id; })[0];
-          if (!cat) return;
-          if (!confirm('Delete category "' + cat.name + '" completely? This removes its goals and hour targets across every cycle — past and future. Logged tasks are kept, just uncategorized.')) return;
-          api("/api/categories?id=" + id, { method: "DELETE" }).then(function () {
-            w.categories = w.categories.filter(function (c) { return c.id !== id; });
-            delete w.entries[id];
-            state.categories = state.categories.filter(function (c) { return c.id !== id; });
-            renderCategorySelect(state.categories);
-            toast("Category deleted");
-            renderWizard();
-          }).catch(function (e) { toast(e.message, true); });
-        });
-      });
-      $("#wizAddCategoryForm").addEventListener("submit", function (ev) {
-        ev.preventDefault();
-        var form = this;
-        var name = form.elements.name.value.trim();
-        if (!name) return;
-        api("/api/categories", { method: "POST", body: { name: name } }).then(function (r) {
-          state.categories.push(r.category);
-          w.categories.push(r.category);
-          renderCategorySelect(state.categories);
-          renderWizard();
-        }).catch(function (e) { toast(e.message, true); });
-      });
-    }
-    if (w.step >= 3) {
-      var cat = w.categories[w.step - 3];
-      if (!cat) return;
-      document.querySelectorAll("#wizCatGoalList .wizard-goal-item__remove").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var idx = Number(btn.closest(".wizard-goal-item").dataset.idx);
-          commitCurrentCategoryHours();
-          wizardCategoryEntry(cat).goals.splice(idx, 1);
-          renderWizard();
-        });
-      });
-      $("#wizCatGoalForm").addEventListener("submit", function (ev) {
-        ev.preventDefault();
-        var form = this;
-        var title = form.elements.title.value.trim();
-        var target = Number(form.elements.target.value);
-        var unit = form.elements.unit.value.trim();
-        if (!title || !target || target <= 0) { toast("Enter a goal title and a positive target", true); return; }
-        commitCurrentCategoryHours();
-        wizardCategoryEntry(cat).goals.push({ title: title, target: target, unit: unit || null });
-        renderWizard();
-      });
-    }
-  }
-
-  // pulls whatever's currently on-screen into wizard state before navigating,
-  // since inputs only fire "change" on blur — Next/Back is usually clicked without one
-  function commitWizardStep() {
-    var w = state.wizard;
-    if (w.step === 1) {
-      var dateInput = $("#wizStartDate");
-      w.startDate = dateInput && dateInput.value ? dateInput.value : w.startDate;
-      resolveWizardTarget();
-    } else if (w.step >= 3) {
-      commitCurrentCategoryHours();
-    }
-  }
-
-  function finishWizard() {
-    var w = state.wizard;
-    if (!w.targetCycleKey) { toast("Couldn't resolve a starting cycle", true); return; }
-
-    var jobs = [];
-    w.categories.forEach(function (c) {
-      var e = w.entries[c.id];
-      if (!e) return;
-      var hours = e.hours !== "" && e.hours != null ? Number(e.hours) : null;
-      if (hours != null && hours > 0) {
-        jobs.push(api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: w.targetCycleKey, category_id: c.id, weekly_hours: hours } }));
-      }
-      (e.goals || []).forEach(function (g) {
-        jobs.push(api("/api/goals", {
-          method: "POST", body: { category_id: c.id, cycle_key: w.targetCycleKey, title: g.title, target: Number(g.target), unit: g.unit || null },
-        }));
-      });
-    });
-
-    var btn = $("#btnWizardNext");
-    busy(btn, true);
-    Promise.all(jobs)
-      .then(function () {
-        toast("Setup complete ✓");
-        state.wizard = null;
-        return Promise.all([loadCategories(), loadCyclePicker(), loadGalleryCycleDetail()]);
-      })
-      .then(openGallery)
-      .catch(function (e) { toast(e.message, true); })
-      .finally(function () { busy(btn, false); });
-  }
-
-  $("#btnWizardNext").addEventListener("click", function () {
-    var w = state.wizard;
-    if (!w) return;
-    commitWizardStep();
-    if (w.step >= wizardLastStepIndex()) { finishWizard(); return; }
-    w.step++;
-    renderWizard();
-  });
-
-  $("#btnWizardBack").addEventListener("click", function () {
-    var w = state.wizard;
-    if (!w || w.step === 0) return;
-    commitWizardStep();
-    w.step--;
-    renderWizard();
-  });
-
-  /* ---------------- category detail (Home > tap a category tile) ---------------- */
-
-  function categoryCardHtml(c, editable) {
-    var p = c.progress;
-    var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
-    return '<div class="category-card" data-id="' + c.id + '">' +
-      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
-      (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
-      (editable ? '<button type="button" class="iconbtn category-card__delete" title="Delete category">✕</button>' : '') +
-      '</div>' +
-      '<label class="category-card__hours">Weekly target' +
-        '<input type="number" min="0" step="0.5" class="cat-hours-input" placeholder="h/week"' +
-        (c.weekly_hours != null ? ' value="' + Number(c.weekly_hours) + '"' : '') +
-        (editable ? '' : ' disabled') + ' />' +
-      '</label>' +
-      (hasHours ?
-        '<div class="category-card__stats">' +
-          '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
-          '<div>Cycle target<b>' + fmtH(p.target) + '</b></div>' +
+          '<div>Quarter target<b>' + fmtH(p.target) + '</b></div>' +
           '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
           '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
         '</div>' +
-        '<div class="chart" style="min-height:190px"></div>'
-        : '') +
-      '<div class="goals">' +
-        '<div class="goals__label">Goals</div>' +
-        (c.goals || []).map(function (g) { return goalRowHtml(g, editable); }).join("") +
-        (editable ?
-          '<form class="goal-add-form">' +
-            '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
-            '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
-            '<input name="unit" placeholder="unit" />' +
-            '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
-          '</form>' : '') +
-      '</div>' +
-    '</div>';
-  }
-
-  function loadCycleDetail(cycleKey) {
-    if (!cycleKey) return Promise.resolve();
-    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(cycleKey)).then(function (data) {
-      state.cycleDetail = data;
-      renderCategoryDetail(data);
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  // re-fetches both the open category's detail (for this view) and the
-  // current cycle's gallery snapshot (in case this write touched "now")
-  function refreshCategoryDetail() {
-    return Promise.all([loadCycleDetail(state.selectedCycleKey), loadGalleryCycleDetail()]);
-  }
-
-  // the cycle immediately before cycleKey, from the already-loaded picker list
-  function previousCycleInfo(cycleKey) {
-    var cur = state.cycles.filter(function (c) { return c.cycleKey === cycleKey; })[0];
-    if (!cur) return null;
-    var earlier = state.cycles.filter(function (c) { return c.start < cur.start; });
-    if (!earlier.length) return null;
-    earlier.sort(function (a, b) { return a.start < b.start ? 1 : -1; });
-    return earlier[0];
-  }
-
-  // carries a category's weekly-hours target + goal list forward from its
-  // previous cycle — goals are scoped per cycle, so without this every 42
-  // days means re-typing the same milestones from scratch
-  function copyPreviousCycle(categoryId, fromCycleKey, toCycleKey) {
-    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(fromCycleKey)).then(function (prevData) {
-      var prevCat = (prevData.categories || []).filter(function (x) { return x.id === categoryId; })[0];
-      if (!prevCat) { toast("Nothing to copy from that cycle", true); return; }
-      var jobs = [];
-      if (prevCat.weekly_hours != null) {
-        jobs.push(api("/api/cycle-goals", {
-          method: "PATCH", body: { cycle_key: toCycleKey, category_id: categoryId, weekly_hours: prevCat.weekly_hours },
-        }));
-      }
-      (prevCat.goals || []).forEach(function (g) {
-        jobs.push(api("/api/goals", {
-          method: "POST", body: { category_id: categoryId, cycle_key: toCycleKey, title: g.title, target: Number(g.target), unit: g.unit },
-        }));
-      });
-      return Promise.all(jobs);
-    }).then(function () {
-      toast("Copied from previous cycle ✓");
-      return refreshCategoryDetail();
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  function renderCategoryDetail(data) {
-    var c = (data.categories || []).filter(function (x) { return x.id === state.selectedCategoryId; })[0];
-    $("#categoryDetailName").textContent = c ? c.name : "";
-    $("#cycleReadonlyNote").hidden = !!data.editable;
-    var box = $("#categoryDetailBody");
-    if (!c) { box.innerHTML = ""; return; }
-
-    // only offer to copy forward when this cycle genuinely has nothing set yet —
-    // avoids silently duplicating goals on top of ones already entered
-    var prev = data.editable ? previousCycleInfo(data.cycleKey) : null;
-    var showCopy = prev && !(c.goals || []).length && c.weekly_hours == null;
-
-    box.innerHTML =
-      (showCopy ? '<button type="button" class="btn btn--ghost btn--sm copy-cycle-btn">↩ Copy goals &amp; target from ' + esc(prev.label) + '</button>' : '') +
-      categoryCardHtml(c, data.editable);
-    var card = box.querySelector(".category-card");
-
-    if (showCopy) {
-      box.querySelector(".copy-cycle-btn").addEventListener("click", function (ev) {
-        busy(ev.target, true);
-        copyPreviousCycle(c.id, prev.cycleKey, data.cycleKey).finally(function () { busy(ev.target, false); });
-      });
-    }
-
-    var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
-    if (hasHours) {
-      window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {
-        start: data.start, end: data.end, target: c.progress.target,
-      });
-    }
-    if (data.editable) {
-      card.querySelector(".category-card__delete").addEventListener("click", function () {
-        if (!confirm('Delete category "' + c.name + '" completely? This removes its goals and hour targets across EVERY cycle — past and future, not just this one. Logged tasks are kept, just uncategorized.')) return;
-        api("/api/categories?id=" + c.id, { method: "DELETE" })
-          .then(function () {
-            toast("Category deleted");
-            return Promise.all([loadCategories(), loadGalleryCycleDetail(), loadDay(state.currentDate)]);
-          })
-          .then(openGallery)
-          .catch(function (e) { toast(e.message, true); });
-      });
-    }
-    var hoursInput = card.querySelector(".cat-hours-input");
-    hoursInput.addEventListener("change", function () {
-      var v = hoursInput.value === "" ? null : Number(hoursInput.value);
-      api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: data.cycleKey, category_id: c.id, weekly_hours: v } })
-        .then(refreshCategoryDetail)
-        .catch(function (e) { toast(e.message, true); });
-    });
-    wireGoals(card, c, data.cycleKey, data.editable, refreshCategoryDetail);
-  }
-
-  /* ---------------- Elmktb tab: current-cycle goals as a to-do rollup ---------------- */
-
-  function loadElmktb() {
-    return api("/api/cycle-goals").then(function (data) {
-      state.elmktbDetail = data;
-      renderElmktb(data);
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  function renderElmktb(data) {
-    var today = todayISO();
-    var quarters = data.quarters || [];
-    var upcoming = quarters.filter(function (q) { return q.end >= today; })[0] || quarters[0];
-    var statusEl = $("#elmktbStatus");
-    if (!data.cycleKey || !upcoming) {
-      statusEl.textContent = "No active or upcoming cycle right now.";
-    } else {
-      var daysLeft = Math.max(0, daysBetweenISO(today, upcoming.end) + 1);
-      statusEl.textContent = "Q" + upcoming.number + " · " + fmtDate(upcoming.start) + "–" + fmtDate(upcoming.end) +
-        " · " + daysLeft + " day" + (daysLeft === 1 ? "" : "s") + " left";
-    }
-
-    // read-only preview — editing goals happens in one place (the category's
-    // own detail view, opened from Home) instead of duplicating the same
-    // +/- controls here too
-    var withGoals = (data.categories || []).filter(function (c) { return (c.goals || []).length; });
-    $("#elmktbEmpty").hidden = withGoals.length > 0;
-    var box = $("#elmktbList");
-    box.innerHTML = withGoals.map(function (c) {
-      return '<div class="elmktb-group" data-cat="' + c.id + '">' +
-        '<div class="elmktb-group__head">' +
-          '<span class="elmktb-group__name">' + esc(c.name) + '</span>' +
-          '<button type="button" class="linklike elmktb-group__edit">Edit →</button>' +
-        '</div>' +
-        (c.goals || []).map(function (g) { return goalRowHtml(g, false); }).join("") +
-      '</div>';
-    }).join("");
-
-    withGoals.forEach(function (c) {
-      var group = box.querySelector('.elmktb-group[data-cat="' + c.id + '"]');
-      group.querySelector(".elmktb-group__edit").addEventListener("click", function () { goToCategory(c.id); });
-    });
-  }
-
-  function goToCategory(categoryId) {
-    showTab("home");
-    openCategory(categoryId);
-  }
-
-  /* ---------------- Analytics tab: read-only progress ---------------- */
-
-  function analyticsHoursCardHtml(c) {
-    var p = c.progress;
-    return '<div class="category-card" data-id="' + c.id + '">' +
-      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
-      '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' +
-      '</div>' +
-      '<div class="category-card__stats">' +
-        '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
-        '<div>Cycle target<b>' + fmtH(p.target) + '</b></div>' +
-        '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
-        '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
-      '</div>' +
-      '<div class="chart" style="min-height:190px"></div>' +
-    '</div>';
-  }
-
-  // goal-only categories have no hours chart to show, but still deserve a
-  // place in Analytics — otherwise the tab silently omits some categories
-  function analyticsGoalsCardHtml(c) {
-    return '<div class="category-card" data-id="' + c.id + '">' +
-      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span></div>' +
-      '<div class="goals">' +
-        '<div class="goals__label">Goals</div>' +
-        (c.goals || []).map(function (g) { return goalRowHtml(g, false); }).join("") +
-      '</div>' +
-    '</div>';
-  }
-
-  function loadAnalyticsDetail(cycleKey) {
-    if (!cycleKey) return Promise.resolve();
-    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(cycleKey)).then(function (data) {
-      state.analyticsDetail = data;
-      renderAnalytics(data);
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  function renderAnalytics(data) {
-    var withHours = (data.categories || []).filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0; });
-    var goalsOnly = (data.categories || []).filter(function (c) {
-      return !(c.weekly_hours != null && Number(c.weekly_hours) > 0) && (c.goals || []).length;
-    });
-    $("#noAnalytics").hidden = (withHours.length + goalsOnly.length) > 0;
-    var box = $("#analyticsCards");
-    box.innerHTML = withHours.map(analyticsHoursCardHtml).join("") + goalsOnly.map(analyticsGoalsCardHtml).join("");
-    withHours.forEach(function (c) {
-      var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
-      window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {
-        start: data.start, end: data.end, target: c.progress.target,
+        '<div class="chart" style="min-height:190px"></div>';
+      box.appendChild(card);
+      window.renderProgressChart(card.querySelector(".chart"), p.timeline, {
+        start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
       });
     });
   }
+
+  $("#btnAddCategoryRow").addEventListener("click", function () { addCategoryRow(); });
+
+  function addCategoryRow(cat) {
+    var row = document.createElement("div");
+    row.className = "category-row";
+    if (cat && cat.id) row.dataset.id = cat.id;
+    row.innerHTML =
+      '<input name="cat_name" placeholder="Category (e.g. Deep work)" value="' + esc(cat ? cat.name : "") + '" required />' +
+      '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="h/week" value="' + (cat ? Number(cat.weekly_hours) : "") + '" required />' +
+      '<button type="button" class="iconbtn category-row__remove" title="Remove category">✕</button>';
+    row.querySelector(".category-row__remove").addEventListener("click", function () { row.remove(); });
+    $("#categoryRows").appendChild(row);
+  }
+
+  function resetQuarterForm() {
+    var form = $("#quarterForm");
+    form.reset();
+    $("#categoryRows").innerHTML = "";
+    addCategoryRow();
+    state.editingQuarterId = null;
+    $("#btnQuarterSubmit").textContent = "Save quarter";
+    $("#btnCancelQuarterEdit").hidden = true;
+  }
+
+  $("#btnCancelQuarterEdit").addEventListener("click", function () {
+    resetQuarterForm();
+    $("#addQuarterBox").open = false;
+  });
+
+  $("#btnEditQuarter").addEventListener("click", function () {
+    if (!state.quarterDetail) return;
+    var q = state.quarterDetail.quarter;
+    var form = $("#quarterForm");
+    form.elements.name.value = q.name;
+    form.elements.start_date.value = String(q.start_date).slice(0, 10);
+    form.elements.end_date.value = String(q.end_date).slice(0, 10);
+    form.elements.anti_perfectionist.checked = !!q.anti_perfectionist;
+    $("#categoryRows").innerHTML = "";
+    (state.quarterDetail.categories || []).forEach(function (c) { addCategoryRow(c); });
+    if (!state.quarterDetail.categories.length) addCategoryRow();
+    state.editingQuarterId = q.id;
+    $("#btnQuarterSubmit").textContent = "Update quarter";
+    $("#btnCancelQuarterEdit").hidden = false;
+    $("#addQuarterBox").open = true;
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  $("#btnDeleteQuarter").addEventListener("click", function () {
+    if (!state.quarterDetail) return;
+    var q = state.quarterDetail.quarter;
+    if (!confirm('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).')) return;
+    api("/api/quarters?id=" + q.id, { method: "DELETE" })
+      .then(function () { toast("Quarter deleted"); return loadQuarters(); })
+      .then(function () { return loadDay(state.currentDate); })
+      .catch(function (e) { toast(e.message, true); });
+  });
+
+  $("#quarterForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = this;
+    var btn = $("#btnQuarterSubmit");
+    var b = formData(form);
+    var categories = Array.prototype.slice.call($("#categoryRows").children).map(function (row) {
+      return {
+        id: row.dataset.id ? Number(row.dataset.id) : undefined,
+        name: row.querySelector("[name=cat_name]").value.trim(),
+        weekly_hours: Number(row.querySelector("[name=cat_hours]").value),
+      };
+    }).filter(function (c) { return c.name && c.weekly_hours > 0; });
+    var body = {
+      name: b.name, start_date: b.start_date, end_date: b.end_date,
+      anti_perfectionist: form.elements.anti_perfectionist.checked,
+      categories: categories,
+    };
+
+    busy(btn, true);
+    var editingId = state.editingQuarterId;
+    (editingId ? api("/api/quarters?id=" + editingId, { method: "PATCH", body: body })
+               : api("/api/quarters", { method: "POST", body: body }))
+      .then(function (r) {
+        toast(editingId ? "Quarter updated ✓" : "Quarter created ✓");
+        resetQuarterForm();
+        $("#addQuarterBox").open = false;
+        return loadQuarters().then(function () {
+          var newId = editingId || (r.quarter && r.quarter.id);
+          if (newId) {
+            state.selectedQuarterId = newId;
+            $("#quarterSelect").value = newId;
+            return loadQuarterDetail(newId);
+          }
+        });
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  });
+
+  addCategoryRow(); // one empty row to start with
 
   /* ---------------- resize: redraw progress charts ---------------- */
 
@@ -1407,9 +605,7 @@
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      if ($("#view-app").hidden) return;
-      if (!$("#homeDetailCategory").hidden && state.cycleDetail) renderCategoryDetail(state.cycleDetail);
-      if (state.activeTab === "analytics" && state.analyticsDetail) renderAnalytics(state.analyticsDetail);
+      if (state.quarterDetail && !$("#view-app").hidden) renderQuarter(state.quarterDetail);
     }, 150);
   });
 
