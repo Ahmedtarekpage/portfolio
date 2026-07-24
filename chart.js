@@ -389,4 +389,84 @@
       } catch (e) { /* SVG not measurable — skip animation */ }
     }
   };
+
+  /* Donut/pie chart with a legend — used for Analytics breakdowns (hours logged
+     by category, pace distribution, etc). slices: [{ label, value, color }] */
+  window.renderDonutChart = function (box, slices, opts) {
+    opts = opts || {};
+    box.innerHTML = "";
+    var cs = getComputedStyle(document.documentElement);
+    var trackColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
+    var ink = (cs.getPropertyValue("--ink") || "#e7ebf3").trim() || "#e7ebf3";
+
+    var clean = (slices || []).filter(function (s) { return Number(s.value) > 0; });
+    var total = clean.reduce(function (sum, s) { return sum + Number(s.value); }, 0);
+    if (!total) {
+      box.innerHTML = '<p class="muted center" style="margin:0">No data yet.</p>';
+      return;
+    }
+
+    var size = opts.size || 168;
+    var stroke = opts.stroke || 24;
+    var r = (size - stroke) / 2;
+    var c = size / 2;
+    var circumference = 2 * Math.PI * r;
+
+    var wrap = document.createElement("div");
+    wrap.className = "donut-chart";
+
+    var svg = svgEl("svg", { viewBox: "0 0 " + size + " " + size, width: size, height: size, role: "img", "aria-label": opts.label || "Breakdown" });
+    svg.appendChild(svgEl("circle", { cx: c, cy: c, r: r, fill: "none", stroke: trackColor, "stroke-width": stroke }));
+
+    var total_label = svgEl("text", { x: c, y: c - 3, "text-anchor": "middle", fill: ink, "font-size": 20, "font-weight": 700 });
+    total_label.textContent = opts.centerValue != null ? opts.centerValue : Math.round(total);
+    svg.appendChild(total_label);
+    if (opts.centerLabel) {
+      var sub = svgEl("text", { x: c, y: c + 15, "text-anchor": "middle", fill: ink, "font-size": 10, opacity: 0.7 });
+      sub.textContent = opts.centerLabel;
+      svg.appendChild(sub);
+    }
+
+    var offset = 0;
+    var arcs = [];
+    clean.forEach(function (s) {
+      var frac = Number(s.value) / total;
+      var dash = frac * circumference;
+      var circle = svgEl("circle", {
+        cx: c, cy: c, r: r, fill: "none", stroke: s.color, "stroke-width": stroke, "stroke-linecap": clean.length > 1 ? "butt" : "round",
+        "stroke-dasharray": dash + " " + (circumference - dash),
+        "stroke-dashoffset": -offset,
+        transform: "rotate(-90 " + c + " " + c + ")",
+      });
+      svg.appendChild(circle);
+      arcs.push({ el: circle, dash: dash });
+      offset += dash;
+    });
+    wrap.appendChild(svg);
+
+    var legend = document.createElement("div");
+    legend.className = "donut-legend";
+    clean.forEach(function (s) {
+      var pct = Math.round((Number(s.value) / total) * 100);
+      var row = document.createElement("div");
+      row.className = "donut-legend__row";
+      row.innerHTML = '<span class="donut-legend__swatch" style="background:' + s.color + '"></span>' +
+        '<span class="donut-legend__label">' + s.label + '</span>' +
+        '<span class="donut-legend__pct">' + pct + '%</span>';
+      legend.appendChild(row);
+    });
+    wrap.appendChild(legend);
+    box.appendChild(wrap);
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) {
+      arcs.forEach(function (a) {
+        a.el.style.strokeDasharray = "0 " + circumference; // start fully hidden, then animate in to its real slice size
+
+        a.el.getBoundingClientRect();
+        a.el.style.transition = "stroke-dasharray 0.7s cubic-bezier(0.2, 0.7, 0.3, 1)";
+        a.el.style.strokeDasharray = a.dash + " " + (circumference - a.dash);
+      });
+    }
+  };
 })();

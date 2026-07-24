@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=2" />
+  <link rel="stylesheet" href="time.css?v=3" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -184,6 +184,16 @@
           <h2>Analytics</h2>
         </div>
         <p id="noAnalytics" class="muted center" hidden>Add an hour target or a goal to a category to see analytics here.</p>
+        <div class="donut-row">
+          <div>
+            <div class="goals__label">Hours logged by category</div>
+            <div id="donutHoursByCategory"></div>
+          </div>
+          <div>
+            <div class="goals__label">Pace breakdown</div>
+            <div id="donutPace"></div>
+          </div>
+        </div>
         <div id="analyticsHours"></div>
         <div id="analyticsGoals"></div>
       </div>
@@ -193,7 +203,7 @@
     <p id="toast" class="toast" hidden></p>
   </div>
 
-  <script src="chart.js?v=4"></script>
-  <script src="time.js?v=6"></script>
+  <script src="chart.js?v=5"></script>
+  <script src="time.js?v=7"></script>
 </body>
 </html>

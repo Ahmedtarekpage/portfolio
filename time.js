@@ -493,6 +493,8 @@
 
   var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
+  var PACE_DONUT_COLOR = { ahead: "#1fa876", "on-track": "#60a5fa", behind: "#e2586a", "not-started": "#5f6b7d" };
+  var CATEGORY_PALETTE = ["#60a5fa", "#34d399", "#f59e0b", "#a78bfa", "#f472b6", "#22d3ee", "#fb923c", "#94a3b8"];
 
   function fmtNum(n) {
     n = Number(n) || 0;
@@ -653,6 +655,21 @@
     var hoursCats = data ? data.categories.filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0; }) : [];
     var goalsCats = data ? data.categories.filter(function (c) { return (c.goals || []).length > 0; }) : [];
     $("#noAnalytics").hidden = hoursCats.length > 0 || goalsCats.length > 0;
+
+    var hoursSlices = hoursCats.map(function (c, i) {
+      return { label: c.name, value: c.progress.actual, color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] };
+    });
+    var totalHoursLogged = hoursCats.reduce(function (sum, c) { return sum + (Number(c.progress.actual) || 0); }, 0);
+    window.renderDonutChart($("#donutHoursByCategory"), hoursSlices, {
+      label: "Hours logged by category", centerValue: fmtH(totalHoursLogged), centerLabel: "logged",
+    });
+
+    var paceCounts = { ahead: 0, "on-track": 0, behind: 0, "not-started": 0 };
+    hoursCats.forEach(function (c) { paceCounts[c.progress.pace] = (paceCounts[c.progress.pace] || 0) + 1; });
+    var paceSlices = Object.keys(PACE_LABEL).map(function (key) {
+      return { label: PACE_LABEL[key], value: paceCounts[key], color: PACE_DONUT_COLOR[key] };
+    });
+    window.renderDonutChart($("#donutPace"), paceSlices, { label: "Pace breakdown", centerLabel: "categories" });
 
     if (hoursCats.length) {
       var hoursTitle = document.createElement("div");

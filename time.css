@@ -219,6 +219,16 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .goals-overall__top { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
 .goals-overall__pct { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 
+/* ---------- donut/pie charts (Analytics breakdowns) ---------- */
+.donut-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin: 10px 0 18px; }
+.donut-chart { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.donut-chart svg { flex: none; }
+.donut-legend { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
+.donut-legend__row { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
+.donut-legend__swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.donut-legend__label { flex: 1; color: var(--ink); }
+.donut-legend__pct { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+
 .checkline { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
 .checkline input { width: 16px; height: 16px; accent-color: var(--blue); }
 
