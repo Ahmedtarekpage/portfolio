@@ -862,28 +862,32 @@
   });
 
   /* ---------------- guided setup wizard ----------------
-     Steps: 0 Overview, 1 When to start, 2 Categories, 3 Cycles-ahead,
-     then one screen per category (4, 5, 6, ...) — asked one at a time
-     instead of all at once. Steps 3+ only exist if there's at least one
-     category; with none, step 2's Next becomes Finish directly. */
+     Steps: 0 Overview, 1 When to start, 2 Categories, then one goals
+     screen per category (3, 4, 5, ...) — asked one at a time instead of
+     all at once. Each goals screen supports adding/removing any number
+     of goals for that category. Step 3+ only exists with >=1 category;
+     with none, step 2's Next becomes Finish directly. Every goal/target
+     entered targets a single chosen cycle (no "apply to N cycles"). */
 
   function wizardLastStepIndex() {
     var w = state.wizard;
-    return w.categories.length ? 3 + w.categories.length : 2;
+    return w.categories.length ? 2 + w.categories.length : 2;
+  }
+
+  function daysBetweenISO(a, b) {
+    return Math.round((new Date(b + "T00:00:00Z") - new Date(a + "T00:00:00Z")) / 86400000);
   }
 
   function daysLeftInYear() {
     var info = state.todayInfo;
     if (!info) return null;
-    var today = todayISO();
-    var yearEnd = info.realYear + "-12-31";
-    return Math.max(0, Math.round((new Date(yearEnd + "T00:00:00Z") - new Date(today + "T00:00:00Z")) / 86400000));
+    return Math.max(0, daysBetweenISO(todayISO(), info.realYear + "-12-31"));
   }
 
   $("#btnStartWizard").addEventListener("click", function () {
     state.wizard = {
       step: 0, startDate: todayISO(), targetCycleKey: null, targetCycle: null,
-      categories: state.categories.slice(), cyclesAhead: 1, entries: {}, cyclesWindow: [],
+      categories: state.categories.slice(), entries: {}, cyclesWindow: [],
     };
     $("#homeMain").hidden = true;
     $("#wizardView").hidden = false;
@@ -907,21 +911,12 @@
     w.targetCycleKey = chosen ? chosen.cycleKey : null;
   }
 
-  function wizardConsecutiveCycleKeys(startKey, count) {
-    var w = state.wizard;
-    var all = w.cyclesWindow.slice().sort(function (a, b) { return a.start < b.start ? -1 : 1; });
-    var idx = all.findIndex(function (c) { return c.cycleKey === startKey; });
-    if (idx === -1) return startKey ? [startKey] : [];
-    return all.slice(idx, idx + count).map(function (c) { return c.cycleKey; });
-  }
-
   function wizardStepInfoHtml() {
     var info = state.todayInfo;
     if (!info) return '<p class="muted">Loading…</p>';
-    var today = todayISO();
     var line;
     if (info.phase === "cycle") {
-      var daysLeftCycle = Math.max(0, Math.round((new Date(info.cycleEnd + "T00:00:00Z") - new Date(today + "T00:00:00Z")) / 86400000));
+      var daysLeftCycle = Math.max(0, daysBetweenISO(todayISO(), info.cycleEnd));
       line = "You're currently in Y" + info.virtualYear + " · Cycle " + info.cycleLetter + " · Q" + info.quarterNumber +
         ", with " + daysLeftCycle + " day" + (daysLeftCycle === 1 ? "" : "s") + " left in this cycle.";
     } else if (info.phase === "break") {
@@ -933,7 +928,7 @@
     return '<p>' + line + '</p>' +
       '<p>There ' + (daysLeftYear === 1 ? "is" : "are") + ' <b>' + daysLeftYear + '</b> day' + (daysLeftYear === 1 ? "" : "s") +
       ' left in ' + info.realYear + '.</p>' +
-      '<p class="muted">This quick setup helps you pick when to start, add your categories, and set goals for the cycles ahead.</p>';
+      '<p class="muted">This quick setup helps you pick when to start, add your categories, and set goals for that cycle.</p>';
   }
 
   function wizardStepStartHtml() {
@@ -951,8 +946,11 @@
     if (!el) return;
     if (!w.targetCycle) { el.textContent = "No cycle found around that date — try a different one."; return; }
     var snapped = w.startDate < w.targetCycle.start;
+    var effectiveStart = snapped ? w.targetCycle.start : w.startDate;
+    var daysRemaining = daysBetweenISO(effectiveStart, w.targetCycle.end) + 1;
     el.textContent = (snapped ? "That date falls in a break, so you'll start at the next cycle: " : "That's ") +
-      w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ").";
+      w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ") — " +
+      daysRemaining + " day" + (daysRemaining === 1 ? "" : "s") + " remaining" + (snapped ? " once it starts" : " from your start date") + ".";
   }
 
   function wizardStepCategoriesHtml() {
@@ -970,29 +968,38 @@
       (w.categories.length ? '' : '<p class="muted">Add at least one category, or skip ahead to finish with none yet.</p>');
   }
 
-  function wizardStepCyclesAheadHtml() {
+  function wizardCategoryEntry(cat) {
     var w = state.wizard;
-    return '<label>Apply these goals to how many upcoming cycles?' +
-        '<input type="number" min="1" max="12" step="1" id="wizCyclesAhead" value="' + w.cyclesAhead + '" />' +
-      '</label>' +
-      '<p class="muted">Each cycle is 42 days. For example, entering 3 sets the same goal/target for this ' +
-      'cycle plus the next two — so you don\'t have to re-enter it every 42 days.</p>';
+    if (!w.entries[cat.id]) w.entries[cat.id] = { hours: "", goals: [] };
+    return w.entries[cat.id];
   }
 
   function wizardStepCategoryGoalHtml(index) {
     var w = state.wizard;
     var cat = w.categories[index];
     if (!cat) return '<p class="muted">Nothing left to configure.</p>';
-    var e = w.entries[cat.id] || {};
+    var e = wizardCategoryEntry(cat);
     var targetLabel = w.targetCycle ? w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ")" : "—";
     return '<p class="muted">Category ' + (index + 1) + ' of ' + w.categories.length + ' · Starting cycle: <b>' + esc(targetLabel) + '</b></p>' +
       '<h3 class="wizard-cat-heading">' + esc(cat.name) + '</h3>' +
       '<label>Weekly hours target (optional)<input type="number" min="0" step="0.5" id="wizCatHours" value="' + (e.hours || "") + '" /></label>' +
-      '<label>Goal title (optional)<input type="text" id="wizCatGoalTitle" placeholder="e.g. Job applications" value="' + esc(e.goalTitle || "") + '" /></label>' +
-      '<div class="wizard-goal-inline">' +
-        '<label>Target<input type="number" min="0.01" step="any" id="wizCatGoalTarget" value="' + (e.goalTarget || "") + '" /></label>' +
-        '<label>Unit<input type="text" id="wizCatGoalUnit" placeholder="e.g. applications" value="' + esc(e.goalUnit || "") + '" /></label>' +
-      '</div>';
+      '<div class="goals__label">Goals</div>' +
+      '<div class="wizard-goal-list" id="wizCatGoalList">' +
+        e.goals.map(function (g, gi) {
+          return '<div class="wizard-goal-item" data-idx="' + gi + '">' +
+            '<span class="wizard-goal-item__title">' + esc(g.title) + '</span>' +
+            '<span class="wizard-goal-item__target">' + fmtNum(g.target) + (g.unit ? ' ' + esc(g.unit) : '') + '</span>' +
+            '<button type="button" class="iconbtn wizard-goal-item__remove" title="Remove goal">✕</button>' +
+          '</div>';
+        }).join("") +
+        (e.goals.length ? '' : '<p class="muted">No goals added for ' + esc(cat.name) + ' yet.</p>') +
+      '</div>' +
+      '<form id="wizCatGoalForm" class="goal-add-form">' +
+        '<input name="title" placeholder="Goal (e.g. Job applications)" />' +
+        '<input name="target" type="number" min="0.01" step="any" placeholder="Target" />' +
+        '<input name="unit" placeholder="unit" />' +
+        '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
+      '</form>';
   }
 
   function renderWizard() {
@@ -1003,9 +1010,8 @@
     if (w.step === 0) { label = "Overview"; body = wizardStepInfoHtml(); }
     else if (w.step === 1) { label = "When to start"; body = wizardStepStartHtml(); }
     else if (w.step === 2) { label = "Categories"; body = wizardStepCategoriesHtml(); }
-    else if (w.step === 3) { label = "Cycles ahead"; body = wizardStepCyclesAheadHtml(); }
     else {
-      var idx = w.step - 4;
+      var idx = w.step - 3;
       label = (w.categories[idx] && w.categories[idx].name) || "Goal";
       body = wizardStepCategoryGoalHtml(idx);
     }
@@ -1014,6 +1020,16 @@
     $("#btnWizardNext").textContent = w.step >= last ? "Finish" : "Next";
     $("#wizardBody").innerHTML = body;
     wireWizardStep();
+  }
+
+  // keeps the hours input's current (uncommitted) value from being lost
+  // when a goal add/remove re-renders this same category step
+  function commitCurrentCategoryHours() {
+    var w = state.wizard;
+    if (w.step < 3) return;
+    var cat = w.categories[w.step - 3];
+    var hoursInput = $("#wizCatHours");
+    if (cat && hoursInput) wizardCategoryEntry(cat).hours = hoursInput.value;
   }
 
   function wireWizardStep() {
@@ -1056,6 +1072,29 @@
         }).catch(function (e) { toast(e.message, true); });
       });
     }
+    if (w.step >= 3) {
+      var cat = w.categories[w.step - 3];
+      if (!cat) return;
+      document.querySelectorAll("#wizCatGoalList .wizard-goal-item__remove").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var idx = Number(btn.closest(".wizard-goal-item").dataset.idx);
+          commitCurrentCategoryHours();
+          wizardCategoryEntry(cat).goals.splice(idx, 1);
+          renderWizard();
+        });
+      });
+      $("#wizCatGoalForm").addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var form = this;
+        var title = form.elements.title.value.trim();
+        var target = Number(form.elements.target.value);
+        var unit = form.elements.unit.value.trim();
+        if (!title || !target || target <= 0) { toast("Enter a goal title and a positive target", true); return; }
+        commitCurrentCategoryHours();
+        wizardCategoryEntry(cat).goals.push({ title: title, target: target, unit: unit || null });
+        renderWizard();
+      });
+    }
   }
 
   // pulls whatever's currently on-screen into wizard state before navigating,
@@ -1066,46 +1105,27 @@
       var dateInput = $("#wizStartDate");
       w.startDate = dateInput && dateInput.value ? dateInput.value : w.startDate;
       resolveWizardTarget();
-    } else if (w.step === 3) {
-      var cyclesInput = $("#wizCyclesAhead");
-      if (cyclesInput) w.cyclesAhead = Math.max(1, Math.min(12, Number(cyclesInput.value) || 1));
-    } else if (w.step >= 4) {
-      var cat = w.categories[w.step - 4];
-      if (cat) {
-        var hoursInput = $("#wizCatHours");
-        var titleInput = $("#wizCatGoalTitle");
-        var targetInput = $("#wizCatGoalTarget");
-        var unitInput = $("#wizCatGoalUnit");
-        w.entries[cat.id] = {
-          hours: hoursInput ? hoursInput.value : "",
-          goalTitle: titleInput ? titleInput.value.trim() : "",
-          goalTarget: targetInput ? targetInput.value : "",
-          goalUnit: unitInput ? unitInput.value.trim() : "",
-        };
-      }
+    } else if (w.step >= 3) {
+      commitCurrentCategoryHours();
     }
   }
 
   function finishWizard() {
     var w = state.wizard;
-    var cycleKeys = w.targetCycleKey ? wizardConsecutiveCycleKeys(w.targetCycleKey, w.cyclesAhead) : [];
-    if (!cycleKeys.length) { toast("Couldn't resolve a starting cycle", true); return; }
+    if (!w.targetCycleKey) { toast("Couldn't resolve a starting cycle", true); return; }
 
     var jobs = [];
     w.categories.forEach(function (c) {
       var e = w.entries[c.id];
       if (!e) return;
       var hours = e.hours !== "" && e.hours != null ? Number(e.hours) : null;
-      var hasGoal = e.goalTitle && e.goalTarget !== "" && Number(e.goalTarget) > 0;
-      cycleKeys.forEach(function (ck) {
-        if (hours != null && hours > 0) {
-          jobs.push(api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: ck, category_id: c.id, weekly_hours: hours } }));
-        }
-        if (hasGoal) {
-          jobs.push(api("/api/goals", {
-            method: "POST", body: { category_id: c.id, cycle_key: ck, title: e.goalTitle, target: Number(e.goalTarget), unit: e.goalUnit || null },
-          }));
-        }
+      if (hours != null && hours > 0) {
+        jobs.push(api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: w.targetCycleKey, category_id: c.id, weekly_hours: hours } }));
+      }
+      (e.goals || []).forEach(function (g) {
+        jobs.push(api("/api/goals", {
+          method: "POST", body: { category_id: c.id, cycle_key: w.targetCycleKey, title: g.title, target: Number(g.target), unit: g.unit || null },
+        }));
       });
     });
 
@@ -1295,7 +1315,7 @@
     if (!data.cycleKey || !upcoming) {
       statusEl.textContent = "No active or upcoming cycle right now.";
     } else {
-      var daysLeft = Math.max(0, Math.round((new Date(upcoming.end + "T00:00:00Z") - new Date(today + "T00:00:00Z")) / 86400000) + 1);
+      var daysLeft = Math.max(0, daysBetweenISO(today, upcoming.end) + 1);
       statusEl.textContent = "Q" + upcoming.number + " · " + fmtDate(upcoming.start) + "–" + fmtDate(upcoming.end) +
         " · " + daysLeft + " day" + (daysLeft === 1 ? "" : "s") + " left";
     }
