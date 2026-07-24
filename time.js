@@ -1228,12 +1228,14 @@
     box.innerHTML = "";
     var today = todayISO();
     var sumPct = 0, countedDays = 0, totalDays = 0;
+    var chartDays = [];
     var d = from;
     while (d <= to) {
       totalDays++;
       var s = statsByDate[d];
       var pct = s && s.total ? Math.round((s.done / s.total) * 100) : null;
       if (pct != null) { sumPct += pct; countedDays++; }
+      chartDays.push({ date: d, pct: pct || 0, done: s ? s.done : 0, total: s ? s.total : 0 });
       var photo = photosByDate[d];
 
       var tile = document.createElement("div");
@@ -1257,7 +1259,9 @@
 
       var meta = document.createElement("div");
       meta.className = "day-tile__meta";
+      meta.title = "Open " + fmtDate(d) + "'s to-do list";
       meta.innerHTML = "<span>" + fmtDate(d) + "</span><b>" + (pct == null ? "—" : pct + "%") + "</b>";
+      meta.addEventListener("click", function (dd) { return function () { openDayDetail(dd); }; }(d));
       tile.appendChild(meta);
 
       if (photo) {
@@ -1296,6 +1300,12 @@
     var avg = countedDays ? Math.round(sumPct / countedDays) : 0;
     $("#daysAvgValue").textContent = avg + "%";
     $("#daysAvgSub").textContent = countedDays + " of " + totalDays + " days tracked";
+    window.renderDaysChart($("#daysChart"), $("#daysChartTip"), chartDays, { avg: avg });
+  }
+
+  // tapping a day tile's percentage jumps to the Today tab loaded on that date
+  function openDayDetail(date) {
+    return loadDay(date).then(function () { showTab("today"); });
   }
 
   /* ---------------- resize: redraw progress charts ---------------- */

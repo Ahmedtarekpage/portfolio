@@ -616,4 +616,148 @@
       });
     }
   };
+
+  /* One point per calendar day across a quarter — that day's own completion %
+     (not cumulative), with a dashed average line and a hoverable/tappable
+     marker + tooltip on every day that had tasks. Used by /time's Days tab.
+       days = [{ date: 'YYYY-MM-DD', pct, done, total }]
+       opts.avg — average % across days that had at least one task */
+  window.renderDaysChart = function (box, tip, days, opts) {
+    opts = opts || {};
+    box.innerHTML = "";
+    var cs = getComputedStyle(document.documentElement);
+    var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
+    var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
+    var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
+    var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
+
+    var pts = (days || []).map(function (d) {
+      return { t: new Date(String(d.date).slice(0, 10) + "T00:00:00Z").getTime(), pct: Number(d.pct) || 0, done: d.done, total: d.total, date: d.date };
+    });
+    if (!pts.length) { box.innerHTML = '<p class="muted center" style="margin:0">No days yet.</p>'; return; }
+
+    var start = pts[0].t, end = pts[pts.length - 1].t;
+    if (end <= start) end = start + DAY;
+    var avg = Number(opts.avg) || 0;
+    var todayT = new Date(todayISO() + "T00:00:00Z").getTime();
+
+    var W = Math.max(box.clientWidth || 600, 260), H = 190;
+    var M = { l: 34, r: 12, t: 14, b: 24 };
+    var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
+    var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
+
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Daily completion across the quarter" });
+
+    [0, 25, 50, 75, 100].forEach(function (v) {
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
+      var lbl = svgEl("text", { x: M.l - 6, y: y(v) + 4, "text-anchor": "end", fill: faint, "font-size": 10 });
+      lbl.textContent = v + "%";
+      svg.appendChild(lbl);
+    });
+
+    var avgEl = svgEl("line", { x1: M.l, x2: W - M.r, y1: y(avg), y2: y(avg), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" });
+    svg.appendChild(avgEl);
+    var avgLbl = svgEl("text", { x: W - M.r, y: y(avg) - 4, "text-anchor": "end", fill: faint, "font-size": 10 });
+    avgLbl.textContent = "Avg " + Math.round(avg) + "%";
+    svg.appendChild(avgLbl);
+
+    var color = opts.color || "#60a5fa";
+    var d = "M " + x(pts[0].t) + " " + y(pts[0].pct);
+    for (var i = 1; i < pts.length; i++) d += " L " + x(pts[i].t) + " " + y(pts[i].pct);
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    svg.appendChild(lineEl);
+
+    if (todayT >= start && todayT <= end) {
+      svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
+    }
+
+    [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
+      var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
+      xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+      svg.appendChild(xl);
+    });
+
+    var markers = [];
+    pts.forEach(function (p) {
+      if (!p.total) return; // no tasks logged that day — line still passes through 0, just no dot
+      var cx = x(p.t), cy = y(p.pct);
+      var m = svgEl("circle", { cx: cx, cy: cy, r: 3.5, fill: color, stroke: surface, "stroke-width": 1.5 });
+      svg.appendChild(m);
+      markers.push({ p: p, cx: cx, cy: cy, el: m });
+    });
+
+    if (tip && pts.length) {
+      var cross = svgEl("line", { y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, visibility: "hidden" });
+      var ring = svgEl("circle", { r: 7, fill: "none", stroke: color, "stroke-width": 1.5, visibility: "hidden" });
+      svg.appendChild(cross);
+      svg.appendChild(ring);
+
+      var overlay = svgEl("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: "transparent" });
+      overlay.style.touchAction = "pan-y";
+      overlay.style.cursor = "pointer";
+      svg.appendChild(overlay);
+
+      var nearest = function (ev) {
+        var rect = svg.getBoundingClientRect();
+        var px = ((ev.clientX - rect.left) / rect.width) * W;
+        var best = null, bestD = Infinity;
+        pts.forEach(function (p) {
+          var cx = x(p.t);
+          var dd = Math.abs(cx - px);
+          if (dd < bestD) { bestD = dd; best = { p: p, cx: cx, cy: y(p.pct) }; }
+        });
+        return best;
+      };
+      var showTip = function (best) {
+        cross.setAttribute("x1", best.cx); cross.setAttribute("x2", best.cx);
+        cross.setAttribute("visibility", "visible");
+        ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
+        ring.setAttribute("visibility", "visible");
+        var dateLabel = fmtDate(best.p.date);
+        var detail = best.p.total ? ("Progress: <b>" + Math.round(best.p.pct) + "%</b> (" + best.p.done + "/" + best.p.total + ")") : "No tasks logged";
+        tip.innerHTML = '<div class="muted">' + dateLabel + '</div><div>' + detail + '</div>';
+        tip.hidden = false;
+        var bx = box.getBoundingClientRect();
+        var left = (best.cx / W) * bx.width + 12;
+        if (left + 190 > bx.width) left = left - 214;
+        tip.style.left = Math.max(left, 4) + "px";
+        tip.style.top = Math.max((best.cy / H) * bx.height - 40, 0) + "px";
+      };
+      var hideTip = function () {
+        cross.setAttribute("visibility", "hidden");
+        ring.setAttribute("visibility", "hidden");
+        tip.hidden = true;
+      };
+      overlay.addEventListener("pointermove", function (ev) { var best = nearest(ev); if (best) showTip(best); });
+      overlay.addEventListener("pointerdown", function (ev) { var best = nearest(ev); if (best) showTip(best); });
+      overlay.addEventListener("pointerleave", hideTip);
+    }
+
+    box.appendChild(svg);
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) {
+      try {
+        var len = lineEl.getTotalLength();
+        lineEl.style.strokeDasharray = len;
+        lineEl.style.strokeDashoffset = len;
+        avgEl.style.opacity = 0;
+        lineEl.getBoundingClientRect();
+        lineEl.style.transition = "stroke-dashoffset 0.8s ease";
+        lineEl.style.strokeDashoffset = 0;
+        avgEl.style.transition = "opacity 0.5s ease 0.3s";
+        avgEl.style.opacity = 1;
+      } catch (e) { /* SVG not measurable — skip animation */ }
+      markers.forEach(function (m, i) {
+        m.el.style.opacity = 0;
+        m.el.style.transform = "scale(0.4)";
+        m.el.style.transformOrigin = m.cx + "px " + m.cy + "px";
+        setTimeout(function () {
+          m.el.style.transition = "opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+          m.el.style.opacity = 1;
+          m.el.style.transform = "scale(1)";
+        }, 300 + i * 15);
+      });
+    }
+  };
 })();
