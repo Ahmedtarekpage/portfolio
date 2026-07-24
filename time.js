@@ -548,8 +548,13 @@
       $("#cycleSelect").innerHTML = html;
       $("#analyticsCycleSelect").innerHTML = html;
 
+      var today = todayISO();
+      // during a break/buffer there's no "current" cycle — fall back to the
+      // *nearest* upcoming one (matches the server's own default-cycle pick),
+      // not the furthest-out cycle in the window
       var current = state.cycles.filter(function (c) { return c.current; })[0];
-      var fallback = current || state.cycles[state.cycles.length - 1];
+      var upcoming = state.cycles.filter(function (c) { return c.start > today; })[0];
+      var fallback = current || upcoming || state.cycles[state.cycles.length - 1];
       state.currentCycleKey = fallback ? fallback.cycleKey : null;
       if (!state.analyticsCycleKey && fallback) state.analyticsCycleKey = fallback.cycleKey;
       if (state.analyticsCycleKey) $("#analyticsCycleSelect").value = state.analyticsCycleKey;
@@ -712,13 +717,21 @@
     return null;
   }
 
+  // hours-tracked categories have a real pace (ahead/behind, elapsed-time-aware);
+  // goals-only categories don't, so the ring stays neutral for those
+  var RING_PACE_CLASS = { ahead: "ring__fill--good", "on-track": "ring__fill--good", behind: "ring__fill--danger", "not-started": "ring__fill--muted" };
+  function categoryRingClass(c) {
+    if (c.weekly_hours != null && Number(c.weekly_hours) > 0 && c.progress) return RING_PACE_CLASS[c.progress.pace] || null;
+    return null;
+  }
+
   var RING_CIRC = 113.1; // 2 * pi * r18
 
-  function ringSvg(pct) {
+  function ringSvg(pct, colorClass) {
     var offset = RING_CIRC * (1 - (pct || 0) / 100);
     return '<svg class="ring" viewBox="0 0 44 44" width="56" height="56" aria-hidden="true">' +
       '<circle class="ring__track" cx="22" cy="22" r="18" />' +
-      '<circle class="ring__fill" cx="22" cy="22" r="18" stroke-dasharray="' + RING_CIRC + '" ' +
+      '<circle class="ring__fill' + (colorClass ? ' ' + colorClass : '') + '" cx="22" cy="22" r="18" stroke-dasharray="' + RING_CIRC + '" ' +
         'stroke-dashoffset="' + (reduceMotion ? offset : RING_CIRC) + '" data-offset="' + offset + '" />' +
     '</svg>';
   }
@@ -726,7 +739,7 @@
   function galleryTileHtml(opts) {
     return '<button type="button" class="gallery-tile" data-kind="' + opts.kind + '"' +
       (opts.id != null ? ' data-id="' + opts.id + '"' : '') + '>' +
-      '<span class="gallery-tile__ring">' + ringSvg(opts.pct) + '<span class="gallery-tile__icon">' + opts.icon + '</span></span>' +
+      '<span class="gallery-tile__ring">' + ringSvg(opts.pct, opts.ringClass) + '<span class="gallery-tile__icon">' + opts.icon + '</span></span>' +
       '<span class="gallery-tile__name">' + esc(opts.name) + '</span>' +
       '<span class="gallery-tile__pct">' + (opts.pct == null ? esc(opts.sub || "—") : opts.pct + "%") + '</span>' +
     '</button>';
@@ -749,7 +762,10 @@
       sub: state.dayStats.total ? "" : "No tasks",
     })];
     categories.forEach(function (c) {
-      tiles.push(galleryTileHtml({ kind: "category", id: c.id, icon: categoryIcon(c.name), name: c.name, pct: categoryPct(c) }));
+      tiles.push(galleryTileHtml({
+        kind: "category", id: c.id, icon: categoryIcon(c.name), name: c.name,
+        pct: categoryPct(c), ringClass: categoryRingClass(c),
+      }));
     });
     box.innerHTML = tiles.join("");
 
@@ -850,14 +866,64 @@
     return Promise.all([loadCycleDetail(state.selectedCycleKey), loadGalleryCycleDetail()]);
   }
 
+  // the cycle immediately before cycleKey, from the already-loaded picker list
+  function previousCycleInfo(cycleKey) {
+    var cur = state.cycles.filter(function (c) { return c.cycleKey === cycleKey; })[0];
+    if (!cur) return null;
+    var earlier = state.cycles.filter(function (c) { return c.start < cur.start; });
+    if (!earlier.length) return null;
+    earlier.sort(function (a, b) { return a.start < b.start ? 1 : -1; });
+    return earlier[0];
+  }
+
+  // carries a category's weekly-hours target + goal list forward from its
+  // previous cycle — goals are scoped per cycle, so without this every 42
+  // days means re-typing the same milestones from scratch
+  function copyPreviousCycle(categoryId, fromCycleKey, toCycleKey) {
+    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(fromCycleKey)).then(function (prevData) {
+      var prevCat = (prevData.categories || []).filter(function (x) { return x.id === categoryId; })[0];
+      if (!prevCat) { toast("Nothing to copy from that cycle", true); return; }
+      var jobs = [];
+      if (prevCat.weekly_hours != null) {
+        jobs.push(api("/api/cycle-goals", {
+          method: "PATCH", body: { cycle_key: toCycleKey, category_id: categoryId, weekly_hours: prevCat.weekly_hours },
+        }));
+      }
+      (prevCat.goals || []).forEach(function (g) {
+        jobs.push(api("/api/goals", {
+          method: "POST", body: { category_id: categoryId, cycle_key: toCycleKey, title: g.title, target: Number(g.target), unit: g.unit },
+        }));
+      });
+      return Promise.all(jobs);
+    }).then(function () {
+      toast("Copied from previous cycle ✓");
+      return refreshCategoryDetail();
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
   function renderCategoryDetail(data) {
     var c = (data.categories || []).filter(function (x) { return x.id === state.selectedCategoryId; })[0];
     $("#categoryDetailName").textContent = c ? c.name : "";
     $("#cycleReadonlyNote").hidden = !!data.editable;
     var box = $("#categoryDetailBody");
     if (!c) { box.innerHTML = ""; return; }
-    box.innerHTML = categoryCardHtml(c, data.editable);
+
+    // only offer to copy forward when this cycle genuinely has nothing set yet —
+    // avoids silently duplicating goals on top of ones already entered
+    var prev = data.editable ? previousCycleInfo(data.cycleKey) : null;
+    var showCopy = prev && !(c.goals || []).length && c.weekly_hours == null;
+
+    box.innerHTML =
+      (showCopy ? '<button type="button" class="btn btn--ghost btn--sm copy-cycle-btn">↩ Copy goals &amp; target from ' + esc(prev.label) + '</button>' : '') +
+      categoryCardHtml(c, data.editable);
     var card = box.querySelector(".category-card");
+
+    if (showCopy) {
+      box.querySelector(".copy-cycle-btn").addEventListener("click", function (ev) {
+        busy(ev.target, true);
+        copyPreviousCycle(c.id, prev.cycleKey, data.cycleKey).finally(function () { busy(ev.target, false); });
+      });
+    }
 
     var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
     if (hasHours) {
@@ -867,7 +933,7 @@
     }
     if (data.editable) {
       card.querySelector(".category-card__delete").addEventListener("click", function () {
-        if (!confirm('Delete category "' + c.name + '"? Its targets/goals are removed everywhere (logged tasks are kept, just uncategorized).')) return;
+        if (!confirm('Delete category "' + c.name + '" completely? This removes its goals and hour targets across EVERY cycle — past and future, not just this one. Logged tasks are kept, just uncategorized.')) return;
         api("/api/categories?id=" + c.id, { method: "DELETE" })
           .then(function () {
             toast("Category deleted");
@@ -909,25 +975,36 @@
         " · " + daysLeft + " day" + (daysLeft === 1 ? "" : "s") + " left";
     }
 
+    // read-only preview — editing goals happens in one place (the category's
+    // own detail view, opened from Home) instead of duplicating the same
+    // +/- controls here too
     var withGoals = (data.categories || []).filter(function (c) { return (c.goals || []).length; });
     $("#elmktbEmpty").hidden = withGoals.length > 0;
     var box = $("#elmktbList");
     box.innerHTML = withGoals.map(function (c) {
       return '<div class="elmktb-group" data-cat="' + c.id + '">' +
-        '<div class="elmktb-group__name">' + esc(c.name) + '</div>' +
-        (c.goals || []).map(function (g) { return goalRowHtml(g, data.editable); }).join("") +
+        '<div class="elmktb-group__head">' +
+          '<span class="elmktb-group__name">' + esc(c.name) + '</span>' +
+          '<button type="button" class="linklike elmktb-group__edit">Edit →</button>' +
+        '</div>' +
+        (c.goals || []).map(function (g) { return goalRowHtml(g, false); }).join("") +
       '</div>';
     }).join("");
 
     withGoals.forEach(function (c) {
       var group = box.querySelector('.elmktb-group[data-cat="' + c.id + '"]');
-      wireGoals(group, c, data.cycleKey, data.editable, function () { return loadElmktb(); });
+      group.querySelector(".elmktb-group__edit").addEventListener("click", function () { goToCategory(c.id); });
     });
+  }
+
+  function goToCategory(categoryId) {
+    showTab("home");
+    openCategory(categoryId);
   }
 
   /* ---------------- Analytics tab: read-only progress ---------------- */
 
-  function analyticsCardHtml(c) {
+  function analyticsHoursCardHtml(c) {
     var p = c.progress;
     return '<div class="category-card" data-id="' + c.id + '">' +
       '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
@@ -943,6 +1020,18 @@
     '</div>';
   }
 
+  // goal-only categories have no hours chart to show, but still deserve a
+  // place in Analytics — otherwise the tab silently omits some categories
+  function analyticsGoalsCardHtml(c) {
+    return '<div class="category-card" data-id="' + c.id + '">' +
+      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span></div>' +
+      '<div class="goals">' +
+        '<div class="goals__label">Goals</div>' +
+        (c.goals || []).map(function (g) { return goalRowHtml(g, false); }).join("") +
+      '</div>' +
+    '</div>';
+  }
+
   function loadAnalyticsDetail(cycleKey) {
     if (!cycleKey) return Promise.resolve();
     return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(cycleKey)).then(function (data) {
@@ -953,9 +1042,12 @@
 
   function renderAnalytics(data) {
     var withHours = (data.categories || []).filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0; });
-    $("#noAnalytics").hidden = withHours.length > 0;
+    var goalsOnly = (data.categories || []).filter(function (c) {
+      return !(c.weekly_hours != null && Number(c.weekly_hours) > 0) && (c.goals || []).length;
+    });
+    $("#noAnalytics").hidden = (withHours.length + goalsOnly.length) > 0;
     var box = $("#analyticsCards");
-    box.innerHTML = withHours.map(analyticsCardHtml).join("");
+    box.innerHTML = withHours.map(analyticsHoursCardHtml).join("") + goalsOnly.map(analyticsGoalsCardHtml).join("");
     withHours.forEach(function (c) {
       var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
       window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {

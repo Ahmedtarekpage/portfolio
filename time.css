@@ -185,8 +185,14 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .ring__track { fill: none; stroke: var(--glass-brd); stroke-width: 3; }
 .ring__fill {
   fill: none; stroke: var(--blue-2); stroke-width: 3; stroke-linecap: round;
-  transition: stroke-dashoffset 0.7s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.2, 0.8, 0.3, 1), stroke 0.3s ease;
 }
+/* pace-aware coloring for hours-tracked categories (goals-only stays the default blue) */
+.ring__fill--good { stroke: #6ee7b0; }
+.ring__fill--danger { stroke: #ff9aa7; }
+.ring__fill--muted { stroke: var(--muted); }
+:root[data-theme="light"] .ring__fill--good { stroke: #146c47; }
+:root[data-theme="light"] .ring__fill--danger { stroke: #a3283a; }
 .gallery-tile__icon { position: absolute; font-size: 1.35rem; }
 .gallery-tile__name { font: 600 0.82rem "Space Grotesk", sans-serif; text-align: center; }
 .gallery-tile__pct { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -194,6 +200,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 /* ---------- Home detail views (Today / a single category) ---------- */
 .detail-view { animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .detail-back { margin-bottom: 12px; }
+.copy-cycle-btn { display: block; margin-bottom: 12px; }
 
 /* ---------- Categories tab: add-category form + per-cycle weekly target ---------- */
 .category-card__delete { margin-left: auto; }
@@ -208,12 +215,14 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .category-card__hours input:focus { border-color: var(--blue); }
 .category-card__hours input:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* ---------- Elmktb tab: flat goal rollup grouped by category ---------- */
+/* ---------- Elmktb tab: read-only goal rollup grouped by category ---------- */
 .elmktb-group { margin-bottom: 18px; }
+.elmktb-group__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .elmktb-group__name {
   font: 600 0.8rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--faint); margin-bottom: 6px;
+  color: var(--faint);
 }
+.elmktb-group__edit { margin-top: 0; font-size: 0.78rem; }
 
 /* ---------- category progress cards ---------- */
 .category-cards { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
