@@ -464,6 +464,125 @@
   var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
 
+  function fmtNum(n) {
+    n = Number(n) || 0;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+
+  function goalPct(g) {
+    return Number(g.target) > 0 ? Math.min(100, Math.round((Number(g.current) / Number(g.target)) * 100)) : 0;
+  }
+
+  // weighted by target, so a 500-target goal counts more than a 10-target one —
+  // more representative of real progress than a plain average of percentages
+  function combinedGoalsPct(goals) {
+    if (!goals || !goals.length) return null;
+    var sumCurrent = 0, sumTarget = 0;
+    goals.forEach(function (g) { sumCurrent += Number(g.current) || 0; sumTarget += Number(g.target) || 0; });
+    return sumTarget > 0 ? Math.min(100, Math.round((sumCurrent / sumTarget) * 100)) : 0;
+  }
+
+  function overallBarHtml(pct, label) {
+    return '<div class="goals-overall">' +
+      '<div class="goals-overall__top"><span>' + label + '</span><span class="goals-overall__pct">' + pct + '%</span></div>' +
+      '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
+        '" style="width:' + pct + '%"></div></div>' +
+    '</div>';
+  }
+
+  function goalRowHtml(g) {
+    var pct = goalPct(g);
+    return '<div class="goal-row" data-id="' + g.id + '">' +
+      '<div class="goal-row__top">' +
+        '<span class="goal-row__title">' + esc(g.title) + '</span>' +
+        '<span class="goal-row__pct">' + pct + '%</span>' +
+        '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
+        '<button type="button" class="iconbtn" title="Delete goal">✕</button>' +
+      '</div>' +
+      '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
+        '" style="width:' + pct + '%"></div></div>' +
+      '<div class="goal-row__nums">' +
+        '<button type="button" class="goal-row__step" data-delta="-1" title="-1">−</button>' +
+        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '" />' +
+        '<button type="button" class="goal-row__step" data-delta="1" title="+1">+</button>' +
+        ' / <b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  // updates the bar/percentage/input in place, no page-wide reload — used by the
+  // +1/-1 buttons so quick repeated taps (e.g. logging each prayer) feel instant
+  function updateGoalRowUI(row, current, target) {
+    var pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+    row.querySelector(".goal-row__pct").textContent = pct + "%";
+    var fill = row.querySelector(".goal-row__fill");
+    fill.style.width = pct + "%";
+    fill.classList.toggle("goal-row__fill--done", pct >= 100);
+    row.querySelector(".goal-row__current").value = fmtNum(current);
+  }
+
+  function stepGoal(row, goal, delta) {
+    var target = Number(goal.target) || 0;
+    var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
+    updateGoalRowUI(row, v, target);
+    goal.current = v; // keep in sync so another quick tap steps from the right base
+    api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  }
+
+  function wireGoals(card, category) {
+    var box = card.querySelector(".goals");
+
+    (category.goals || []).forEach(function (g) {
+      var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
+      if (!row) return;
+      row.querySelectorAll(".goal-row__step").forEach(function (btn) {
+        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta)); });
+      });
+      row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
+        var v = ev.target.value === "" ? 0 : Number(ev.target.value);
+        api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
+          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .catch(function (e) { toast(e.message, true); });
+      });
+      row.querySelector(".iconbtn--edit").addEventListener("click", function () {
+        var form = box.querySelector(".goal-add-form");
+        form.elements.title.value = g.title;
+        form.elements.target.value = Number(g.target);
+        form.elements.unit.value = g.unit || "";
+        form.dataset.editingId = g.id;
+        form.querySelector("button[type=submit]").textContent = "Update";
+        form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
+        if (!confirm('Delete goal "' + g.title + '"?')) return;
+        api("/api/goals?id=" + g.id, { method: "DELETE" })
+          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .catch(function (e) { toast(e.message, true); });
+      });
+    });
+
+    var addForm = box.querySelector(".goal-add-form");
+    addForm.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var form = this;
+      var btn = form.querySelector("button[type=submit]");
+      var editingId = form.dataset.editingId;
+      var body = {
+        title: form.elements.title.value.trim(),
+        target: Number(form.elements.target.value),
+        unit: form.elements.unit.value.trim() || null,
+      };
+      if (!editingId) body.category_id = category.id;
+      busy(btn, true);
+      (editingId ? api("/api/goals?id=" + editingId, { method: "PATCH", body: body })
+                 : api("/api/goals", { method: "POST", body: body }))
+        .then(function () { toast(editingId ? "Goal updated ✓" : "Goal added ✓"); return loadQuarterDetail(state.selectedQuarterId); })
+        .catch(function (e) { toast(e.message, true); })
+        .finally(function () { busy(btn, false); });
+    });
+  }
+
   function renderQuarter(data) {
     $("#noQuarters").hidden = state.quarters.length > 0;
     $("#quarterSelect").hidden = state.quarters.length === 0;
@@ -480,9 +599,18 @@
       box.appendChild(note);
     }
 
+    var allGoals = data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
+    var quarterPct = combinedGoalsPct(allGoals);
+    if (quarterPct != null) {
+      var quarterOverall = document.createElement("div");
+      quarterOverall.innerHTML = overallBarHtml(quarterPct, "This quarter — all categories' goals");
+      box.appendChild(quarterOverall.firstChild);
+    }
+
     data.categories.forEach(function (c) {
       var p = c.progress;
       var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
+      var catPct = combinedGoalsPct(c.goals);
       var card = document.createElement("div");
       card.className = "category-card";
       card.innerHTML =
@@ -497,13 +625,25 @@
             '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
           '</div>' +
           '<div class="chart" style="min-height:190px"></div>'
-          : '<p class="muted" style="margin:0">No hour target set for this category.</p>');
+          : '<p class="muted" style="margin:0">No hour target set for this category.</p>') +
+        '<div class="goals">' +
+          '<div class="goals__label">Goals</div>' +
+          (catPct != null ? overallBarHtml(catPct, "Overall") : '') +
+          (c.goals || []).map(goalRowHtml).join("") +
+          '<form class="goal-add-form">' +
+            '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
+            '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
+            '<input name="unit" placeholder="unit" />' +
+            '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
+          '</form>' +
+        '</div>';
       box.appendChild(card);
       if (hasHours) {
         window.renderProgressChart(card.querySelector(".chart"), p.timeline, {
           start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
         });
       }
+      wireGoals(card, c);
     });
   }
 
