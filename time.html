@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=5" />
+  <link rel="stylesheet" href="time.css?v=6" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -82,11 +82,30 @@
         <!-- gallery -->
         <div id="homeGallery">
           <p class="cycle-status" id="cycleStatus"></p>
-          <form id="addCategoryForm" class="gallery-add-form">
-            <input name="name" placeholder="Category (e.g. Religion)" required />
-            <button type="submit" class="btn btn--ghost btn--sm">+ Add category</button>
-          </form>
+          <div class="gallery-toolbar">
+            <form id="addCategoryForm" class="gallery-add-form">
+              <input name="name" placeholder="Category (e.g. Religion)" required />
+              <button type="submit" class="btn btn--ghost btn--sm">+ Add category</button>
+            </form>
+            <button type="button" id="btnStartWizard" class="btn btn--ghost btn--sm">🧙 Guided setup</button>
+          </div>
           <div class="gallery-grid" id="galleryGrid"></div>
+        </div>
+
+        <!-- guided setup: step-by-step wizard for start date, categories, and goals -->
+        <div id="wizardView" class="detail-view" hidden>
+          <button type="button" class="btn btn--ghost btn--sm detail-back">← Home</button>
+          <div class="card">
+            <div class="card__head">
+              <h2>Guided setup</h2>
+              <span class="muted" id="wizardStepLabel"></span>
+            </div>
+            <div id="wizardBody"></div>
+            <div class="wizard-nav">
+              <button type="button" class="btn btn--ghost btn--sm" id="btnWizardBack" hidden>← Back</button>
+              <button type="button" class="btn btn--primary btn--sm" id="btnWizardNext">Next</button>
+            </div>
+          </div>
         </div>
 
         <!-- detail: Today's to-do -->
@@ -209,6 +228,6 @@
   </div>
 
   <script src="chart.js?v=4"></script>
-  <script src="time.js?v=5"></script>
+  <script src="time.js?v=6"></script>
 </body>
 </html>

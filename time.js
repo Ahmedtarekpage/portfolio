@@ -22,6 +22,7 @@
     analyticsDetail: null,
     elmktbDetail: null,
     editingTaskId: null,
+    wizard: null,   // active guided-setup run, or null
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -788,9 +789,11 @@
 
   function openGallery() {
     state.selectedCategoryId = null;
+    state.wizard = null;
     $("#homeGallery").hidden = false;
     $("#homeDetailToday").hidden = true;
     $("#homeDetailCategory").hidden = true;
+    $("#wizardView").hidden = true;
     renderGallery();
   }
 
@@ -798,6 +801,7 @@
     $("#homeGallery").hidden = true;
     $("#homeDetailToday").hidden = false;
     $("#homeDetailCategory").hidden = true;
+    $("#wizardView").hidden = true;
   }
 
   function openCategory(categoryId) {
@@ -806,12 +810,262 @@
     $("#homeGallery").hidden = true;
     $("#homeDetailToday").hidden = true;
     $("#homeDetailCategory").hidden = false;
+    $("#wizardView").hidden = true;
     if (state.selectedCycleKey) $("#cycleSelect").value = state.selectedCycleKey;
     loadCycleDetail(state.selectedCycleKey);
   }
 
   document.querySelectorAll(".detail-back").forEach(function (btn) {
     btn.addEventListener("click", openGallery);
+  });
+
+  /* ---------------- guided setup wizard ---------------- */
+
+  var WIZARD_STEPS = ["Overview", "When to start", "Categories", "Goals"];
+
+  function daysLeftInYear() {
+    var info = state.todayInfo;
+    if (!info) return null;
+    var today = todayISO();
+    var yearEnd = info.realYear + "-12-31";
+    return Math.max(0, Math.round((new Date(yearEnd + "T00:00:00Z") - new Date(today + "T00:00:00Z")) / 86400000));
+  }
+
+  $("#btnStartWizard").addEventListener("click", function () {
+    state.wizard = {
+      step: 0, offsetDays: 0, targetCycleKey: null, targetCycle: null,
+      categories: state.categories.slice(), cyclesAhead: 1, entries: {}, cyclesWindow: [],
+    };
+    $("#homeGallery").hidden = true;
+    $("#wizardView").hidden = false;
+    renderWizard();
+    api("/api/cycle-goals?list=1&future=12").then(function (data) {
+      if (!state.wizard) return; // closed before this resolved
+      state.wizard.cyclesWindow = data.cycles || [];
+      resolveWizardTarget();
+      renderWizard();
+    }).catch(function (e) { toast(e.message, true); });
+  });
+
+  function resolveWizardTarget() {
+    var w = state.wizard;
+    if (!w) return;
+    var target = addDays(todayISO(), w.offsetDays);
+    var containing = w.cyclesWindow.filter(function (c) { return c.start <= target && target <= c.end; })[0];
+    var upcoming = w.cyclesWindow.filter(function (c) { return c.start > target; })[0];
+    var chosen = containing || upcoming || w.cyclesWindow[w.cyclesWindow.length - 1] || null;
+    w.targetCycle = chosen;
+    w.targetCycleKey = chosen ? chosen.cycleKey : null;
+  }
+
+  function wizardConsecutiveCycleKeys(startKey, count) {
+    var w = state.wizard;
+    var all = w.cyclesWindow.slice().sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+    var idx = all.findIndex(function (c) { return c.cycleKey === startKey; });
+    if (idx === -1) return startKey ? [startKey] : [];
+    return all.slice(idx, idx + count).map(function (c) { return c.cycleKey; });
+  }
+
+  function wizardStepInfoHtml() {
+    var info = state.todayInfo;
+    if (!info) return '<p class="muted">Loading…</p>';
+    var today = todayISO();
+    var line;
+    if (info.phase === "cycle") {
+      var daysLeftCycle = Math.max(0, Math.round((new Date(info.cycleEnd + "T00:00:00Z") - new Date(today + "T00:00:00Z")) / 86400000));
+      line = "You're currently in Y" + info.virtualYear + " · Cycle " + info.cycleLetter + " · Q" + info.quarterNumber +
+        ", with " + daysLeftCycle + " day" + (daysLeftCycle === 1 ? "" : "s") + " left in this cycle.";
+    } else if (info.phase === "break") {
+      line = "You're currently on a break (Y" + info.virtualYear + "), ending " + fmtDate(info.cycleEnd) + ".";
+    } else {
+      line = "You're in the year-end buffer — a fresh Y1 Cycle A starts " + fmtDate((info.realYear + 1) + "-01-01") + ".";
+    }
+    var daysLeftYear = daysLeftInYear();
+    return '<p>' + line + '</p>' +
+      '<p>There ' + (daysLeftYear === 1 ? "is" : "are") + ' <b>' + daysLeftYear + '</b> day' + (daysLeftYear === 1 ? "" : "s") +
+      ' left in ' + info.realYear + '.</p>' +
+      '<p class="muted">This quick setup helps you pick when to start, add your categories, and set goals for the cycles ahead.</p>';
+  }
+
+  function wizardStepStartHtml() {
+    var w = state.wizard;
+    return '<label>Start in how many days from today?' +
+        '<input type="number" min="0" step="1" id="wizStartOffset" value="' + w.offsetDays + '" />' +
+      '</label>' +
+      '<p class="muted" id="wizStartPreview"></p>';
+  }
+
+  function updateWizardStartPreview() {
+    var w = state.wizard;
+    resolveWizardTarget();
+    var el = $("#wizStartPreview");
+    if (!el) return;
+    if (!w.targetCycle) { el.textContent = "No cycle found that far ahead — try a smaller number of days."; return; }
+    var target = addDays(todayISO(), w.offsetDays);
+    var snapped = target < w.targetCycle.start;
+    el.textContent = (snapped ? "That date falls in a break, so you'll start at the next cycle: " : "That's ") +
+      w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ").";
+  }
+
+  function wizardStepCategoriesHtml() {
+    var w = state.wizard;
+    return '<div class="wizard-chips" id="wizCategoryChips">' +
+        w.categories.map(function (c) {
+          return '<span class="chip" data-id="' + c.id + '">' + esc(c.name) + '<button type="button" class="chip__remove" title="Remove">✕</button></span>';
+        }).join("") +
+      '</div>' +
+      '<form id="wizAddCategoryForm" class="gallery-add-form">' +
+        '<input name="name" placeholder="Category (e.g. Religion)" />' +
+        '<button type="submit" class="btn btn--ghost btn--sm">+ Add</button>' +
+      '</form>' +
+      (w.categories.length ? '' : '<p class="muted">Add at least one category, or skip ahead to finish with none yet.</p>');
+  }
+
+  function wizardStepGoalsHtml() {
+    var w = state.wizard;
+    var targetLabel = w.targetCycle ? w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ")" : "—";
+    if (!w.categories.length) {
+      return '<p class="muted">No categories to set goals for yet — finish, then add goals from a category tile any time.</p>';
+    }
+    return '<p class="muted">Starting cycle: <b>' + esc(targetLabel) + '</b></p>' +
+      '<label>Apply to how many upcoming cycles?' +
+        '<input type="number" min="1" max="12" step="1" id="wizCyclesAhead" value="' + w.cyclesAhead + '" />' +
+      '</label>' +
+      '<div class="wizard-goal-rows" id="wizGoalRows">' +
+        w.categories.map(function (c) {
+          var e = w.entries[c.id] || {};
+          return '<div class="wizard-goal-row" data-id="' + c.id + '">' +
+            '<div class="wizard-goal-row__name">' + esc(c.name) + '</div>' +
+            '<input type="number" min="0" step="0.5" class="wiz-hours" placeholder="h/week (optional)" value="' + (e.hours || "") + '" />' +
+            '<input type="text" class="wiz-goal-title" placeholder="Goal title (optional)" value="' + esc(e.goalTitle || "") + '" />' +
+            '<input type="number" min="0.01" step="any" class="wiz-goal-target" placeholder="Target" value="' + (e.goalTarget || "") + '" />' +
+            '<input type="text" class="wiz-goal-unit" placeholder="unit" value="' + esc(e.goalUnit || "") + '" />' +
+          '</div>';
+        }).join("") +
+      '</div>';
+  }
+
+  function renderWizard() {
+    var w = state.wizard;
+    if (!w) return;
+    $("#wizardStepLabel").textContent = "Step " + (w.step + 1) + " of " + WIZARD_STEPS.length + " · " + WIZARD_STEPS[w.step];
+    $("#btnWizardBack").hidden = w.step === 0;
+    $("#btnWizardNext").textContent = w.step === WIZARD_STEPS.length - 1 ? "Finish" : "Next";
+    var body = $("#wizardBody");
+    if (w.step === 0) body.innerHTML = wizardStepInfoHtml();
+    else if (w.step === 1) body.innerHTML = wizardStepStartHtml();
+    else if (w.step === 2) body.innerHTML = wizardStepCategoriesHtml();
+    else body.innerHTML = wizardStepGoalsHtml();
+    wireWizardStep();
+  }
+
+  function wireWizardStep() {
+    var w = state.wizard;
+    if (w.step === 1) {
+      var offsetInput = $("#wizStartOffset");
+      offsetInput.addEventListener("input", function () {
+        w.offsetDays = Math.max(0, Number(offsetInput.value) || 0);
+        updateWizardStartPreview();
+      });
+      updateWizardStartPreview();
+    }
+    if (w.step === 2) {
+      document.querySelectorAll("#wizCategoryChips .chip__remove").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = Number(btn.closest(".chip").dataset.id);
+          w.categories = w.categories.filter(function (c) { return c.id !== id; });
+          renderWizard();
+        });
+      });
+      $("#wizAddCategoryForm").addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var form = this;
+        var name = form.elements.name.value.trim();
+        if (!name) return;
+        api("/api/categories", { method: "POST", body: { name: name } }).then(function (r) {
+          state.categories.push(r.category);
+          w.categories.push(r.category);
+          renderCategorySelect(state.categories);
+          renderWizard();
+        }).catch(function (e) { toast(e.message, true); });
+      });
+    }
+  }
+
+  // pulls whatever's currently on-screen into wizard state before navigating,
+  // since inputs only fire "change" on blur — Next/Back is usually clicked without one
+  function commitWizardStep() {
+    var w = state.wizard;
+    if (w.step === 1) {
+      var offsetInput = $("#wizStartOffset");
+      w.offsetDays = offsetInput ? Math.max(0, Number(offsetInput.value) || 0) : w.offsetDays;
+      resolveWizardTarget();
+    } else if (w.step === 3) {
+      var cyclesInput = $("#wizCyclesAhead");
+      if (cyclesInput) w.cyclesAhead = Math.max(1, Math.min(12, Number(cyclesInput.value) || 1));
+      document.querySelectorAll(".wizard-goal-row").forEach(function (row) {
+        var id = Number(row.dataset.id);
+        w.entries[id] = {
+          hours: row.querySelector(".wiz-hours").value,
+          goalTitle: row.querySelector(".wiz-goal-title").value.trim(),
+          goalTarget: row.querySelector(".wiz-goal-target").value,
+          goalUnit: row.querySelector(".wiz-goal-unit").value.trim(),
+        };
+      });
+    }
+  }
+
+  function finishWizard() {
+    var w = state.wizard;
+    var cycleKeys = w.targetCycleKey ? wizardConsecutiveCycleKeys(w.targetCycleKey, w.cyclesAhead) : [];
+    if (!cycleKeys.length) { toast("Couldn't resolve a starting cycle", true); return; }
+
+    var jobs = [];
+    w.categories.forEach(function (c) {
+      var e = w.entries[c.id];
+      if (!e) return;
+      var hours = e.hours !== "" && e.hours != null ? Number(e.hours) : null;
+      var hasGoal = e.goalTitle && e.goalTarget !== "" && Number(e.goalTarget) > 0;
+      cycleKeys.forEach(function (ck) {
+        if (hours != null && hours > 0) {
+          jobs.push(api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: ck, category_id: c.id, weekly_hours: hours } }));
+        }
+        if (hasGoal) {
+          jobs.push(api("/api/goals", {
+            method: "POST", body: { category_id: c.id, cycle_key: ck, title: e.goalTitle, target: Number(e.goalTarget), unit: e.goalUnit || null },
+          }));
+        }
+      });
+    });
+
+    var btn = $("#btnWizardNext");
+    busy(btn, true);
+    Promise.all(jobs)
+      .then(function () {
+        toast("Setup complete ✓");
+        state.wizard = null;
+        return Promise.all([loadCategories(), loadCyclePicker(), loadGalleryCycleDetail()]);
+      })
+      .then(openGallery)
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  }
+
+  $("#btnWizardNext").addEventListener("click", function () {
+    var w = state.wizard;
+    if (!w) return;
+    commitWizardStep();
+    if (w.step === WIZARD_STEPS.length - 1) { finishWizard(); return; }
+    w.step++;
+    renderWizard();
+  });
+
+  $("#btnWizardBack").addEventListener("click", function () {
+    var w = state.wizard;
+    if (!w || w.step === 0) return;
+    commitWizardStep();
+    w.step--;
+    renderWizard();
   });
 
   /* ---------------- category detail (Home > tap a category tile) ---------------- */

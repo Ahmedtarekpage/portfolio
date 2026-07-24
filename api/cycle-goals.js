@@ -3,7 +3,7 @@
 // are permanent (api/categories.js); this endpoint assembles, for one 42-day
 // cycle, each category's optional weekly-hour target + numeric goals +
 // computed progress. Only the current/future cycle is editable.
-//   GET   /api/cycle-goals?list=1          -> cycles for the picker (a few past, current, upcoming)
+//   GET   /api/cycle-goals?list=1&future=N -> cycles for the picker (a few past, current, upcoming; future defaults to 2)
 //   GET   /api/cycle-goals                 -> detail for the current (or next upcoming, if mid-break) cycle
 //   GET   /api/cycle-goals?cycle_key=K     -> detail for that specific cycle
 //   PATCH /api/cycle-goals                 -> { cycle_key, category_id, weekly_hours } upsert a cycle's hour target
@@ -29,7 +29,11 @@ export default withErrors(async (req, res) => {
   const today = todayISO();
 
   if (req.method === "GET" && req.query.list) {
-    return json(res, 200, { today: cycleInfo(today), cycles: listCycles(today) });
+    // the setup wizard needs to look further ahead than the normal picker
+    // window (to apply the same goal across several upcoming cycles)
+    const future = req.query.future ? Math.min(12, Math.max(0, Number(req.query.future))) : undefined;
+    const opts = future != null && !Number.isNaN(future) ? { future } : undefined;
+    return json(res, 200, { today: cycleInfo(today), cycles: listCycles(today, opts) });
   }
 
   if (req.method === "GET") {
