@@ -515,10 +515,32 @@
       '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
         '" style="width:' + pct + '%"></div></div>' +
       '<div class="goal-row__nums">' +
-        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '" /> / ' +
-        '<b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
+        '<button type="button" class="goal-row__step" data-delta="-1" title="-1">−</button>' +
+        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '" />' +
+        '<button type="button" class="goal-row__step" data-delta="1" title="+1">+</button>' +
+        ' / <b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
       '</div>' +
     '</div>';
+  }
+
+  // updates the bar/percentage/input in place, no page-wide reload — used by the
+  // +1/-1 buttons so quick repeated taps (e.g. logging each prayer) feel instant
+  function updateGoalRowUI(row, current, target) {
+    var pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+    row.querySelector(".goal-row__pct").textContent = pct + "%";
+    var fill = row.querySelector(".goal-row__fill");
+    fill.style.width = pct + "%";
+    fill.classList.toggle("goal-row__fill--done", pct >= 100);
+    row.querySelector(".goal-row__current").value = fmtNum(current);
+  }
+
+  function stepGoal(row, goal, delta) {
+    var target = Number(goal.target) || 0;
+    var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
+    updateGoalRowUI(row, v, target);
+    goal.current = v; // keep in sync so another quick tap steps from the right base
+    api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
 
   function wireGoals(card, category) {
@@ -527,6 +549,9 @@
     (category.goals || []).forEach(function (g) {
       var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
       if (!row) return;
+      row.querySelectorAll(".goal-row__step").forEach(function (btn) {
+        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta)); });
+      });
       row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
         var v = ev.target.value === "" ? 0 : Number(ev.target.value);
         api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
