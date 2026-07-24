@@ -69,6 +69,17 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .theme-toggle--spin { animation: themeSpin 0.5s ease; }
 
+/* ---------- tab bar: Today / Quarter / Analytics ---------- */
+.tabbar { display: flex; gap: 6px; margin: 4px 0 16px; border-bottom: 1px solid var(--glass-brd); }
+.tab {
+  appearance: none; border: none; background: none; cursor: pointer;
+  padding: 9px 4px; margin-bottom: -1px; border-bottom: 2px solid transparent;
+  color: var(--muted); font: 600 0.9rem "Inter", sans-serif; transition: color 0.2s ease, border-color 0.2s ease;
+}
+.tab:hover { color: var(--ink); }
+.tab--active { color: var(--ink); border-bottom-color: var(--blue); }
+.tabpanel[hidden] { display: none; }
+
 .day-nav { display: flex; align-items: center; gap: 6px; }
 .day-nav input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;

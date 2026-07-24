@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=3" />
+  <link rel="stylesheet" href="time.css?v=4" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -70,7 +70,14 @@
         </div>
       </header>
 
+      <nav class="tabbar" id="tabbar">
+        <button type="button" class="tab tab--active" data-tab="today">Today</button>
+        <button type="button" class="tab" data-tab="quarter">Quarter</button>
+        <button type="button" class="tab" data-tab="analytics">Analytics</button>
+      </nav>
+
       <!-- ---- Today ---- -->
+      <section class="tabpanel" data-tabpanel="today">
       <div class="card">
         <div class="card__head">
           <h2>Today's to-do</h2>
@@ -141,8 +148,10 @@
         </div>
         <div class="day-history" id="dayHistory"></div>
       </div>
+      </section>
 
       <!-- ---- Quarters ---- -->
+      <section class="tabpanel" data-tabpanel="quarter" hidden>
       <div class="card">
         <div class="card__head">
           <h2>Quarterly goals</h2>
@@ -177,16 +186,20 @@
           <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
         </div>
       </div>
+      </section>
 
-      <!-- ---- Analytics: at-a-glance bars across every category, for the selected quarter ---- -->
+      <!-- ---- Analytics: at-a-glance charts across every category, for the selected quarter ---- -->
+      <section class="tabpanel" data-tabpanel="analytics" hidden>
       <div class="card">
         <div class="card__head">
           <h2>Analytics</h2>
         </div>
         <p id="noAnalytics" class="muted center" hidden>Add an hour target or a goal to a category to see analytics here.</p>
+
+        <div class="goals__label">Hours</div>
         <div class="donut-row">
           <div>
-            <div class="goals__label">Hours logged by category</div>
+            <div class="goals__label">Logged by category</div>
             <div id="donutHoursByCategory"></div>
           </div>
           <div>
@@ -195,8 +208,21 @@
           </div>
         </div>
         <div id="analyticsHours"></div>
+
+        <div class="goals__label" style="margin-top: 18px">Goals</div>
+        <div class="donut-row">
+          <div>
+            <div class="goals__label">Goals by category</div>
+            <div id="donutGoalsByCategory"></div>
+          </div>
+          <div>
+            <div class="goals__label">Status breakdown</div>
+            <div id="donutGoalsStatus"></div>
+          </div>
+        </div>
         <div id="analyticsGoals"></div>
       </div>
+      </section>
 
     </section>
 
@@ -204,6 +230,6 @@
   </div>
 
   <script src="chart.js?v=5"></script>
-  <script src="time.js?v=7"></script>
+  <script src="time.js?v=8"></script>
 </body>
 </html>

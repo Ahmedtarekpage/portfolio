@@ -119,6 +119,23 @@
     if (state.quarterDetail) renderQuarter(state.quarterDetail);
   });
 
+  /* ---------------- tabs: Today / Quarter / Analytics ---------------- */
+
+  function showTab(name) {
+    document.querySelectorAll("#tabbar .tab").forEach(function (btn) {
+      btn.classList.toggle("tab--active", btn.dataset.tab === name);
+    });
+    document.querySelectorAll(".tabpanel").forEach(function (panel) {
+      panel.hidden = panel.dataset.tabpanel !== name;
+    });
+    try { localStorage.setItem("time-tab", name); } catch (e) {}
+  }
+
+  $("#tabbar").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".tab");
+    if (btn) showTab(btn.dataset.tab);
+  });
+
   /* ---------------- auth ---------------- */
 
   function boot() {
@@ -175,6 +192,8 @@
   function initApp() {
     show("view-loading");
     $("#dayPicker").value = state.currentDate;
+    var savedTab = (function () { try { return localStorage.getItem("time-tab"); } catch (e) { return null; } })();
+    showTab(savedTab && document.querySelector('.tabpanel[data-tabpanel="' + savedTab + '"]') ? savedTab : "today");
     Promise.all([loadQuarters(), loadDay(state.currentDate), loadHistory()])
       .then(function () { show("view-app"); })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
@@ -495,6 +514,8 @@
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
   var PACE_DONUT_COLOR = { ahead: "#1fa876", "on-track": "#60a5fa", behind: "#e2586a", "not-started": "#5f6b7d" };
   var CATEGORY_PALETTE = ["#60a5fa", "#34d399", "#f59e0b", "#a78bfa", "#f472b6", "#22d3ee", "#fb923c", "#94a3b8"];
+  var GOAL_STATUS_LABEL = { done: "Completed", "in-progress": "In progress", "not-started": "Not started" };
+  var GOAL_STATUS_COLOR = { done: "#1fa876", "in-progress": "#60a5fa", "not-started": "#5f6b7d" };
 
   function fmtNum(n) {
     n = Number(n) || 0;
@@ -684,6 +705,22 @@
         hoursBox.appendChild(wrap.firstChild);
       });
     }
+
+    var goalsByCatSlices = goalsCats.map(function (c, i) {
+      return { label: c.name, value: (c.goals || []).length, color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] };
+    });
+    window.renderDonutChart($("#donutGoalsByCategory"), goalsByCatSlices, { label: "Goals by category", centerLabel: "goals" });
+
+    var allGoalsFlat = data ? data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []) : [];
+    var statusCounts = { done: 0, "in-progress": 0, "not-started": 0 };
+    allGoalsFlat.forEach(function (g) {
+      var status = goalPct(g) >= 100 ? "done" : (Number(g.current) > 0 ? "in-progress" : "not-started");
+      statusCounts[status]++;
+    });
+    var statusSlices = Object.keys(GOAL_STATUS_LABEL).map(function (key) {
+      return { label: GOAL_STATUS_LABEL[key], value: statusCounts[key], color: GOAL_STATUS_COLOR[key] };
+    });
+    window.renderDonutChart($("#donutGoalsStatus"), statusSlices, { label: "Goals status", centerLabel: "goals" });
 
     if (goalsCats.length) {
       var goalsTitle = document.createElement("div");
