@@ -174,6 +174,38 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .badge--good { color: #6ee7b0; background: rgba(31, 168, 118, 0.16); border: 1px solid rgba(31, 168, 118, 0.45); }
 .badge--muted { color: var(--muted); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-brd); }
 
+/* ---------- goals: concrete numeric milestones within a category ---------- */
+.goals { margin-top: 14px; border-top: 1px solid var(--glass-brd); padding-top: 12px; }
+.goals__label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); margin-bottom: 8px; }
+.goal-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--glass-brd); }
+.goal-row:last-of-type { border-bottom: none; }
+.goal-row__top { display: flex; align-items: center; gap: 8px; }
+.goal-row__title { flex: 1; font-size: 0.88rem; font-weight: 500; }
+.goal-row__pct { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.goal-row__bar {
+  height: 8px; border-radius: 999px; background: var(--glass-brd); overflow: hidden;
+}
+.goal-row__fill {
+  height: 100%; border-radius: 999px; background: var(--grad);
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.goal-row__fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
+.goal-row__nums { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+.goal-row__current {
+  width: 72px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 4px 7px; font: 400 0.82rem "Inter", sans-serif; outline: none;
+}
+.goal-row__current:focus { border-color: var(--blue); }
+
+.goal-add-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.goal-add-form input {
+  flex: 1; min-width: 100px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 7px 10px; font: 400 0.85rem "Inter", sans-serif; outline: none;
+}
+.goal-add-form input:focus { border-color: var(--blue); }
+.goal-add-form input[name="target"] { flex: none; width: 90px; }
+.goal-add-form input[name="unit"] { flex: none; width: 90px; }
+
 .checkline { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
 .checkline input { width: 16px; height: 16px; accent-color: var(--blue); }
 

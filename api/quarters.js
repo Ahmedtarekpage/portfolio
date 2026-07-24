@@ -50,18 +50,27 @@ export default withErrors(async (req, res) => {
     if (!quarter) return json(res, 404, { error: "Quarter not found" });
 
     const categories = await sql`SELECT * FROM quarter_categories WHERE quarter_id = ${id} ORDER BY created_at`;
-    const tasks = categories.length
-      ? await sql`SELECT category_id, task_date, done, actual_hours FROM tasks
-          WHERE category_id = ANY(${categories.map((c) => c.id)})`
+    const categoryIds = categories.map((c) => c.id);
+    const tasks = categoryIds.length
+      ? await sql`SELECT category_id, task_date, done, actual_hours FROM tasks WHERE category_id = ANY(${categoryIds})`
+      : [];
+    const allGoals = categoryIds.length
+      ? await sql`SELECT * FROM goals WHERE category_id = ANY(${categoryIds}) ORDER BY created_at`
       : [];
     const byCategory = new Map();
     for (const t of tasks) {
       if (!byCategory.has(t.category_id)) byCategory.set(t.category_id, []);
       byCategory.get(t.category_id).push(t);
     }
+    const goalsByCategory = new Map();
+    for (const g of allGoals) {
+      if (!goalsByCategory.has(g.category_id)) goalsByCategory.set(g.category_id, []);
+      goalsByCategory.get(g.category_id).push(g);
+    }
     const withProgress = categories.map((c) => ({
       ...c,
       progress: categoryProgress(c, byCategory.get(c.id) || [], quarter.start_date, quarter.end_date, quarter.anti_perfectionist),
+      goals: goalsByCategory.get(c.id) || [],
     }));
     return json(res, 200, { quarter, categories: withProgress });
   }

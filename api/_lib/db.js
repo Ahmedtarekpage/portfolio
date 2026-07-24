@@ -93,6 +93,18 @@ async function migrate(sql) {
   // drag-to-reorder position within a day, and a picked emoji icon per task
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
+  // concrete numeric milestones within a category (e.g. "Job applications: 320/500"),
+  // separate from the weekly-hour effort tracking above
+  await sql`CREATE TABLE IF NOT EXISTS goals (
+    id SERIAL PRIMARY KEY,
+    category_id INTEGER NOT NULL REFERENCES quarter_categories(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    target NUMERIC NOT NULL,
+    current NUMERIC NOT NULL DEFAULT 0,
+    unit TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS goals_category_idx ON goals (category_id)`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

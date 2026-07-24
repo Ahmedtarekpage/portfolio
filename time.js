@@ -494,6 +494,83 @@
   var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
 
+  function fmtNum(n) {
+    n = Number(n) || 0;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+
+  function goalPct(g) {
+    return Number(g.target) > 0 ? Math.min(100, Math.round((Number(g.current) / Number(g.target)) * 100)) : 0;
+  }
+
+  function goalRowHtml(g) {
+    var pct = goalPct(g);
+    return '<div class="goal-row" data-id="' + g.id + '">' +
+      '<div class="goal-row__top">' +
+        '<span class="goal-row__title">' + esc(g.title) + '</span>' +
+        '<span class="goal-row__pct">' + pct + '%</span>' +
+        '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
+        '<button type="button" class="iconbtn" title="Delete goal">✕</button>' +
+      '</div>' +
+      '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
+        '" style="width:' + pct + '%"></div></div>' +
+      '<div class="goal-row__nums">' +
+        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '" /> / ' +
+        '<b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function wireGoals(card, category) {
+    var box = card.querySelector(".goals");
+
+    (category.goals || []).forEach(function (g) {
+      var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
+      if (!row) return;
+      row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
+        var v = ev.target.value === "" ? 0 : Number(ev.target.value);
+        api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
+          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .catch(function (e) { toast(e.message, true); });
+      });
+      row.querySelector(".iconbtn--edit").addEventListener("click", function () {
+        var form = box.querySelector(".goal-add-form");
+        form.elements.title.value = g.title;
+        form.elements.target.value = Number(g.target);
+        form.elements.unit.value = g.unit || "";
+        form.dataset.editingId = g.id;
+        form.querySelector("button[type=submit]").textContent = "Update";
+        form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
+        if (!confirm('Delete goal "' + g.title + '"?')) return;
+        api("/api/goals?id=" + g.id, { method: "DELETE" })
+          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .catch(function (e) { toast(e.message, true); });
+      });
+    });
+
+    var addForm = box.querySelector(".goal-add-form");
+    addForm.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var form = this;
+      var btn = form.querySelector("button[type=submit]");
+      var editingId = form.dataset.editingId;
+      var body = {
+        title: form.elements.title.value.trim(),
+        target: Number(form.elements.target.value),
+        unit: form.elements.unit.value.trim() || null,
+      };
+      if (!editingId) body.category_id = category.id;
+      busy(btn, true);
+      (editingId ? api("/api/goals?id=" + editingId, { method: "PATCH", body: body })
+                 : api("/api/goals", { method: "POST", body: body }))
+        .then(function () { toast(editingId ? "Goal updated ✓" : "Goal added ✓"); return loadQuarterDetail(state.selectedQuarterId); })
+        .catch(function (e) { toast(e.message, true); })
+        .finally(function () { busy(btn, false); });
+    });
+  }
+
   function renderQuarter(data) {
     $("#noQuarters").hidden = state.quarters.length > 0;
     $("#quarterSelect").hidden = state.quarters.length === 0;
@@ -523,11 +600,22 @@
           '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
           '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
         '</div>' +
-        '<div class="chart" style="min-height:190px"></div>';
+        '<div class="chart" style="min-height:190px"></div>' +
+        '<div class="goals">' +
+          '<div class="goals__label">Goals</div>' +
+          (c.goals || []).map(goalRowHtml).join("") +
+          '<form class="goal-add-form">' +
+            '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
+            '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
+            '<input name="unit" placeholder="unit" />' +
+            '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
+          '</form>' +
+        '</div>';
       box.appendChild(card);
       window.renderProgressChart(card.querySelector(".chart"), p.timeline, {
         start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
       });
+      wireGoals(card, c);
     });
   }
 
