@@ -521,11 +521,35 @@
     row.querySelector(".goal-row__current").value = fmtNum(current);
   }
 
-  function stepGoal(row, goal, delta) {
+  // same in-place update as updateGoalRowUI, but for a combined "overall" bar
+  // (a category's goals combined, or the whole quarter's goals combined)
+  function updateOverallBarUI(container, pct) {
+    if (!container) return;
+    container.querySelector(".goals-overall__pct").textContent = pct + "%";
+    var fill = container.querySelector(".goal-row__fill");
+    fill.style.width = pct + "%";
+    fill.classList.toggle("goal-row__fill--done", pct >= 100);
+  }
+
+  // recomputes this category's overall bar and the whole-quarter overall bar
+  // from in-memory state — no reload, so it stays instant alongside +1/-1 taps
+  function refreshOverallBars(card, category) {
+    var catPct = combinedGoalsPct(category.goals);
+    if (catPct != null) updateOverallBarUI(card.querySelector(".goals > .goals-overall"), catPct);
+
+    if (state.quarterDetail) {
+      var allGoals = state.quarterDetail.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
+      var qPct = combinedGoalsPct(allGoals);
+      if (qPct != null) updateOverallBarUI($("#categoryCards").querySelector(":scope > .goals-overall"), qPct);
+    }
+  }
+
+  function stepGoal(row, goal, delta, card, category) {
     var target = Number(goal.target) || 0;
     var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
     updateGoalRowUI(row, v, target);
     goal.current = v; // keep in sync so another quick tap steps from the right base
+    refreshOverallBars(card, category);
     api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
       .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
@@ -537,7 +561,7 @@
       var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
       if (!row) return;
       row.querySelectorAll(".goal-row__step").forEach(function (btn) {
-        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta)); });
+        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta), card, category); });
       });
       row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
         var v = ev.target.value === "" ? 0 : Number(ev.target.value);
