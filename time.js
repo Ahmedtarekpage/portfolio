@@ -833,7 +833,7 @@
 
   $("#btnStartWizard").addEventListener("click", function () {
     state.wizard = {
-      step: 0, offsetDays: 0, targetCycleKey: null, targetCycle: null,
+      step: 0, startDate: todayISO(), targetCycleKey: null, targetCycle: null,
       categories: state.categories.slice(), cyclesAhead: 1, entries: {}, cyclesWindow: [],
     };
     $("#homeGallery").hidden = true;
@@ -850,7 +850,7 @@
   function resolveWizardTarget() {
     var w = state.wizard;
     if (!w) return;
-    var target = addDays(todayISO(), w.offsetDays);
+    var target = w.startDate || todayISO();
     var containing = w.cyclesWindow.filter(function (c) { return c.start <= target && target <= c.end; })[0];
     var upcoming = w.cyclesWindow.filter(function (c) { return c.start > target; })[0];
     var chosen = containing || upcoming || w.cyclesWindow[w.cyclesWindow.length - 1] || null;
@@ -889,8 +889,8 @@
 
   function wizardStepStartHtml() {
     var w = state.wizard;
-    return '<label>Start in how many days from today?' +
-        '<input type="number" min="0" step="1" id="wizStartOffset" value="' + w.offsetDays + '" />' +
+    return '<label>When do you want to start?' +
+        '<input type="date" id="wizStartDate" min="' + todayISO() + '" value="' + w.startDate + '" />' +
       '</label>' +
       '<p class="muted" id="wizStartPreview"></p>';
   }
@@ -900,9 +900,8 @@
     resolveWizardTarget();
     var el = $("#wizStartPreview");
     if (!el) return;
-    if (!w.targetCycle) { el.textContent = "No cycle found that far ahead — try a smaller number of days."; return; }
-    var target = addDays(todayISO(), w.offsetDays);
-    var snapped = target < w.targetCycle.start;
+    if (!w.targetCycle) { el.textContent = "No cycle found around that date — try a different one."; return; }
+    var snapped = w.startDate < w.targetCycle.start;
     el.textContent = (snapped ? "That date falls in a break, so you'll start at the next cycle: " : "That's ") +
       w.targetCycle.label + " (" + fmtDate(w.targetCycle.start) + "–" + fmtDate(w.targetCycle.end) + ").";
   }
@@ -962,9 +961,9 @@
   function wireWizardStep() {
     var w = state.wizard;
     if (w.step === 1) {
-      var offsetInput = $("#wizStartOffset");
-      offsetInput.addEventListener("input", function () {
-        w.offsetDays = Math.max(0, Number(offsetInput.value) || 0);
+      var dateInput = $("#wizStartDate");
+      dateInput.addEventListener("change", function () {
+        w.startDate = dateInput.value || todayISO();
         updateWizardStartPreview();
       });
       updateWizardStartPreview();
@@ -997,8 +996,8 @@
   function commitWizardStep() {
     var w = state.wizard;
     if (w.step === 1) {
-      var offsetInput = $("#wizStartOffset");
-      w.offsetDays = offsetInput ? Math.max(0, Number(offsetInput.value) || 0) : w.offsetDays;
+      var dateInput = $("#wizStartDate");
+      w.startDate = dateInput && dateInput.value ? dateInput.value : w.startDate;
       resolveWizardTarget();
     } else if (w.step === 3) {
       var cyclesInput = $("#wizCyclesAhead");
