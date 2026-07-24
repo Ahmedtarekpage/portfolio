@@ -9,7 +9,8 @@
 .day-nav input[type="date"]:focus { border-color: var(--blue); }
 
 .day-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
-.day-actions__dup { display: inline-flex; gap: 6px; align-items: center; }
+.day-actions__dup { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.day-actions__dup-label { font-size: 0.8rem; }
 .day-actions__dup input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
   color: var(--ink); padding: 6px 10px; font: 400 0.85rem "Inter", sans-serif;
