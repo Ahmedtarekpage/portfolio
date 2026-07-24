@@ -309,6 +309,11 @@
   window.renderProgressChart = function (box, timeline, opts) {
     opts = opts || {};
     box.innerHTML = "";
+    // read theme-aware colors from CSS custom properties so light/dark both render correctly
+    var cs = getComputedStyle(document.documentElement);
+    var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
+    var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
+    var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
     var start = new Date(String(opts.start).slice(0, 10) + "T00:00:00Z").getTime();
     var end = new Date(String(opts.end).slice(0, 10) + "T00:00:00Z").getTime();
     if (end <= start) end = start + DAY;
@@ -331,8 +336,8 @@
 
     var step = niceStep(yMax, 3);
     for (var v = 0; v <= yMax; v += step) {
-      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: "rgba(255,255,255,0.06)", "stroke-width": 1 }));
-      var lbl = svgEl("text", { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", fill: "#5f6b7d", "font-size": 10 });
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
+      var lbl = svgEl("text", { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", fill: faint, "font-size": 10 });
       lbl.textContent = Number.isInteger(v) ? v : v.toFixed(1);
       svg.appendChild(lbl);
     }
@@ -340,7 +345,7 @@
     // expected pace: straight line from (start, 0) to (end, target)
     var expectedEl = svgEl("path", {
       d: "M " + x(start) + " " + y(0) + " L " + x(end) + " " + y(target),
-      fill: "none", stroke: "#5f6b7d", "stroke-width": 1.5, "stroke-dasharray": "5 5",
+      fill: "none", stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5",
     });
     svg.appendChild(expectedEl);
 
@@ -357,11 +362,11 @@
     svg.appendChild(lineEl);
 
     if (todayT >= start && todayT <= end) {
-      svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
+      svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
     }
 
     [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
-      var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: "#5f6b7d", "font-size": 10 });
+      var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
       xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
       svg.appendChild(xl);
     });
