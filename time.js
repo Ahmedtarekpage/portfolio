@@ -1,6 +1,7 @@
 /* Time-tracking page logic: passkey auth (shared with /admin), a tabbed app
-   (Home / Categories / Elmktb / Analytics) built around an auto-computed
-   Year > Virtual-Year > Cycle > Quarter schedule (see api/_lib/cycle.js). */
+   (Home / Elmktb / Analytics) built around an auto-computed Year > Virtual-Year
+   > Cycle > Quarter schedule (see api/_lib/cycle.js). Home is a gallery of
+   tiles — Today + one per category — tap a tile to drill into its detail. */
 (function () {
   "use strict";
 
@@ -8,10 +9,14 @@
   var state = {
     currentDate: todayISO(),
     activeTab: "home",
+    dayStats: { pct: 0, done: 0, total: 0 },
     categories: [],
     todayInfo: null,
     cycles: [],
-    selectedCycleKey: null,
+    currentCycleKey: null,      // the actual current cycle — gallery tiles always reflect this
+    galleryCycleDetail: null,   // current-cycle data, for gallery tile stats
+    selectedCategoryId: null,   // which category's detail is open (Home)
+    selectedCycleKey: null,     // cycle being browsed inside an open category detail
     cycleDetail: null,
     analyticsCycleKey: null,
     analyticsDetail: null,
@@ -122,7 +127,7 @@
       btn.classList.add("theme-toggle--spin");
     }
     // charts read CSS custom properties at render time — redraw with the new theme's colors
-    if (state.cycleDetail) renderCategories(state.cycleDetail);
+    if (state.cycleDetail) renderCategoryDetail(state.cycleDetail);
     if (state.analyticsDetail) renderAnalytics(state.analyticsDetail);
   });
 
@@ -136,7 +141,7 @@
     document.querySelectorAll(".tabpanel").forEach(function (panel) {
       panel.hidden = panel.dataset.tabpanel !== name;
     });
-    if (name === "categories") loadCycleDetail(state.selectedCycleKey);
+    if (name === "home") openGallery();
     if (name === "elmktb") loadElmktb();
     if (name === "analytics") loadAnalyticsDetail(state.analyticsCycleKey);
   }
@@ -203,8 +208,8 @@
     show("view-loading");
     $("#dayPicker").value = state.currentDate;
     Promise.all([loadCategories(), loadCyclePicker(), loadDay(state.currentDate), loadHistory()])
-      .then(function () { return loadCycleDetail(state.selectedCycleKey); })
-      .then(function () { show("view-app"); })
+      .then(function () { return loadGalleryCycleDetail(); })
+      .then(function () { openGallery(); show("view-app"); })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
   }
 
@@ -265,8 +270,11 @@
   function renderTasks(tasks) {
     var total = tasks.length;
     var done = tasks.filter(function (t) { return t.done; }).length;
-    animateCount($("#dayPercent"), total ? Math.round((done / total) * 100) : 0, "%");
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    state.dayStats = { pct: pct, done: done, total: total };
+    animateCount($("#dayPercent"), pct, "%");
     $("#dayCount").textContent = done + " of " + total + " task" + (total === 1 ? "" : "s");
+    if (!$("#homeGallery").hidden) renderGallery();
 
     var list = $("#taskList");
     list.innerHTML = "";
@@ -316,11 +324,11 @@
   }
 
   // a task's done/actual-hours change can move the daily % and a category's
-  // cycle progress, so refresh the day, the 14-day strip, and whichever
-  // goal/analytics view is currently loaded together
+  // cycle progress, so refresh the day, the 14-day strip, the gallery, and
+  // whichever goal/analytics view is currently loaded together
   function afterTaskChange() {
-    var jobs = [loadDay(state.currentDate), loadHistory()];
-    if (state.selectedCycleKey) jobs.push(loadCycleDetail(state.selectedCycleKey));
+    var jobs = [loadDay(state.currentDate), loadHistory(), loadGalleryCycleDetail()];
+    if (!$("#homeDetailCategory").hidden && state.selectedCycleKey) jobs.push(loadCycleDetail(state.selectedCycleKey));
     if (state.activeTab === "analytics" && state.analyticsCycleKey) jobs.push(loadAnalyticsDetail(state.analyticsCycleKey));
     if (state.activeTab === "elmktb") jobs.push(loadElmktb());
     return Promise.all(jobs);
@@ -501,13 +509,13 @@
       .then(function () {
         form.reset();
         toast("Category added ✓");
-        return Promise.all([loadCategories(), loadCycleDetail(state.selectedCycleKey)]);
+        return Promise.all([loadCategories(), loadGalleryCycleDetail()]);
       })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
 
-  /* ---------------- cycle status (Home) + picker (Categories/Analytics) ---------------- */
+  /* ---------------- cycle status (Home) + picker (category detail/Analytics) ---------------- */
 
   function renderCycleStatus() {
     var info = state.todayInfo;
@@ -542,9 +550,8 @@
 
       var current = state.cycles.filter(function (c) { return c.current; })[0];
       var fallback = current || state.cycles[state.cycles.length - 1];
-      if (!state.selectedCycleKey && fallback) state.selectedCycleKey = fallback.cycleKey;
+      state.currentCycleKey = fallback ? fallback.cycleKey : null;
       if (!state.analyticsCycleKey && fallback) state.analyticsCycleKey = fallback.cycleKey;
-      if (state.selectedCycleKey) $("#cycleSelect").value = state.selectedCycleKey;
       if (state.analyticsCycleKey) $("#analyticsCycleSelect").value = state.analyticsCycleKey;
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -671,7 +678,127 @@
     });
   }
 
-  /* ---------------- Categories tab ---------------- */
+  /* ---------------- Home gallery: Today tile + one tile per category ---------------- */
+
+  var CATEGORY_ICON_RULES = [
+    [/relig|spirit|pray|faith|azkar/i, "🙏"],
+    [/health|fit|gym|body|workout/i, "💪"],
+    [/cash|money|financ|income|invest/i, "💰"],
+    [/business|career|work|job/i, "💼"],
+    [/learn|study|course|educat|read/i, "📚"],
+    [/brand|market|social|content/i, "🎨"],
+    [/rest|sleep|recover/i, "🧘"],
+    [/travel/i, "✈️"],
+  ];
+
+  function categoryIcon(name) {
+    for (var i = 0; i < CATEGORY_ICON_RULES.length; i++) {
+      if (CATEGORY_ICON_RULES[i][0].test(name)) return CATEGORY_ICON_RULES[i][1];
+    }
+    return "⭐";
+  }
+
+  // a single combined completion % for the tile: hours pace if a weekly
+  // target is set, else the average of the cycle's numeric goals, else none
+  function categoryPct(c) {
+    if (c.weekly_hours != null && Number(c.weekly_hours) > 0 && c.progress && c.progress.target > 0) {
+      return Math.min(100, Math.round((c.progress.actual / c.progress.target) * 100));
+    }
+    var goals = c.goals || [];
+    if (goals.length) {
+      var sum = goals.reduce(function (s, g) { return s + goalPct(g); }, 0);
+      return Math.round(sum / goals.length);
+    }
+    return null;
+  }
+
+  var RING_CIRC = 113.1; // 2 * pi * r18
+
+  function ringSvg(pct) {
+    var offset = RING_CIRC * (1 - (pct || 0) / 100);
+    return '<svg class="ring" viewBox="0 0 44 44" width="56" height="56" aria-hidden="true">' +
+      '<circle class="ring__track" cx="22" cy="22" r="18" />' +
+      '<circle class="ring__fill" cx="22" cy="22" r="18" stroke-dasharray="' + RING_CIRC + '" ' +
+        'stroke-dashoffset="' + (reduceMotion ? offset : RING_CIRC) + '" data-offset="' + offset + '" />' +
+    '</svg>';
+  }
+
+  function galleryTileHtml(opts) {
+    return '<button type="button" class="gallery-tile" data-kind="' + opts.kind + '"' +
+      (opts.id != null ? ' data-id="' + opts.id + '"' : '') + '>' +
+      '<span class="gallery-tile__ring">' + ringSvg(opts.pct) + '<span class="gallery-tile__icon">' + opts.icon + '</span></span>' +
+      '<span class="gallery-tile__name">' + esc(opts.name) + '</span>' +
+      '<span class="gallery-tile__pct">' + (opts.pct == null ? esc(opts.sub || "—") : opts.pct + "%") + '</span>' +
+    '</button>';
+  }
+
+  function loadGalleryCycleDetail() {
+    if (!state.currentCycleKey) return Promise.resolve();
+    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(state.currentCycleKey)).then(function (data) {
+      state.galleryCycleDetail = data;
+      if (!$("#homeGallery").hidden) renderGallery();
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function renderGallery() {
+    var box = $("#galleryGrid");
+    var categories = (state.galleryCycleDetail && state.galleryCycleDetail.categories) || [];
+    var tiles = [galleryTileHtml({
+      kind: "today", icon: "📅", name: "Today",
+      pct: state.dayStats.total ? state.dayStats.pct : null,
+      sub: state.dayStats.total ? "" : "No tasks",
+    })];
+    categories.forEach(function (c) {
+      tiles.push(galleryTileHtml({ kind: "category", id: c.id, icon: categoryIcon(c.name), name: c.name, pct: categoryPct(c) }));
+    });
+    box.innerHTML = tiles.join("");
+
+    if (!reduceMotion) {
+      // double rAF: the full-circle (0%) state must paint before animating to the real offset
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          box.querySelectorAll(".ring__fill").forEach(function (el) { el.style.strokeDashoffset = el.dataset.offset; });
+        });
+      });
+    }
+
+    box.querySelectorAll(".gallery-tile").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (btn.dataset.kind === "today") openToday();
+        else openCategory(Number(btn.dataset.id));
+      });
+    });
+  }
+
+  function openGallery() {
+    state.selectedCategoryId = null;
+    $("#homeGallery").hidden = false;
+    $("#homeDetailToday").hidden = true;
+    $("#homeDetailCategory").hidden = true;
+    renderGallery();
+  }
+
+  function openToday() {
+    $("#homeGallery").hidden = true;
+    $("#homeDetailToday").hidden = false;
+    $("#homeDetailCategory").hidden = true;
+  }
+
+  function openCategory(categoryId) {
+    state.selectedCategoryId = categoryId;
+    state.selectedCycleKey = state.currentCycleKey;
+    $("#homeGallery").hidden = true;
+    $("#homeDetailToday").hidden = true;
+    $("#homeDetailCategory").hidden = false;
+    if (state.selectedCycleKey) $("#cycleSelect").value = state.selectedCycleKey;
+    loadCycleDetail(state.selectedCycleKey);
+  }
+
+  document.querySelectorAll(".detail-back").forEach(function (btn) {
+    btn.addEventListener("click", openGallery);
+  });
+
+  /* ---------------- category detail (Home > tap a category tile) ---------------- */
 
   function categoryCardHtml(c, editable) {
     var p = c.progress;
@@ -713,44 +840,51 @@
     if (!cycleKey) return Promise.resolve();
     return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(cycleKey)).then(function (data) {
       state.cycleDetail = data;
-      renderCategories(data);
+      renderCategoryDetail(data);
     }).catch(function (e) { toast(e.message, true); });
   }
 
-  function renderCategories(data) {
-    $("#cycleReadonlyNote").hidden = !!data.editable;
-    var box = $("#categoryCards");
-    $("#noCategories").hidden = (data.categories || []).length > 0;
-    box.innerHTML = (data.categories || []).map(function (c) { return categoryCardHtml(c, data.editable); }).join("");
+  // re-fetches both the open category's detail (for this view) and the
+  // current cycle's gallery snapshot (in case this write touched "now")
+  function refreshCategoryDetail() {
+    return Promise.all([loadCycleDetail(state.selectedCycleKey), loadGalleryCycleDetail()]);
+  }
 
-    (data.categories || []).forEach(function (c) {
-      var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
-      var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
-      if (hasHours) {
-        window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {
-          start: data.start, end: data.end, target: c.progress.target,
-        });
-      }
-      if (data.editable) {
-        card.querySelector(".category-card__delete").addEventListener("click", function () {
-          if (!confirm('Delete category "' + c.name + '"? Its targets/goals are removed everywhere (logged tasks are kept, just uncategorized).')) return;
-          api("/api/categories?id=" + c.id, { method: "DELETE" })
-            .then(function () {
-              toast("Category deleted");
-              return Promise.all([loadCategories(), loadCycleDetail(state.selectedCycleKey), loadDay(state.currentDate)]);
-            })
-            .catch(function (e) { toast(e.message, true); });
-        });
-      }
-      var hoursInput = card.querySelector(".cat-hours-input");
-      hoursInput.addEventListener("change", function () {
-        var v = hoursInput.value === "" ? null : Number(hoursInput.value);
-        api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: data.cycleKey, category_id: c.id, weekly_hours: v } })
-          .then(function () { return loadCycleDetail(state.selectedCycleKey); })
+  function renderCategoryDetail(data) {
+    var c = (data.categories || []).filter(function (x) { return x.id === state.selectedCategoryId; })[0];
+    $("#categoryDetailName").textContent = c ? c.name : "";
+    $("#cycleReadonlyNote").hidden = !!data.editable;
+    var box = $("#categoryDetailBody");
+    if (!c) { box.innerHTML = ""; return; }
+    box.innerHTML = categoryCardHtml(c, data.editable);
+    var card = box.querySelector(".category-card");
+
+    var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
+    if (hasHours) {
+      window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {
+        start: data.start, end: data.end, target: c.progress.target,
+      });
+    }
+    if (data.editable) {
+      card.querySelector(".category-card__delete").addEventListener("click", function () {
+        if (!confirm('Delete category "' + c.name + '"? Its targets/goals are removed everywhere (logged tasks are kept, just uncategorized).')) return;
+        api("/api/categories?id=" + c.id, { method: "DELETE" })
+          .then(function () {
+            toast("Category deleted");
+            return Promise.all([loadCategories(), loadGalleryCycleDetail(), loadDay(state.currentDate)]);
+          })
+          .then(openGallery)
           .catch(function (e) { toast(e.message, true); });
       });
-      wireGoals(card, c, data.cycleKey, data.editable, function () { return loadCycleDetail(state.selectedCycleKey); });
+    }
+    var hoursInput = card.querySelector(".cat-hours-input");
+    hoursInput.addEventListener("change", function () {
+      var v = hoursInput.value === "" ? null : Number(hoursInput.value);
+      api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: data.cycleKey, category_id: c.id, weekly_hours: v } })
+        .then(refreshCategoryDetail)
+        .catch(function (e) { toast(e.message, true); });
     });
+    wireGoals(card, c, data.cycleKey, data.editable, refreshCategoryDetail);
   }
 
   /* ---------------- Elmktb tab: current-cycle goals as a to-do rollup ---------------- */
@@ -837,7 +971,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       if ($("#view-app").hidden) return;
-      if (state.activeTab === "categories" && state.cycleDetail) renderCategories(state.cycleDetail);
+      if (!$("#homeDetailCategory").hidden && state.cycleDetail) renderCategoryDetail(state.cycleDetail);
       if (state.activeTab === "analytics" && state.analyticsDetail) renderAnalytics(state.analyticsDetail);
     }, 150);
   });

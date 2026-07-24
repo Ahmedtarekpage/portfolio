@@ -157,6 +157,44 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 
 .cycle-status { color: var(--muted); font-size: 0.85rem; margin: 0 0 14px; }
 
+/* ---------- Home gallery ---------- */
+.gallery-add-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+.gallery-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 14px;
+}
+.gallery-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(19, 24, 34, 0.78); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-brd); border-radius: 16px; box-shadow: var(--shadow-card);
+  padding: 18px 10px 14px; cursor: pointer; color: var(--ink); font-family: inherit;
+  animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  transition: border-color 0.2s ease, transform 0.15s ease, background-color 0.3s ease, box-shadow 0.2s ease;
+}
+:root[data-theme="light"] .gallery-tile { background: rgba(255, 255, 255, 0.78); }
+.gallery-tile:hover { border-color: rgba(96, 165, 250, 0.35); transform: translateY(-3px); }
+.gallery-tile:active { transform: scale(0.95); }
+.gallery-grid .gallery-tile:nth-child(1) { animation-delay: 0s; }
+.gallery-grid .gallery-tile:nth-child(2) { animation-delay: 0.05s; }
+.gallery-grid .gallery-tile:nth-child(3) { animation-delay: 0.1s; }
+.gallery-grid .gallery-tile:nth-child(4) { animation-delay: 0.15s; }
+.gallery-grid .gallery-tile:nth-child(5) { animation-delay: 0.2s; }
+.gallery-grid .gallery-tile:nth-child(n+6) { animation-delay: 0.25s; }
+
+.gallery-tile__ring { position: relative; width: 56px; height: 56px; display: grid; place-items: center; }
+.gallery-tile__ring .ring { transform: rotate(-90deg); }
+.ring__track { fill: none; stroke: var(--glass-brd); stroke-width: 3; }
+.ring__fill {
+  fill: none; stroke: var(--blue-2); stroke-width: 3; stroke-linecap: round;
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.gallery-tile__icon { position: absolute; font-size: 1.35rem; }
+.gallery-tile__name { font: 600 0.82rem "Space Grotesk", sans-serif; text-align: center; }
+.gallery-tile__pct { font-size: 0.74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Home detail views (Today / a single category) ---------- */
+.detail-view { animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.detail-back { margin-bottom: 12px; }
+
 /* ---------- Categories tab: add-category form + per-cycle weekly target ---------- */
 .category-card__delete { margin-left: auto; }
 .category-card__hours {
