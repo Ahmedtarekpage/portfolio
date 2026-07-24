@@ -47,6 +47,26 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 :root[data-theme="light"] .toast { background: #ffffff; color: var(--ink); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16); }
 :root[data-theme="light"] .toast--error { border-color: rgba(226, 88, 106, 0.4); color: #a3283a; }
 :root[data-theme="light"] .error { color: #a3283a; }
+:root[data-theme="light"] .tooltip { background: #ffffff; color: var(--ink); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16); }
+
+.chart-tip-wrap { position: relative; }
+
+/* ---------- collapsible section blocks (Today tab: Add task / Percent / Graph / To-do list) ---------- */
+.section-collapse { margin-top: 20px; }
+.section-collapse:first-child { margin-top: 0; }
+.section-collapse > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer;
+  list-style: none; padding: 8px 2px; border-bottom: 1px solid var(--glass-brd);
+  font: 600 0.95rem "Space Grotesk", sans-serif; color: var(--ink); transition: color 0.2s ease;
+}
+.section-collapse > summary::-webkit-details-marker { display: none; }
+.section-collapse > summary::after {
+  content: "▾"; color: var(--faint); font-size: 0.75rem; transition: transform 0.25s ease;
+}
+.section-collapse:not([open]) > summary { border-bottom-color: transparent; }
+.section-collapse:not([open]) > summary::after { transform: rotate(-90deg); }
+.section-collapse > summary:hover { color: var(--blue-2); }
+.section-collapse__body { padding-top: 14px; animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 
 /* ---------- modern refresh: glass cards + softer depth ---------- */
 .card {
@@ -163,8 +183,16 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .task-list .task-row:nth-child(6) { animation-delay: 0.175s; }
 .task-list .task-row:nth-child(n+7) { animation-delay: 0.21s; }
 .task-row__check {
-  width: 20px; height: 20px; flex: none; cursor: pointer; accent-color: var(--blue);
-  transition: transform 0.15s ease;
+  width: 20px; height: 20px; flex: none; cursor: pointer; position: relative;
+  appearance: none; -webkit-appearance: none; border-radius: 50%;
+  border: 2px solid var(--glass-brd); background: var(--bg);
+  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+.task-row__check:hover { border-color: var(--blue-2); }
+.task-row__check:checked { background: var(--blue); border-color: var(--blue); }
+.task-row__check:checked::after {
+  content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .task-row__check:active { transform: scale(0.82); }
 .task-row__body { flex: 1; min-width: 0; }

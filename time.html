@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=5" />
+  <link rel="stylesheet" href="time.css?v=6" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -125,70 +125,92 @@
           </div>
         </div>
 
-        <div class="tiles">
-          <div class="tile tile--accent">
-            <div class="tile__label">Completed</div>
-            <div class="tile__value" id="dayPercent">0%</div>
-            <div class="tile__sub" id="dayCount">0 of 0 tasks</div>
+        <details class="section-collapse" open>
+          <summary>📝 Add task</summary>
+          <div class="section-collapse__body">
+            <form id="addTaskForm" class="form form--grid">
+              <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
+              <label>Icon
+                <select name="icon">
+                  <option value="">— none —</option>
+                  <option value="📝">📝 Task</option>
+                  <option value="💻">💻 Work</option>
+                  <option value="💪">💪 Fitness</option>
+                  <option value="📚">📚 Learning</option>
+                  <option value="💰">💰 Finance</option>
+                  <option value="🎨">🎨 Creative</option>
+                  <option value="🧹">🧹 Chores</option>
+                  <option value="🩺">🩺 Health</option>
+                  <option value="🗣️">🗣️ Meeting</option>
+                  <option value="🛠️">🛠️ Build</option>
+                  <option value="🧘">🧘 Rest</option>
+                  <option value="📞">📞 Call</option>
+                  <option value="✈️">✈️ Travel</option>
+                  <option value="🍳">🍳 Cook</option>
+                  <option value="🛒">🛒 Errand</option>
+                  <option value="🎯">🎯 Focus</option>
+                  <option value="😴">😴 Sleep</option>
+                </select>
+              </label>
+              <label>Category
+                <select name="category_id"><option value="">— none —</option></select>
+              </label>
+              <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+              <label id="actualHoursField" hidden>Actual hours<input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+              <div class="span2">
+                <button type="submit" class="btn btn--primary" id="btnTaskSubmit">Add task</button>
+                <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden>Cancel edit</button>
+              </div>
+            </form>
           </div>
-        </div>
+        </details>
 
-        <form id="addTaskForm" class="form form--grid">
-          <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
-          <label>Icon
-            <select name="icon">
-              <option value="">— none —</option>
-              <option value="📝">📝 Task</option>
-              <option value="💻">💻 Work</option>
-              <option value="💪">💪 Fitness</option>
-              <option value="📚">📚 Learning</option>
-              <option value="💰">💰 Finance</option>
-              <option value="🎨">🎨 Creative</option>
-              <option value="🧹">🧹 Chores</option>
-              <option value="🩺">🩺 Health</option>
-              <option value="🗣️">🗣️ Meeting</option>
-              <option value="🛠️">🛠️ Build</option>
-              <option value="🧘">🧘 Rest</option>
-              <option value="📞">📞 Call</option>
-              <option value="✈️">✈️ Travel</option>
-              <option value="🍳">🍳 Cook</option>
-              <option value="🛒">🛒 Errand</option>
-              <option value="🎯">🎯 Focus</option>
-              <option value="😴">😴 Sleep</option>
-            </select>
-          </label>
-          <label>Category
-            <select name="category_id"><option value="">— none —</option></select>
-          </label>
-          <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
-          <label id="actualHoursField" hidden>Actual hours<input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
-          <div class="span2">
-            <button type="submit" class="btn btn--primary" id="btnTaskSubmit">Add task</button>
-            <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden>Cancel edit</button>
+        <details class="section-collapse" open>
+          <summary>📊 Percent</summary>
+          <div class="section-collapse__body">
+            <div class="tiles">
+              <div class="tile tile--accent">
+                <div class="tile__label">Completed</div>
+                <div class="tile__value" id="dayPercent">0%</div>
+                <div class="tile__sub" id="dayCount">0 of 0 tasks</div>
+              </div>
+            </div>
           </div>
-        </form>
+        </details>
 
-        <div class="task-list" id="taskList"></div>
-        <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
+        <details class="section-collapse" open>
+          <summary>📈 Graph</summary>
+          <div class="section-collapse__body">
+            <p id="todayChartEmpty" class="muted center" hidden>Add a task to see today's pace here.</p>
+            <div class="chart-tip-wrap">
+              <div class="chart" id="todayChart" style="min-height:190px"></div>
+              <div id="todayChartTip" class="tooltip" hidden></div>
+            </div>
+          </div>
+        </details>
 
-        <div class="day-actions">
-          <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm">🗑 Clear day</button>
-          <span class="day-actions__dup">
-            <input type="date" id="duplicateDate" aria-label="Duplicate tasks to date" />
-            <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm">📋 Copy tasks here</button>
-          </span>
-        </div>
+        <details class="section-collapse" open>
+          <summary>✅ To-do list</summary>
+          <div class="section-collapse__body">
+            <div class="task-list" id="taskList"></div>
+            <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
 
-        <div class="card__head" style="margin-top: 22px">
-          <h2>Completion pace</h2>
-        </div>
-        <p id="todayChartEmpty" class="muted center" hidden>Add a task to see today's pace here.</p>
-        <div class="chart" id="todayChart" style="min-height:190px"></div>
+            <div class="day-actions">
+              <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm">🗑 Clear day</button>
+              <span class="day-actions__dup">
+                <input type="date" id="duplicateDate" aria-label="Duplicate tasks to date" />
+                <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm">📋 Copy tasks here</button>
+              </span>
+            </div>
+          </div>
+        </details>
 
-        <div class="card__head" style="margin-top: 22px">
-          <h2>Last 14 days</h2>
-        </div>
-        <div class="day-history" id="dayHistory"></div>
+        <details class="section-collapse">
+          <summary>🗓 Last 14 days</summary>
+          <div class="section-collapse__body">
+            <div class="day-history" id="dayHistory"></div>
+          </div>
+        </details>
       </div>
       </section>
 
@@ -271,7 +293,7 @@
     <p id="toast" class="toast" hidden></p>
   </div>
 
-  <script src="chart.js?v=6"></script>
-  <script src="time.js?v=10"></script>
+  <script src="chart.js?v=7"></script>
+  <script src="time.js?v=11"></script>
 </body>
 </html>

@@ -470,58 +470,58 @@
     }
   };
 
-  /* Single day's completion pace — a stepped cumulative line across that day's
-     24 hours (points = [{ time: ISO datetime, cumulative }]), with a dashed
-     target line at the day's total task count. Used by /time's Today tab so
-     each completed task nudges the line forward at the hour it happened. */
-  window.renderDayChart = function (box, points, opts) {
+  /* Single day's completion pace — a stepped % line across that day's 24
+     hours (points = [{ time: ISO datetime, title, cumulative }]), with a
+     dashed 100% target line and a hoverable/tappable marker + tooltip on
+     every completed task. Used by /time's Today tab so each completed task
+     nudges the line forward, with details, at the hour it happened. */
+  window.renderDayChart = function (box, tip, points, opts) {
     opts = opts || {};
     box.innerHTML = "";
     var cs = getComputedStyle(document.documentElement);
     var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
     var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
     var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
+    var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
 
     var dayStart = new Date(String(opts.date).slice(0, 10) + "T00:00:00");
     var start = dayStart.getTime();
     var end = start + 24 * 3600 * 1000;
-    var target = Number(opts.target) || 0;
+    var total = Number(opts.target) || 0;
     var showNow = !!opts.showNow;
     var nowT = Date.now();
+    function pctOf(count) { return total > 0 ? Math.min(100, (count / total) * 100) : 0; }
 
-    var logged = (points || []).map(function (p) { return { t: new Date(p.time).getTime(), v: Number(p.cumulative) }; });
-    var actualPts = [{ t: start, v: 0 }].concat(logged);
-    var lastActual = actualPts[actualPts.length - 1].v;
+    var logged = (points || []).map(function (p) {
+      return { t: new Date(p.time).getTime(), count: Number(p.cumulative), pct: pctOf(Number(p.cumulative)), title: p.title };
+    });
+    var actualPts = [{ t: start, pct: 0 }].concat(logged);
+    var lastPct = actualPts[actualPts.length - 1].pct;
 
     var W = Math.max(box.clientWidth || 600, 260), H = 190;
-    var M = { l: 30, r: 12, t: 14, b: 24 };
-    var yMax = Math.max(target, lastActual, 1) * 1.1;
+    var M = { l: 34, r: 12, t: 14, b: 24 };
     var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
-    var y = function (v) { return H - M.b - (v / yMax) * (H - M.t - M.b); };
+    var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
 
     var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Today's completion pace" });
 
-    var step = niceStep(yMax, 3);
-    for (var v = 0; v <= yMax; v += step) {
+    [0, 25, 50, 75, 100].forEach(function (v) {
       svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
       var lbl = svgEl("text", { x: M.l - 6, y: y(v) + 4, "text-anchor": "end", fill: faint, "font-size": 10 });
-      lbl.textContent = Number.isInteger(v) ? v : v.toFixed(1);
+      lbl.textContent = v + "%";
       svg.appendChild(lbl);
-    }
-
-    if (target > 0) {
-      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(target), y2: y(target), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" }));
-    }
+    });
+    svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(100), y2: y(100), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" }));
 
     var color = opts.color || "#60a5fa";
-    var d = "M " + x(actualPts[0].t) + " " + y(actualPts[0].v);
+    var d = "M " + x(actualPts[0].t) + " " + y(actualPts[0].pct);
     for (var i = 1; i < actualPts.length; i++) {
-      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i - 1].v);
-      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i].v);
+      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i - 1].pct);
+      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i].pct);
     }
     var lastT = actualPts[actualPts.length - 1].t;
     var extendTo = showNow ? Math.min(Math.max(nowT, lastT), end) : lastT;
-    if (extendTo > lastT) d += " L " + x(extendTo) + " " + y(lastActual);
+    if (extendTo > lastT) d += " L " + x(extendTo) + " " + y(lastPct);
     var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
     svg.appendChild(lineEl);
 
@@ -537,6 +537,61 @@
       svg.appendChild(xl);
     });
 
+    // one marker per completed task — hover/tap reveals its details
+    var markers = [];
+    logged.forEach(function (p) {
+      var cx = x(p.t), cy = y(p.pct);
+      var m = svgEl("circle", { cx: cx, cy: cy, r: 4.5, fill: color, stroke: surface, "stroke-width": 2 });
+      svg.appendChild(m);
+      markers.push({ p: p, cx: cx, cy: cy, el: m });
+    });
+
+    if (tip && markers.length) {
+      var cross = svgEl("line", { y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, visibility: "hidden" });
+      var ring = svgEl("circle", { r: 8, fill: "none", stroke: color, "stroke-width": 1.5, visibility: "hidden" });
+      svg.appendChild(cross);
+      svg.appendChild(ring);
+
+      var overlay = svgEl("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: "transparent" });
+      overlay.style.touchAction = "pan-y";
+      overlay.style.cursor = "pointer";
+      svg.appendChild(overlay);
+
+      var nearest = function (ev) {
+        var rect = svg.getBoundingClientRect();
+        var px = ((ev.clientX - rect.left) / rect.width) * W;
+        var best = null, bestD = Infinity;
+        markers.forEach(function (m) {
+          var dd = Math.abs(m.cx - px);
+          if (dd < bestD) { bestD = dd; best = m; }
+        });
+        return best;
+      };
+      var showTip = function (best) {
+        cross.setAttribute("x1", best.cx); cross.setAttribute("x2", best.cx);
+        cross.setAttribute("visibility", "visible");
+        ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
+        ring.setAttribute("visibility", "visible");
+        var timeLabel = new Date(best.p.t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        tip.innerHTML = '<div class="muted">' + timeLabel + '</div>' + esc(best.p.title) +
+          '<div>Progress: <b>' + Math.round(best.p.pct) + '%</b> (' + best.p.count + '/' + total + ')</div>';
+        tip.hidden = false;
+        var bx = box.getBoundingClientRect();
+        var left = (best.cx / W) * bx.width + 12;
+        if (left + 190 > bx.width) left = left - 214;
+        tip.style.left = Math.max(left, 4) + "px";
+        tip.style.top = Math.max((best.cy / H) * bx.height - 40, 0) + "px";
+      };
+      var hideTip = function () {
+        cross.setAttribute("visibility", "hidden");
+        ring.setAttribute("visibility", "hidden");
+        tip.hidden = true;
+      };
+      overlay.addEventListener("pointermove", function (ev) { var best = nearest(ev); if (best) showTip(best); });
+      overlay.addEventListener("pointerdown", function (ev) { var best = nearest(ev); if (best) showTip(best); });
+      overlay.addEventListener("pointerleave", hideTip);
+    }
+
     box.appendChild(svg);
 
     var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -549,6 +604,16 @@
         lineEl.style.transition = "stroke-dashoffset 0.8s ease";
         lineEl.style.strokeDashoffset = 0;
       } catch (e) { /* SVG not measurable — skip animation */ }
+      markers.forEach(function (m, i) {
+        m.el.style.opacity = 0;
+        m.el.style.transform = "scale(0.4)";
+        m.el.style.transformOrigin = m.cx + "px " + m.cy + "px";
+        setTimeout(function () {
+          m.el.style.transition = "opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+          m.el.style.opacity = 1;
+          m.el.style.transform = "scale(1)";
+        }, 300 + i * 40);
+      });
     }
   };
 })();

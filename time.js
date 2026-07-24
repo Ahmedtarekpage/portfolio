@@ -334,9 +334,11 @@
 
   function renderTodayChart(date, tasks) {
     var box = $("#todayChart");
+    var tip = $("#todayChartTip");
     var empty = $("#todayChartEmpty");
     if (!tasks.length) {
       box.innerHTML = "";
+      tip.hidden = true;
       empty.hidden = false;
       return;
     }
@@ -345,9 +347,12 @@
     var doneSorted = tasks.filter(function (t) { return t.done; })
       .sort(function (a, b) { return new Date(taskCompletionTime(a)) - new Date(taskCompletionTime(b)); });
     var running = 0;
-    var points = doneSorted.map(function (t) { running++; return { time: taskCompletionTime(t), cumulative: running }; });
+    var points = doneSorted.map(function (t) {
+      running++;
+      return { time: taskCompletionTime(t), title: t.title, cumulative: running };
+    });
 
-    window.renderDayChart(box, points, { date: date, target: tasks.length, showNow: date === todayISO() });
+    window.renderDayChart(box, tip, points, { date: date, target: tasks.length, showNow: date === todayISO() });
   }
 
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
