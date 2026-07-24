@@ -589,18 +589,22 @@
 
     data.categories.forEach(function (c) {
       var p = c.progress;
+      var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
       var card = document.createElement("div");
       card.className = "category-card";
       card.innerHTML =
         '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
-        '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span></div>' +
-        '<div class="category-card__stats">' +
-          '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
-          '<div>Quarter target<b>' + fmtH(p.target) + '</b></div>' +
-          '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
-          '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
+        (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
         '</div>' +
-        '<div class="chart" style="min-height:190px"></div>' +
+        (hasHours ?
+          '<div class="category-card__stats">' +
+            '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
+            '<div>Quarter target<b>' + fmtH(p.target) + '</b></div>' +
+            '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
+            '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
+          '</div>' +
+          '<div class="chart" style="min-height:190px"></div>'
+          : '') +
         '<div class="goals">' +
           '<div class="goals__label">Goals</div>' +
           (c.goals || []).map(goalRowHtml).join("") +
@@ -612,9 +616,11 @@
           '</form>' +
         '</div>';
       box.appendChild(card);
-      window.renderProgressChart(card.querySelector(".chart"), p.timeline, {
-        start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
-      });
+      if (hasHours) {
+        window.renderProgressChart(card.querySelector(".chart"), p.timeline, {
+          start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
+        });
+      }
       wireGoals(card, c);
     });
   }
@@ -625,9 +631,10 @@
     var row = document.createElement("div");
     row.className = "category-row";
     if (cat && cat.id) row.dataset.id = cat.id;
+    var hoursVal = cat && cat.weekly_hours != null ? Number(cat.weekly_hours) : "";
     row.innerHTML =
       '<input name="cat_name" placeholder="Category (e.g. Deep work)" value="' + esc(cat ? cat.name : "") + '" required />' +
-      '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="h/week" value="' + (cat ? Number(cat.weekly_hours) : "") + '" required />' +
+      '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="h/week (optional)" value="' + hoursVal + '" />' +
       '<button type="button" class="iconbtn category-row__remove" title="Remove category">✕</button>';
     row.querySelector(".category-row__remove").addEventListener("click", function () { row.remove(); });
     $("#categoryRows").appendChild(row);
@@ -682,12 +689,13 @@
     var btn = $("#btnQuarterSubmit");
     var b = formData(form);
     var categories = Array.prototype.slice.call($("#categoryRows").children).map(function (row) {
+      var hoursVal = row.querySelector("[name=cat_hours]").value;
       return {
         id: row.dataset.id ? Number(row.dataset.id) : undefined,
         name: row.querySelector("[name=cat_name]").value.trim(),
-        weekly_hours: Number(row.querySelector("[name=cat_hours]").value),
+        weekly_hours: hoursVal ? Number(hoursVal) : null,
       };
-    }).filter(function (c) { return c.name && c.weekly_hours > 0; });
+    }).filter(function (c) { return c.name; });
     var body = {
       name: b.name, start_date: b.start_date, end_date: b.end_date,
       anti_perfectionist: form.elements.anti_perfectionist.checked,
