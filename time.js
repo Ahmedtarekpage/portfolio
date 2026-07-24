@@ -126,7 +126,13 @@
       btn.classList.toggle("tab--active", btn.dataset.tab === name);
     });
     document.querySelectorAll(".tabpanel").forEach(function (panel) {
-      panel.hidden = panel.dataset.tabpanel !== name;
+      var isTarget = panel.dataset.tabpanel === name;
+      panel.hidden = !isTarget;
+      if (isTarget && !reduceMotion) {
+        panel.classList.remove("tabpanel--enter");
+        void panel.offsetWidth; // restart the animation on repeat visits
+        panel.classList.add("tabpanel--enter");
+      }
     });
     try { localStorage.setItem("time-tab", name); } catch (e) {}
   }
@@ -135,6 +141,109 @@
     var btn = ev.target.closest(".tab");
     if (btn) showTab(btn.dataset.tab);
   });
+
+  /* ---------------- live countdown to the selected quarter's start/end ---------------- */
+
+  var countdownTimer = null;
+  var lastCountdownText = null;
+
+  function setCountdownUnit(id, value) {
+    var el = $("#" + id);
+    var text = String(value).padStart(2, "0");
+    if (el.textContent === text) return;
+    el.textContent = text;
+    if (!reduceMotion) {
+      var unit = el.closest(".countdown__unit");
+      unit.classList.remove("countdown__unit--tick");
+      void unit.offsetWidth;
+      unit.classList.add("countdown__unit--tick");
+    }
+  }
+
+  function updateCountdown() {
+    var box = $("#quarterCountdown");
+    var q = state.quarterDetail && state.quarterDetail.quarter;
+    if (!q) { box.hidden = true; lastCountdownText = null; return; }
+
+    var now = new Date();
+    var start = new Date(String(q.start_date).slice(0, 10) + "T00:00:00");
+    var end = new Date(String(q.end_date).slice(0, 10) + "T23:59:59.999");
+
+    box.hidden = false;
+    if (now > end) {
+      box.classList.add("countdown--ended");
+      if (lastCountdownText !== "ended") {
+        $("#countdownLabel").textContent = "This quarter has ended";
+        ["cdDays", "cdHours", "cdMinutes", "cdSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
+        lastCountdownText = "ended";
+      }
+      return;
+    }
+
+    box.classList.remove("countdown--ended");
+    var target = now < start ? start : end;
+    $("#countdownLabel").textContent = now < start ? "Starts in" : "Time left in this quarter";
+
+    var totalSeconds = Math.max(0, Math.floor((target - now) / 1000));
+    setCountdownUnit("cdDays", Math.floor(totalSeconds / 86400));
+    setCountdownUnit("cdHours", Math.floor((totalSeconds % 86400) / 3600));
+    setCountdownUnit("cdMinutes", Math.floor((totalSeconds % 3600) / 60));
+    setCountdownUnit("cdSeconds", totalSeconds % 60);
+    lastCountdownText = "ticking";
+  }
+
+  /* ---------------- live age + "$500K/yr by 33" deadline counters ---------------- */
+
+  var BIRTH_DATE = new Date(1998, 4, 15, 0, 0, 0); // 15 May 1998
+  var GOAL_DATE = new Date(2031, 4, 15, 0, 0, 0); // 33rd birthday
+
+  // human "age" style diff (e.g. "28y 2mo 9d") — calendar-aware, not just total days/86400
+  function calendarDiff(from, to) {
+    var years = to.getFullYear() - from.getFullYear();
+    var months = to.getMonth() - from.getMonth();
+    var days = to.getDate() - from.getDate();
+    var hours = to.getHours() - from.getHours();
+    var minutes = to.getMinutes() - from.getMinutes();
+    var seconds = to.getSeconds() - from.getSeconds();
+    if (seconds < 0) { seconds += 60; minutes--; }
+    if (minutes < 0) { minutes += 60; hours--; }
+    if (hours < 0) { hours += 24; days--; }
+    if (days < 0) { days += new Date(to.getFullYear(), to.getMonth(), 0).getDate(); months--; }
+    if (months < 0) { months += 12; years--; }
+    return { years: years, months: months, days: days, hours: hours, minutes: minutes, seconds: seconds };
+  }
+
+  function setCalendarUnits(prefix, diff) {
+    setCountdownUnit(prefix + "Years", diff.years);
+    setCountdownUnit(prefix + "Months", diff.months);
+    setCountdownUnit(prefix + "Days", diff.days);
+    setCountdownUnit(prefix + "Hours", diff.hours);
+    setCountdownUnit(prefix + "Minutes", diff.minutes);
+    setCountdownUnit(prefix + "Seconds", diff.seconds);
+  }
+
+  function updateLifeCounters() {
+    var now = new Date();
+    setCalendarUnits("age", calendarDiff(BIRTH_DATE, now));
+
+    var goalBox = $("#goalCounter");
+    if (now >= GOAL_DATE) {
+      goalBox.classList.add("countdown--ended");
+      $("#goalCounterLabel").textContent = "33rd birthday has passed";
+      ["goalYears", "goalMonths", "goalDays", "goalHours", "goalMinutes", "goalSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
+    } else {
+      goalBox.classList.remove("countdown--ended");
+      $("#goalCounterLabel").textContent = "💰 Time left to hit $500K/yr by 33";
+      setCalendarUnits("goal", calendarDiff(now, GOAL_DATE));
+    }
+  }
+
+  function startCountdownTimer() {
+    if (countdownTimer) return;
+    function tick() { updateCountdown(); updateLifeCounters(); }
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
 
   /* ---------------- auth ---------------- */
 
@@ -194,6 +303,7 @@
     $("#dayPicker").value = state.currentDate;
     var savedTab = (function () { try { return localStorage.getItem("time-tab"); } catch (e) { return null; } })();
     showTab(savedTab && document.querySelector('.tabpanel[data-tabpanel="' + savedTab + '"]') ? savedTab : "today");
+    startCountdownTimer();
     Promise.all([loadQuarters(), loadDay(state.currentDate), loadHistory()])
       .then(function () { show("view-app"); })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
@@ -237,6 +347,36 @@
       osc.start(t0);
       osc.stop(t0 + 0.2);
     } catch (e) { /* Web Audio unavailable — fail silently */ }
+  }
+
+  // shared tone generator for the rest of the sound effects — a single
+  // sine oscillator with an exponential attack/decay envelope
+  function playTone(freqFrom, freqTo, duration, volume) {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      var t0 = audioCtx.currentTime;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freqFrom, t0);
+      if (freqTo !== freqFrom) osc.frequency.exponentialRampToValueAtTime(freqTo, t0 + duration * 0.6);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.02);
+    } catch (e) { /* Web Audio unavailable — fail silently */ }
+  }
+
+  function playAddSound() { playTone(520, 760, 0.14, 0.13); }
+  function playDeleteSound() { playTone(420, 260, 0.16, 0.12); }
+  function playSuccessSound() {
+    playTone(660, 660, 0.12, 0.15);
+    setTimeout(function () { playTone(880, 880, 0.22, 0.17); }, 110);
   }
 
   function animateCount(el, to, suffix) {
@@ -299,7 +439,7 @@
       row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
         if (!confirm('Delete task "' + t.title + '"?')) return;
         api("/api/tasks?id=" + t.id, { method: "DELETE" })
-          .then(function () { if (state.editingTaskId === t.id) stopEditTask(); return afterTaskChange(); })
+          .then(function () { playDeleteSound(); if (state.editingTaskId === t.id) stopEditTask(); return afterTaskChange(); })
           .catch(function (e) { toast(e.message, true); });
       });
       list.appendChild(row);
@@ -419,7 +559,12 @@
     busy(btn, true);
     (editingId ? api("/api/tasks?id=" + editingId, { method: "PATCH", body: body })
                : api("/api/tasks", { method: "POST", body: body }))
-      .then(function () { toast(editingId ? "Task updated ✓" : "Task added ✓"); stopEditTask(); return afterTaskChange(); })
+      .then(function () {
+        toast(editingId ? "Task updated ✓" : "Task added ✓");
+        if (!editingId) playAddSound();
+        stopEditTask();
+        return afterTaskChange();
+      })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
@@ -478,6 +623,7 @@
         state.quarterDetail = null;
         renderCategorySelect([]);
         renderQuarter(null);
+        updateCountdown();
         return;
       }
       var today = todayISO();
@@ -499,6 +645,7 @@
       state.quarterDetail = data;
       renderCategorySelect(data.categories);
       renderQuarter(data);
+      updateCountdown();
     }).catch(function (e) { toast(e.message, true); });
   }
 
@@ -549,8 +696,9 @@
       '<div class="goal-row__top">' +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         '<span class="goal-row__pct">' + pct + '%</span>' +
+        '<button type="button" class="iconbtn iconbtn--copy" title="Add to today\'s to-do">📋</button>' +
         '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
-        '<button type="button" class="iconbtn" title="Delete goal">✕</button>' +
+        '<button type="button" class="iconbtn iconbtn--delete" title="Delete goal">✕</button>' +
       '</div>' +
       '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
         '" style="width:' + pct + '%"></div></div>' +
@@ -603,10 +751,12 @@
 
   function stepGoal(row, goal, delta, card, category) {
     var target = Number(goal.target) || 0;
+    var wasDone = goalPct(goal) >= 100;
     var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
     updateGoalRowUI(row, v, target);
     goal.current = v; // keep in sync so another quick tap steps from the right base
     refreshOverallBars(card, category);
+    if (!wasDone && target > 0 && v >= target) playSuccessSound();
     api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
       .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
@@ -622,8 +772,23 @@
       });
       row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
         var v = ev.target.value === "" ? 0 : Number(ev.target.value);
+        var wasDone = goalPct(g) >= 100;
+        var nowDone = Number(g.target) > 0 && v >= Number(g.target);
         api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
-          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .then(function () {
+            if (!wasDone && nowDone) playSuccessSound();
+            return loadQuarterDetail(state.selectedQuarterId);
+          })
+          .catch(function (e) { toast(e.message, true); });
+      });
+      row.querySelector(".iconbtn--copy").addEventListener("click", function () {
+        var today = todayISO();
+        api("/api/tasks", { method: "POST", body: { task_date: today, title: g.title, category_id: category.id } })
+          .then(function () {
+            playAddSound();
+            toast('Added "' + g.title + '" to today\'s to-do ✓');
+            if (state.currentDate === today) return afterTaskChange();
+          })
           .catch(function (e) { toast(e.message, true); });
       });
       row.querySelector(".iconbtn--edit").addEventListener("click", function () {
@@ -635,10 +800,10 @@
         form.querySelector("button[type=submit]").textContent = "Update";
         form.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
-      row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
+      row.querySelector(".iconbtn--delete").addEventListener("click", function () {
         if (!confirm('Delete goal "' + g.title + '"?')) return;
         api("/api/goals?id=" + g.id, { method: "DELETE" })
-          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .then(function () { playDeleteSound(); return loadQuarterDetail(state.selectedQuarterId); })
           .catch(function (e) { toast(e.message, true); });
       });
     });
@@ -658,7 +823,11 @@
       busy(btn, true);
       (editingId ? api("/api/goals?id=" + editingId, { method: "PATCH", body: body })
                  : api("/api/goals", { method: "POST", body: body }))
-        .then(function () { toast(editingId ? "Goal updated ✓" : "Goal added ✓"); return loadQuarterDetail(state.selectedQuarterId); })
+        .then(function () {
+          toast(editingId ? "Goal updated ✓" : "Goal added ✓");
+          if (!editingId) playAddSound();
+          return loadQuarterDetail(state.selectedQuarterId);
+        })
         .catch(function (e) { toast(e.message, true); })
         .finally(function () { busy(btn, false); });
     });
@@ -854,7 +1023,7 @@
     var q = state.quarterDetail.quarter;
     if (!confirm('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).')) return;
     api("/api/quarters?id=" + q.id, { method: "DELETE" })
-      .then(function () { toast("Quarter deleted"); return loadQuarters(); })
+      .then(function () { playDeleteSound(); toast("Quarter deleted"); return loadQuarters(); })
       .then(function () { return loadDay(state.currentDate); })
       .catch(function (e) { toast(e.message, true); });
   });
@@ -884,6 +1053,7 @@
                : api("/api/quarters", { method: "POST", body: body }))
       .then(function (r) {
         toast(editingId ? "Quarter updated ✓" : "Quarter created ✓");
+        if (!editingId) playAddSound();
         resetQuarterForm();
         $("#addQuarterBox").open = false;
         return loadQuarters().then(function () {
