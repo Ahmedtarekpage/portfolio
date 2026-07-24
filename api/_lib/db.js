@@ -95,6 +95,14 @@ async function migrate(sql) {
   // drag-to-reorder position within a day, and a picked emoji icon per task
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
+  // an earlier, abandoned rebuild left behind a differently-shaped "goals" table
+  // (cycle_key NOT NULL, category_id -> categories) -- drop it so it can be
+  // recreated fresh with the shape this version of the app actually uses
+  await sql`DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'goals' AND column_name = 'cycle_key') THEN
+      DROP TABLE goals;
+    END IF;
+  END $$`;
   // concrete numeric milestones within a category (e.g. "Job applications: 320/500"),
   // separate from the weekly-hour effort tracking above
   await sql`CREATE TABLE IF NOT EXISTS goals (
