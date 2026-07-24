@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=2" />
+  <link rel="stylesheet" href="time.css?v=3" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -70,114 +70,132 @@
         </div>
       </header>
 
-      <!-- ---- Today ---- -->
-      <div class="card">
-        <div class="card__head">
-          <h2>Today's to-do</h2>
-          <div class="day-nav">
-            <button id="btnPrevDay" class="iconbtn" aria-label="Previous day">←</button>
-            <input type="date" id="dayPicker" />
-            <button id="btnNextDay" class="iconbtn" aria-label="Next day">→</button>
-            <button id="btnToday" class="btn btn--ghost btn--sm">Today</button>
-          </div>
-        </div>
+      <nav class="tabbar" id="tabbar">
+        <button type="button" class="tab tab--active" data-tab="home">Home</button>
+        <button type="button" class="tab" data-tab="categories">Categories</button>
+        <button type="button" class="tab" data-tab="elmktb">Elmktb</button>
+        <button type="button" class="tab" data-tab="analytics">Analytics</button>
+      </nav>
 
-        <div class="tiles">
-          <div class="tile tile--accent">
-            <div class="tile__label">Completed</div>
-            <div class="tile__value" id="dayPercent">0%</div>
-            <div class="tile__sub" id="dayCount">0 of 0 tasks</div>
-          </div>
-        </div>
+      <!-- ---- Home ---- -->
+      <section class="tabpanel" data-tabpanel="home">
+        <p class="cycle-status" id="cycleStatus"></p>
 
-        <form id="addTaskForm" class="form form--grid">
-          <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
-          <label>Icon
-            <select name="icon">
-              <option value="">— none —</option>
-              <option value="📝">📝 Task</option>
-              <option value="💻">💻 Work</option>
-              <option value="💪">💪 Fitness</option>
-              <option value="📚">📚 Learning</option>
-              <option value="💰">💰 Finance</option>
-              <option value="🎨">🎨 Creative</option>
-              <option value="🧹">🧹 Chores</option>
-              <option value="🩺">🩺 Health</option>
-              <option value="🗣️">🗣️ Meeting</option>
-              <option value="🛠️">🛠️ Build</option>
-              <option value="🧘">🧘 Rest</option>
-              <option value="📞">📞 Call</option>
-              <option value="✈️">✈️ Travel</option>
-              <option value="🍳">🍳 Cook</option>
-              <option value="🛒">🛒 Errand</option>
-              <option value="🎯">🎯 Focus</option>
-              <option value="😴">😴 Sleep</option>
-            </select>
-          </label>
-          <label>Category
-            <select name="category_id"><option value="">— none —</option></select>
-          </label>
-          <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
-          <label id="actualHoursField" hidden>Actual hours<input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
-          <div class="span2">
-            <button type="submit" class="btn btn--primary" id="btnTaskSubmit">Add task</button>
-            <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden>Cancel edit</button>
-          </div>
-        </form>
-
-        <div class="task-list" id="taskList"></div>
-        <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
-
-        <div class="day-actions">
-          <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm">🗑 Clear day</button>
-          <span class="day-actions__dup">
-            <span class="muted day-actions__dup-label">Copy this day's tasks to</span>
-            <input type="date" id="duplicateDate" aria-label="Destination date to copy tasks to" />
-            <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm">📋 Duplicate</button>
-          </span>
-        </div>
-
-        <div class="card__head" style="margin-top: 22px">
-          <h2>Last 14 days</h2>
-        </div>
-        <div class="day-history" id="dayHistory"></div>
-      </div>
-
-      <!-- ---- Quarters ---- -->
-      <div class="card">
-        <div class="card__head">
-          <h2>Quarterly goals</h2>
-          <select id="quarterSelect"></select>
-        </div>
-
-        <details id="addQuarterBox">
-          <summary class="btnish">+ New quarter</summary>
-          <form id="quarterForm" class="form">
-            <div class="form form--grid">
-              <label>Name *<input name="name" required placeholder="Q3 2026" /></label>
-              <label>Start date *<input name="start_date" type="date" required /></label>
-              <label>End date *<input name="end_date" type="date" required /></label>
+        <div class="card">
+          <div class="card__head">
+            <h2>Today's to-do</h2>
+            <div class="day-nav">
+              <button id="btnPrevDay" class="iconbtn" aria-label="Previous day">←</button>
+              <input type="date" id="dayPicker" />
+              <button id="btnNextDay" class="iconbtn" aria-label="Next day">→</button>
+              <button id="btnToday" class="btn btn--ghost btn--sm">Today</button>
             </div>
-            <label class="checkline">
-              <input type="checkbox" name="anti_perfectionist" />
-              Anti-perfectionist mode — count 75% of the full target as done
+          </div>
+
+          <div class="tiles">
+            <div class="tile tile--accent">
+              <div class="tile__label">Completed</div>
+              <div class="tile__value" id="dayPercent">0%</div>
+              <div class="tile__sub" id="dayCount">0 of 0 tasks</div>
+            </div>
+          </div>
+
+          <form id="addTaskForm" class="form form--grid">
+            <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
+            <label>Icon
+              <select name="icon">
+                <option value="">— none —</option>
+                <option value="📝">📝 Task</option>
+                <option value="💻">💻 Work</option>
+                <option value="💪">💪 Fitness</option>
+                <option value="📚">📚 Learning</option>
+                <option value="💰">💰 Finance</option>
+                <option value="🎨">🎨 Creative</option>
+                <option value="🧹">🧹 Chores</option>
+                <option value="🩺">🩺 Health</option>
+                <option value="🗣️">🗣️ Meeting</option>
+                <option value="🛠️">🛠️ Build</option>
+                <option value="🧘">🧘 Rest</option>
+                <option value="📞">📞 Call</option>
+                <option value="✈️">✈️ Travel</option>
+                <option value="🍳">🍳 Cook</option>
+                <option value="🛒">🛒 Errand</option>
+                <option value="🎯">🎯 Focus</option>
+                <option value="😴">😴 Sleep</option>
+              </select>
             </label>
-            <div id="categoryRows" class="category-rows"></div>
-            <button type="button" id="btnAddCategoryRow" class="linklike">+ Add category</button>
-            <div>
-              <button type="submit" class="btn btn--primary" id="btnQuarterSubmit">Save quarter</button>
-              <button type="button" class="btn btn--ghost" id="btnCancelQuarterEdit" hidden>Cancel edit</button>
+            <label>Category
+              <select name="category_id"><option value="">— none —</option></select>
+            </label>
+            <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+            <label id="actualHoursField" hidden>Actual hours<input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+            <div class="span2">
+              <button type="submit" class="btn btn--primary" id="btnTaskSubmit">Add task</button>
+              <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden>Cancel edit</button>
             </div>
           </form>
-        </details>
 
-        <p id="noQuarters" class="muted center" hidden>No quarters yet — create one above.</p>
-        <div id="categoryCards" class="category-cards"></div>
-        <div class="topbar__actions" id="quarterActions" style="justify-content: flex-end; margin-top: 14px" hidden>
-          <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
-          <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
+          <div class="task-list" id="taskList"></div>
+          <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
+
+          <div class="day-actions">
+            <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm">🗑 Clear day</button>
+            <span class="day-actions__dup">
+              <span class="muted day-actions__dup-label">Copy this day's tasks to</span>
+              <input type="date" id="duplicateDate" aria-label="Destination date to copy tasks to" />
+              <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm">📋 Duplicate</button>
+            </span>
+          </div>
+
+          <div class="card__head" style="margin-top: 22px">
+            <h2>Last 14 days</h2>
+          </div>
+          <div class="day-history" id="dayHistory"></div>
         </div>
-      </div>
+      </section>
+
+      <!-- ---- Categories: set a category's goal for the current/upcoming cycle ---- -->
+      <section class="tabpanel" data-tabpanel="categories" hidden>
+        <div class="card">
+          <div class="card__head">
+            <h2>Categories</h2>
+            <select id="cycleSelect"></select>
+          </div>
+
+          <form id="addCategoryForm" class="goal-add-form">
+            <input name="name" placeholder="Category (e.g. Religion)" required />
+            <button type="submit" class="btn btn--ghost btn--sm">+ Add category</button>
+          </form>
+
+          <p id="cycleReadonlyNote" class="muted" hidden>This cycle is in the past — shown read-only.</p>
+          <p id="noCategories" class="muted center" hidden>No categories yet — add one above.</p>
+          <div id="categoryCards" class="category-cards"></div>
+        </div>
+      </section>
+
+      <!-- ---- Elmktb: every category's current-cycle goals, as a to-do rollup for the coming quarter ---- -->
+      <section class="tabpanel" data-tabpanel="elmktb" hidden>
+        <div class="card">
+          <div class="card__head">
+            <h2>Elmktb</h2>
+          </div>
+          <p class="cycle-status" id="elmktbStatus"></p>
+          <p id="elmktbEmpty" class="muted center" hidden>No goals set for the current cycle yet — add some in Categories.</p>
+          <div id="elmktbList"></div>
+        </div>
+      </section>
+
+      <!-- ---- Analytics: read-only progress for the selected cycle ---- -->
+      <section class="tabpanel" data-tabpanel="analytics" hidden>
+        <div class="card">
+          <div class="card__head">
+            <h2>Analytics</h2>
+            <select id="analyticsCycleSelect"></select>
+          </div>
+          <p id="noAnalytics" class="muted center" hidden>No hour targets set for this cycle.</p>
+          <div id="analyticsCards" class="category-cards"></div>
+        </div>
+      </section>
 
     </section>
 
@@ -185,6 +203,6 @@
   </div>
 
   <script src="chart.js?v=4"></script>
-  <script src="time.js?v=2"></script>
+  <script src="time.js?v=3"></script>
 </body>
 </html>

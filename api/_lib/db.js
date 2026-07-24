@@ -61,30 +61,12 @@ async function migrate(sql) {
     pdf BYTEA,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
-  // time tracking: quarterly category goals + daily to-do tasks
-  await sql`CREATE TABLE IF NOT EXISTS quarters (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`;
-  // anti-perfectionist mode: count 75% of the full weekly x weeks target as "done"
-  await sql`ALTER TABLE quarters ADD COLUMN IF NOT EXISTS anti_perfectionist BOOLEAN NOT NULL DEFAULT false`;
-  await sql`CREATE TABLE IF NOT EXISTS quarter_categories (
-    id SERIAL PRIMARY KEY,
-    quarter_id INTEGER NOT NULL REFERENCES quarters(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    weekly_hours NUMERIC NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`;
-  // categories can now be goals-only (no hour target) — e.g. "Cashflow milestones"
-  await sql`ALTER TABLE quarter_categories ALTER COLUMN weekly_hours DROP NOT NULL`;
+  // time tracking: daily to-do tasks
   await sql`CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     task_date DATE NOT NULL,
     title TEXT NOT NULL,
-    category_id INTEGER REFERENCES quarter_categories(id) ON DELETE SET NULL,
+    category_id INTEGER,
     planned_hours NUMERIC,
     actual_hours NUMERIC,
     done BOOLEAN NOT NULL DEFAULT false,
@@ -95,18 +77,56 @@ async function migrate(sql) {
   // drag-to-reorder position within a day, and a picked emoji icon per task
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
+
+  // one-time rebuild: the old manually-dated "quarters" system is replaced by
+  // an auto-computed Year > Virtual-Year > Cycle > Quarter schedule (see
+  // api/_lib/cycle.js) with permanent categories and per-cycle goals. If the
+  // old tables are still around, this is a fresh install of the new system —
+  // wipe them (daily task history is kept, just uncategorized).
+  const [{ exists: hasOld }] = await sql`SELECT EXISTS (
+    SELECT 1 FROM information_schema.tables WHERE table_name = 'quarter_categories'
+  ) AS exists`;
+  if (hasOld) {
+    await sql`ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_category_id_fkey`;
+    await sql`UPDATE tasks SET category_id = NULL`;
+    await sql`DROP TABLE IF EXISTS goals`;
+    await sql`DROP TABLE IF EXISTS quarter_categories`;
+    await sql`DROP TABLE IF EXISTS quarters`;
+  }
+
+  await sql`CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_category_id_fkey') THEN
+      ALTER TABLE tasks ADD CONSTRAINT tasks_category_id_fkey
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL;
+    END IF;
+  END $$`;
+  // optional weekly-hour effort target for a category during one specific 42-day cycle
+  await sql`CREATE TABLE IF NOT EXISTS cycle_targets (
+    id SERIAL PRIMARY KEY,
+    category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    cycle_key TEXT NOT NULL,
+    weekly_hours NUMERIC,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (category_id, cycle_key)
+  )`;
   // concrete numeric milestones within a category (e.g. "Job applications: 320/500"),
-  // separate from the weekly-hour effort tracking above
+  // scoped per category PER CYCLE — separate from the weekly-hour effort tracking above
   await sql`CREATE TABLE IF NOT EXISTS goals (
     id SERIAL PRIMARY KEY,
-    category_id INTEGER NOT NULL REFERENCES quarter_categories(id) ON DELETE CASCADE,
+    category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    cycle_key TEXT NOT NULL,
     title TEXT NOT NULL,
     target NUMERIC NOT NULL,
     current NUMERIC NOT NULL DEFAULT 0,
     unit TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
-  await sql`CREATE INDEX IF NOT EXISTS goals_category_idx ON goals (category_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS goals_cat_cycle_idx ON goals (category_id, cycle_key)`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

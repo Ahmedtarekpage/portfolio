@@ -33,7 +33,7 @@ export default withErrors(async (req, res) => {
     const date = String(req.query.date || "").slice(0, 10);
     if (!isDate(date)) return json(res, 400, { error: "date must be YYYY-MM-DD" });
     const tasks = await sql`SELECT t.*, c.name AS category_name
-      FROM tasks t LEFT JOIN quarter_categories c ON c.id = t.category_id
+      FROM tasks t LEFT JOIN categories c ON c.id = t.category_id
       WHERE t.task_date = ${date}::date ORDER BY t.position, t.created_at`;
     return json(res, 200, { tasks });
   }

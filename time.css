@@ -144,12 +144,38 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .day-bar:hover { opacity: 1; transform: scaleY(1.02); }
 .day-bar--empty { background: var(--glass-brd); opacity: 1; }
 
-/* ---------- quarter category rows (create/edit form) ---------- */
-.category-rows { display: flex; flex-direction: column; gap: 8px; }
-.category-row { display: flex; gap: 8px; align-items: center; }
-.category-row input[name="cat_name"] { flex: 1; }
-.category-row input[name="cat_hours"] { width: 100px; flex: none; }
-.category-row__remove { flex: none; }
+/* ---------- tab bar ---------- */
+.tabbar { display: flex; gap: 6px; margin: 16px 0; flex-wrap: wrap; }
+.tab {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 10px;
+  color: var(--muted); padding: 8px 16px; font: 500 0.86rem "Space Grotesk", sans-serif;
+  cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease, background-color 0.3s ease;
+}
+.tab:hover { color: var(--ink); border-color: rgba(96, 165, 250, 0.3); }
+.tab--active { color: var(--ink); border-color: var(--blue-2); background: rgba(96, 165, 250, 0.1); }
+.tabpanel { animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+.cycle-status { color: var(--muted); font-size: 0.85rem; margin: 0 0 14px; }
+
+/* ---------- Categories tab: add-category form + per-cycle weekly target ---------- */
+.category-card__delete { margin-left: auto; }
+.category-card__hours {
+  display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted);
+  margin: 10px 0 2px;
+}
+.category-card__hours input {
+  width: 90px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 5px 8px; font: 400 0.85rem "Inter", sans-serif; outline: none;
+}
+.category-card__hours input:focus { border-color: var(--blue); }
+.category-card__hours input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ---------- Elmktb tab: flat goal rollup grouped by category ---------- */
+.elmktb-group { margin-bottom: 18px; }
+.elmktb-group__name {
+  font: 600 0.8rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--faint); margin-bottom: 6px;
+}
 
 /* ---------- category progress cards ---------- */
 .category-cards { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
@@ -204,6 +230,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .goal-row__step:hover { border-color: var(--blue-2); color: var(--blue-2); }
 .goal-row__step:active { transform: scale(0.88); }
+.goal-row__step:disabled, .goal-row__current:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .goal-add-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .goal-add-form input {

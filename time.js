@@ -1,15 +1,21 @@
-/* Time-tracking page logic: passkey auth (shared with /admin), daily to-do list
-   with a completion %, and quarterly category goals with a progress chart. */
+/* Time-tracking page logic: passkey auth (shared with /admin), a tabbed app
+   (Home / Categories / Elmktb / Analytics) built around an auto-computed
+   Year > Virtual-Year > Cycle > Quarter schedule (see api/_lib/cycle.js). */
 (function () {
   "use strict";
 
   var $ = function (sel) { return document.querySelector(sel); };
   var state = {
     currentDate: todayISO(),
-    quarters: [],
-    selectedQuarterId: null,
-    quarterDetail: null, // { quarter, categories }
-    editingQuarterId: null,
+    activeTab: "home",
+    categories: [],
+    todayInfo: null,
+    cycles: [],
+    selectedCycleKey: null,
+    cycleDetail: null,
+    analyticsCycleKey: null,
+    analyticsDetail: null,
+    elmktbDetail: null,
     editingTaskId: null,
   };
 
@@ -116,7 +122,28 @@
       btn.classList.add("theme-toggle--spin");
     }
     // charts read CSS custom properties at render time — redraw with the new theme's colors
-    if (state.quarterDetail) renderQuarter(state.quarterDetail);
+    if (state.cycleDetail) renderCategories(state.cycleDetail);
+    if (state.analyticsDetail) renderAnalytics(state.analyticsDetail);
+  });
+
+  /* ---------------- tabs ---------------- */
+
+  function showTab(name) {
+    state.activeTab = name;
+    document.querySelectorAll("#tabbar .tab").forEach(function (btn) {
+      btn.classList.toggle("tab--active", btn.dataset.tab === name);
+    });
+    document.querySelectorAll(".tabpanel").forEach(function (panel) {
+      panel.hidden = panel.dataset.tabpanel !== name;
+    });
+    if (name === "categories") loadCycleDetail(state.selectedCycleKey);
+    if (name === "elmktb") loadElmktb();
+    if (name === "analytics") loadAnalyticsDetail(state.analyticsCycleKey);
+  }
+
+  $("#tabbar").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".tab");
+    if (btn) showTab(btn.dataset.tab);
   });
 
   /* ---------------- auth ---------------- */
@@ -175,7 +202,8 @@
   function initApp() {
     show("view-loading");
     $("#dayPicker").value = state.currentDate;
-    Promise.all([loadQuarters(), loadDay(state.currentDate), loadHistory()])
+    Promise.all([loadCategories(), loadCyclePicker(), loadDay(state.currentDate), loadHistory()])
+      .then(function () { return loadCycleDetail(state.selectedCycleKey); })
       .then(function () { show("view-app"); })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
   }
@@ -288,13 +316,14 @@
   }
 
   // a task's done/actual-hours change can move the daily % and a category's
-  // quarterly progress, so refresh the day, the 14-day strip, and the chart together
+  // cycle progress, so refresh the day, the 14-day strip, and whichever
+  // goal/analytics view is currently loaded together
   function afterTaskChange() {
-    return Promise.all([
-      loadDay(state.currentDate),
-      loadHistory(),
-      state.selectedQuarterId ? loadQuarterDetail(state.selectedQuarterId) : Promise.resolve(),
-    ]);
+    var jobs = [loadDay(state.currentDate), loadHistory()];
+    if (state.selectedCycleKey) jobs.push(loadCycleDetail(state.selectedCycleKey));
+    if (state.activeTab === "analytics" && state.analyticsCycleKey) jobs.push(loadAnalyticsDetail(state.analyticsCycleKey));
+    if (state.activeTab === "elmktb") jobs.push(loadElmktb());
+    return Promise.all(jobs);
   }
 
   /* ---------------- drag to reorder ---------------- */
@@ -444,42 +473,12 @@
     }
   }
 
-  /* ---------------- quarterly goals ---------------- */
+  /* ---------------- persistent categories (task-add dropdown) ---------------- */
 
-  function loadQuarters() {
-    return api("/api/quarters").then(function (data) {
-      state.quarters = data.quarters || [];
-      var sel = $("#quarterSelect");
-      sel.innerHTML = state.quarters.map(function (q) {
-        return '<option value="' + q.id + '">' + esc(q.name) + " (" + fmtDate(q.start_date) + "–" + fmtDate(q.end_date) + ")</option>";
-      }).join("");
-
-      if (!state.quarters.length) {
-        state.selectedQuarterId = null;
-        state.quarterDetail = null;
-        renderCategorySelect([]);
-        renderQuarter(null);
-        return;
-      }
-      var today = todayISO();
-      var pick = state.quarters.filter(function (q) { return q.start_date <= today && today <= q.end_date; })[0]
-        || state.quarters[0];
-      state.selectedQuarterId = pick.id;
-      sel.value = pick.id;
-      return loadQuarterDetail(pick.id);
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  $("#quarterSelect").addEventListener("change", function () {
-    state.selectedQuarterId = Number(this.value);
-    loadQuarterDetail(state.selectedQuarterId);
-  });
-
-  function loadQuarterDetail(id) {
-    return api("/api/quarters?id=" + id).then(function (data) {
-      state.quarterDetail = data;
-      renderCategorySelect(data.categories);
-      renderQuarter(data);
+  function loadCategories() {
+    return api("/api/categories").then(function (data) {
+      state.categories = data.categories || [];
+      renderCategorySelect(state.categories);
     }).catch(function (e) { toast(e.message, true); });
   }
 
@@ -490,6 +489,77 @@
       (categories || []).map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
     if (current) sel.value = current;
   }
+
+  $("#addCategoryForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = this;
+    var name = form.elements.name.value.trim();
+    if (!name) return;
+    var btn = form.querySelector("button[type=submit]");
+    busy(btn, true);
+    api("/api/categories", { method: "POST", body: { name: name } })
+      .then(function () {
+        form.reset();
+        toast("Category added ✓");
+        return Promise.all([loadCategories(), loadCycleDetail(state.selectedCycleKey)]);
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  });
+
+  /* ---------------- cycle status (Home) + picker (Categories/Analytics) ---------------- */
+
+  function renderCycleStatus() {
+    var info = state.todayInfo;
+    var el = $("#cycleStatus");
+    if (!el) return;
+    if (!info) { el.textContent = ""; return; }
+    if (info.phase === "year-end-buffer") {
+      el.textContent = "Year-end buffer — new cycle starts " + fmtDate((info.realYear + 1) + "-01-01");
+    } else if (info.phase === "break") {
+      el.textContent = "Y" + info.virtualYear + " · Break — next cycle starts " + fmtDate(addDays(info.cycleEnd, 1));
+    } else {
+      el.textContent = "Y" + info.virtualYear + " · Cycle " + info.cycleLetter + " · Q" + info.quarterNumber +
+        " · " + fmtDate(info.cycleStart) + "–" + fmtDate(info.cycleEnd);
+    }
+  }
+
+  function cycleOptionsHtml(cycles) {
+    return cycles.map(function (c) {
+      var tag = c.current ? "current" : (c.editable ? "upcoming" : "past");
+      return '<option value="' + c.cycleKey + '">' + esc(c.label) + " (" + fmtDate(c.start) + "–" + fmtDate(c.end) + ") · " + tag + "</option>";
+    }).join("");
+  }
+
+  function loadCyclePicker() {
+    return api("/api/cycle-goals?list=1").then(function (data) {
+      state.todayInfo = data.today;
+      state.cycles = data.cycles || [];
+      renderCycleStatus();
+      var html = cycleOptionsHtml(state.cycles);
+      $("#cycleSelect").innerHTML = html;
+      $("#analyticsCycleSelect").innerHTML = html;
+
+      var current = state.cycles.filter(function (c) { return c.current; })[0];
+      var fallback = current || state.cycles[state.cycles.length - 1];
+      if (!state.selectedCycleKey && fallback) state.selectedCycleKey = fallback.cycleKey;
+      if (!state.analyticsCycleKey && fallback) state.analyticsCycleKey = fallback.cycleKey;
+      if (state.selectedCycleKey) $("#cycleSelect").value = state.selectedCycleKey;
+      if (state.analyticsCycleKey) $("#analyticsCycleSelect").value = state.analyticsCycleKey;
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  $("#cycleSelect").addEventListener("change", function () {
+    state.selectedCycleKey = this.value;
+    loadCycleDetail(state.selectedCycleKey);
+  });
+
+  $("#analyticsCycleSelect").addEventListener("change", function () {
+    state.analyticsCycleKey = this.value;
+    loadAnalyticsDetail(state.analyticsCycleKey);
+  });
+
+  /* ---------------- goals: shared rendering for Categories + Elmktb ---------------- */
 
   var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
@@ -503,21 +573,22 @@
     return Number(g.target) > 0 ? Math.min(100, Math.round((Number(g.current) / Number(g.target)) * 100)) : 0;
   }
 
-  function goalRowHtml(g) {
+  function goalRowHtml(g, editable) {
     var pct = goalPct(g);
+    var dis = editable ? "" : " disabled";
     return '<div class="goal-row" data-id="' + g.id + '">' +
       '<div class="goal-row__top">' +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         '<span class="goal-row__pct">' + pct + '%</span>' +
-        '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
-        '<button type="button" class="iconbtn" title="Delete goal">✕</button>' +
+        (editable ? '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
+          '<button type="button" class="iconbtn" title="Delete goal">✕</button>' : '') +
       '</div>' +
       '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
         '" style="width:' + pct + '%"></div></div>' +
       '<div class="goal-row__nums">' +
-        '<button type="button" class="goal-row__step" data-delta="-1" title="-1">−</button>' +
-        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '" />' +
-        '<button type="button" class="goal-row__step" data-delta="1" title="+1">+</button>' +
+        '<button type="button" class="goal-row__step" data-delta="-1" title="-1"' + dis + '>−</button>' +
+        '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '"' + dis + ' />' +
+        '<button type="button" class="goal-row__step" data-delta="1" title="+1"' + dis + '>+</button>' +
         ' / <b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
       '</div>' +
     '</div>';
@@ -534,32 +605,34 @@
     row.querySelector(".goal-row__current").value = fmtNum(current);
   }
 
-  function stepGoal(row, goal, delta) {
+  function stepGoal(row, goal, delta, onChange) {
     var target = Number(goal.target) || 0;
     var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
     updateGoalRowUI(row, v, target);
     goal.current = v; // keep in sync so another quick tap steps from the right base
     api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
-      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+      .catch(function (e) { toast(e.message, true); onChange(); });
   }
 
-  function wireGoals(card, category) {
-    var box = card.querySelector(".goals");
-
+  // wires interaction for one category's goal rows + its add/edit form. `box`
+  // must contain .goal-row[data-id] elements and, only when editable, an
+  // optional .goal-add-form. `onChange` re-fetches + re-renders after a write.
+  function wireGoals(box, category, cycleKey, editable, onChange) {
     (category.goals || []).forEach(function (g) {
       var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
-      if (!row) return;
+      if (!row || !editable) return;
       row.querySelectorAll(".goal-row__step").forEach(function (btn) {
-        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta)); });
+        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta), onChange); });
       });
       row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
         var v = ev.target.value === "" ? 0 : Number(ev.target.value);
         api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
-          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .then(onChange)
           .catch(function (e) { toast(e.message, true); });
       });
       row.querySelector(".iconbtn--edit").addEventListener("click", function () {
         var form = box.querySelector(".goal-add-form");
+        if (!form) return;
         form.elements.title.value = g.title;
         form.elements.target.value = Number(g.target);
         form.elements.unit.value = g.unit || "";
@@ -570,12 +643,14 @@
       row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
         if (!confirm('Delete goal "' + g.title + '"?')) return;
         api("/api/goals?id=" + g.id, { method: "DELETE" })
-          .then(function () { return loadQuarterDetail(state.selectedQuarterId); })
+          .then(onChange)
           .catch(function (e) { toast(e.message, true); });
       });
     });
 
+    if (!editable) return;
     var addForm = box.querySelector(".goal-add-form");
+    if (!addForm) return;
     addForm.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var form = this;
@@ -586,169 +661,174 @@
         target: Number(form.elements.target.value),
         unit: form.elements.unit.value.trim() || null,
       };
-      if (!editingId) body.category_id = category.id;
+      if (!editingId) { body.category_id = category.id; body.cycle_key = cycleKey; }
       busy(btn, true);
       (editingId ? api("/api/goals?id=" + editingId, { method: "PATCH", body: body })
                  : api("/api/goals", { method: "POST", body: body }))
-        .then(function () { toast(editingId ? "Goal updated ✓" : "Goal added ✓"); return loadQuarterDetail(state.selectedQuarterId); })
+        .then(function () { toast(editingId ? "Goal updated ✓" : "Goal added ✓"); return onChange(); })
         .catch(function (e) { toast(e.message, true); })
         .finally(function () { busy(btn, false); });
     });
   }
 
-  function renderQuarter(data) {
-    $("#noQuarters").hidden = state.quarters.length > 0;
-    $("#quarterSelect").hidden = state.quarters.length === 0;
-    $("#quarterActions").hidden = !data;
-    var box = $("#categoryCards");
-    box.innerHTML = "";
-    if (!data) return;
+  /* ---------------- Categories tab ---------------- */
 
-    if (data.quarter.anti_perfectionist) {
-      var note = document.createElement("p");
-      note.className = "muted";
-      note.style.marginBottom = "4px";
-      note.textContent = "Anti-perfectionist mode is on — targets below already count 75% as done.";
-      box.appendChild(note);
-    }
-
-    data.categories.forEach(function (c) {
-      var p = c.progress;
-      var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
-      var card = document.createElement("div");
-      card.className = "category-card";
-      card.innerHTML =
-        '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
-        (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
+  function categoryCardHtml(c, editable) {
+    var p = c.progress;
+    var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
+    return '<div class="category-card" data-id="' + c.id + '">' +
+      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+      (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
+      (editable ? '<button type="button" class="iconbtn category-card__delete" title="Delete category">✕</button>' : '') +
+      '</div>' +
+      '<label class="category-card__hours">Weekly target' +
+        '<input type="number" min="0" step="0.5" class="cat-hours-input" placeholder="h/week"' +
+        (c.weekly_hours != null ? ' value="' + Number(c.weekly_hours) + '"' : '') +
+        (editable ? '' : ' disabled') + ' />' +
+      '</label>' +
+      (hasHours ?
+        '<div class="category-card__stats">' +
+          '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
+          '<div>Cycle target<b>' + fmtH(p.target) + '</b></div>' +
+          '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
+          '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
         '</div>' +
-        (hasHours ?
-          '<div class="category-card__stats">' +
-            '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
-            '<div>Quarter target<b>' + fmtH(p.target) + '</b></div>' +
-            '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
-            '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
-          '</div>' +
-          '<div class="chart" style="min-height:190px"></div>'
-          : '') +
-        '<div class="goals">' +
-          '<div class="goals__label">Goals</div>' +
-          (c.goals || []).map(goalRowHtml).join("") +
+        '<div class="chart" style="min-height:190px"></div>'
+        : '') +
+      '<div class="goals">' +
+        '<div class="goals__label">Goals</div>' +
+        (c.goals || []).map(function (g) { return goalRowHtml(g, editable); }).join("") +
+        (editable ?
           '<form class="goal-add-form">' +
             '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
             '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
             '<input name="unit" placeholder="unit" />' +
             '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
-          '</form>' +
-        '</div>';
-      box.appendChild(card);
+          '</form>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function loadCycleDetail(cycleKey) {
+    if (!cycleKey) return Promise.resolve();
+    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(cycleKey)).then(function (data) {
+      state.cycleDetail = data;
+      renderCategories(data);
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function renderCategories(data) {
+    $("#cycleReadonlyNote").hidden = !!data.editable;
+    var box = $("#categoryCards");
+    $("#noCategories").hidden = (data.categories || []).length > 0;
+    box.innerHTML = (data.categories || []).map(function (c) { return categoryCardHtml(c, data.editable); }).join("");
+
+    (data.categories || []).forEach(function (c) {
+      var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
+      var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
       if (hasHours) {
-        window.renderProgressChart(card.querySelector(".chart"), p.timeline, {
-          start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
+        window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {
+          start: data.start, end: data.end, target: c.progress.target,
         });
       }
-      wireGoals(card, c);
+      if (data.editable) {
+        card.querySelector(".category-card__delete").addEventListener("click", function () {
+          if (!confirm('Delete category "' + c.name + '"? Its targets/goals are removed everywhere (logged tasks are kept, just uncategorized).')) return;
+          api("/api/categories?id=" + c.id, { method: "DELETE" })
+            .then(function () {
+              toast("Category deleted");
+              return Promise.all([loadCategories(), loadCycleDetail(state.selectedCycleKey), loadDay(state.currentDate)]);
+            })
+            .catch(function (e) { toast(e.message, true); });
+        });
+      }
+      var hoursInput = card.querySelector(".cat-hours-input");
+      hoursInput.addEventListener("change", function () {
+        var v = hoursInput.value === "" ? null : Number(hoursInput.value);
+        api("/api/cycle-goals", { method: "PATCH", body: { cycle_key: data.cycleKey, category_id: c.id, weekly_hours: v } })
+          .then(function () { return loadCycleDetail(state.selectedCycleKey); })
+          .catch(function (e) { toast(e.message, true); });
+      });
+      wireGoals(card, c, data.cycleKey, data.editable, function () { return loadCycleDetail(state.selectedCycleKey); });
     });
   }
 
-  $("#btnAddCategoryRow").addEventListener("click", function () { addCategoryRow(); });
+  /* ---------------- Elmktb tab: current-cycle goals as a to-do rollup ---------------- */
 
-  function addCategoryRow(cat) {
-    var row = document.createElement("div");
-    row.className = "category-row";
-    if (cat && cat.id) row.dataset.id = cat.id;
-    var hoursVal = cat && cat.weekly_hours != null ? Number(cat.weekly_hours) : "";
-    row.innerHTML =
-      '<input name="cat_name" placeholder="Category (e.g. Deep work)" value="' + esc(cat ? cat.name : "") + '" required />' +
-      '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="h/week (optional)" value="' + hoursVal + '" />' +
-      '<button type="button" class="iconbtn category-row__remove" title="Remove category">✕</button>';
-    row.querySelector(".category-row__remove").addEventListener("click", function () { row.remove(); });
-    $("#categoryRows").appendChild(row);
+  function loadElmktb() {
+    return api("/api/cycle-goals").then(function (data) {
+      state.elmktbDetail = data;
+      renderElmktb(data);
+    }).catch(function (e) { toast(e.message, true); });
   }
 
-  function resetQuarterForm() {
-    var form = $("#quarterForm");
-    form.reset();
-    $("#categoryRows").innerHTML = "";
-    addCategoryRow();
-    state.editingQuarterId = null;
-    $("#btnQuarterSubmit").textContent = "Save quarter";
-    $("#btnCancelQuarterEdit").hidden = true;
+  function renderElmktb(data) {
+    var today = todayISO();
+    var quarters = data.quarters || [];
+    var upcoming = quarters.filter(function (q) { return q.end >= today; })[0] || quarters[0];
+    var statusEl = $("#elmktbStatus");
+    if (!data.cycleKey || !upcoming) {
+      statusEl.textContent = "No active or upcoming cycle right now.";
+    } else {
+      var daysLeft = Math.max(0, Math.round((new Date(upcoming.end + "T00:00:00Z") - new Date(today + "T00:00:00Z")) / 86400000) + 1);
+      statusEl.textContent = "Q" + upcoming.number + " · " + fmtDate(upcoming.start) + "–" + fmtDate(upcoming.end) +
+        " · " + daysLeft + " day" + (daysLeft === 1 ? "" : "s") + " left";
+    }
+
+    var withGoals = (data.categories || []).filter(function (c) { return (c.goals || []).length; });
+    $("#elmktbEmpty").hidden = withGoals.length > 0;
+    var box = $("#elmktbList");
+    box.innerHTML = withGoals.map(function (c) {
+      return '<div class="elmktb-group" data-cat="' + c.id + '">' +
+        '<div class="elmktb-group__name">' + esc(c.name) + '</div>' +
+        (c.goals || []).map(function (g) { return goalRowHtml(g, data.editable); }).join("") +
+      '</div>';
+    }).join("");
+
+    withGoals.forEach(function (c) {
+      var group = box.querySelector('.elmktb-group[data-cat="' + c.id + '"]');
+      wireGoals(group, c, data.cycleKey, data.editable, function () { return loadElmktb(); });
+    });
   }
 
-  $("#btnCancelQuarterEdit").addEventListener("click", function () {
-    resetQuarterForm();
-    $("#addQuarterBox").open = false;
-  });
+  /* ---------------- Analytics tab: read-only progress ---------------- */
 
-  $("#btnEditQuarter").addEventListener("click", function () {
-    if (!state.quarterDetail) return;
-    var q = state.quarterDetail.quarter;
-    var form = $("#quarterForm");
-    form.elements.name.value = q.name;
-    form.elements.start_date.value = String(q.start_date).slice(0, 10);
-    form.elements.end_date.value = String(q.end_date).slice(0, 10);
-    form.elements.anti_perfectionist.checked = !!q.anti_perfectionist;
-    $("#categoryRows").innerHTML = "";
-    (state.quarterDetail.categories || []).forEach(function (c) { addCategoryRow(c); });
-    if (!state.quarterDetail.categories.length) addCategoryRow();
-    state.editingQuarterId = q.id;
-    $("#btnQuarterSubmit").textContent = "Update quarter";
-    $("#btnCancelQuarterEdit").hidden = false;
-    $("#addQuarterBox").open = true;
-    form.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
+  function analyticsCardHtml(c) {
+    var p = c.progress;
+    return '<div class="category-card" data-id="' + c.id + '">' +
+      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+      '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' +
+      '</div>' +
+      '<div class="category-card__stats">' +
+        '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
+        '<div>Cycle target<b>' + fmtH(p.target) + '</b></div>' +
+        '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
+        '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
+      '</div>' +
+      '<div class="chart" style="min-height:190px"></div>' +
+    '</div>';
+  }
 
-  $("#btnDeleteQuarter").addEventListener("click", function () {
-    if (!state.quarterDetail) return;
-    var q = state.quarterDetail.quarter;
-    if (!confirm('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).')) return;
-    api("/api/quarters?id=" + q.id, { method: "DELETE" })
-      .then(function () { toast("Quarter deleted"); return loadQuarters(); })
-      .then(function () { return loadDay(state.currentDate); })
-      .catch(function (e) { toast(e.message, true); });
-  });
+  function loadAnalyticsDetail(cycleKey) {
+    if (!cycleKey) return Promise.resolve();
+    return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(cycleKey)).then(function (data) {
+      state.analyticsDetail = data;
+      renderAnalytics(data);
+    }).catch(function (e) { toast(e.message, true); });
+  }
 
-  $("#quarterForm").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var form = this;
-    var btn = $("#btnQuarterSubmit");
-    var b = formData(form);
-    var categories = Array.prototype.slice.call($("#categoryRows").children).map(function (row) {
-      var hoursVal = row.querySelector("[name=cat_hours]").value;
-      return {
-        id: row.dataset.id ? Number(row.dataset.id) : undefined,
-        name: row.querySelector("[name=cat_name]").value.trim(),
-        weekly_hours: hoursVal ? Number(hoursVal) : null,
-      };
-    }).filter(function (c) { return c.name; });
-    var body = {
-      name: b.name, start_date: b.start_date, end_date: b.end_date,
-      anti_perfectionist: form.elements.anti_perfectionist.checked,
-      categories: categories,
-    };
-
-    busy(btn, true);
-    var editingId = state.editingQuarterId;
-    (editingId ? api("/api/quarters?id=" + editingId, { method: "PATCH", body: body })
-               : api("/api/quarters", { method: "POST", body: body }))
-      .then(function (r) {
-        toast(editingId ? "Quarter updated ✓" : "Quarter created ✓");
-        resetQuarterForm();
-        $("#addQuarterBox").open = false;
-        return loadQuarters().then(function () {
-          var newId = editingId || (r.quarter && r.quarter.id);
-          if (newId) {
-            state.selectedQuarterId = newId;
-            $("#quarterSelect").value = newId;
-            return loadQuarterDetail(newId);
-          }
-        });
-      })
-      .catch(function (e) { toast(e.message, true); })
-      .finally(function () { busy(btn, false); });
-  });
-
-  addCategoryRow(); // one empty row to start with
+  function renderAnalytics(data) {
+    var withHours = (data.categories || []).filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0; });
+    $("#noAnalytics").hidden = withHours.length > 0;
+    var box = $("#analyticsCards");
+    box.innerHTML = withHours.map(analyticsCardHtml).join("");
+    withHours.forEach(function (c) {
+      var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
+      window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, {
+        start: data.start, end: data.end, target: c.progress.target,
+      });
+    });
+  }
 
   /* ---------------- resize: redraw progress charts ---------------- */
 
@@ -756,7 +836,9 @@
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      if (state.quarterDetail && !$("#view-app").hidden) renderQuarter(state.quarterDetail);
+      if ($("#view-app").hidden) return;
+      if (state.activeTab === "categories" && state.cycleDetail) renderCategories(state.cycleDetail);
+      if (state.activeTab === "analytics" && state.analyticsDetail) renderAnalytics(state.analyticsDetail);
     }, 150);
   });
 
