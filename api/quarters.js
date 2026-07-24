@@ -13,19 +13,22 @@ function isDate(s) {
 }
 
 async function saveCategories(sql, quarterId, categories) {
-  const wanted = (categories || []).filter((c) => c && String(c.name || "").trim() && Number(c.weekly_hours) > 0);
+  // weekly_hours is optional — a category can be goals-only, with no hour target
+  const wanted = (categories || []).filter((c) => c && String(c.name || "").trim());
   const existing = await sql`SELECT id FROM quarter_categories WHERE quarter_id = ${quarterId}`;
   const existingIds = new Set(existing.map((r) => r.id));
   const keepIds = new Set();
 
   for (const c of wanted) {
+    const weeklyHours = c.weekly_hours != null && c.weekly_hours !== "" && Number(c.weekly_hours) > 0
+      ? Number(c.weekly_hours) : null;
     if (c.id && existingIds.has(Number(c.id))) {
       keepIds.add(Number(c.id));
-      await sql`UPDATE quarter_categories SET name = ${String(c.name).trim()}, weekly_hours = ${Number(c.weekly_hours)}
+      await sql`UPDATE quarter_categories SET name = ${String(c.name).trim()}, weekly_hours = ${weeklyHours}
         WHERE id = ${Number(c.id)}`;
     } else {
       const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours)
-        VALUES (${quarterId}, ${String(c.name).trim()}, ${Number(c.weekly_hours)}) RETURNING id`;
+        VALUES (${quarterId}, ${String(c.name).trim()}, ${weeklyHours}) RETURNING id`;
       keepIds.add(row.id);
     }
   }

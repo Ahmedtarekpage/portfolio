@@ -78,6 +78,8 @@ async function migrate(sql) {
     weekly_hours NUMERIC NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // categories can now be goals-only (no hour target) — e.g. "Cashflow milestones"
+  await sql`ALTER TABLE quarter_categories ALTER COLUMN weekly_hours DROP NOT NULL`;
   await sql`CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     task_date DATE NOT NULL,
