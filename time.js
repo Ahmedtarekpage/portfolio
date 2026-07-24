@@ -89,6 +89,36 @@
     return out;
   }
 
+  /* ---------------- theme (light/dark, persisted; set pre-paint in <head>) ---------------- */
+
+  function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    var btn = $("#btnTheme");
+    if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "light" ? "#eef1f7" : "#0b0e14");
+    try { localStorage.setItem("time-theme", theme); } catch (e) {}
+  }
+
+  applyTheme(currentTheme()); // sync the toggle icon to whatever the pre-paint script already set
+
+  $("#btnTheme").addEventListener("click", function () {
+    var btn = this;
+    applyTheme(currentTheme() === "light" ? "dark" : "light");
+    // reduceMotion is assigned further down but hoisted, and this only runs on a later click
+    if (!reduceMotion) {
+      btn.classList.remove("theme-toggle--spin");
+      void btn.offsetWidth; // restart the animation on repeat clicks
+      btn.classList.add("theme-toggle--spin");
+    }
+    // charts read CSS custom properties at render time — redraw with the new theme's colors
+    if (state.quarterDetail) renderQuarter(state.quarterDetail);
+  });
+
   /* ---------------- auth ---------------- */
 
   function boot() {
