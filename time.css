@@ -235,20 +235,10 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .chip__remove:hover { color: #ff9aa7; background: rgba(226, 88, 106, 0.14); }
 
-.wizard-goal-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-.wizard-goal-row {
-  display: grid; grid-template-columns: minmax(90px, 1fr) 110px 1.4fr 90px 70px; gap: 8px; align-items: center;
-}
-.wizard-goal-row__name { font: 600 0.85rem "Space Grotesk", sans-serif; }
-.wizard-goal-row input {
-  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 6px 9px; font: 400 0.82rem "Inter", sans-serif; outline: none; width: 100%;
-}
-.wizard-goal-row input:focus { border-color: var(--blue); }
-@media (max-width: 640px) {
-  .wizard-goal-row { grid-template-columns: 1fr 1fr; }
-  .wizard-goal-row__name { grid-column: 1 / -1; }
-}
+/* one category's goal screen, asked on its own step */
+.wizard-cat-heading { font: 600 1.1rem "Space Grotesk", sans-serif; margin: 4px 0 14px; }
+.wizard-goal-inline { display: flex; gap: 10px; max-width: 260px; }
+.wizard-goal-inline label { flex: 1; }
 
 /* ---------- Categories tab: add-category form + per-cycle weekly target ---------- */
 .category-card__delete { margin-left: auto; }
