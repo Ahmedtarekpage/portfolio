@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=6" />
+  <link rel="stylesheet" href="time.css?v=7" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -122,6 +122,20 @@
             <input type="date" id="dayPicker" />
             <button id="btnNextDay" class="iconbtn" aria-label="Next day">→</button>
             <button id="btnToday" class="btn btn--ghost btn--sm">Today</button>
+          </div>
+        </div>
+
+        <div class="mascot" id="mascot">
+          <div class="mascot__char" id="mascotChar">
+            <div class="mascot__face">
+              <div class="mascot__eye mascot__eye--left"></div>
+              <div class="mascot__eye mascot__eye--right"></div>
+              <div class="mascot__mouth mascot__mouth--neutral" id="mascotMouth"></div>
+            </div>
+          </div>
+          <div class="mascot__bubble">
+            <div class="mascot__caption" id="mascotCaption">Let's get started! 💪</div>
+            <div class="mascot__streak" id="mascotStreak" hidden>🔥 <span id="streakCount">0</span> day streak</div>
           </div>
         </div>
 
@@ -294,6 +308,6 @@
   </div>
 
   <script src="chart.js?v=7"></script>
-  <script src="time.js?v=11"></script>
+  <script src="time.js?v=12"></script>
 </body>
 </html>

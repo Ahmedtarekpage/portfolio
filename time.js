@@ -636,6 +636,69 @@
         });
       });
     }
+
+    // mascot always reflects real "today", independent of whatever day is
+    // being browsed via the day picker
+    var todayStats = byDate[to];
+    var todayPct = todayStats && todayStats.total ? Math.round((todayStats.done / todayStats.total) * 100) : 0;
+    var streak = 0;
+    var walk = to;
+    while (byDate[walk] && byDate[walk].total && byDate[walk].done >= byDate[walk].total) {
+      streak++;
+      walk = addDays(walk, -1);
+    }
+    updateMascot(todayPct, streak);
+  }
+
+  /* ---------------- mascot: reacts to today's completion %, with a streak + confetti ---------------- */
+
+  var MASCOT_MOODS = [
+    { max: 0, mouth: "sad", caption: "Let's get started! 💪" },
+    { max: 49, mouth: "neutral", caption: "Building momentum…" },
+    { max: 99, mouth: "happy", caption: "You're doing great!" },
+    { max: 100, mouth: "excited", caption: "Perfect day! 🎉" },
+  ];
+  var mascotHit100Today = false;
+
+  function updateMascot(pct, streak) {
+    var mood = MASCOT_MOODS.filter(function (m) { return pct <= m.max; })[0] || MASCOT_MOODS[MASCOT_MOODS.length - 1];
+    $("#mascotMouth").className = "mascot__mouth mascot__mouth--" + mood.mouth;
+    $("#mascotCaption").textContent = mood.caption;
+
+    var streakBox = $("#mascotStreak");
+    if (streak > 0) { streakBox.hidden = false; $("#streakCount").textContent = streak; }
+    else streakBox.hidden = true;
+
+    if (pct >= 100 && !mascotHit100Today) {
+      mascotHit100Today = true;
+      celebrateMascot();
+    } else if (pct < 100) {
+      mascotHit100Today = false;
+    }
+  }
+
+  function celebrateMascot() {
+    if (reduceMotion) return;
+    var char = $("#mascotChar");
+    char.classList.remove("mascot__char--celebrate");
+    void char.offsetWidth;
+    char.classList.add("mascot__char--celebrate");
+    burstConfetti();
+    playSuccessSound();
+  }
+
+  function burstConfetti() {
+    var colors = ["#60a5fa", "#a78bfa", "#34d399", "#f59e0b", "#f472b6"];
+    for (var i = 0; i < 18; i++) {
+      var piece = document.createElement("div");
+      piece.className = "confetti-piece";
+      piece.style.left = Math.random() * 100 + "vw";
+      piece.style.background = colors[i % colors.length];
+      piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      piece.style.animationDelay = (Math.random() * 0.3) + "s";
+      document.body.appendChild(piece);
+      (function (el) { setTimeout(function () { el.remove(); }, 1900); })(piece);
+    }
   }
 
   /* ---------------- quarterly goals ---------------- */
