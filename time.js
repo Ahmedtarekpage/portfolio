@@ -512,8 +512,8 @@
     return sumTarget > 0 ? Math.min(100, Math.round((sumCurrent / sumTarget) * 100)) : 0;
   }
 
-  function overallBarHtml(pct, label) {
-    return '<div class="goals-overall">' +
+  function overallBarHtml(pct, label, dataId) {
+    return '<div class="goals-overall"' + (dataId != null ? ' data-cat-id="' + dataId + '"' : '') + '>' +
       '<div class="goals-overall__top"><span>' + label + '</span><span class="goals-overall__pct">' + pct + '%</span></div>' +
       '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
         '" style="width:' + pct + '%"></div></div>' +
@@ -561,11 +561,15 @@
     fill.classList.toggle("goal-row__fill--done", pct >= 100);
   }
 
-  // recomputes this category's overall bar and the whole-quarter overall bar
-  // from in-memory state — no reload, so it stays instant alongside +1/-1 taps
+  // recomputes this category's overall bar, its analytics row, and the
+  // whole-quarter overall bar from in-memory state — no reload, so it stays
+  // instant alongside +1/-1 taps
   function refreshOverallBars(card, category) {
     var catPct = combinedGoalsPct(category.goals);
-    if (catPct != null) updateOverallBarUI(card.querySelector(".goals > .goals-overall"), catPct);
+    if (catPct != null) {
+      updateOverallBarUI(card.querySelector(".goals > .goals-overall"), catPct);
+      updateOverallBarUI(document.querySelector('#analyticsGoals .goals-overall[data-cat-id="' + category.id + '"]'), catPct);
+    }
 
     if (state.quarterDetail) {
       var allGoals = state.quarterDetail.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
@@ -637,10 +641,52 @@
     });
   }
 
+  // horizontal-bar analytics for the selected quarter: hours pace and goals
+  // completion side by side across every category, reusing the same bar
+  // markup as the per-category/per-quarter "overall" rollups above
+  function renderAnalytics(data) {
+    var hoursBox = $("#analyticsHours");
+    var goalsBox = $("#analyticsGoals");
+    hoursBox.innerHTML = "";
+    goalsBox.innerHTML = "";
+
+    var hoursCats = data ? data.categories.filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0; }) : [];
+    var goalsCats = data ? data.categories.filter(function (c) { return (c.goals || []).length > 0; }) : [];
+    $("#noAnalytics").hidden = hoursCats.length > 0 || goalsCats.length > 0;
+
+    if (hoursCats.length) {
+      var hoursTitle = document.createElement("div");
+      hoursTitle.className = "goals__label";
+      hoursTitle.textContent = "Hours pace — logged vs. quarter target";
+      hoursBox.appendChild(hoursTitle);
+      hoursCats.forEach(function (c) {
+        var p = c.progress;
+        var pct = p.target > 0 ? Math.min(100, Math.round((p.actual / p.target) * 100)) : 0;
+        var wrap = document.createElement("div");
+        wrap.innerHTML = overallBarHtml(pct, c.name);
+        hoursBox.appendChild(wrap.firstChild);
+      });
+    }
+
+    if (goalsCats.length) {
+      var goalsTitle = document.createElement("div");
+      goalsTitle.className = "goals__label";
+      if (hoursCats.length) goalsTitle.style.marginTop = "16px";
+      goalsTitle.textContent = "Goals completion";
+      goalsBox.appendChild(goalsTitle);
+      goalsCats.forEach(function (c) {
+        var wrap = document.createElement("div");
+        wrap.innerHTML = overallBarHtml(combinedGoalsPct(c.goals), c.name, c.id);
+        goalsBox.appendChild(wrap.firstChild);
+      });
+    }
+  }
+
   function renderQuarter(data) {
     $("#noQuarters").hidden = state.quarters.length > 0;
     $("#quarterSelect").hidden = state.quarters.length === 0;
     $("#quarterActions").hidden = !data;
+    renderAnalytics(data);
     var box = $("#categoryCards");
     box.innerHTML = "";
     if (!data) return;
@@ -682,7 +728,7 @@
           : '<p class="muted" style="margin:0">No hour target set for this category.</p>') +
         '<div class="goals">' +
           '<div class="goals__label">Goals</div>' +
-          (catPct != null ? overallBarHtml(catPct, "Overall") : '') +
+          (catPct != null ? overallBarHtml(catPct, "Overall", c.id) : '') +
           (c.goals || []).map(goalRowHtml).join("") +
           '<form class="goal-add-form">' +
             '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
