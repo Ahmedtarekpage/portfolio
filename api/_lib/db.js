@@ -132,6 +132,13 @@ async function migrate(sql) {
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
   await sql`CREATE INDEX IF NOT EXISTS goals_category_idx ON goals (category_id)`;
+  // one optional uploaded thumbnail per day, for the Days gallery tab —
+  // stored as a data: URL (client resizes/compresses before upload)
+  await sql`CREATE TABLE IF NOT EXISTS day_photos (
+    task_date DATE PRIMARY KEY,
+    photo_data TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

@@ -139,7 +139,9 @@
 
   $("#tabbar").addEventListener("click", function (ev) {
     var btn = ev.target.closest(".tab");
-    if (btn) showTab(btn.dataset.tab);
+    if (!btn) return;
+    showTab(btn.dataset.tab);
+    if (btn.dataset.tab === "days") loadDaysGallery();
   });
 
   /* ---------------- live countdown to the selected quarter's start/end ---------------- */
@@ -305,7 +307,11 @@
     showTab(savedTab && document.querySelector('.tabpanel[data-tabpanel="' + savedTab + '"]') ? savedTab : "today");
     startCountdownTimer();
     Promise.all([loadQuarters(), loadDay(state.currentDate), loadHistory()])
-      .then(function () { show("view-app"); })
+      .then(function () {
+        show("view-app");
+        var activeTab = document.querySelector("#tabbar .tab--active");
+        if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
+      })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
   }
 
@@ -1163,6 +1169,134 @@
   });
 
   addCategoryRow(); // one empty row to start with
+
+  /* ---------------- days: a photo gallery, one tile per day in the selected quarter ---------------- */
+
+  // resize + JPEG-compress client-side before ever sending an image to the API
+  function resizeImageFile(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          var cw = Math.max(1, Math.round(img.width * scale));
+          var ch = Math.max(1, Math.round(img.height * scale));
+          var canvas = document.createElement("canvas");
+          canvas.width = cw; canvas.height = ch;
+          canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = function () { reject(new Error("Could not read that image")); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function () { reject(new Error("Could not read that file")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function loadDaysGallery() {
+    var quarter = state.quarterDetail && state.quarterDetail.quarter;
+    if (!quarter) {
+      $("#dayGallery").innerHTML = "";
+      $("#noDaysQuarter").hidden = false;
+      $("#daysQuarterLabel").textContent = "";
+      $("#daysAvgValue").textContent = "0%";
+      $("#daysAvgSub").textContent = "0 days tracked";
+      return Promise.resolve();
+    }
+    $("#noDaysQuarter").hidden = true;
+    $("#daysQuarterLabel").textContent = quarter.name + " (" + fmtDate(quarter.start_date) + "–" + fmtDate(quarter.end_date) + ")";
+
+    var from = String(quarter.start_date).slice(0, 10);
+    var to = String(quarter.end_date).slice(0, 10);
+    return Promise.all([
+      api("/api/tasks?stats=1&from=" + from + "&to=" + to),
+      api("/api/day-photos?from=" + from + "&to=" + to),
+    ]).then(function (results) {
+      renderDaysGallery(from, to, results[0].stats, results[1].photos);
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function renderDaysGallery(from, to, stats, photos) {
+    var statsByDate = {};
+    (stats || []).forEach(function (s) { statsByDate[s.date] = s; });
+    var photosByDate = {};
+    (photos || []).forEach(function (p) { photosByDate[p.task_date] = p.photo_data; });
+
+    var box = $("#dayGallery");
+    box.innerHTML = "";
+    var today = todayISO();
+    var sumPct = 0, countedDays = 0, totalDays = 0;
+    var d = from;
+    while (d <= to) {
+      totalDays++;
+      var s = statsByDate[d];
+      var pct = s && s.total ? Math.round((s.done / s.total) * 100) : null;
+      if (pct != null) { sumPct += pct; countedDays++; }
+      var photo = photosByDate[d];
+
+      var tile = document.createElement("div");
+      tile.className = "day-tile" + (d === today ? " day-tile--today" : "");
+
+      var photoLabel = document.createElement("label");
+      photoLabel.className = "day-tile__photo";
+      if (photo) photoLabel.style.backgroundImage = "url(" + photo + ")";
+      else photoLabel.textContent = "📷";
+      var fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "image/*";
+      photoLabel.appendChild(fileInput);
+      tile.appendChild(photoLabel);
+
+      var bar = document.createElement("div");
+      bar.className = "day-tile__bar";
+      bar.innerHTML = '<div class="day-tile__fill' + (pct != null && pct >= 100 ? " day-tile__fill--done" : "") +
+        '" style="width:' + (pct || 0) + '%"></div>';
+      tile.appendChild(bar);
+
+      var meta = document.createElement("div");
+      meta.className = "day-tile__meta";
+      meta.innerHTML = "<span>" + fmtDate(d) + "</span><b>" + (pct == null ? "—" : pct + "%") + "</b>";
+      tile.appendChild(meta);
+
+      if (photo) {
+        var removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "day-tile__remove";
+        removeBtn.title = "Remove photo";
+        removeBtn.textContent = "✕";
+        tile.appendChild(removeBtn);
+        removeBtn.addEventListener("click", function (dd) {
+          return function (ev) {
+            ev.preventDefault();
+            if (!confirm("Remove this day's photo?")) return;
+            api("/api/day-photos?date=" + dd, { method: "DELETE" })
+              .then(function () { playDeleteSound(); return loadDaysGallery(); })
+              .catch(function (e) { toast(e.message, true); });
+          };
+        }(d));
+      }
+
+      fileInput.addEventListener("change", function (dd) {
+        return function () {
+          var file = this.files[0];
+          if (!file) return;
+          resizeImageFile(file, 480, 0.75)
+            .then(function (dataUrl) { return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: dataUrl } }); })
+            .then(function () { playAddSound(); toast("Photo saved ✓"); return loadDaysGallery(); })
+            .catch(function (e) { toast(e.message, true); });
+        };
+      }(d));
+
+      box.appendChild(tile);
+      d = addDays(d, 1);
+    }
+
+    var avg = countedDays ? Math.round(sumPct / countedDays) : 0;
+    $("#daysAvgValue").textContent = avg + "%";
+    $("#daysAvgSub").textContent = countedDays + " of " + totalDays + " days tracked";
+  }
 
   /* ---------------- resize: redraw progress charts ---------------- */
 

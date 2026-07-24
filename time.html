@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=7" />
+  <link rel="stylesheet" href="time.css?v=8" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -109,6 +109,7 @@
       <nav class="tabbar" id="tabbar">
         <button type="button" class="tab tab--active" data-tab="today">📅 Today</button>
         <button type="button" class="tab" data-tab="quarter">🎯 Quarter</button>
+        <button type="button" class="tab" data-tab="days">🖼️ Days</button>
         <button type="button" class="tab" data-tab="analytics">📊 Analytics</button>
       </nav>
 
@@ -266,6 +267,27 @@
       </div>
       </section>
 
+      <!-- ---- Days: a photo gallery, one tile per day in the selected quarter ---- -->
+      <section class="tabpanel" data-tabpanel="days" hidden>
+      <div class="card">
+        <div class="card__head">
+          <h2>Days</h2>
+          <span class="muted" id="daysQuarterLabel"></span>
+        </div>
+        <p id="noDaysQuarter" class="muted center" hidden>Create a quarter first (in the Quarter tab) to see its days here.</p>
+
+        <div class="tiles">
+          <div class="tile tile--accent">
+            <div class="tile__label">Average completion</div>
+            <div class="tile__value" id="daysAvgValue">0%</div>
+            <div class="tile__sub" id="daysAvgSub">0 days tracked</div>
+          </div>
+        </div>
+
+        <div class="day-gallery" id="dayGallery"></div>
+      </div>
+      </section>
+
       <!-- ---- Analytics: at-a-glance charts across every category, for the selected quarter ---- -->
       <section class="tabpanel" data-tabpanel="analytics" hidden>
       <div class="card">
@@ -308,6 +330,6 @@
   </div>
 
   <script src="chart.js?v=7"></script>
-  <script src="time.js?v=12"></script>
+  <script src="time.js?v=13"></script>
 </body>
 </html>

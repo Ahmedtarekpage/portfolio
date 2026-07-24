@@ -125,6 +125,34 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   to { transform: translateY(100vh) rotate(560deg); opacity: 0.2; }
 }
 
+/* ---------- Days: photo gallery, one tile per day in the selected quarter ---------- */
+.day-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; margin-top: 16px; }
+.day-tile {
+  position: relative; border-radius: 12px; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--glass-brd);
+  animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.day-tile--today { border-color: var(--blue-2); box-shadow: 0 0 0 1px var(--blue-2); }
+.day-tile__photo {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 1 / 1; cursor: pointer;
+  background-size: cover; background-position: center; background-color: rgba(96, 165, 250, 0.06);
+  color: var(--faint); font-size: 1.5rem; transition: filter 0.15s ease;
+}
+.day-tile__photo:hover { filter: brightness(0.85); }
+.day-tile__photo input[type="file"] { display: none; }
+.day-tile__bar { height: 4px; background: var(--glass-brd); }
+.day-tile__fill { height: 100%; background: var(--grad); transition: width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.day-tile__fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
+.day-tile__meta { display: flex; justify-content: space-between; align-items: center; padding: 5px 7px; font-size: 0.68rem; color: var(--muted); }
+.day-tile__meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.day-tile__remove {
+  position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55); color: #fff; border: none; cursor: pointer; font-size: 0.72rem;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.day-tile__remove:hover { background: rgba(226, 88, 106, 0.85); }
+
 /* ---------- modern refresh: glass cards + softer depth ---------- */
 .card {
   background: rgba(19, 24, 34, 0.78);
