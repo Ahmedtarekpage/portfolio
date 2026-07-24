@@ -322,7 +322,32 @@
     $("#dayPicker").value = date;
     return api("/api/tasks?date=" + date).then(function (data) {
       renderTasks(data.tasks);
+      renderTodayChart(date, data.tasks);
     }).catch(function (e) { toast(e.message, true); });
+  }
+
+  // a completed task's timestamp, falling back to when it was created for
+  // legacy rows completed before completed_at existed
+  function taskCompletionTime(t) {
+    return t.completed_at || t.created_at;
+  }
+
+  function renderTodayChart(date, tasks) {
+    var box = $("#todayChart");
+    var empty = $("#todayChartEmpty");
+    if (!tasks.length) {
+      box.innerHTML = "";
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+
+    var doneSorted = tasks.filter(function (t) { return t.done; })
+      .sort(function (a, b) { return new Date(taskCompletionTime(a)) - new Date(taskCompletionTime(b)); });
+    var running = 0;
+    var points = doneSorted.map(function (t) { running++; return { time: taskCompletionTime(t), cumulative: running }; });
+
+    window.renderDayChart(box, points, { date: date, target: tasks.length, showNow: date === todayISO() });
   }
 
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

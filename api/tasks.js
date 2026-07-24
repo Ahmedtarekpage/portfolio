@@ -105,6 +105,11 @@ export default withErrors(async (req, res) => {
       : existing.actual_hours;
     if (done && actualHours == null) actualHours = plannedHours;
     if (!done) actualHours = null;
+    // stamp the moment a task is marked done (for the "completed by hour" chart);
+    // clear it if unmarked so re-completing it later gets a fresh timestamp
+    let completedAt = existing.completed_at;
+    if (done && !existing.done) completedAt = new Date().toISOString();
+    if (!done) completedAt = null;
 
     const [task] = await sql`UPDATE tasks SET
         title = COALESCE(${b.title ?? null}, title),
@@ -112,7 +117,8 @@ export default withErrors(async (req, res) => {
         planned_hours = ${plannedHours},
         actual_hours = ${actualHours},
         icon = ${icon},
-        done = ${done}
+        done = ${done},
+        completed_at = ${completedAt}
       WHERE id = ${id} RETURNING *`;
     return json(res, 200, { task });
   }

@@ -469,4 +469,86 @@
       });
     }
   };
+
+  /* Single day's completion pace — a stepped cumulative line across that day's
+     24 hours (points = [{ time: ISO datetime, cumulative }]), with a dashed
+     target line at the day's total task count. Used by /time's Today tab so
+     each completed task nudges the line forward at the hour it happened. */
+  window.renderDayChart = function (box, points, opts) {
+    opts = opts || {};
+    box.innerHTML = "";
+    var cs = getComputedStyle(document.documentElement);
+    var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
+    var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
+    var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
+
+    var dayStart = new Date(String(opts.date).slice(0, 10) + "T00:00:00");
+    var start = dayStart.getTime();
+    var end = start + 24 * 3600 * 1000;
+    var target = Number(opts.target) || 0;
+    var showNow = !!opts.showNow;
+    var nowT = Date.now();
+
+    var logged = (points || []).map(function (p) { return { t: new Date(p.time).getTime(), v: Number(p.cumulative) }; });
+    var actualPts = [{ t: start, v: 0 }].concat(logged);
+    var lastActual = actualPts[actualPts.length - 1].v;
+
+    var W = Math.max(box.clientWidth || 600, 260), H = 190;
+    var M = { l: 30, r: 12, t: 14, b: 24 };
+    var yMax = Math.max(target, lastActual, 1) * 1.1;
+    var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
+    var y = function (v) { return H - M.b - (v / yMax) * (H - M.t - M.b); };
+
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Today's completion pace" });
+
+    var step = niceStep(yMax, 3);
+    for (var v = 0; v <= yMax; v += step) {
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
+      var lbl = svgEl("text", { x: M.l - 6, y: y(v) + 4, "text-anchor": "end", fill: faint, "font-size": 10 });
+      lbl.textContent = Number.isInteger(v) ? v : v.toFixed(1);
+      svg.appendChild(lbl);
+    }
+
+    if (target > 0) {
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(target), y2: y(target), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" }));
+    }
+
+    var color = opts.color || "#60a5fa";
+    var d = "M " + x(actualPts[0].t) + " " + y(actualPts[0].v);
+    for (var i = 1; i < actualPts.length; i++) {
+      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i - 1].v);
+      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i].v);
+    }
+    var lastT = actualPts[actualPts.length - 1].t;
+    var extendTo = showNow ? Math.min(Math.max(nowT, lastT), end) : lastT;
+    if (extendTo > lastT) d += " L " + x(extendTo) + " " + y(lastActual);
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    svg.appendChild(lineEl);
+
+    if (showNow && nowT >= start && nowT <= end) {
+      svg.appendChild(svgEl("line", { x1: x(nowT), x2: x(nowT), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
+    }
+
+    [0, 6, 12, 18, 24].forEach(function (h) {
+      var t = start + h * 3600 * 1000;
+      var anchor = h === 0 ? "start" : h === 24 ? "end" : "middle";
+      var xl = svgEl("text", { x: x(t), y: H - 6, "text-anchor": anchor, fill: faint, "font-size": 10 });
+      xl.textContent = (h === 24 ? "24" : h < 10 ? "0" + h : String(h)) + ":00";
+      svg.appendChild(xl);
+    });
+
+    box.appendChild(svg);
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) {
+      try {
+        var len = lineEl.getTotalLength();
+        lineEl.style.strokeDasharray = len;
+        lineEl.style.strokeDashoffset = len;
+        lineEl.getBoundingClientRect();
+        lineEl.style.transition = "stroke-dashoffset 0.8s ease";
+        lineEl.style.strokeDashoffset = 0;
+      } catch (e) { /* SVG not measurable — skip animation */ }
+    }
+  };
 })();

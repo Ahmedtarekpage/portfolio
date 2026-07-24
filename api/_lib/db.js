@@ -95,6 +95,8 @@ async function migrate(sql) {
   // drag-to-reorder position within a day, and a picked emoji icon per task
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
+  // stamped when a task is marked done -- powers the "completed by hour" chart
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`;
   // the abandoned rebuild also re-pointed tasks.category_id at its new "categories"
   // table -- re-point it back at quarter_categories, nulling out any rows whose
   // id no longer resolves (those two tables use unrelated id sequences)
