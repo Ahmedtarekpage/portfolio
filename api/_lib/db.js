@@ -95,6 +95,21 @@ async function migrate(sql) {
   // drag-to-reorder position within a day, and a picked emoji icon per task
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
+  // the abandoned rebuild also re-pointed tasks.category_id at its new "categories"
+  // table -- re-point it back at quarter_categories, nulling out any rows whose
+  // id no longer resolves (those two tables use unrelated id sequences)
+  await sql`DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.constraint_column_usage
+      WHERE constraint_name = 'tasks_category_id_fkey' AND table_name = 'categories'
+    ) THEN
+      ALTER TABLE tasks DROP CONSTRAINT tasks_category_id_fkey;
+      UPDATE tasks SET category_id = NULL
+        WHERE category_id IS NOT NULL AND category_id NOT IN (SELECT id FROM quarter_categories);
+      ALTER TABLE tasks ADD CONSTRAINT tasks_category_id_fkey
+        FOREIGN KEY (category_id) REFERENCES quarter_categories(id) ON DELETE SET NULL;
+    END IF;
+  END $$`;
   // an earlier, abandoned rebuild left behind a differently-shaped "goals" table
   // (cycle_key NOT NULL, category_id -> categories) -- drop it so it can be
   // recreated fresh with the shape this version of the app actually uses
