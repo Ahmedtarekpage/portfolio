@@ -9,7 +9,6 @@
   var state = {
     currentDate: todayISO(),
     activeTab: "home",
-    dayStats: { pct: 0, done: 0, total: 0 },
     categories: [],
     todayInfo: null,
     cycles: [],
@@ -272,10 +271,8 @@
     var total = tasks.length;
     var done = tasks.filter(function (t) { return t.done; }).length;
     var pct = total ? Math.round((done / total) * 100) : 0;
-    state.dayStats = { pct: pct, done: done, total: total };
     animateCount($("#dayPercent"), pct, "%");
     $("#dayCount").textContent = done + " of " + total + " task" + (total === 1 ? "" : "s");
-    if (!$("#homeGallery").hidden) renderGallery();
 
     var list = $("#taskList");
     list.innerHTML = "";
@@ -750,25 +747,36 @@
     if (!state.currentCycleKey) return Promise.resolve();
     return api("/api/cycle-goals?cycle_key=" + encodeURIComponent(state.currentCycleKey)).then(function (data) {
       state.galleryCycleDetail = data;
-      if (!$("#homeGallery").hidden) renderGallery();
+      if (!$("#homeMain").hidden) renderHomeMain();
     }).catch(function (e) { toast(e.message, true); });
+  }
+
+  // Home's "results" line: a one-glance read of where every category stands
+  // this cycle, right under the timing header
+  function renderCycleResults() {
+    var el = $("#cycleResults");
+    var categories = (state.galleryCycleDetail && state.galleryCycleDetail.categories) || [];
+    if (!categories.length) { el.textContent = ""; return; }
+    var withHours = categories.filter(function (c) { return c.weekly_hours != null && Number(c.weekly_hours) > 0 && c.progress; });
+    var onTrack = withHours.filter(function (c) { return c.progress.pace === "ahead" || c.progress.pace === "on-track"; }).length;
+    var behind = withHours.filter(function (c) { return c.progress.pace === "behind"; }).length;
+    var allGoals = categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
+
+    var parts = [];
+    if (withHours.length) parts.push(onTrack + " of " + withHours.length + " on track" + (behind ? " (" + behind + " behind)" : ""));
+    if (allGoals.length) {
+      var avg = Math.round(allGoals.reduce(function (s, g) { return s + goalPct(g); }, 0) / allGoals.length);
+      parts.push(allGoals.length + " goal" + (allGoals.length === 1 ? "" : "s") + " · " + avg + "% avg");
+    }
+    el.textContent = parts.length ? parts.join(" · ") : "No goals or hour targets set yet for this cycle.";
   }
 
   function renderGallery() {
     var box = $("#galleryGrid");
     var categories = (state.galleryCycleDetail && state.galleryCycleDetail.categories) || [];
-    var tiles = [galleryTileHtml({
-      kind: "today", icon: "📅", name: "Today",
-      pct: state.dayStats.total ? state.dayStats.pct : null,
-      sub: state.dayStats.total ? "" : "No tasks",
-    })];
-    categories.forEach(function (c) {
-      tiles.push(galleryTileHtml({
-        kind: "category", id: c.id, icon: categoryIcon(c.name), name: c.name,
-        pct: categoryPct(c), ringClass: categoryRingClass(c),
-      }));
-    });
-    box.innerHTML = tiles.join("");
+    box.innerHTML = categories.map(function (c) {
+      return galleryTileHtml({ kind: "category", id: c.id, icon: categoryIcon(c.name), name: c.name, pct: categoryPct(c), ringClass: categoryRingClass(c) });
+    }).join("");
 
     if (!reduceMotion) {
       // double rAF: the full-circle (0%) state must paint before animating to the real offset
@@ -780,35 +788,69 @@
     }
 
     box.querySelectorAll(".gallery-tile").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        if (btn.dataset.kind === "today") openToday();
-        else openCategory(Number(btn.dataset.id));
-      });
+      btn.addEventListener("click", function () { openCategory(Number(btn.dataset.id)); });
     });
+  }
+
+  // read-only summary of every category's hours pace + goals together, for
+  // the current cycle only — no picking, no tapping, just the full picture
+  function overviewCardHtml(c) {
+    var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
+    var hasGoals = (c.goals || []).length > 0;
+    return '<div class="category-card" data-id="' + c.id + '">' +
+      '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+      (hasHours ? '<span class="badge ' + PACE_CLASS[c.progress.pace] + '">' + PACE_LABEL[c.progress.pace] + '</span>' : '') +
+      '</div>' +
+      (hasHours ?
+        '<div class="category-card__stats">' +
+          '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
+          '<div>Cycle target<b>' + fmtH(c.progress.target) + '</b></div>' +
+          '<div>Logged<b>' + fmtH(c.progress.actual) + '</b></div>' +
+          '<div>Remaining<b>' + fmtH(c.progress.remaining) + '</b></div>' +
+        '</div>' +
+        '<div class="chart" style="min-height:150px"></div>'
+        : '') +
+      (hasGoals ?
+        '<div class="goals">' +
+          '<div class="goals__label">Goals</div>' +
+          c.goals.map(function (g) { return goalRowHtml(g, false); }).join("") +
+        '</div>' : '') +
+    '</div>';
+  }
+
+  function renderAllGoalsOverview() {
+    var box = $("#allGoalsOverview");
+    var detail = state.galleryCycleDetail;
+    var categories = (detail && detail.categories) || [];
+    var relevant = categories.filter(function (c) { return (c.weekly_hours != null && Number(c.weekly_hours) > 0) || (c.goals || []).length; });
+    $("#allGoalsEmpty").hidden = relevant.length > 0;
+    box.innerHTML = relevant.map(overviewCardHtml).join("");
+    relevant.forEach(function (c) {
+      if (c.weekly_hours == null || !(Number(c.weekly_hours) > 0)) return;
+      var card = box.querySelector('.category-card[data-id="' + c.id + '"]');
+      window.renderProgressChart(card.querySelector(".chart"), c.progress.timeline, { start: detail.start, end: detail.end, target: c.progress.target });
+    });
+  }
+
+  function renderHomeMain() {
+    renderCycleResults();
+    renderGallery();
+    renderAllGoalsOverview();
   }
 
   function openGallery() {
     state.selectedCategoryId = null;
     state.wizard = null;
-    $("#homeGallery").hidden = false;
-    $("#homeDetailToday").hidden = true;
+    $("#homeMain").hidden = false;
     $("#homeDetailCategory").hidden = true;
     $("#wizardView").hidden = true;
-    renderGallery();
-  }
-
-  function openToday() {
-    $("#homeGallery").hidden = true;
-    $("#homeDetailToday").hidden = false;
-    $("#homeDetailCategory").hidden = true;
-    $("#wizardView").hidden = true;
+    renderHomeMain();
   }
 
   function openCategory(categoryId) {
     state.selectedCategoryId = categoryId;
     state.selectedCycleKey = state.currentCycleKey;
-    $("#homeGallery").hidden = true;
-    $("#homeDetailToday").hidden = true;
+    $("#homeMain").hidden = true;
     $("#homeDetailCategory").hidden = false;
     $("#wizardView").hidden = true;
     if (state.selectedCycleKey) $("#cycleSelect").value = state.selectedCycleKey;
@@ -836,7 +878,7 @@
       step: 0, startDate: todayISO(), targetCycleKey: null, targetCycle: null,
       categories: state.categories.slice(), cyclesAhead: 1, entries: {}, cyclesWindow: [],
     };
-    $("#homeGallery").hidden = true;
+    $("#homeMain").hidden = true;
     $("#wizardView").hidden = false;
     renderWizard();
     api("/api/cycle-goals?list=1&future=12").then(function (data) {
