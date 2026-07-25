@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=16" />
+  <link rel="stylesheet" href="time.css?v=17" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -305,7 +305,18 @@
         </details>
 
         <p id="noQuarters" class="muted center" hidden>No quarters yet — create one above.</p>
+
+        <div id="quarterOverallBar"></div>
+
+        <div class="goals-view-toggle" id="goalsViewToggle">
+          <button type="button" class="goals-view-toggle__btn" data-view="category">By category</button>
+          <button type="button" class="goals-view-toggle__btn" data-view="flat">All goals</button>
+        </div>
+
         <div id="categoryCards" class="category-cards"></div>
+        <div id="goalsFlatList" class="goals-flat-list" hidden></div>
+        <p id="noGoalsFlat" class="muted center" hidden>No goals yet — add some from the category view above.</p>
+
         <div class="topbar__actions" id="quarterActions" style="justify-content: flex-end; margin-top: 14px" hidden>
           <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
           <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
@@ -398,6 +409,6 @@
   </div>
 
   <script src="chart.js?v=9"></script>
-  <script src="time.js?v=26"></script>
+  <script src="time.js?v=27"></script>
 </body>
 </html>

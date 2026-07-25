@@ -132,6 +132,9 @@ async function migrate(sql) {
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
   await sql`CREATE INDEX IF NOT EXISTS goals_category_idx ON goals (category_id)`;
+  // drag-to-reorder position, shared across all of a quarter's goals (not just
+  // within one category) so the flat "all goals" view can be reordered too
+  await sql`ALTER TABLE goals ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   // one optional uploaded thumbnail per day, for the Days gallery tab —
   // stored as a data: URL (client resizes/compresses before upload)
   await sql`CREATE TABLE IF NOT EXISTS day_photos (

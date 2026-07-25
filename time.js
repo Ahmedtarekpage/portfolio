@@ -12,6 +12,9 @@
     editingQuarterId: null,
     editingTaskId: null,
     collapsedCategoryIds: {}, // which category cards the user has manually collapsed
+    goalsView: (function () {
+      try { return localStorage.getItem("time-goals-view") || "category"; } catch (e) { return "category"; }
+    })(), // 'category' (grouped cards) or 'flat' (one drag-orderable list of every goal)
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -1133,10 +1136,13 @@
     '</div>';
   }
 
-  function goalRowHtml(g) {
+  function goalRowHtml(g, opts) {
+    opts = opts || {};
     var pct = goalPct(g);
     return '<div class="goal-row" data-id="' + g.id + '">' +
       '<div class="goal-row__top">' +
+        (opts.draggable ? '<span class="goal-row__handle" draggable="true" title="Drag to reorder">⠿</span>' : '') +
+        (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         '<span class="goal-row__pct">' + pct + '%</span>' +
         '<button type="button" class="iconbtn iconbtn--copy" title="Add to today\'s to-do">📋</button>' +
@@ -1175,83 +1181,101 @@
     fill.classList.toggle("goal-row__fill--done", pct >= 100);
   }
 
-  // recomputes this category's overall bar, its analytics row, and the
+  // recomputes a category's overall bar (wherever it appears — its own card
+  // and the analytics rollup both share the same data-cat-id) and the
   // whole-quarter overall bar from in-memory state — no reload, so it stays
   // instant alongside +1/-1 taps
-  function refreshOverallBars(card, category) {
+  function refreshOverallBars(category) {
     var catPct = combinedGoalsPct(category.goals);
     if (catPct != null) {
-      updateOverallBarUI(card.querySelector(".goals > .goals-overall"), catPct);
-      updateOverallBarUI(document.querySelector('#analyticsGoals .goals-overall[data-cat-id="' + category.id + '"]'), catPct);
+      document.querySelectorAll('.goals-overall[data-cat-id="' + category.id + '"]').forEach(function (el) {
+        updateOverallBarUI(el, catPct);
+      });
     }
 
     if (state.quarterDetail) {
       var allGoals = state.quarterDetail.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
       var qPct = combinedGoalsPct(allGoals);
-      if (qPct != null) updateOverallBarUI($("#categoryCards").querySelector(":scope > .goals-overall"), qPct);
+      if (qPct != null) updateOverallBarUI($("#quarterOverallBar").querySelector(".goals-overall"), qPct);
     }
   }
 
-  function stepGoal(row, goal, delta, card, category) {
+  // updates every instance of this goal's row in the DOM — a goal can appear
+  // both in its category card and in the flat "all goals" list at once
+  function updateAllGoalRowInstances(goalId, current, target) {
+    document.querySelectorAll('.goal-row[data-id="' + goalId + '"]').forEach(function (row) {
+      updateGoalRowUI(row, current, target);
+    });
+  }
+
+  function stepGoal(goal, delta, category) {
     var target = Number(goal.target) || 0;
     var wasDone = goalPct(goal) >= 100;
-    var v = Math.max(0, (Number(row.querySelector(".goal-row__current").value) || 0) + delta);
-    updateGoalRowUI(row, v, target);
+    var v = Math.max(0, (Number(goal.current) || 0) + delta);
     goal.current = v; // keep in sync so another quick tap steps from the right base
-    refreshOverallBars(card, category);
+    updateAllGoalRowInstances(goal.id, v, target);
+    refreshOverallBars(category);
     if (!wasDone && target > 0 && v >= target) playSuccessSound();
     api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
       .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
 
-  function wireGoals(card, category) {
-    var box = card.querySelector(".goals");
+  // editing a goal always happens through its category's add-form, regardless
+  // of which view (grouped or flat) the edit was triggered from
+  function startEditGoal(category, goal) {
+    setGoalsView("category");
+    var card = document.querySelector('.category-card[data-cat-id="' + category.id + '"]');
+    if (!card) return;
+    card.open = true;
+    var form = card.querySelector(".goal-add-form");
+    form.elements.title.value = goal.title;
+    form.elements.target.value = Number(goal.target);
+    form.elements.unit.value = goal.unit || "";
+    form.dataset.editingId = goal.id;
+    form.querySelector("button[type=submit]").textContent = "Update";
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-    (category.goals || []).forEach(function (g) {
-      var row = box.querySelector('.goal-row[data-id="' + g.id + '"]');
-      if (!row) return;
-      row.querySelectorAll(".goal-row__step").forEach(function (btn) {
-        btn.addEventListener("click", function () { stepGoal(row, g, Number(btn.dataset.delta), card, category); });
-      });
-      row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
-        var v = ev.target.value === "" ? 0 : Number(ev.target.value);
-        var wasDone = goalPct(g) >= 100;
-        var nowDone = Number(g.target) > 0 && v >= Number(g.target);
-        api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
-          .then(function () {
-            if (!wasDone && nowDone) playSuccessSound();
-            return loadQuarterDetail(state.selectedQuarterId);
-          })
-          .catch(function (e) { toast(e.message, true); });
-      });
-      row.querySelector(".iconbtn--copy").addEventListener("click", function () {
-        var today = todayISO();
-        api("/api/tasks", { method: "POST", body: { task_date: today, title: g.title, category_id: category.id } })
-          .then(function () {
-            playAddSound();
-            toast('Added "' + g.title + '" to today\'s to-do ✓');
-            if (state.currentDate === today) return afterTaskChange();
-          })
-          .catch(function (e) { toast(e.message, true); });
-      });
-      row.querySelector(".iconbtn--edit").addEventListener("click", function () {
-        var form = box.querySelector(".goal-add-form");
-        form.elements.title.value = g.title;
-        form.elements.target.value = Number(g.target);
-        form.elements.unit.value = g.unit || "";
-        form.dataset.editingId = g.id;
-        form.querySelector("button[type=submit]").textContent = "Update";
-        form.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
-      row.querySelector(".iconbtn--delete").addEventListener("click", function () {
-        if (!confirm('Delete goal "' + g.title + '"?')) return;
-        api("/api/goals?id=" + g.id, { method: "DELETE" })
-          .then(function () { playDeleteSound(); return loadQuarterDetail(state.selectedQuarterId); })
-          .catch(function (e) { toast(e.message, true); });
-      });
+  // wires one .goal-row element's steppers/copy/edit/delete — used for both
+  // the grouped-by-category view and the flat "all goals" view
+  function wireGoalRow(row, g, category) {
+    row.querySelectorAll(".goal-row__step").forEach(function (btn) {
+      btn.addEventListener("click", function () { stepGoal(g, Number(btn.dataset.delta), category); });
     });
+    row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
+      var v = ev.target.value === "" ? 0 : Number(ev.target.value);
+      var wasDone = goalPct(g) >= 100;
+      var nowDone = Number(g.target) > 0 && v >= Number(g.target);
+      api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
+        .then(function () {
+          if (!wasDone && nowDone) playSuccessSound();
+          return loadQuarterDetail(state.selectedQuarterId);
+        })
+        .catch(function (e) { toast(e.message, true); });
+    });
+    row.querySelector(".iconbtn--copy").addEventListener("click", function () {
+      var today = todayISO();
+      api("/api/tasks", { method: "POST", body: { task_date: today, title: g.title, category_id: category.id } })
+        .then(function () {
+          playAddSound();
+          toast('Added "' + g.title + '" to today\'s to-do ✓');
+          if (state.currentDate === today) return afterTaskChange();
+        })
+        .catch(function (e) { toast(e.message, true); });
+    });
+    row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditGoal(category, g); });
+    row.querySelector(".iconbtn--delete").addEventListener("click", function () {
+      if (!confirm('Delete goal "' + g.title + '"?')) return;
+      api("/api/goals?id=" + g.id, { method: "DELETE" })
+        .then(function () { playDeleteSound(); return loadQuarterDetail(state.selectedQuarterId); })
+        .catch(function (e) { toast(e.message, true); });
+    });
+  }
 
-    var addForm = box.querySelector(".goal-add-form");
+  // wires a category card's "+ add goal" form (editing an existing goal also
+  // submits through here, once startEditGoal has pre-filled it)
+  function wireGoalAddForm(card, category) {
+    var addForm = card.querySelector(".goal-add-form");
     addForm.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var form = this;
@@ -1353,9 +1377,15 @@
     $("#quarterSelect").hidden = state.quarters.length === 0;
     $("#quarterActions").hidden = !data;
     renderAnalytics(data);
+
+    var quarterBarBox = $("#quarterOverallBar");
+    quarterBarBox.innerHTML = "";
     var box = $("#categoryCards");
     box.innerHTML = "";
-    if (!data) return;
+    var flatBox = $("#goalsFlatList");
+    flatBox.innerHTML = "";
+    $("#goalsViewToggle").hidden = !data;
+    if (!data) { $("#noGoalsFlat").hidden = true; return; }
 
     if (data.quarter.anti_perfectionist) {
       var note = document.createElement("p");
@@ -1368,9 +1398,7 @@
     var allGoals = data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
     var quarterPct = combinedGoalsPct(allGoals);
     if (quarterPct != null) {
-      var quarterOverall = document.createElement("div");
-      quarterOverall.innerHTML = overallBarHtml(quarterPct, "This quarter — all categories' goals");
-      box.appendChild(quarterOverall.firstChild);
+      quarterBarBox.innerHTML = overallBarHtml(quarterPct, "This quarter — all categories' goals");
     }
 
     data.categories.forEach(function (c) {
@@ -1379,6 +1407,7 @@
       var catPct = combinedGoalsPct(c.goals);
       var card = document.createElement("details");
       card.className = "category-card section-collapse";
+      card.dataset.catId = c.id;
       card.open = !state.collapsedCategoryIds[c.id];
       card.addEventListener("toggle", function () { state.collapsedCategoryIds[c.id] = !card.open; });
       card.innerHTML =
@@ -1398,7 +1427,7 @@
         '<div class="goals">' +
           '<div class="goals__label">Goals</div>' +
           (catPct != null ? overallBarHtml(catPct, "Overall", c.id) : '') +
-          (c.goals || []).map(goalRowHtml).join("") +
+          (c.goals || []).map(function (g) { return goalRowHtml(g); }).join("") +
           '<form class="goal-add-form">' +
             '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
             '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
@@ -1413,9 +1442,82 @@
           start: data.quarter.start_date, end: data.quarter.end_date, target: p.target,
         });
       }
-      wireGoals(card, c);
+      (c.goals || []).forEach(function (g) {
+        var row = card.querySelector('.goal-row[data-id="' + g.id + '"]');
+        if (row) wireGoalRow(row, g, c);
+      });
+      wireGoalAddForm(card, c);
+    });
+
+    // flat "all goals" view — every goal across every category, in one global
+    // drag-orderable list (position is a single shared counter, so this sort
+    // also matches the order shown within each category above)
+    var flatGoals = allGoals.slice().sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); });
+    var catById = {};
+    data.categories.forEach(function (c) { catById[c.id] = c; });
+    flatGoals.forEach(function (g) {
+      var cat = catById[g.category_id];
+      var wrap = document.createElement("div");
+      wrap.innerHTML = goalRowHtml(g, { categoryName: cat ? cat.name : "", draggable: true });
+      var row = wrap.firstChild;
+      flatBox.appendChild(row);
+      if (cat) wireGoalRow(row, g, cat);
+    });
+
+    setGoalsView(state.goalsView);
+  }
+
+  /* ---------------- goals view toggle: grouped by category, or one flat drag-orderable list ---------------- */
+
+  function setGoalsView(view) {
+    state.goalsView = view;
+    try { localStorage.setItem("time-goals-view", view); } catch (e) {}
+    $("#categoryCards").hidden = view !== "category";
+    $("#goalsFlatList").hidden = view !== "flat";
+    $("#noGoalsFlat").hidden = view !== "flat" || $("#goalsFlatList").children.length > 0;
+    document.querySelectorAll(".goals-view-toggle__btn").forEach(function (btn) {
+      btn.classList.toggle("goals-view-toggle__btn--active", btn.dataset.view === view);
     });
   }
+
+  $("#goalsViewToggle").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".goals-view-toggle__btn");
+    if (!btn) return;
+    setGoalsView(btn.dataset.view);
+  });
+
+  var goalDragState = null;
+
+  $("#goalsFlatList").addEventListener("dragstart", function (ev) {
+    var handle = ev.target.closest(".goal-row__handle");
+    var row = handle && handle.closest(".goal-row");
+    if (!row) { ev.preventDefault(); return; }
+    goalDragState = { id: Number(row.dataset.id), el: row };
+    row.classList.add("goal-row--dragging");
+    ev.dataTransfer.effectAllowed = "move";
+    ev.dataTransfer.setData("text/plain", String(goalDragState.id));
+  });
+
+  $("#goalsFlatList").addEventListener("dragover", function (ev) {
+    if (!goalDragState) return;
+    ev.preventDefault();
+    var over = ev.target.closest(".goal-row");
+    if (!over || over === goalDragState.el) return;
+    var rect = over.getBoundingClientRect();
+    var before = (ev.clientY - rect.top) < rect.height / 2;
+    $("#goalsFlatList").insertBefore(goalDragState.el, before ? over : over.nextSibling);
+  });
+
+  $("#goalsFlatList").addEventListener("drop", function (ev) { ev.preventDefault(); });
+
+  $("#goalsFlatList").addEventListener("dragend", function () {
+    if (!goalDragState) return;
+    goalDragState.el.classList.remove("goal-row--dragging");
+    var ids = Array.prototype.slice.call($("#goalsFlatList").children).map(function (el) { return Number(el.dataset.id); });
+    goalDragState = null;
+    api("/api/goals?reorder=1", { method: "PATCH", body: { ids: ids } })
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  });
 
   $("#btnAddCategoryRow").addEventListener("click", function () { addCategoryRow(); });
 

@@ -4,6 +4,7 @@
 //   GET    /api/goals?category_id=N   -> goals for that category
 //   POST   /api/goals                 -> { category_id, title, target, unit? }
 //   PATCH  /api/goals?id=N            -> { title?, target?, current?, unit? }
+//   PATCH  /api/goals?reorder=1       -> { ids: [id, ...] }: persist new drag order
 //   DELETE /api/goals?id=N
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
@@ -15,7 +16,7 @@ export default withErrors(async (req, res) => {
   if (req.method === "GET") {
     const categoryId = Number(req.query.category_id);
     if (!categoryId) return json(res, 400, { error: "category_id is required" });
-    const goals = await sql`SELECT * FROM goals WHERE category_id = ${categoryId} ORDER BY created_at`;
+    const goals = await sql`SELECT * FROM goals WHERE category_id = ${categoryId} ORDER BY position, created_at`;
     return json(res, 200, { goals });
   }
 
@@ -27,10 +28,21 @@ export default withErrors(async (req, res) => {
     const target = Number(b.target);
     if (!target || target <= 0) return json(res, 400, { error: "target must be a positive number" });
 
-    const [goal] = await sql`INSERT INTO goals (category_id, title, target, unit)
-      VALUES (${categoryId}, ${String(b.title).trim()}, ${target}, ${b.unit ? String(b.unit).trim() : null})
+    const [goal] = await sql`INSERT INTO goals (category_id, title, target, unit, position)
+      VALUES (${categoryId}, ${String(b.title).trim()}, ${target}, ${b.unit ? String(b.unit).trim() : null},
+        (SELECT COALESCE(MAX(position), -1) + 1 FROM goals))
       RETURNING *`;
     return json(res, 201, { goal });
+  }
+
+  if (req.method === "PATCH" && req.query.reorder) {
+    const b = req.body || {};
+    const ids = Array.isArray(b.ids) ? b.ids.map(Number).filter((n) => n > 0) : [];
+    if (!ids.length) return json(res, 400, { error: "ids is required" });
+    for (let i = 0; i < ids.length; i++) {
+      await sql`UPDATE goals SET position = ${i} WHERE id = ${ids[i]}`;
+    }
+    return json(res, 200, { ok: true });
   }
 
   const id = Number(req.query.id);

@@ -482,3 +482,31 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 @media (max-width: 560px) {
   .pomodoro-overlay .pomodoro__time { font-size: 3.6rem; }
 }
+
+/* ---------- goals view toggle (by category / flat "all goals" list) ---------- */
+.goals-view-toggle {
+  display: inline-flex; gap: 2px; padding: 3px; background: var(--bg);
+  border: 1px solid var(--glass-brd); border-radius: 10px; margin: 4px 0 16px;
+}
+.goals-view-toggle__btn {
+  border: none; background: transparent; color: var(--muted); cursor: pointer;
+  font: 600 0.82rem "Space Grotesk", sans-serif; padding: 6px 14px; border-radius: 7px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.goals-view-toggle__btn:hover { color: var(--ink); }
+.goals-view-toggle__btn--active { background: var(--blue); color: #fff; }
+
+.goals-flat-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.goals-flat-list .goal-row {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 12px 14px;
+  animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.goals-flat-list .goal-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
+.goal-row__handle {
+  flex: none; cursor: grab; color: var(--faint); font-size: 0.95rem; padding: 2px 2px; touch-action: none; line-height: 1;
+}
+.goal-row__handle:active { cursor: grabbing; }
+.goal-row__cat-tag {
+  font-size: 0.7rem; font-weight: 600; color: var(--blue-2); background: rgba(96, 165, 250, 0.12);
+  border-radius: 6px; padding: 2px 7px; flex: none;
+}

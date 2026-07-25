@@ -58,7 +58,7 @@ export default withErrors(async (req, res) => {
       ? await sql`SELECT category_id, task_date, done, actual_hours FROM tasks WHERE category_id = ANY(${categoryIds})`
       : [];
     const allGoals = categoryIds.length
-      ? await sql`SELECT * FROM goals WHERE category_id = ANY(${categoryIds}) ORDER BY created_at`
+      ? await sql`SELECT * FROM goals WHERE category_id = ANY(${categoryIds}) ORDER BY position, created_at`
       : [];
     const byCategory = new Map();
     for (const t of tasks) {
