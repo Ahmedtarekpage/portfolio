@@ -194,23 +194,23 @@
     lastCountdownText = "ticking";
   }
 
-  /* ---------------- live age + "$500K/yr by <year>" deadline counters ---------------- */
+  /* ---------------- live age + "$500K/yr by age <n>" deadline counters ---------------- */
 
   var BIRTH_DATE = new Date(1998, 4, 15, 0, 0, 0); // 15 May 1998
-  var DEFAULT_GOAL_YEAR = 2032; // 34th birthday
+  var DEFAULT_GOAL_AGE = 34;
 
-  function loadGoalYear() {
+  function loadGoalAge() {
     try {
-      var y = parseInt(localStorage.getItem("time-goal-year"), 10);
-      if (y && y > BIRTH_DATE.getFullYear() && y < 2200) return y;
+      var a = parseInt(localStorage.getItem("time-goal-age"), 10);
+      if (a && a > 0 && a < 150) return a;
     } catch (e) {}
-    return DEFAULT_GOAL_YEAR;
+    return DEFAULT_GOAL_AGE;
   }
-  function saveGoalYear(y) {
-    try { localStorage.setItem("time-goal-year", String(y)); } catch (e) {}
+  function saveGoalAge(a) {
+    try { localStorage.setItem("time-goal-age", String(a)); } catch (e) {}
   }
 
-  var GOAL_DATE = new Date(loadGoalYear(), 4, 15, 0, 0, 0); // 15 May of the chosen year
+  var GOAL_DATE = new Date(BIRTH_DATE.getFullYear() + loadGoalAge(), 4, 15, 0, 0, 0); // that birthday
 
   // human "age" style diff (e.g. "28y 2mo 9d") — calendar-aware, not just total days/86400
   function calendarDiff(from, to) {
@@ -251,17 +251,18 @@
     }
   }
 
-  var goalYearInput = $("#goalYearInput");
-  if (goalYearInput) {
-    goalYearInput.value = GOAL_DATE.getFullYear();
-    goalYearInput.addEventListener("change", function () {
-      var y = parseInt(goalYearInput.value, 10);
-      if (!y || y <= BIRTH_DATE.getFullYear() || y >= 2200) { goalYearInput.value = GOAL_DATE.getFullYear(); return; }
-      GOAL_DATE = new Date(y, 4, 15, 0, 0, 0);
-      saveGoalYear(y);
+  var goalAgeInput = $("#goalAgeInput");
+  if (goalAgeInput) {
+    goalAgeInput.value = GOAL_DATE.getFullYear() - BIRTH_DATE.getFullYear();
+    goalAgeInput.addEventListener("change", function () {
+      var a = parseInt(goalAgeInput.value, 10);
+      var currentAge = GOAL_DATE.getFullYear() - BIRTH_DATE.getFullYear();
+      if (!a || a <= 0 || a >= 150) { goalAgeInput.value = currentAge; return; }
+      GOAL_DATE = new Date(BIRTH_DATE.getFullYear() + a, 4, 15, 0, 0, 0);
+      saveGoalAge(a);
       updateLifeCounters();
       renderMilestones();
-      toast("Target year updated ✓");
+      toast("Target age updated ✓");
     });
   }
 
@@ -317,7 +318,7 @@
     var list = $("#milestoneList");
     if (!list) return;
     if (new Date() >= GOAL_DATE) {
-      list.innerHTML = '<p class="muted center" style="margin:0">Target date has passed — pick a later year above.</p>';
+      list.innerHTML = '<p class="muted center" style="margin:0">Target date has passed — pick a higher target age above.</p>';
       return;
     }
     var milestones = buildMilestones();
