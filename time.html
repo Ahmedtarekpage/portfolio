@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=15" />
+  <link rel="stylesheet" href="time.css?v=16" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -205,21 +205,23 @@
         <details class="section-collapse" open>
           <summary>🍅 Pomodoro</summary>
           <div class="section-collapse__body">
-            <div class="pomodoro" id="pomodoro">
-              <div class="pomodoro__phase" id="pomodoroPhaseLabel">Focus</div>
-              <div class="pomodoro__time" id="pomodoroTime">25:00</div>
-              <div class="pomodoro__dots" id="pomodoroDots"></div>
-              <div class="pomodoro__controls">
-                <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroStart">Start</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroPause" hidden>Pause</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroSkip">Skip</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReset">Reset</button>
+            <div class="pomodoro-launcher" id="pomodoroLauncher">
+              <input type="text" id="pomodoroFocusInput" placeholder="What are you focusing on?" maxlength="140" />
+              <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroLaunch">🍅 Start focus session</button>
+            </div>
+            <div class="pomodoro-status" id="pomodoroStatus" hidden>
+              <div class="pomodoro-status__info">
+                <span class="pomodoro-status__phase" id="pomodoroStatusPhase">Focus</span>
+                <span class="pomodoro-status__focus" id="pomodoroStatusFocus"></span>
               </div>
-              <div class="pomodoro__settings">
-                <label>Focus <input type="number" id="pomodoroWorkMin" min="1" max="180" />m</label>
-                <label>Short break <input type="number" id="pomodoroShortMin" min="1" max="60" />m</label>
-                <label>Long break <input type="number" id="pomodoroLongMin" min="1" max="120" />m</label>
-              </div>
+              <span class="pomodoro-status__time" id="pomodoroStatusTime">25:00</span>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReopen">Open</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroEnd">End</button>
+            </div>
+            <div class="pomodoro__settings">
+              <label>Focus <input type="number" id="pomodoroWorkMin" min="1" max="180" />m</label>
+              <label>Short break <input type="number" id="pomodoroShortMin" min="1" max="60" />m</label>
+              <label>Long break <input type="number" id="pomodoroLongMin" min="1" max="120" />m</label>
             </div>
           </div>
         </details>
@@ -377,9 +379,25 @@
     </section>
 
     <p id="toast" class="toast" hidden></p>
+
+    <div class="pomodoro-overlay" id="pomodoroOverlay" hidden>
+      <button type="button" class="pomodoro-overlay__close" id="btnPomodoroClose" aria-label="Close focus screen">✕</button>
+      <div class="pomodoro" id="pomodoro">
+        <div class="pomodoro__phase" id="pomodoroPhaseLabel">Focus</div>
+        <div class="pomodoro__focus" id="pomodoroFocusLabel"></div>
+        <div class="pomodoro__time" id="pomodoroTime">25:00</div>
+        <div class="pomodoro__dots" id="pomodoroDots"></div>
+        <div class="pomodoro__controls">
+          <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroStart">Start</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroPause" hidden>Pause</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroSkip">Skip</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReset">Reset</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="chart.js?v=9"></script>
-  <script src="time.js?v=25"></script>
+  <script src="time.js?v=26"></script>
 </body>
 </html>

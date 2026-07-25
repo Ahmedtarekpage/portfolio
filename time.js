@@ -376,8 +376,9 @@
   }
 
   /* ---------------- pomodoro timer (default 25 focus / 5 short break / 15 long
-     break, long break every 4th focus round) — auto-advances through phases and
-     keeps running unless paused, so a full session just flows on its own. */
+     break, long break every 4th focus round) — click a button, name what you're
+     focusing on, and it opens a fullscreen "work alone" screen; auto-advances
+     through phases on its own unless paused, with a sound on every action. */
 
   var POMODORO_ROUNDS_UNTIL_LONG_BREAK = 4;
 
@@ -395,9 +396,13 @@
     try { localStorage.setItem("time-pomodoro-durations", JSON.stringify(d)); } catch (e) {}
   }
 
+  function playPomodoroStartSound() { playTone(700, 950, 0.1, 0.12); }
+  function playPomodoroPauseSound() { playTone(520, 380, 0.11, 0.1); }
+
   var pomodoroDurations = loadPomodoroDurations();
   var pomodoroPhase = "work"; // 'work' | 'short' | 'long'
   var pomodoroCompleted = 0; // completed focus rounds this session
+  var pomodoroFocusText = "";
   var pomodoroRunning = false;
   var pomodoroEndAt = null; // epoch ms the current phase ends at, while running
   var pomodoroRemainingMs = pomodoroDurations.work * 60000; // authoritative time-left while paused
@@ -414,7 +419,9 @@
   function renderPomodoroTime(ms) {
     var totalSec = Math.max(0, Math.round(ms / 1000));
     var m = Math.floor(totalSec / 60), s = totalSec % 60;
-    $("#pomodoroTime").textContent = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    var text = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    $("#pomodoroTime").textContent = text;
+    $("#pomodoroStatusTime").textContent = text;
   }
 
   function renderPomodoroDots() {
@@ -427,8 +434,13 @@
   }
 
   function renderPomodoroUI() {
-    $("#pomodoroPhaseLabel").textContent = pomodoroPhaseLabel(pomodoroPhase);
-    $("#pomodoro").classList.toggle("pomodoro--break", pomodoroPhase !== "work");
+    var label = pomodoroPhaseLabel(pomodoroPhase);
+    $("#pomodoroPhaseLabel").textContent = label;
+    $("#pomodoroStatusPhase").textContent = label;
+    $("#pomodoroFocusLabel").textContent = pomodoroFocusText;
+    $("#pomodoroStatusFocus").textContent = pomodoroFocusText;
+    $("#pomodoroOverlay").classList.toggle("pomodoro-overlay--break", pomodoroPhase !== "work");
+    $("#pomodoroOverlay").classList.toggle("pomodoro-overlay--running", pomodoroRunning && !reduceMotion);
     $("#btnPomodoroStart").hidden = pomodoroRunning;
     $("#btnPomodoroPause").hidden = !pomodoroRunning;
     renderPomodoroDots();
@@ -472,7 +484,6 @@
     pomodoroRunning = true;
     pomodoroEndAt = Date.now() + pomodoroRemainingMs;
     renderPomodoroUI();
-    $("#pomodoro").classList.toggle("pomodoro--running", !reduceMotion);
     if (pomodoroTickTimer) clearInterval(pomodoroTickTimer);
     pomodoroTickTimer = setInterval(pomodoroTick, 250);
   }
@@ -485,7 +496,6 @@
     pomodoroTickTimer = null;
     renderPomodoroTime(pomodoroRemainingMs);
     renderPomodoroUI();
-    $("#pomodoro").classList.remove("pomodoro--running");
   }
 
   function pomodoroSkip() {
@@ -501,7 +511,8 @@
     }
   }
 
-  function pomodoroReset() {
+  // resets back to a fresh Focus round, without ending the session (focus text kept)
+  function pomodoroResetPhase() {
     pomodoroPause();
     pomodoroPhase = "work";
     pomodoroCompleted = 0;
@@ -510,14 +521,52 @@
     renderPomodoroUI();
   }
 
+  function pomodoroOpenOverlay() { $("#pomodoroOverlay").hidden = false; }
+  function pomodoroCloseOverlay() { $("#pomodoroOverlay").hidden = true; }
+
+  // click "Start focus session": name the focus, reset to a fresh round, open
+  // the fullscreen screen, and start the timer immediately
+  function pomodoroLaunch() {
+    var text = $("#pomodoroFocusInput").value.trim();
+    pomodoroFocusText = text || "Focused work";
+    pomodoroPhase = "work";
+    pomodoroCompleted = 0;
+    pomodoroRemainingMs = pomodoroPhaseMs("work");
+    $("#pomodoroFocusInput").value = "";
+    $("#pomodoroLauncher").hidden = true;
+    $("#pomodoroStatus").hidden = false;
+    renderPomodoroTime(pomodoroRemainingMs);
+    renderPomodoroUI();
+    pomodoroOpenOverlay();
+    pomodoroStart();
+    playPomodoroStartSound();
+  }
+
+  // fully stop and dismiss the session, back to the launcher
+  function pomodoroEndSession() {
+    pomodoroPause();
+    pomodoroCloseOverlay();
+    $("#pomodoroStatus").hidden = true;
+    $("#pomodoroLauncher").hidden = false;
+    playDeleteSound();
+  }
+
   renderPomodoroSettings();
   renderPomodoroTime(pomodoroRemainingMs);
   renderPomodoroUI();
 
-  $("#btnPomodoroStart").addEventListener("click", pomodoroStart);
-  $("#btnPomodoroPause").addEventListener("click", pomodoroPause);
-  $("#btnPomodoroSkip").addEventListener("click", pomodoroSkip);
-  $("#btnPomodoroReset").addEventListener("click", pomodoroReset);
+  $("#btnPomodoroLaunch").addEventListener("click", pomodoroLaunch);
+  $("#pomodoroFocusInput").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); pomodoroLaunch(); }
+  });
+  $("#btnPomodoroReopen").addEventListener("click", function () { pomodoroOpenOverlay(); playPomodoroStartSound(); });
+  $("#btnPomodoroEnd").addEventListener("click", pomodoroEndSession);
+  $("#btnPomodoroClose").addEventListener("click", function () { pomodoroCloseOverlay(); playPomodoroPauseSound(); });
+
+  $("#btnPomodoroStart").addEventListener("click", function () { pomodoroStart(); playPomodoroStartSound(); });
+  $("#btnPomodoroPause").addEventListener("click", function () { pomodoroPause(); playPomodoroPauseSound(); });
+  $("#btnPomodoroSkip").addEventListener("click", function () { pomodoroSkip(); playPomodoroStartSound(); });
+  $("#btnPomodoroReset").addEventListener("click", function () { pomodoroResetPhase(); playDeleteSound(); });
 
   [["pomodoroWorkMin", "work"], ["pomodoroShortMin", "short"], ["pomodoroLongMin", "long"]].forEach(function (pair) {
     var input = $("#" + pair[0]), key = pair[1];

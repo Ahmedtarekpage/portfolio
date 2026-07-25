@@ -431,24 +431,54 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .milestone-row--next .milestone-row__date { color: var(--blue-2); font-weight: 600; }
 
-/* ---------- pomodoro timer (25 work / 5 short break / 15 long break) ---------- */
-.pomodoro { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 4px 0; }
-.pomodoro__phase { font: 600 0.78rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-.pomodoro__time {
-  font: 700 2.8rem "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; line-height: 1;
-  background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent;
-  transition: transform 0.15s ease;
+/* ---------- pomodoro timer (25 focus / 5 short break / 15 long break) ---------- */
+.pomodoro-launcher { display: flex; gap: 8px; flex-wrap: wrap; }
+.pomodoro-launcher input {
+  flex: 1; min-width: 180px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 10px;
+  color: var(--ink); padding: 9px 12px; font: 400 0.9rem "Inter", sans-serif; outline: none;
 }
-.pomodoro--break .pomodoro__time { background: linear-gradient(120deg, #34d399, #22d3ee); -webkit-background-clip: text; background-clip: text; }
-.pomodoro--running .pomodoro__time { animation: cdPulse 1s ease infinite; }
-.pomodoro__dots { display: flex; gap: 7px; }
-.pomodoro__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--glass-brd); transition: background-color 0.25s ease, transform 0.2s ease; }
-.pomodoro__dot--done { background: var(--blue-2); transform: scale(1.15); }
-.pomodoro__controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.pomodoro__settings { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.pomodoro-launcher input:focus { border-color: var(--blue-2); }
+
+.pomodoro-status {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 10px 14px;
+}
+.pomodoro-status__info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 100px; }
+.pomodoro-status__phase { font: 600 0.7rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.pomodoro-status__focus { font-size: 0.88rem; }
+.pomodoro-status__time { font: 700 1.15rem "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; color: var(--blue-2); }
+
+.pomodoro__settings { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 0.78rem; color: var(--muted); margin-top: 12px; }
 .pomodoro__settings input {
   width: 3.2em; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
   color: var(--ink); text-align: center; padding: 2px 4px; margin-left: 5px;
   font: 600 0.8rem "Space Grotesk", sans-serif; -moz-appearance: textfield;
 }
 .pomodoro__settings input:focus { border-color: var(--blue-2); outline: none; }
+
+/* the fullscreen "work alone" focus screen */
+.pomodoro-overlay {
+  position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); animation: fadeUp 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.pomodoro-overlay__close {
+  position: absolute; top: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--glass-brd); background: transparent; color: var(--muted); font-size: 1.1rem; cursor: pointer;
+}
+.pomodoro-overlay__close:hover { border-color: var(--blue-2); color: var(--blue-2); }
+.pomodoro-overlay .pomodoro { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 4px 0; }
+.pomodoro-overlay .pomodoro__phase { font: 600 0.95rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.pomodoro-overlay .pomodoro__focus { font-size: 1.15rem; color: var(--ink); max-width: 70vw; }
+.pomodoro-overlay .pomodoro__time {
+  font: 700 6rem "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; line-height: 1;
+  background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pomodoro-overlay--break .pomodoro__time { background: linear-gradient(120deg, #34d399, #22d3ee); -webkit-background-clip: text; background-clip: text; }
+.pomodoro-overlay--running .pomodoro__time { animation: cdPulse 1s ease infinite; }
+.pomodoro__dots { display: flex; gap: 7px; }
+.pomodoro__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--glass-brd); transition: background-color 0.25s ease, transform 0.2s ease; }
+.pomodoro__dot--done { background: var(--blue-2); transform: scale(1.15); }
+.pomodoro__controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+@media (max-width: 560px) {
+  .pomodoro-overlay .pomodoro__time { font-size: 3.6rem; }
+}
