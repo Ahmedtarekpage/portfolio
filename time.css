@@ -398,3 +398,19 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 #toast:not([hidden]) { animation: toastIn 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* ---------- milestone ladder ($500K/yr halved down to ~$976) ---------- */
+.milestone-list { display: flex; flex-direction: column; gap: 6px; }
+.milestone-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 9px 12px; border-radius: 10px; border: 1px solid var(--glass-brd);
+  font-size: 0.85rem; animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.milestone-row__amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.milestone-row__date { color: var(--muted); font-size: 0.78rem; }
+.milestone-row--passed { opacity: 0.5; }
+.milestone-row--next {
+  border-color: var(--blue-2); background: rgba(96, 165, 250, 0.08);
+  box-shadow: 0 0 0 1px var(--blue-2);
+}
+.milestone-row--next .milestone-row__date { color: var(--blue-2); font-weight: 600; }

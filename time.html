@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=9" />
+  <link rel="stylesheet" href="time.css?v=10" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -104,6 +104,16 @@
             <div class="countdown__unit"><span class="countdown__value" id="cdSeconds">00</span><span class="countdown__unit-label">sec</span></div>
           </div>
         </div>
+      </div>
+
+      <div class="card">
+        <details class="section-collapse milestone-ladder">
+          <summary>🪜 Milestones to $500K/yr</summary>
+          <div class="section-collapse__body">
+            <p class="muted" style="margin:0 0 10px">Halved down from $500K to ~$976 — each earlier step gets half the time of the one after it, so the last (full $500K) milestone lands right on your 33rd birthday.</p>
+            <div class="milestone-list" id="milestoneList"></div>
+          </div>
+        </details>
       </div>
 
       <nav class="tabbar" id="tabbar">
@@ -336,6 +346,6 @@
   </div>
 
   <script src="chart.js?v=8"></script>
-  <script src="time.js?v=14"></script>
+  <script src="time.js?v=15"></script>
 </body>
 </html>
