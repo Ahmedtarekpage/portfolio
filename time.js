@@ -277,27 +277,24 @@
 
   /* ---------------- $500K/yr milestone ladder ----------------
      Halve the target down from $500K until ~$976 (9 halvings) — 10 values.
-     Spread those 10 milestones across EQUAL time checkpoints between today
-     and GOAL_DATE (a constant compounding growth rate: double the target at
-     every checkpoint), rather than scaling time by the dollar fraction —
-     that earlier approach crammed the first 9 doublings into two months and
-     then spent the other half of the whole runway on the final doubling
-     alone. Even spacing gives a steady, predictable checkpoint cadence all
-     the way to the full $500K on GOAL_DATE. */
+     Double the target every fixed 5-month checkpoint counted forward from
+     today — a constant, explicit growth-rate assumption, independent of
+     the age-target date above (that's a separate personal deadline; this
+     ladder is its own pace tracker). */
 
   var MILESTONE_HALVINGS = 9;
   var MILESTONE_TARGET = 500000;
+  var MILESTONE_MONTHS_PER_DOUBLING = 5;
 
   function buildMilestones() {
     var values = [MILESTONE_TARGET];
     for (var i = 0; i < MILESTONE_HALVINGS; i++) values.unshift(values[0] / 2);
 
     var today = new Date(); today.setHours(0, 0, 0, 0);
-    var totalMs = Math.max(GOAL_DATE - today, 0);
-    var n = values.length;
 
     return values.map(function (val, idx) {
-      return { value: val, date: new Date(today.getTime() + totalMs * (idx + 1) / n) };
+      var monthsOut = (idx + 1) * MILESTONE_MONTHS_PER_DOUBLING;
+      return { value: val, date: new Date(today.getFullYear(), today.getMonth() + monthsOut, today.getDate()) };
     });
   }
 
@@ -313,12 +310,6 @@
     var label = $("#nextMilestoneLabel");
     if (!box || !label) return;
     var now = new Date();
-    if (now >= GOAL_DATE) {
-      box.classList.add("countdown--ended");
-      label.textContent = "Target date has passed";
-      MS_UNIT_IDS.forEach(function (id) { $("#" + id).textContent = "00"; });
-      return;
-    }
     var milestones = buildMilestones();
     var checked = loadMilestoneChecks();
     var next = milestones.find(function (_, i) { return !checked[i]; });
@@ -349,10 +340,6 @@
   function renderMilestones() {
     var list = $("#milestoneList");
     if (!list) return;
-    if (new Date() >= GOAL_DATE) {
-      list.innerHTML = '<p class="muted center" style="margin:0">Target date has passed — pick a higher target age above.</p>';
-      return;
-    }
     var milestones = buildMilestones();
     var checked = loadMilestoneChecks();
     var nextIdx = milestones.findIndex(function (_, i) { return !checked[i]; });
