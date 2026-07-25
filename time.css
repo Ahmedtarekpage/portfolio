@@ -373,6 +373,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .goal-row__step:hover { border-color: var(--blue-2); color: var(--blue-2); }
 .goal-row__step:active { transform: scale(0.88); }
 .iconbtn--copy:hover { color: #1fa876; background: rgba(31, 168, 118, 0.12); }
+.iconbtn--hide:hover { color: var(--blue-2); background: rgba(96, 165, 250, 0.12); }
 
 .goal-add-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .goal-add-form input {
@@ -496,6 +497,9 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .goals-view-toggle__btn:hover { color: var(--ink); }
 .goals-view-toggle__btn--active { background: var(--blue); color: #fff; }
 
+#goalsHiddenBanner { font-size: 0.82rem; }
+#goalsHiddenBanner a { color: var(--blue-2); text-decoration: none; }
+#goalsHiddenBanner a:hover { text-decoration: underline; }
 .goals-flat-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .goals-flat-list .goal-row {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 12px 14px;

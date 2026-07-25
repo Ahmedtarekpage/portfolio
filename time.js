@@ -11,10 +11,10 @@
     quarterDetail: null, // { quarter, categories }
     editingQuarterId: null,
     editingTaskId: null,
-    collapsedCategoryIds: {}, // which category cards the user has manually collapsed
     goalsView: (function () {
       try { return localStorage.getItem("time-goals-view") || "category"; } catch (e) { return "category"; }
-    })(), // 'category' (grouped cards) or 'flat' (one drag-orderable list of every goal)
+    })(), // 'category' (grouped cards, always fully shown) or 'flat' (one drag-orderable list, goals can be hidden)
+    hiddenGoalIds: loadHiddenGoalIds(), // { [goalId]: true } — only hideable from the flat "All goals" view
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -1119,6 +1119,20 @@
     return Number(g.target) > 0 ? Math.min(100, Math.round((Number(g.current) / Number(g.target)) * 100)) : 0;
   }
 
+  // goals hidden from the flat "All goals" view only — the by-category view
+  // always shows everything, so this is a display filter, not real data
+  function loadHiddenGoalIds() {
+    try {
+      var raw = JSON.parse(localStorage.getItem("time-goals-hidden") || "[]");
+      var set = {};
+      (Array.isArray(raw) ? raw : []).forEach(function (id) { set[id] = true; });
+      return set;
+    } catch (e) { return {}; }
+  }
+  function saveHiddenGoalIds(set) {
+    try { localStorage.setItem("time-goals-hidden", JSON.stringify(Object.keys(set).map(Number))); } catch (e) {}
+  }
+
   // weighted by target, so a 500-target goal counts more than a 10-target one —
   // more representative of real progress than a plain average of percentages
   function combinedGoalsPct(goals) {
@@ -1145,6 +1159,7 @@
         (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         '<span class="goal-row__pct">' + pct + '%</span>' +
+        (opts.draggable ? '<button type="button" class="iconbtn iconbtn--hide" title="Hide from this view">🙈</button>' : '') +
         '<button type="button" class="iconbtn iconbtn--copy" title="Add to today\'s to-do">📋</button>' +
         '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
         '<button type="button" class="iconbtn iconbtn--delete" title="Delete goal">✕</button>' +
@@ -1226,7 +1241,6 @@
     setGoalsView("category");
     var card = document.querySelector('.category-card[data-cat-id="' + category.id + '"]');
     if (!card) return;
-    card.open = true;
     var form = card.querySelector(".goal-add-form");
     form.elements.title.value = goal.title;
     form.elements.target.value = Number(goal.target);
@@ -1405,16 +1419,13 @@
       var p = c.progress;
       var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
       var catPct = combinedGoalsPct(c.goals);
-      var card = document.createElement("details");
-      card.className = "category-card section-collapse";
+      var card = document.createElement("div");
+      card.className = "category-card";
       card.dataset.catId = c.id;
-      card.open = !state.collapsedCategoryIds[c.id];
-      card.addEventListener("toggle", function () { state.collapsedCategoryIds[c.id] = !card.open; });
       card.innerHTML =
-        '<summary class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+        '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
         (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
-        '</summary>' +
-        '<div class="section-collapse__body">' +
+        '</div>' +
         (hasHours ?
           '<div class="category-card__stats">' +
             '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
@@ -1434,7 +1445,6 @@
             '<input name="unit" placeholder="unit" />' +
             '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
           '</form>' +
-        '</div>' +
         '</div>';
       box.appendChild(card);
       if (hasHours) {
@@ -1460,8 +1470,15 @@
       var wrap = document.createElement("div");
       wrap.innerHTML = goalRowHtml(g, { categoryName: cat ? cat.name : "", draggable: true });
       var row = wrap.firstChild;
+      row.hidden = !!state.hiddenGoalIds[g.id];
       flatBox.appendChild(row);
       if (cat) wireGoalRow(row, g, cat);
+      row.querySelector(".iconbtn--hide").addEventListener("click", function () {
+        state.hiddenGoalIds[g.id] = true;
+        saveHiddenGoalIds(state.hiddenGoalIds);
+        row.hidden = true;
+        updateGoalsHiddenBanner();
+      });
     });
 
     setGoalsView(state.goalsView);
@@ -1478,12 +1495,28 @@
     document.querySelectorAll(".goals-view-toggle__btn").forEach(function (btn) {
       btn.classList.toggle("goals-view-toggle__btn--active", btn.dataset.view === view);
     });
+    updateGoalsHiddenBanner();
   }
 
   $("#goalsViewToggle").addEventListener("click", function (ev) {
     var btn = ev.target.closest(".goals-view-toggle__btn");
     if (!btn) return;
     setGoalsView(btn.dataset.view);
+  });
+
+  function updateGoalsHiddenBanner() {
+    var count = Object.keys(state.hiddenGoalIds).length;
+    var banner = $("#goalsHiddenBanner");
+    banner.hidden = count === 0 || state.goalsView !== "flat"; // hiding only applies to the flat view
+    if (count > 0) banner.querySelector(".goals-hidden-count").textContent = count;
+  }
+
+  $("#btnShowHiddenGoals").addEventListener("click", function (ev) {
+    ev.preventDefault();
+    state.hiddenGoalIds = {};
+    saveHiddenGoalIds(state.hiddenGoalIds);
+    document.querySelectorAll("#goalsFlatList .goal-row[hidden]").forEach(function (row) { row.hidden = false; });
+    updateGoalsHiddenBanner();
   });
 
   var goalDragState = null;
