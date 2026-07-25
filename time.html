@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=11" />
+  <link rel="stylesheet" href="time.css?v=12" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -84,7 +84,7 @@
         </div>
 
         <div class="countdown" id="goalCounter">
-          <span class="countdown__label" id="goalCounterLabel">💰 Time left to hit $500K/yr by 34</span>
+          <span class="countdown__label">💰 Time left to hit $500K/yr by <input type="number" id="goalYearInput" class="countdown__year-input" min="1999" max="2199" step="1" title="Target year" /></span>
           <div class="countdown__units">
             <div class="countdown__unit"><span class="countdown__value" id="goalYears">00</span><span class="countdown__unit-label">yrs</span></div>
             <div class="countdown__unit"><span class="countdown__value" id="goalMonths">00</span><span class="countdown__unit-label">mo</span></div>
@@ -110,7 +110,7 @@
         <details class="section-collapse milestone-ladder">
           <summary>🪜 Milestones to $500K/yr</summary>
           <div class="section-collapse__body">
-            <p class="muted" style="margin:0 0 10px">Halved down from $500K to ~$976 — half the money lands at exactly half the remaining time, a quarter of the money at a quarter of the time, and so on, ending on your 34th birthday. Check one off once you've actually reached it.</p>
+            <p class="muted" style="margin:0 0 10px">Halved down from $500K to ~$976 — half the money lands at exactly half the remaining time, a quarter of the money at a quarter of the time, and so on, ending on 15 May of the target year set above. Check one off once you've actually reached it.</p>
             <div class="milestone-list" id="milestoneList"></div>
           </div>
         </details>
@@ -346,6 +346,6 @@
   </div>
 
   <script src="chart.js?v=8"></script>
-  <script src="time.js?v=17"></script>
+  <script src="time.js?v=18"></script>
 </body>
 </html>

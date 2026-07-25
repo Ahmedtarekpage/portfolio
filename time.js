@@ -194,10 +194,23 @@
     lastCountdownText = "ticking";
   }
 
-  /* ---------------- live age + "$500K/yr by 34" deadline counters ---------------- */
+  /* ---------------- live age + "$500K/yr by <year>" deadline counters ---------------- */
 
   var BIRTH_DATE = new Date(1998, 4, 15, 0, 0, 0); // 15 May 1998
-  var GOAL_DATE = new Date(2032, 4, 15, 0, 0, 0); // 34th birthday
+  var DEFAULT_GOAL_YEAR = 2032; // 34th birthday
+
+  function loadGoalYear() {
+    try {
+      var y = parseInt(localStorage.getItem("time-goal-year"), 10);
+      if (y && y > BIRTH_DATE.getFullYear() && y < 2200) return y;
+    } catch (e) {}
+    return DEFAULT_GOAL_YEAR;
+  }
+  function saveGoalYear(y) {
+    try { localStorage.setItem("time-goal-year", String(y)); } catch (e) {}
+  }
+
+  var GOAL_DATE = new Date(loadGoalYear(), 4, 15, 0, 0, 0); // 15 May of the chosen year
 
   // human "age" style diff (e.g. "28y 2mo 9d") — calendar-aware, not just total days/86400
   function calendarDiff(from, to) {
@@ -231,13 +244,25 @@
     var goalBox = $("#goalCounter");
     if (now >= GOAL_DATE) {
       goalBox.classList.add("countdown--ended");
-      $("#goalCounterLabel").textContent = "34th birthday has passed";
       ["goalYears", "goalMonths", "goalDays", "goalHours", "goalMinutes", "goalSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
     } else {
       goalBox.classList.remove("countdown--ended");
-      $("#goalCounterLabel").textContent = "💰 Time left to hit $500K/yr by 34";
       setCalendarUnits("goal", calendarDiff(now, GOAL_DATE));
     }
+  }
+
+  var goalYearInput = $("#goalYearInput");
+  if (goalYearInput) {
+    goalYearInput.value = GOAL_DATE.getFullYear();
+    goalYearInput.addEventListener("change", function () {
+      var y = parseInt(goalYearInput.value, 10);
+      if (!y || y <= BIRTH_DATE.getFullYear() || y >= 2200) { goalYearInput.value = GOAL_DATE.getFullYear(); return; }
+      GOAL_DATE = new Date(y, 4, 15, 0, 0, 0);
+      saveGoalYear(y);
+      updateLifeCounters();
+      renderMilestones();
+      toast("Target year updated ✓");
+    });
   }
 
   function startCountdownTimer() {
@@ -292,7 +317,7 @@
     var list = $("#milestoneList");
     if (!list) return;
     if (new Date() >= GOAL_DATE) {
-      list.innerHTML = '<p class="muted center" style="margin:0">34th birthday has passed.</p>';
+      list.innerHTML = '<p class="muted center" style="margin:0">Target date has passed — pick a later year above.</p>';
       return;
     }
     var milestones = buildMilestones();

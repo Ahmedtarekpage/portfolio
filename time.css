@@ -201,6 +201,13 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 .countdown__label { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.countdown__year-input {
+  width: 4.2em; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
+  color: var(--ink); text-transform: none; letter-spacing: normal; font: 700 0.82rem "Space Grotesk", sans-serif;
+  padding: 1px 4px; text-align: center; -moz-appearance: textfield;
+}
+.countdown__year-input:focus { border-color: var(--blue-2); outline: none; }
+.countdown__year-input::-webkit-inner-spin-button, .countdown__year-input::-webkit-outer-spin-button { opacity: 1; }
 .countdown__units { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .countdown__unit {
   display: flex; flex-direction: column; align-items: center; min-width: 46px;
