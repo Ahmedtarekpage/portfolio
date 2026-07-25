@@ -252,6 +252,11 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+/* ---------- mobile: bigger tap targets for the small icon buttons ---------- */
+@media (max-width: 640px) {
+  .iconbtn { padding: 8px 9px; font-size: 1.05rem; }
+}
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);

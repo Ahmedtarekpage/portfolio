@@ -810,7 +810,7 @@
       if (t.category_name) meta.push(esc(t.category_name));
       if (t.planned_hours != null) meta.push(fmtH(t.planned_hours) + " planned");
       row.innerHTML =
-        '<span class="task-row__handle" draggable="true" title="Drag to reorder">⠿</span>' +
+        '<span class="task-row__handle" title="Drag to reorder">⠿</span>' +
         '<input type="checkbox" class="task-row__check" ' + (t.done ? "checked" : "") + ' aria-label="Mark done" />' +
         '<span class="task-row__icon">' + esc(t.icon || "📝") + '</span>' +
         '<div class="task-row__body"><div class="task-row__title">' + esc(t.title) + '</div>' +
@@ -856,39 +856,52 @@
     ]);
   }
 
-  /* ---------------- drag to reorder ---------------- */
+  /* ---------------- drag to reorder ----------------
+     Pointer Events (not the HTML5 drag-and-drop API) so this works with a
+     finger on a phone, not just a mouse — native dragstart/dragover never
+     fire from a touchscreen. */
 
-  var dragState = null;
+  function makeReorderable(opts) {
+    var state = null;
 
-  $("#taskList").addEventListener("dragstart", function (ev) {
-    var handle = ev.target.closest(".task-row__handle");
-    var row = handle && handle.closest(".task-row");
-    if (!row) { ev.preventDefault(); return; }
-    dragState = { id: Number(row.dataset.id), el: row };
-    row.classList.add("task-row--dragging");
-    ev.dataTransfer.effectAllowed = "move";
-    ev.dataTransfer.setData("text/plain", String(dragState.id));
-  });
+    opts.listEl.addEventListener("pointerdown", function (ev) {
+      var handle = ev.target.closest(opts.handleSelector);
+      var row = handle && handle.closest(opts.rowSelector);
+      if (!row) return;
+      ev.preventDefault();
+      state = { id: Number(row.dataset.id), el: row, pointerId: ev.pointerId };
+      row.classList.add(opts.draggingClass);
+      try { handle.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
 
-  $("#taskList").addEventListener("dragover", function (ev) {
-    if (!dragState) return;
-    ev.preventDefault();
-    var over = ev.target.closest(".task-row");
-    if (!over || over === dragState.el) return;
-    var rect = over.getBoundingClientRect();
-    var before = (ev.clientY - rect.top) < rect.height / 2;
-    $("#taskList").insertBefore(dragState.el, before ? over : over.nextSibling);
-  });
+    opts.listEl.addEventListener("pointermove", function (ev) {
+      if (!state || ev.pointerId !== state.pointerId) return;
+      var overEl = document.elementFromPoint(ev.clientX, ev.clientY);
+      var over = overEl && overEl.closest(opts.rowSelector);
+      if (!over || over === state.el || over.parentElement !== opts.listEl) return;
+      var rect = over.getBoundingClientRect();
+      var before = (ev.clientY - rect.top) < rect.height / 2;
+      opts.listEl.insertBefore(state.el, before ? over : over.nextSibling);
+    });
 
-  $("#taskList").addEventListener("drop", function (ev) { ev.preventDefault(); });
+    function finish(ev) {
+      if (!state || (ev && ev.pointerId !== state.pointerId)) return;
+      state.el.classList.remove(opts.draggingClass);
+      var ids = Array.prototype.slice.call(opts.listEl.children).map(function (el) { return Number(el.dataset.id); });
+      state = null;
+      api(opts.apiUrl, { method: "PATCH", body: { ids: ids } }).catch(opts.onError);
+    }
+    opts.listEl.addEventListener("pointerup", finish);
+    opts.listEl.addEventListener("pointercancel", finish);
+  }
 
-  $("#taskList").addEventListener("dragend", function () {
-    if (!dragState) return;
-    dragState.el.classList.remove("task-row--dragging");
-    var ids = Array.prototype.slice.call($("#taskList").children).map(function (el) { return Number(el.dataset.id); });
-    dragState = null;
-    api("/api/tasks?reorder=1", { method: "PATCH", body: { ids: ids } })
-      .catch(function (e) { toast(e.message, true); loadDay(state.currentDate); });
+  makeReorderable({
+    listEl: $("#taskList"),
+    rowSelector: ".task-row",
+    handleSelector: ".task-row__handle",
+    draggingClass: "task-row--dragging",
+    apiUrl: "/api/tasks?reorder=1",
+    onError: function (e) { toast(e.message, true); loadDay(state.currentDate); },
   });
 
   /* ---------------- clear day / duplicate to another day ---------------- */
@@ -1177,7 +1190,7 @@
     var pct = goalPct(g);
     return '<div class="goal-row" data-id="' + g.id + '">' +
       '<div class="goal-row__top">' +
-        (opts.draggable ? '<span class="goal-row__handle" draggable="true" title="Drag to reorder">⠿</span>' : '') +
+        (opts.draggable ? '<span class="goal-row__handle" title="Drag to reorder">⠿</span>' : '') +
         (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         '<span class="goal-row__pct">' + pct + '%</span>' +
@@ -1541,37 +1554,13 @@
     updateGoalsHiddenBanner();
   });
 
-  var goalDragState = null;
-
-  $("#goalsFlatList").addEventListener("dragstart", function (ev) {
-    var handle = ev.target.closest(".goal-row__handle");
-    var row = handle && handle.closest(".goal-row");
-    if (!row) { ev.preventDefault(); return; }
-    goalDragState = { id: Number(row.dataset.id), el: row };
-    row.classList.add("goal-row--dragging");
-    ev.dataTransfer.effectAllowed = "move";
-    ev.dataTransfer.setData("text/plain", String(goalDragState.id));
-  });
-
-  $("#goalsFlatList").addEventListener("dragover", function (ev) {
-    if (!goalDragState) return;
-    ev.preventDefault();
-    var over = ev.target.closest(".goal-row");
-    if (!over || over === goalDragState.el) return;
-    var rect = over.getBoundingClientRect();
-    var before = (ev.clientY - rect.top) < rect.height / 2;
-    $("#goalsFlatList").insertBefore(goalDragState.el, before ? over : over.nextSibling);
-  });
-
-  $("#goalsFlatList").addEventListener("drop", function (ev) { ev.preventDefault(); });
-
-  $("#goalsFlatList").addEventListener("dragend", function () {
-    if (!goalDragState) return;
-    goalDragState.el.classList.remove("goal-row--dragging");
-    var ids = Array.prototype.slice.call($("#goalsFlatList").children).map(function (el) { return Number(el.dataset.id); });
-    goalDragState = null;
-    api("/api/goals?reorder=1", { method: "PATCH", body: { ids: ids } })
-      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  makeReorderable({
+    listEl: $("#goalsFlatList"),
+    rowSelector: ".goal-row",
+    handleSelector: ".goal-row__handle",
+    draggingClass: "goal-row--dragging",
+    apiUrl: "/api/goals?reorder=1",
+    onError: function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); },
   });
 
   $("#btnAddCategoryRow").addEventListener("click", function () { addCategoryRow(); });
