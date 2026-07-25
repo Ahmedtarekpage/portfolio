@@ -276,11 +276,14 @@
   }
 
   /* ---------------- $500K/yr milestone ladder ----------------
-     Halve the target down from $500K until ~$976 (9 halvings). The time to
-     reach each one is scaled by the exact same fraction as its value is of
-     $500K — so half the money (250K) lands exactly at half the remaining
-     time, a quarter of the money (125K) at a quarter of the time, and so on,
-     down in lockstep, landing the full $500K exactly on GOAL_DATE. */
+     Halve the target down from $500K until ~$976 (9 halvings) — 10 values.
+     Spread those 10 milestones across EQUAL time checkpoints between today
+     and GOAL_DATE (a constant compounding growth rate: double the target at
+     every checkpoint), rather than scaling time by the dollar fraction —
+     that earlier approach crammed the first 9 doublings into two months and
+     then spent the other half of the whole runway on the final doubling
+     alone. Even spacing gives a steady, predictable checkpoint cadence all
+     the way to the full $500K on GOAL_DATE. */
 
   var MILESTONE_HALVINGS = 9;
   var MILESTONE_TARGET = 500000;
@@ -291,10 +294,10 @@
 
     var today = new Date(); today.setHours(0, 0, 0, 0);
     var totalMs = Math.max(GOAL_DATE - today, 0);
+    var n = values.length;
 
-    return values.map(function (val) {
-      var frac = val / MILESTONE_TARGET;
-      return { value: val, date: new Date(today.getTime() + totalMs * frac) };
+    return values.map(function (val, idx) {
+      return { value: val, date: new Date(today.getTime() + totalMs * (idx + 1) / n) };
     });
   }
 
