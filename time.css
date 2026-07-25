@@ -430,3 +430,25 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   box-shadow: 0 0 0 1px var(--blue-2);
 }
 .milestone-row--next .milestone-row__date { color: var(--blue-2); font-weight: 600; }
+
+/* ---------- pomodoro timer (25 work / 5 short break / 15 long break) ---------- */
+.pomodoro { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 4px 0; }
+.pomodoro__phase { font: 600 0.78rem "Space Grotesk", sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.pomodoro__time {
+  font: 700 2.8rem "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; line-height: 1;
+  background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent;
+  transition: transform 0.15s ease;
+}
+.pomodoro--break .pomodoro__time { background: linear-gradient(120deg, #34d399, #22d3ee); -webkit-background-clip: text; background-clip: text; }
+.pomodoro--running .pomodoro__time { animation: cdPulse 1s ease infinite; }
+.pomodoro__dots { display: flex; gap: 7px; }
+.pomodoro__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--glass-brd); transition: background-color 0.25s ease, transform 0.2s ease; }
+.pomodoro__dot--done { background: var(--blue-2); transform: scale(1.15); }
+.pomodoro__controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pomodoro__settings { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.pomodoro__settings input {
+  width: 3.2em; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
+  color: var(--ink); text-align: center; padding: 2px 4px; margin-left: 5px;
+  font: 600 0.8rem "Space Grotesk", sans-serif; -moz-appearance: textfield;
+}
+.pomodoro__settings input:focus { border-color: var(--blue-2); outline: none; }

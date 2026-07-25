@@ -375,6 +375,165 @@
     });
   }
 
+  /* ---------------- pomodoro timer (default 25 focus / 5 short break / 15 long
+     break, long break every 4th focus round) — auto-advances through phases and
+     keeps running unless paused, so a full session just flows on its own. */
+
+  var POMODORO_ROUNDS_UNTIL_LONG_BREAK = 4;
+
+  function loadPomodoroDurations() {
+    try {
+      var raw = JSON.parse(localStorage.getItem("time-pomodoro-durations") || "{}");
+      return {
+        work: raw.work > 0 ? raw.work : 25,
+        short: raw.short > 0 ? raw.short : 5,
+        long: raw.long > 0 ? raw.long : 15,
+      };
+    } catch (e) { return { work: 25, short: 5, long: 15 }; }
+  }
+  function savePomodoroDurations(d) {
+    try { localStorage.setItem("time-pomodoro-durations", JSON.stringify(d)); } catch (e) {}
+  }
+
+  var pomodoroDurations = loadPomodoroDurations();
+  var pomodoroPhase = "work"; // 'work' | 'short' | 'long'
+  var pomodoroCompleted = 0; // completed focus rounds this session
+  var pomodoroRunning = false;
+  var pomodoroEndAt = null; // epoch ms the current phase ends at, while running
+  var pomodoroRemainingMs = pomodoroDurations.work * 60000; // authoritative time-left while paused
+  var pomodoroTickTimer = null;
+
+  function pomodoroPhaseMs(phase) {
+    var mins = phase === "work" ? pomodoroDurations.work : phase === "long" ? pomodoroDurations.long : pomodoroDurations.short;
+    return mins * 60000;
+  }
+  function pomodoroPhaseLabel(phase) {
+    return phase === "work" ? "Focus" : phase === "long" ? "Long break" : "Short break";
+  }
+
+  function renderPomodoroTime(ms) {
+    var totalSec = Math.max(0, Math.round(ms / 1000));
+    var m = Math.floor(totalSec / 60), s = totalSec % 60;
+    $("#pomodoroTime").textContent = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function renderPomodoroDots() {
+    var pos = pomodoroCompleted % POMODORO_ROUNDS_UNTIL_LONG_BREAK;
+    var dots = "";
+    for (var i = 0; i < POMODORO_ROUNDS_UNTIL_LONG_BREAK; i++) {
+      dots += '<span class="pomodoro__dot' + (i < pos ? " pomodoro__dot--done" : "") + '"></span>';
+    }
+    $("#pomodoroDots").innerHTML = dots;
+  }
+
+  function renderPomodoroUI() {
+    $("#pomodoroPhaseLabel").textContent = pomodoroPhaseLabel(pomodoroPhase);
+    $("#pomodoro").classList.toggle("pomodoro--break", pomodoroPhase !== "work");
+    $("#btnPomodoroStart").hidden = pomodoroRunning;
+    $("#btnPomodoroPause").hidden = !pomodoroRunning;
+    renderPomodoroDots();
+  }
+
+  function renderPomodoroSettings() {
+    $("#pomodoroWorkMin").value = pomodoroDurations.work;
+    $("#pomodoroShortMin").value = pomodoroDurations.short;
+    $("#pomodoroLongMin").value = pomodoroDurations.long;
+  }
+
+  // work -> (short or, every 4th round, long) -> work -> ...
+  function pomodoroNextPhase() {
+    if (pomodoroPhase === "work") {
+      pomodoroCompleted++;
+      pomodoroPhase = (pomodoroCompleted % POMODORO_ROUNDS_UNTIL_LONG_BREAK === 0) ? "long" : "short";
+    } else {
+      pomodoroPhase = "work";
+    }
+    pomodoroRemainingMs = pomodoroPhaseMs(pomodoroPhase);
+  }
+
+  function pomodoroTick() {
+    var remaining = pomodoroEndAt - Date.now();
+    if (remaining <= 0) { pomodoroAdvance(); return; }
+    renderPomodoroTime(remaining);
+  }
+
+  // a phase's time ran out on its own — chime, move to the next phase, keep running
+  function pomodoroAdvance() {
+    playSuccessSound();
+    pomodoroNextPhase();
+    renderPomodoroTime(pomodoroRemainingMs);
+    renderPomodoroUI();
+    pomodoroEndAt = Date.now() + pomodoroRemainingMs;
+    toast(pomodoroPhaseLabel(pomodoroPhase) + " time!");
+  }
+
+  function pomodoroStart() {
+    if (pomodoroRunning) return;
+    pomodoroRunning = true;
+    pomodoroEndAt = Date.now() + pomodoroRemainingMs;
+    renderPomodoroUI();
+    $("#pomodoro").classList.toggle("pomodoro--running", !reduceMotion);
+    if (pomodoroTickTimer) clearInterval(pomodoroTickTimer);
+    pomodoroTickTimer = setInterval(pomodoroTick, 250);
+  }
+
+  function pomodoroPause() {
+    if (!pomodoroRunning) return;
+    pomodoroRunning = false;
+    pomodoroRemainingMs = Math.max(0, pomodoroEndAt - Date.now());
+    clearInterval(pomodoroTickTimer);
+    pomodoroTickTimer = null;
+    renderPomodoroTime(pomodoroRemainingMs);
+    renderPomodoroUI();
+    $("#pomodoro").classList.remove("pomodoro--running");
+  }
+
+  function pomodoroSkip() {
+    var wasRunning = pomodoroRunning;
+    if (wasRunning) { clearInterval(pomodoroTickTimer); pomodoroTickTimer = null; }
+    pomodoroNextPhase();
+    renderPomodoroTime(pomodoroRemainingMs);
+    renderPomodoroUI();
+    if (wasRunning) {
+      pomodoroRunning = true;
+      pomodoroEndAt = Date.now() + pomodoroRemainingMs;
+      pomodoroTickTimer = setInterval(pomodoroTick, 250);
+    }
+  }
+
+  function pomodoroReset() {
+    pomodoroPause();
+    pomodoroPhase = "work";
+    pomodoroCompleted = 0;
+    pomodoroRemainingMs = pomodoroPhaseMs("work");
+    renderPomodoroTime(pomodoroRemainingMs);
+    renderPomodoroUI();
+  }
+
+  renderPomodoroSettings();
+  renderPomodoroTime(pomodoroRemainingMs);
+  renderPomodoroUI();
+
+  $("#btnPomodoroStart").addEventListener("click", pomodoroStart);
+  $("#btnPomodoroPause").addEventListener("click", pomodoroPause);
+  $("#btnPomodoroSkip").addEventListener("click", pomodoroSkip);
+  $("#btnPomodoroReset").addEventListener("click", pomodoroReset);
+
+  [["pomodoroWorkMin", "work"], ["pomodoroShortMin", "short"], ["pomodoroLongMin", "long"]].forEach(function (pair) {
+    var input = $("#" + pair[0]), key = pair[1];
+    input.addEventListener("change", function () {
+      var v = parseInt(input.value, 10);
+      if (!v || v <= 0 || v > 300) { input.value = pomodoroDurations[key]; return; }
+      pomodoroDurations[key] = v;
+      savePomodoroDurations(pomodoroDurations);
+      if (!pomodoroRunning && pomodoroPhase === key) {
+        pomodoroRemainingMs = pomodoroPhaseMs(pomodoroPhase);
+        renderPomodoroTime(pomodoroRemainingMs);
+      }
+      toast("Pomodoro durations updated ✓");
+    });
+  });
+
   /* ---------------- auth ---------------- */
 
   function boot() {

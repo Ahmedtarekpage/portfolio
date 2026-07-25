@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=3" />
-  <link rel="stylesheet" href="time.css?v=14" />
+  <link rel="stylesheet" href="time.css?v=15" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -203,6 +203,28 @@
         </details>
 
         <details class="section-collapse" open>
+          <summary>🍅 Pomodoro</summary>
+          <div class="section-collapse__body">
+            <div class="pomodoro" id="pomodoro">
+              <div class="pomodoro__phase" id="pomodoroPhaseLabel">Focus</div>
+              <div class="pomodoro__time" id="pomodoroTime">25:00</div>
+              <div class="pomodoro__dots" id="pomodoroDots"></div>
+              <div class="pomodoro__controls">
+                <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroStart">Start</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroPause" hidden>Pause</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroSkip">Skip</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReset">Reset</button>
+              </div>
+              <div class="pomodoro__settings">
+                <label>Focus <input type="number" id="pomodoroWorkMin" min="1" max="180" />m</label>
+                <label>Short break <input type="number" id="pomodoroShortMin" min="1" max="60" />m</label>
+                <label>Long break <input type="number" id="pomodoroLongMin" min="1" max="120" />m</label>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="section-collapse" open>
           <summary>📊 Percent</summary>
           <div class="section-collapse__body">
             <div class="tiles">
@@ -358,6 +380,6 @@
   </div>
 
   <script src="chart.js?v=9"></script>
-  <script src="time.js?v=24"></script>
+  <script src="time.js?v=25"></script>
 </body>
 </html>
