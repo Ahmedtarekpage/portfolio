@@ -194,10 +194,10 @@
     lastCountdownText = "ticking";
   }
 
-  /* ---------------- live age + "$500K/yr by 33" deadline counters ---------------- */
+  /* ---------------- live age + "$500K/yr by 34" deadline counters ---------------- */
 
   var BIRTH_DATE = new Date(1998, 4, 15, 0, 0, 0); // 15 May 1998
-  var GOAL_DATE = new Date(2031, 4, 15, 0, 0, 0); // 33rd birthday
+  var GOAL_DATE = new Date(2032, 4, 15, 0, 0, 0); // 34th birthday
 
   // human "age" style diff (e.g. "28y 2mo 9d") — calendar-aware, not just total days/86400
   function calendarDiff(from, to) {
@@ -231,11 +231,11 @@
     var goalBox = $("#goalCounter");
     if (now >= GOAL_DATE) {
       goalBox.classList.add("countdown--ended");
-      $("#goalCounterLabel").textContent = "33rd birthday has passed";
+      $("#goalCounterLabel").textContent = "34th birthday has passed";
       ["goalYears", "goalMonths", "goalDays", "goalHours", "goalMinutes", "goalSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
     } else {
       goalBox.classList.remove("countdown--ended");
-      $("#goalCounterLabel").textContent = "💰 Time left to hit $500K/yr by 33";
+      $("#goalCounterLabel").textContent = "💰 Time left to hit $500K/yr by 34";
       setCalendarUnits("goal", calendarDiff(now, GOAL_DATE));
     }
   }
@@ -276,25 +276,57 @@
     return Math.round(v).toLocaleString("en-US");
   }
 
+  // manually-ticked "reached it" state per milestone — this is a personal
+  // motivational checklist, not tied to any real income data, so a plain
+  // per-device localStorage flag (same pattern as time-theme/time-tab) is enough
+  function loadMilestoneChecks() {
+    try {
+      var raw = JSON.parse(localStorage.getItem("time-milestones-checked") || "[]");
+      return Array.isArray(raw) ? raw : [];
+    } catch (e) { return []; }
+  }
+  function saveMilestoneChecks(arr) {
+    try { localStorage.setItem("time-milestones-checked", JSON.stringify(arr)); } catch (e) {}
+  }
+
   function renderMilestones() {
     var list = $("#milestoneList");
     if (!list) return;
-    var now = new Date();
-    if (now >= GOAL_DATE) {
-      list.innerHTML = '<p class="muted center" style="margin:0">33rd birthday has passed.</p>';
+    if (new Date() >= GOAL_DATE) {
+      list.innerHTML = '<p class="muted center" style="margin:0">34th birthday has passed.</p>';
       return;
     }
     var milestones = buildMilestones();
-    var nextIdx = milestones.findIndex(function (m) { return m.date >= now; });
+    var checked = loadMilestoneChecks();
+    var nextIdx = milestones.findIndex(function (_, i) { return !checked[i]; });
+
     list.innerHTML = milestones.map(function (m, i) {
-      var passed = m.date < now;
+      var isChecked = !!checked[i];
       var isNext = i === nextIdx;
-      var cls = "milestone-row" + (passed ? " milestone-row--passed" : "") + (isNext ? " milestone-row--next" : "");
+      var cls = "milestone-row" + (isChecked ? " milestone-row--done" : "") + (isNext ? " milestone-row--next" : "");
+      var prevVal = i === 0 ? 0 : milestones[i - 1].value;
       var dateLabel = m.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      var tag = isNext ? "Next — by " : passed ? "Passed — " : "By ";
-      return '<div class="' + cls + '"><span class="milestone-row__amount">$' + fmtMoney(m.value) + '</span>' +
-        '<span class="milestone-row__date">' + tag + dateLabel + '</span></div>';
+      return '<div class="' + cls + '" data-idx="' + i + '">' +
+        '<input type="checkbox" class="task-row__check milestone-row__check"' + (isChecked ? " checked" : "") + ' aria-label="Mark $' + fmtMoney(m.value) + ' reached" />' +
+        '<span class="milestone-row__body">' +
+          '<span class="milestone-row__top">' +
+            '<span class="milestone-row__amount">$' + fmtMoney(m.value) + '</span>' +
+            '<span class="milestone-row__delta">+$' + fmtMoney(m.value - prevVal) + ' to add</span>' +
+          '</span>' +
+          '<span class="milestone-row__date">pace: by ' + dateLabel + '</span>' +
+        '</span></div>';
     }).join("");
+
+    list.querySelectorAll(".milestone-row__check").forEach(function (box) {
+      box.addEventListener("change", function () {
+        var idx = Number(box.closest(".milestone-row").dataset.idx);
+        var checks = loadMilestoneChecks();
+        checks[idx] = box.checked;
+        saveMilestoneChecks(checks);
+        if (box.checked) { idx === milestones.length - 1 ? playSuccessSound() : playCheckSound(); }
+        renderMilestones();
+      });
+    });
   }
 
   /* ---------------- auth ---------------- */
