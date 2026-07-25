@@ -39,6 +39,24 @@
     return el;
   }
 
+  // smooth Catmull-Rom-to-Bezier curve through [x, y] points — an "analog"
+  // sweeping line instead of sharp digital step corners
+  function smoothPath(pts) {
+    if (!pts.length) return "";
+    if (pts.length === 1) return "M " + pts[0][0] + " " + pts[0][1];
+    var d = "M " + pts[0][0] + " " + pts[0][1];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[i === 0 ? i : i - 1];
+      var p1 = pts[i];
+      var p2 = pts[i + 1];
+      var p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+      var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += " C " + c1x + " " + c1y + ", " + c2x + " " + c2y + ", " + p2[0] + " " + p2[1];
+    }
+    return d;
+  }
+
   function niceStep(range, targetTicks) {
     var raw = range / targetTicks;
     var steps = [1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 500];
@@ -514,11 +532,7 @@
     svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(100), y2: y(100), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" }));
 
     var color = opts.color || "#60a5fa";
-    var d = "M " + x(actualPts[0].t) + " " + y(actualPts[0].pct);
-    for (var i = 1; i < actualPts.length; i++) {
-      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i - 1].pct);
-      d += " L " + x(actualPts[i].t) + " " + y(actualPts[i].pct);
-    }
+    var d = smoothPath(actualPts.map(function (p) { return [x(p.t), y(p.pct)]; }));
     var lastT = actualPts[actualPts.length - 1].t;
     var extendTo = showNow ? Math.min(Math.max(nowT, lastT), end) : lastT;
     if (extendTo > lastT) d += " L " + x(extendTo) + " " + y(lastPct);

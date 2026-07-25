@@ -324,6 +324,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 14px; padding: 16px;
   animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
   transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.3s ease;
+  margin-top: 0; /* .category-cards' flex `gap` already spaces cards out */
 }
 .category-card:hover { border-color: rgba(96, 165, 250, 0.3); transform: translateY(-2px); }
 .category-cards .category-card:nth-child(1) { animation-delay: 0s; }

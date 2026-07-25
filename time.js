@@ -11,6 +11,7 @@
     quarterDetail: null, // { quarter, categories }
     editingQuarterId: null,
     editingTaskId: null,
+    collapsedCategoryIds: {}, // which category cards the user has manually collapsed
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -1168,12 +1169,15 @@
       var p = c.progress;
       var hasHours = c.weekly_hours != null && Number(c.weekly_hours) > 0;
       var catPct = combinedGoalsPct(c.goals);
-      var card = document.createElement("div");
-      card.className = "category-card";
+      var card = document.createElement("details");
+      card.className = "category-card section-collapse";
+      card.open = !state.collapsedCategoryIds[c.id];
+      card.addEventListener("toggle", function () { state.collapsedCategoryIds[c.id] = !card.open; });
       card.innerHTML =
-        '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+        '<summary class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
         (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
-        '</div>' +
+        '</summary>' +
+        '<div class="section-collapse__body">' +
         (hasHours ?
           '<div class="category-card__stats">' +
             '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
@@ -1193,6 +1197,7 @@
             '<input name="unit" placeholder="unit" />' +
             '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
           '</form>' +
+        '</div>' +
         '</div>';
       box.appendChild(card);
       if (hasHours) {
