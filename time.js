@@ -73,14 +73,19 @@
     return d.toISOString().slice(0, 10);
   }
 
-  var toastTimer;
+  var toastTimer, toastHideTimer;
   function toast(msg, isError) {
     var t = $("#toast");
+    clearTimeout(toastTimer);
+    clearTimeout(toastHideTimer);
     t.textContent = msg;
     t.className = "toast" + (isError ? " toast--error" : "");
     t.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.hidden = true; }, 3500);
+    toastTimer = setTimeout(function () {
+      // exit the same way it entered (fade + settle), instead of vanishing instantly
+      t.classList.add("toast--leaving");
+      toastHideTimer = setTimeout(function () { t.hidden = true; t.classList.remove("toast--leaving"); }, 200);
+    }, 3500);
   }
 
   function busy(btn, on) {
@@ -524,8 +529,25 @@
     renderPomodoroUI();
   }
 
-  function pomodoroOpenOverlay() { $("#pomodoroOverlay").hidden = false; }
-  function pomodoroCloseOverlay() { $("#pomodoroOverlay").hidden = true; }
+  var pomodoroCloseTimer = null;
+
+  function pomodoroOpenOverlay() {
+    clearTimeout(pomodoroCloseTimer);
+    var overlay = $("#pomodoroOverlay");
+    overlay.classList.remove("pomodoro-overlay--leaving");
+    overlay.hidden = false;
+  }
+
+  // fade out the same way it faded in, instead of vanishing instantly
+  function pomodoroCloseOverlay() {
+    var overlay = $("#pomodoroOverlay");
+    overlay.classList.add("pomodoro-overlay--leaving");
+    clearTimeout(pomodoroCloseTimer);
+    pomodoroCloseTimer = setTimeout(function () {
+      overlay.hidden = true;
+      overlay.classList.remove("pomodoro-overlay--leaving");
+    }, 160);
+  }
 
   // click "Start focus session": name the focus, reset to a fresh round, open
   // the fullscreen screen, and start the timer immediately
@@ -1678,7 +1700,7 @@
     });
   }
 
-  function loadDaysGallery() {
+  function loadDaysGallery(opts) {
     var quarter = state.quarterDetail && state.quarterDetail.quarter;
     if (!quarter) {
       $("#dayGallery").innerHTML = "";
@@ -1697,11 +1719,13 @@
       api("/api/tasks?stats=1&from=" + from + "&to=" + to),
       api("/api/day-photos?from=" + from + "&to=" + to),
     ]).then(function (results) {
-      renderDaysGallery(from, to, results[0].stats, results[1].photos);
+      renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
 
-  function renderDaysGallery(from, to, stats, photos) {
+  function renderDaysGallery(from, to, stats, photos, opts) {
+    opts = opts || {};
+    var animate = opts.animate !== false;
     var statsByDate = {};
     (stats || []).forEach(function (s) { statsByDate[s.date] = s; });
     var photosByDate = {};
@@ -1722,7 +1746,7 @@
       var photo = photosByDate[d];
 
       var tile = document.createElement("div");
-      tile.className = "day-tile" + (d === today ? " day-tile--today" : "");
+      tile.className = "day-tile" + (d === today ? " day-tile--today" : "") + (animate ? " day-tile--enter" : "");
 
       var photoLabel = document.createElement("label");
       photoLabel.className = "day-tile__photo";
@@ -1759,7 +1783,7 @@
             ev.preventDefault();
             if (!confirm("Remove this day's photo?")) return;
             api("/api/day-photos?date=" + dd, { method: "DELETE" })
-              .then(function () { playDeleteSound(); return loadDaysGallery(); })
+              .then(function () { playDeleteSound(); return loadDaysGallery({ animate: false }); })
               .catch(function (e) { toast(e.message, true); });
           };
         }(d));
@@ -1771,7 +1795,7 @@
           if (!file) return;
           resizeImageFile(file, 480, 0.75)
             .then(function (dataUrl) { return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: dataUrl } }); })
-            .then(function () { playAddSound(); toast("Photo saved ✓"); return loadDaysGallery(); })
+            .then(function () { playAddSound(); toast("Photo saved ✓"); return loadDaysGallery({ animate: false }); })
             .catch(function (e) { toast(e.message, true); });
         };
       }(d));
