@@ -262,13 +262,14 @@
       saveGoalAge(a);
       updateLifeCounters();
       renderMilestones();
+      updateNextMilestoneCounter();
       toast("Target age updated ✓");
     });
   }
 
   function startCountdownTimer() {
     if (countdownTimer) return;
-    function tick() { updateCountdown(); updateLifeCounters(); }
+    function tick() { updateCountdown(); updateLifeCounters(); updateNextMilestoneCounter(); }
     tick();
     renderMilestones(); // date-level granularity only — no need to redraw every second
     countdownTimer = setInterval(tick, 1000);
@@ -299,6 +300,34 @@
 
   function fmtMoney(v) {
     return Math.round(v).toLocaleString("en-US");
+  }
+
+  var MS_UNIT_IDS = ["nextMsYears", "nextMsMonths", "nextMsDays", "nextMsHours", "nextMsMinutes", "nextMsSeconds"];
+
+  // live countdown to whichever milestone is next in line (first unchecked one)
+  function updateNextMilestoneCounter() {
+    var box = $("#nextMilestoneCounter");
+    var label = $("#nextMilestoneLabel");
+    if (!box || !label) return;
+    var now = new Date();
+    if (now >= GOAL_DATE) {
+      box.classList.add("countdown--ended");
+      label.textContent = "Target date has passed";
+      MS_UNIT_IDS.forEach(function (id) { $("#" + id).textContent = "00"; });
+      return;
+    }
+    var milestones = buildMilestones();
+    var checked = loadMilestoneChecks();
+    var next = milestones.find(function (_, i) { return !checked[i]; });
+    if (!next) {
+      box.classList.add("countdown--ended");
+      label.textContent = "🎉 All milestones reached!";
+      MS_UNIT_IDS.forEach(function (id) { $("#" + id).textContent = "00"; });
+      return;
+    }
+    box.classList.remove("countdown--ended");
+    label.textContent = "💰 Time left to hit $" + fmtMoney(next.value);
+    setCalendarUnits("nextMs", calendarDiff(now, next.date));
   }
 
   // manually-ticked "reached it" state per milestone — this is a personal
@@ -350,6 +379,7 @@
         saveMilestoneChecks(checks);
         if (box.checked) { idx === milestones.length - 1 ? playSuccessSound() : playCheckSound(); }
         renderMilestones();
+        updateNextMilestoneCounter();
       });
     });
   }
