@@ -449,12 +449,13 @@
   $("#btnNextDay").addEventListener("click", function () { loadDay(addDays(state.currentDate, 1)); });
   $("#btnToday").addEventListener("click", function () { loadDay(todayISO()); });
 
-  function loadDay(date) {
+  function loadDay(date, opts) {
+    opts = opts || {};
     if (date !== state.currentDate && state.editingTaskId) stopEditTask();
     state.currentDate = date;
     $("#dayPicker").value = date;
     return api("/api/tasks?date=" + date).then(function (data) {
-      renderTasks(data.tasks);
+      renderTasks(data.tasks, { animate: !opts.skipEnterAnimation });
       renderTodayChart(date, data.tasks);
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -556,7 +557,9 @@
     requestAnimationFrame(step);
   }
 
-  function renderTasks(tasks) {
+  function renderTasks(tasks, opts) {
+    opts = opts || {};
+    var animate = opts.animate !== false;
     var total = tasks.length;
     var done = tasks.filter(function (t) { return t.done; }).length;
     animateCount($("#dayPercent"), total ? Math.round((done / total) * 100) : 0, "%");
@@ -567,7 +570,7 @@
     $("#tasksEmpty").hidden = total > 0;
     tasks.forEach(function (t) {
       var row = document.createElement("div");
-      row.className = "task-row" + (t.done ? " task-row--done" : "");
+      row.className = "task-row" + (t.done ? " task-row--done" : "") + (animate ? " task-row--enter" : "");
       row.dataset.id = t.id;
       var meta = [];
       if (t.category_name) meta.push(esc(t.category_name));
@@ -613,8 +616,8 @@
   // quarterly progress, so refresh the day, the 14-day strip, and the chart together
   function afterTaskChange() {
     return Promise.all([
-      loadDay(state.currentDate),
-      loadHistory(),
+      loadDay(state.currentDate, { skipEnterAnimation: true }),
+      loadHistory({ animate: false }),
       state.selectedQuarterId ? loadQuarterDetail(state.selectedQuarterId) : Promise.resolve(),
     ]);
   }
@@ -734,15 +737,17 @@
 
   /* ---------------- last 14 days strip ---------------- */
 
-  function loadHistory() {
+  function loadHistory(opts) {
     var to = todayISO();
     var from = addDays(to, -13);
     return api("/api/tasks?stats=1&from=" + from + "&to=" + to).then(function (data) {
-      renderHistory(from, to, data.stats);
+      renderHistory(from, to, data.stats, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
 
-  function renderHistory(from, to, stats) {
+  function renderHistory(from, to, stats, opts) {
+    opts = opts || {};
+    var animate = opts.animate !== false;
     var byDate = {};
     (stats || []).forEach(function (s) { byDate[s.date] = s; });
     var box = $("#dayHistory");
@@ -755,13 +760,16 @@
       var target = pct == null ? 6 : Math.max(pct, 4);
       var bar = document.createElement("div");
       bar.className = "day-bar" + (pct == null ? " day-bar--empty" : "");
-      bar.style.height = reduceMotion ? target + "%" : "0%";
+      // only grow bars in from 0% on a real first load — a same-day refresh
+      // (e.g. after checking a task) should just show the new heights directly,
+      // not collapse every bar back to 0% and regrow them, which reads as a reset
+      bar.style.height = (reduceMotion || !animate) ? target + "%" : "0%";
       bar.title = fmtDate(d) + (pct == null ? " · no tasks" : " · " + pct + "% (" + s.done + "/" + s.total + ")");
       box.appendChild(bar);
       bars.push({ el: bar, target: target });
       d = addDays(d, 1);
     }
-    if (!reduceMotion) {
+    if (!reduceMotion && animate) {
       // double rAF: the 0% height must paint before the transition to `target` starts
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {

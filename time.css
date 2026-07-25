@@ -250,9 +250,11 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   display: flex; align-items: center; gap: 10px;
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
   padding: 10px 12px;
-  animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both;
   transition: opacity 0.3s ease, transform 0.15s ease, border-color 0.3s ease, background-color 0.3s ease;
 }
+/* entrance animation only on a real day switch (opts.animate) — NOT on every
+   re-render after checking a task, or the whole list visibly "flashes" back in */
+.task-row--enter { animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .task-row:hover { border-color: rgba(96, 165, 250, 0.25); }
 .task-row--done { opacity: 0.6; }
 .task-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
@@ -268,13 +270,13 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .task-row--done .task-row__title { text-decoration: line-through; transition: text-decoration-color 0.2s ease; }
 /* stagger the first rows in; later ones just settle at the same final delay */
-.task-list .task-row:nth-child(1) { animation-delay: 0s; }
-.task-list .task-row:nth-child(2) { animation-delay: 0.035s; }
-.task-list .task-row:nth-child(3) { animation-delay: 0.07s; }
-.task-list .task-row:nth-child(4) { animation-delay: 0.105s; }
-.task-list .task-row:nth-child(5) { animation-delay: 0.14s; }
-.task-list .task-row:nth-child(6) { animation-delay: 0.175s; }
-.task-list .task-row:nth-child(n+7) { animation-delay: 0.21s; }
+.task-list .task-row--enter:nth-child(1) { animation-delay: 0s; }
+.task-list .task-row--enter:nth-child(2) { animation-delay: 0.035s; }
+.task-list .task-row--enter:nth-child(3) { animation-delay: 0.07s; }
+.task-list .task-row--enter:nth-child(4) { animation-delay: 0.105s; }
+.task-list .task-row--enter:nth-child(5) { animation-delay: 0.14s; }
+.task-list .task-row--enter:nth-child(6) { animation-delay: 0.175s; }
+.task-list .task-row--enter:nth-child(n+7) { animation-delay: 0.21s; }
 .task-row__check {
   width: 20px; height: 20px; flex: none; cursor: pointer; position: relative;
   appearance: none; -webkit-appearance: none; border-radius: 50%;
