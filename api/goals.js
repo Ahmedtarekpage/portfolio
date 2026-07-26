@@ -2,6 +2,7 @@
 // Separate from the category's weekly-hour effort tracking (api/_lib/quarter.js) —
 // a goal's progress is just current/target, set manually.
 //   GET    /api/goals?category_id=N   -> goals for that category
+//   GET    /api/goals?all=1          -> { totalGoals, completedGoals } across every category ever — for gamification stats
 //   POST   /api/goals                 -> { category_id, title, target, unit? }
 //   PATCH  /api/goals?id=N            -> { title?, target?, current?, unit?, hidden? }
 //   PATCH  /api/goals?reorder=1       -> { ids: [id, ...] }: persist new drag order
@@ -13,6 +14,13 @@ import { withErrors, json, requireAuth } from "./_lib/util.js";
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  if (req.method === "GET" && req.query.all) {
+    const [row] = await sql`SELECT COUNT(*)::int AS "totalGoals",
+        COUNT(*) FILTER (WHERE current >= target)::int AS "completedGoals"
+      FROM goals`;
+    return json(res, 200, row);
+  }
 
   if (req.method === "GET") {
     const categoryId = Number(req.query.category_id);

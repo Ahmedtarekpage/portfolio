@@ -375,9 +375,13 @@
         var checks = loadMilestoneChecks();
         checks[idx] = box.checked;
         saveMilestoneChecks(checks);
-        if (box.checked) { idx === milestones.length - 1 ? playSuccessSound() : playCheckSound(); }
+        if (box.checked) {
+          if (idx === milestones.length - 1) { playSuccessSound(); if (!reduceMotion) burstConfetti(30); }
+          else playCheckSound();
+        }
         renderMilestones();
         updateNextMilestoneCounter();
+        loadGamification();
       });
     });
   }
@@ -671,6 +675,7 @@
         show("view-app");
         var activeTab = document.querySelector("#tabbar .tab--active");
         if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
+        loadGamification();
       })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
   }
@@ -775,6 +780,13 @@
     playTone(660, 660, 0.12, 0.15);
     setTimeout(function () { playTone(880, 880, 0.22, 0.17); }, 110);
   }
+  function playStepSound() { playTone(600, 640, 0.07, 0.08); }
+  function playLevelUpSound() {
+    playTone(523, 523, 0.1, 0.16);
+    setTimeout(function () { playTone(659, 659, 0.1, 0.16); }, 100);
+    setTimeout(function () { playTone(784, 784, 0.3, 0.19); }, 200);
+  }
+  function playBadgeSound() { playTone(880, 1175, 0.2, 0.15); }
 
   function animateCount(el, to, suffix) {
     var from = parseInt(el.textContent, 10) || 0;
@@ -848,6 +860,7 @@
   // a task's done/actual-hours change can move the daily % and a category's
   // quarterly progress, so refresh the day, the 14-day strip, and the chart together
   function afterTaskChange() {
+    loadGamification();
     return Promise.all([
       loadDay(state.currentDate, { skipEnterAnimation: true }),
       loadHistory({ animate: false }),
@@ -1074,9 +1087,9 @@
     playSuccessSound();
   }
 
-  function burstConfetti() {
+  function burstConfetti(count) {
     var colors = ["#60a5fa", "#a78bfa", "#34d399", "#f59e0b", "#f472b6"];
-    for (var i = 0; i < 18; i++) {
+    for (var i = 0; i < (count || 18); i++) {
       var piece = document.createElement("div");
       piece.className = "confetti-piece";
       piece.style.left = Math.random() * 100 + "vw";
@@ -1086,6 +1099,133 @@
       document.body.appendChild(piece);
       (function (el) { setTimeout(function () { el.remove(); }, 1900); })(piece);
     }
+  }
+
+  /* ---------------- gamification: XP, levels, badges ----------------
+     XP is always recomputed from real, already-persisted facts (tasks
+     done, goals completed, current streak, milestones checked) — there's
+     no separate XP counter to drift out of sync or reset. Only "have I
+     already celebrated this" is kept in localStorage, purely so a level
+     you've already reached doesn't re-trigger its fanfare on every load. */
+
+  var XP_PER_LEVEL = 250;
+  var STREAK_WINDOW_DAYS = 400;
+
+  var BADGES = [
+    { id: "task-1", icon: "✅", name: "First Task", test: function (s) { return s.totalDone >= 1; } },
+    { id: "task-50", icon: "🥉", name: "50 Tasks Done", test: function (s) { return s.totalDone >= 50; } },
+    { id: "task-200", icon: "🥈", name: "200 Tasks Done", test: function (s) { return s.totalDone >= 200; } },
+    { id: "task-500", icon: "🥇", name: "500 Tasks Done", test: function (s) { return s.totalDone >= 500; } },
+    { id: "streak-3", icon: "🔥", name: "3-Day Streak", test: function (s) { return s.longestStreak >= 3; } },
+    { id: "streak-7", icon: "🔥🔥", name: "7-Day Streak", test: function (s) { return s.longestStreak >= 7; } },
+    { id: "streak-30", icon: "🔥🔥🔥", name: "30-Day Streak", test: function (s) { return s.longestStreak >= 30; } },
+    { id: "goal-1", icon: "🎯", name: "First Goal Hit", test: function (s) { return s.completedGoals >= 1; } },
+    { id: "goal-10", icon: "🏹", name: "10 Goals Hit", test: function (s) { return s.completedGoals >= 10; } },
+    { id: "milestone-1", icon: "🪜", name: "First Milestone", test: function (s) { return s.milestonesChecked >= 1; } },
+    { id: "milestone-half", icon: "💰", name: "Halfway to $500K", test: function (s) { return s.milestonesChecked >= 5; } },
+  ];
+
+  function loadGamifyMeta() {
+    try { return JSON.parse(localStorage.getItem("time-gamify-meta") || "null") || { level: 0, badges: [], initialized: false }; }
+    catch (e) { return { level: 0, badges: [], initialized: false }; }
+  }
+  function saveGamifyMeta(meta) {
+    try { localStorage.setItem("time-gamify-meta", JSON.stringify(meta)); } catch (e) {}
+  }
+
+  function levelUpCelebrate(level) {
+    playLevelUpSound();
+    if (!reduceMotion) {
+      burstConfetti(24);
+      var badge = $("#gamifyLevelBadge");
+      badge.classList.remove("gamify__level-badge--pop");
+      void badge.offsetWidth;
+      badge.classList.add("gamify__level-badge--pop");
+    }
+    toast("🎉 Level " + level + " reached!");
+  }
+
+  function badgeUnlockCelebrate(ids) {
+    playBadgeSound();
+    if (!reduceMotion) burstConfetti(12);
+    ids.forEach(function (id) {
+      var el = document.querySelector('#gamifyBadges .badge-chip[data-id="' + id + '"]');
+      if (el && !reduceMotion) {
+        el.classList.remove("badge-chip--pop");
+        void el.offsetWidth;
+        el.classList.add("badge-chip--pop");
+      }
+    });
+    var names = ids.map(function (id) {
+      var b = BADGES.filter(function (x) { return x.id === id; })[0];
+      return b ? b.icon + " " + b.name : id;
+    });
+    toast("🏅 New badge: " + names.join(", "));
+  }
+
+  function renderGamification(stats) {
+    var xp = stats.totalDone * 5 + stats.completedGoals * 40 + stats.currentStreak * 10 + stats.milestonesChecked * 80;
+    var level = Math.floor(xp / XP_PER_LEVEL) + 1;
+    var xpIntoLevel = xp % XP_PER_LEVEL;
+    var pct = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100);
+
+    $("#gamifyLevelBadge").textContent = level;
+    $("#gamifyXpText").textContent = xpIntoLevel + " / " + XP_PER_LEVEL + " XP";
+    $("#gamifyXpFill").style.width = pct + "%";
+
+    var unlockedIds = BADGES.filter(function (b) { return b.test(stats); }).map(function (b) { return b.id; });
+    $("#gamifyBadges").innerHTML = BADGES.map(function (b) {
+      var unlocked = unlockedIds.indexOf(b.id) !== -1;
+      return '<span class="badge-chip' + (unlocked ? " badge-chip--unlocked" : "") + '" data-id="' + b.id +
+        '" title="' + esc(b.name) + (unlocked ? "" : " (locked)") + '">' + b.icon + '</span>';
+    }).join("");
+
+    var meta = loadGamifyMeta();
+    if (meta.initialized) {
+      if (level > meta.level) levelUpCelebrate(level);
+      var newBadges = unlockedIds.filter(function (id) { return meta.badges.indexOf(id) === -1; });
+      if (newBadges.length) badgeUnlockCelebrate(newBadges);
+    }
+    saveGamifyMeta({ level: level, badges: unlockedIds, initialized: true });
+  }
+
+  // recomputed from real data every time — never a separate counter that
+  // could drift; failures here are swallowed since this is a bonus layer
+  // that shouldn't block the rest of the app
+  function loadGamification() {
+    var to = todayISO();
+    var from = addDays(to, -STREAK_WINDOW_DAYS);
+    return Promise.all([
+      api("/api/tasks?totals=1"),
+      api("/api/goals?all=1"),
+      api("/api/tasks?stats=1&from=" + from + "&to=" + to),
+    ]).then(function (results) {
+      var totals = results[0], goalsAll = results[1], statsResp = results[2];
+      var byDate = {};
+      (statsResp.stats || []).forEach(function (s) { byDate[s.date] = s; });
+
+      var longestStreak = 0, run = 0;
+      var d = from;
+      while (d <= to) {
+        var s = byDate[d];
+        if (s && s.total > 0 && s.done >= s.total) { run++; longestStreak = Math.max(longestStreak, run); }
+        else { run = 0; }
+        d = addDays(d, 1);
+      }
+      var currentStreak = 0, walk = to;
+      while (byDate[walk] && byDate[walk].total > 0 && byDate[walk].done >= byDate[walk].total) {
+        currentStreak++;
+        walk = addDays(walk, -1);
+      }
+
+      renderGamification({
+        totalDone: totals.totalDone || 0,
+        completedGoals: goalsAll.completedGoals || 0,
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        milestonesChecked: loadMilestoneChecks().filter(Boolean).length,
+      });
+    }).catch(function () {});
   }
 
   /* ---------------- quarterly goals ---------------- */
@@ -1243,6 +1383,17 @@
     });
   }
 
+  // a quick "bump" pop on every instance of a goal row, so incrementing feels
+  // tactile rather than the number just silently changing
+  function bumpGoalRows(goalId) {
+    if (reduceMotion) return;
+    document.querySelectorAll('.goal-row[data-id="' + goalId + '"]').forEach(function (row) {
+      row.classList.remove("goal-row--bump");
+      void row.offsetWidth;
+      row.classList.add("goal-row--bump");
+    });
+  }
+
   function stepGoal(goal, delta, category) {
     var target = Number(goal.target) || 0;
     var wasDone = goalPct(goal) >= 100;
@@ -1250,8 +1401,12 @@
     goal.current = v; // keep in sync so another quick tap steps from the right base
     updateAllGoalRowInstances(goal.id, v, target);
     refreshOverallBars(category);
-    if (!wasDone && target > 0 && v >= target) playSuccessSound();
+    bumpGoalRows(goal.id);
+    var nowDone = target > 0 && v >= target;
+    if (!wasDone && nowDone) { playSuccessSound(); if (!reduceMotion) burstConfetti(14); }
+    else playStepSound();
     api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
+      .then(function () { loadGamification(); })
       .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
 
@@ -1282,7 +1437,8 @@
       var nowDone = Number(g.target) > 0 && v >= Number(g.target);
       api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
         .then(function () {
-          if (!wasDone && nowDone) playSuccessSound();
+          if (!wasDone && nowDone) { playSuccessSound(); if (!reduceMotion) burstConfetti(14); }
+          loadGamification();
           return loadQuarterDetail(state.selectedQuarterId);
         })
         .catch(function (e) { toast(e.message, true); });

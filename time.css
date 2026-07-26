@@ -125,6 +125,47 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   to { transform: translateY(100vh) rotate(560deg); opacity: 0.2; }
 }
 
+/* ---------- gamification: level, XP bar, badge chips ---------- */
+.gamify {
+  display: flex; flex-direction: column; gap: 10px; margin: 12px 0 4px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(96, 165, 250, 0.06));
+  border: 1px solid var(--glass-brd); border-radius: 16px; padding: 12px 16px;
+  animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.gamify__level { display: flex; align-items: center; gap: 12px; }
+.gamify__level-badge {
+  flex: none; width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #a78bfa, #60a5fa); color: #fff;
+  font: 700 1.05rem "Space Grotesk", sans-serif; box-shadow: 0 6px 16px -6px rgba(96, 165, 250, 0.6);
+}
+.gamify__level-badge--pop { animation: gamifyLevelPop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+@keyframes gamifyLevelPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35) rotate(-8deg); }
+  70% { transform: scale(0.95) rotate(4deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.gamify__xp { flex: 1; min-width: 0; }
+.gamify__xp-top { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--muted); margin-bottom: 5px; }
+.gamify__badges { display: flex; flex-wrap: wrap; gap: 7px; }
+.badge-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px; font-size: 1rem;
+  background: var(--bg); border: 1px solid var(--glass-brd);
+  filter: grayscale(1); opacity: 0.35; transition: filter 0.25s ease, opacity 0.25s ease, transform 0.15s ease;
+}
+.badge-chip--unlocked {
+  filter: none; opacity: 1; border-color: rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25);
+}
+.badge-chip--pop { animation: badgeChipPop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+@keyframes badgeChipPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
 /* ---------- Days: photo gallery, one tile per day in the selected quarter ---------- */
 .day-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; margin-top: 16px; }
 .day-tile {
@@ -387,6 +428,13 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .goals__label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); margin-bottom: 8px; }
 .goal-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--glass-brd); }
 .goal-row:last-of-type { border-bottom: none; }
+/* a quick tactile pop whenever a goal's +/- stepper is tapped */
+.goal-row--bump { animation: goalRowBump 0.3s ease both; }
+@keyframes goalRowBump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
 .goal-row__top { display: flex; align-items: center; gap: 8px; }
 .goal-row__title { flex: 1; font-size: 0.88rem; font-weight: 500; }
 .goal-row__pct { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }

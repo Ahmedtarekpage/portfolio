@@ -1,6 +1,7 @@
 // Daily to-do tasks, optionally tagged with a quarterly category.
 //   GET    /api/tasks?date=YYYY-MM-DD        -> tasks for that day (incl. category name), in position order
 //   GET    /api/tasks?stats=1&from=&to=      -> [{date, total, done}] for the % history strip
+//   GET    /api/tasks?totals=1               -> { totalDone, totalTasks } all-time — for gamification stats
 //   POST   /api/tasks?duplicate=1            -> { from_date, to_date }: copy a day's tasks (title/category/planned hours only) onto another date
 //   POST   /api/tasks                        -> { task_date, title, category_id?, planned_hours?, icon? }
 //   PATCH  /api/tasks?reorder=1              -> { ids: [id, ...] }: persist new drag order for those tasks
@@ -17,6 +18,13 @@ function isDate(s) {
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  if (req.method === "GET" && req.query.totals) {
+    const [row] = await sql`SELECT COUNT(*) FILTER (WHERE done)::int AS "totalDone",
+        COUNT(*)::int AS "totalTasks"
+      FROM tasks`;
+    return json(res, 200, row);
+  }
 
   if (req.method === "GET" && req.query.stats) {
     const from = String(req.query.from || "").slice(0, 10);

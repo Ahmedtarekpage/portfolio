@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=5" />
-  <link rel="stylesheet" href="time.css?v=21" />
+  <link rel="stylesheet" href="time.css?v=22" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -160,6 +160,17 @@
             <div class="mascot__caption" id="mascotCaption">Let's get started! 💪</div>
             <div class="mascot__streak" id="mascotStreak" hidden>🔥 <span id="streakCount">0</span> day streak</div>
           </div>
+        </div>
+
+        <div class="gamify" id="gamify">
+          <div class="gamify__level">
+            <span class="gamify__level-badge" id="gamifyLevelBadge">1</span>
+            <div class="gamify__xp">
+              <div class="gamify__xp-top"><span>Level progress</span><span id="gamifyXpText">0 / 250 XP</span></div>
+              <div class="goal-row__bar"><div class="goal-row__fill" id="gamifyXpFill" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div class="gamify__badges" id="gamifyBadges"></div>
         </div>
 
         <details class="section-collapse" open>
@@ -410,6 +421,6 @@
   </div>
 
   <script src="chart.js?v=9"></script>
-  <script src="time.js?v=31"></script>
+  <script src="time.js?v=32"></script>
 </body>
 </html>
