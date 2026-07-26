@@ -135,6 +135,10 @@ async function migrate(sql) {
   // drag-to-reorder position, shared across all of a quarter's goals (not just
   // within one category) so the flat "all goals" view can be reordered too
   await sql`ALTER TABLE goals ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
+  // hidden from the flat "All goals" view only (by-category view always shows
+  // everything) — stored server-side so it's the same on every device, not
+  // just the browser that clicked "hide"
+  await sql`ALTER TABLE goals ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT false`;
   // one optional uploaded thumbnail per day, for the Days gallery tab —
   // stored as a data: URL (client resizes/compresses before upload)
   await sql`CREATE TABLE IF NOT EXISTS day_photos (

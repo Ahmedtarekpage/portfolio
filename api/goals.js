@@ -3,8 +3,9 @@
 // a goal's progress is just current/target, set manually.
 //   GET    /api/goals?category_id=N   -> goals for that category
 //   POST   /api/goals                 -> { category_id, title, target, unit? }
-//   PATCH  /api/goals?id=N            -> { title?, target?, current?, unit? }
+//   PATCH  /api/goals?id=N            -> { title?, target?, current?, unit?, hidden? }
 //   PATCH  /api/goals?reorder=1       -> { ids: [id, ...] }: persist new drag order
+//   PATCH  /api/goals?unhide_all=1    -> { category_ids: [id, ...] }: clear hidden on every goal in these categories
 //   DELETE /api/goals?id=N
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
@@ -45,6 +46,14 @@ export default withErrors(async (req, res) => {
     return json(res, 200, { ok: true });
   }
 
+  if (req.method === "PATCH" && req.query.unhide_all) {
+    const b = req.body || {};
+    const categoryIds = Array.isArray(b.category_ids) ? b.category_ids.map(Number).filter((n) => n > 0) : [];
+    if (!categoryIds.length) return json(res, 400, { error: "category_ids is required" });
+    await sql`UPDATE goals SET hidden = false WHERE category_id = ANY(${categoryIds})`;
+    return json(res, 200, { ok: true });
+  }
+
   const id = Number(req.query.id);
   if (!id) return json(res, 400, { error: "id is required" });
 
@@ -56,12 +65,14 @@ export default withErrors(async (req, res) => {
     if (!target || target <= 0) return json(res, 400, { error: "target must be a positive number" });
     const current = b.current !== undefined && b.current !== "" ? Number(b.current) : existing.current;
     const unit = b.unit !== undefined ? (b.unit ? String(b.unit).trim() : null) : existing.unit;
+    const hidden = b.hidden !== undefined ? !!b.hidden : existing.hidden;
 
     const [goal] = await sql`UPDATE goals SET
         title = COALESCE(${b.title ?? null}, title),
         target = ${target},
         current = ${current},
-        unit = ${unit}
+        unit = ${unit},
+        hidden = ${hidden}
       WHERE id = ${id} RETURNING *`;
     return json(res, 200, { goal });
   }

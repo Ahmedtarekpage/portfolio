@@ -14,7 +14,6 @@
     goalsView: (function () {
       try { return localStorage.getItem("time-goals-view") || "category"; } catch (e) { return "category"; }
     })(), // 'category' (grouped cards, always fully shown) or 'flat' (one drag-orderable list, goals can be hidden)
-    hiddenGoalIds: loadHiddenGoalIds(), // { [goalId]: true } — only hideable from the flat "All goals" view
   };
 
   /* ---------------- helpers (same conventions as admin.js) ---------------- */
@@ -1154,20 +1153,6 @@
     return Number(g.target) > 0 ? Math.min(100, Math.round((Number(g.current) / Number(g.target)) * 100)) : 0;
   }
 
-  // goals hidden from the flat "All goals" view only — the by-category view
-  // always shows everything, so this is a display filter, not real data
-  function loadHiddenGoalIds() {
-    try {
-      var raw = JSON.parse(localStorage.getItem("time-goals-hidden") || "[]");
-      var set = {};
-      (Array.isArray(raw) ? raw : []).forEach(function (id) { set[id] = true; });
-      return set;
-    } catch (e) { return {}; }
-  }
-  function saveHiddenGoalIds(set) {
-    try { localStorage.setItem("time-goals-hidden", JSON.stringify(Object.keys(set).map(Number))); } catch (e) {}
-  }
-
   // weighted by target, so a 500-target goal counts more than a 10-target one —
   // more representative of real progress than a plain average of percentages
   function combinedGoalsPct(goals) {
@@ -1505,14 +1490,17 @@
       var wrap = document.createElement("div");
       wrap.innerHTML = goalRowHtml(g, { categoryName: cat ? cat.name : "", draggable: true });
       var row = wrap.firstChild;
-      row.hidden = !!state.hiddenGoalIds[g.id];
+      row.hidden = !!g.hidden;
       flatBox.appendChild(row);
       if (cat) wireGoalRow(row, g, cat);
       row.querySelector(".iconbtn--hide").addEventListener("click", function () {
-        state.hiddenGoalIds[g.id] = true;
-        saveHiddenGoalIds(state.hiddenGoalIds);
-        row.hidden = true;
-        updateGoalsHiddenBanner();
+        api("/api/goals?id=" + g.id, { method: "PATCH", body: { hidden: true } })
+          .then(function () {
+            g.hidden = true;
+            row.hidden = true;
+            updateGoalsHiddenBanner();
+          })
+          .catch(function (e) { toast(e.message, true); });
       });
     });
 
@@ -1540,7 +1528,10 @@
   });
 
   function updateGoalsHiddenBanner() {
-    var count = Object.keys(state.hiddenGoalIds).length;
+    var allGoals = state.quarterDetail
+      ? state.quarterDetail.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, [])
+      : [];
+    var count = allGoals.filter(function (g) { return g.hidden; }).length;
     var banner = $("#goalsHiddenBanner");
     banner.hidden = count === 0 || state.goalsView !== "flat"; // hiding only applies to the flat view
     if (count > 0) banner.querySelector(".goals-hidden-count").textContent = count;
@@ -1548,10 +1539,17 @@
 
   $("#btnShowHiddenGoals").addEventListener("click", function (ev) {
     ev.preventDefault();
-    state.hiddenGoalIds = {};
-    saveHiddenGoalIds(state.hiddenGoalIds);
-    document.querySelectorAll("#goalsFlatList .goal-row[hidden]").forEach(function (row) { row.hidden = false; });
-    updateGoalsHiddenBanner();
+    if (!state.quarterDetail) return;
+    var categoryIds = state.quarterDetail.categories.map(function (c) { return c.id; });
+    api("/api/goals?unhide_all=1", { method: "PATCH", body: { category_ids: categoryIds } })
+      .then(function () {
+        state.quarterDetail.categories.forEach(function (c) {
+          (c.goals || []).forEach(function (g) { g.hidden = false; });
+        });
+        document.querySelectorAll("#goalsFlatList .goal-row[hidden]").forEach(function (row) { row.hidden = false; });
+        updateGoalsHiddenBanner();
+      })
+      .catch(function (e) { toast(e.message, true); });
   });
 
   makeReorderable({
