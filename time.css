@@ -184,6 +184,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .tabbar::-webkit-scrollbar { display: none; }
 .tab {
   appearance: none; border: none; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
   flex: none; white-space: nowrap;
   padding: 9px 4px; margin-bottom: -1px; border-bottom: 2px solid transparent;
   color: var(--muted); font: 600 0.9rem "Inter", sans-serif; transition: color 0.2s ease, border-color 0.2s ease;
@@ -191,6 +192,30 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .tab:hover { color: var(--ink); }
 .tab--active { color: var(--ink); border-bottom-color: var(--blue); }
 .tabpanel[hidden] { display: none; }
+
+/* ---------- mobile: bottom app-style navigation bar instead of a top tab strip ---------- */
+@media (max-width: 640px) {
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 400;
+    margin: 0; gap: 0; overflow-x: visible;
+    border-bottom: none; border-top: 1px solid var(--glass-brd);
+    background: rgba(19, 24, 34, 0.92);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    padding: 4px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom, 0)) max(4px, env(safe-area-inset-left));
+  }
+  :root[data-theme="light"] .tabbar { background: rgba(255, 255, 255, 0.92); }
+  .tab {
+    flex: 1; flex-direction: column; justify-content: center; gap: 2px;
+    padding: 6px 2px 5px; margin-bottom: 0; border-bottom: none; border-radius: 10px;
+  }
+  .tab__icon { font-size: 1.25rem; line-height: 1; }
+  .tab__label { font-size: 0.64rem; font-weight: 600; letter-spacing: 0.01em; }
+  .tab--active { border-bottom-color: transparent; color: var(--blue-2); }
+
+  /* keep page content and the toast clear of the fixed bottom bar */
+  .wrap { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0)); }
+  #toast { bottom: calc(70px + env(safe-area-inset-bottom, 0)); }
+}
 .tabpanel--enter { animation: tabIn 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 @keyframes tabIn {
   from { opacity: 0; transform: translateY(8px); }

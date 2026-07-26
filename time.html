@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=5" />
-  <link rel="stylesheet" href="time.css?v=20" />
+  <link rel="stylesheet" href="time.css?v=21" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -129,10 +129,10 @@
       </div>
 
       <nav class="tabbar" id="tabbar">
-        <button type="button" class="tab tab--active" data-tab="today">📅 Today</button>
-        <button type="button" class="tab" data-tab="quarter">🎯 Quarter</button>
-        <button type="button" class="tab" data-tab="days">🖼️ Days</button>
-        <button type="button" class="tab" data-tab="analytics">📊 Analytics</button>
+        <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label">Today</span></button>
+        <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label">Quarter</span></button>
+        <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label">Days</span></button>
+        <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label">Analytics</span></button>
       </nav>
 
       <!-- ---- Today ---- -->
