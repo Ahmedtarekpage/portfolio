@@ -24,6 +24,9 @@ const AR = {
   // --- roles ---
   "AI Product Manager": "مدير منتج ذكاء اصطناعي",
   "Product Manager": "مدير منتج",
+  "Founder & AI Product Lead": "مؤسس وقائد منتج ذكاء اصطناعي",
+  "Python Developer & Product Consultant": "مطوّر بايثون ومستشار منتج",
+  "Associate Product Manager": "مدير منتج مساعد",
   "Contestant — 1st Place, RoboCup Junior Egypt": "متسابق — المركز الأول، روبوكب جونيور مصر",
   "STEAM Session Lead": "قائد جلسات STEAM",
   "STEAM & Robotics Instructor": "مدرّس STEAM والروبوتيات",
@@ -318,7 +321,7 @@ const JOBS = [
   {
     date: "Jun 2025 — Present",
     place: "Remote · Part-Time",
-    role: "AI Product Manager",
+    role: "Founder & AI Product Lead",
     company: "Ashrhly.com",
     kind: "AI EdTech Platform",
     what: "An AI-powered tutoring platform that gives students on-demand, personalized learning — built with Claude and a single engineer to prove that AI-augmented teams can ship a full product.",
@@ -334,7 +337,7 @@ const JOBS = [
     featured: true,
   },
   {
-    date: "Jul 2025 — Jun 2026",
+    date: "Jul 2025 — Present",
     place: "Estonia · Remote",
     role: "Product Manager",
     company: "Inkrypt Videos",
@@ -351,9 +354,9 @@ const JOBS = [
     links: [{ url: "https://inkryptvideos.com", label: "Visit Inkrypt Videos" }],
   },
   {
-    date: "Aug 2021 — Aug 2024",
+    date: "Aug 2021 — Jul 2024",
     place: "UAE · Remote",
-    role: "Product Manager",
+    role: "Python Developer & Product Consultant",
     company: "Awasis.ai",
     kind: "AI Education & Robotics",
     what: "A portfolio of B2B/B2C digital products — AI education platforms, e-commerce, mobile apps and VR — delivered for international clients at Top Rated Plus (Upwork top 3%).",
@@ -367,7 +370,7 @@ const JOBS = [
     video: { id: "TAHexuZxpxA", poster: "https://img.youtube.com/vi/TAHexuZxpxA/maxresdefault.jpg" },
   },
   {
-    date: "Feb 2024 — Oct 2024",
+    date: "Jan 2023 — Dec 2023",
     place: "Dubai, UAE · Hybrid",
     role: "Product Manager",
     company: "SAKINA",
@@ -384,9 +387,9 @@ const JOBS = [
     links: [{ url: "https://sakeenahtours.com/", label: "Visit Sakeenah Tours" }],
   },
   {
-    date: "Aug 2023 — Jan 2025",
+    date: "Jul 2021 — Dec 2022",
     place: "Cairo, Egypt · Hybrid",
-    role: "Product Manager",
+    role: "Associate Product Manager",
     company: "AlaFein · Gazebo Productions",
     kind: "B2C Events App (iOS/Android)",
     what: "A B2C arts & culture events platform — iOS/Android apps plus an admin dashboard — connecting audiences with organizers and artists.",
@@ -404,7 +407,7 @@ const JOBS = [
     ],
   },
   {
-    date: "Jan 2024 — May 2025",
+    date: "Jan 2024 — Jun 2025",
     place: "Saudi Arabia · Remote",
     role: "Product Manager",
     company: "Fira.Ai — Government Project",
