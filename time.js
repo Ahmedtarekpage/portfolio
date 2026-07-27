@@ -1101,14 +1101,18 @@
     }
   }
 
-  /* ---------------- gamification: XP, levels, badges ----------------
-     XP is always recomputed from real, already-persisted facts (tasks
-     done, goals completed, current streak, milestones checked) — there's
-     no separate XP counter to drift out of sync or reset. Only "have I
-     already celebrated this" is kept in localStorage, purely so a level
-     you've already reached doesn't re-trigger its fanfare on every load. */
+  /* ---------------- gamification: 5-month commitment cycle + badges ----------------
+     The level badge/bar track a running commitment: pick a start date, and
+     every 5 calendar months from it is one "cycle" — the bar fills as days
+     pass, and completing a cycle triggers the same celebration a badge
+     unlock does. Badges themselves are recomputed from real, already-
+     persisted facts (tasks done, goals completed, streak, milestones
+     checked, cycles completed) every time — no separate counter to drift.
+     Only "have I already celebrated this" is kept in localStorage, purely
+     so a cycle/badge you've already reached doesn't re-fire its fanfare
+     on every load. */
 
-  var XP_PER_LEVEL = 250;
+  var COMMIT_CYCLE_MONTHS = 5;
   var STREAK_WINDOW_DAYS = 400;
 
   var BADGES = [
@@ -1123,17 +1127,56 @@
     { id: "goal-10", icon: "🏹", name: "10 Goals Hit", test: function (s) { return s.completedGoals >= 10; } },
     { id: "milestone-1", icon: "🪜", name: "First Milestone", test: function (s) { return s.milestonesChecked >= 1; } },
     { id: "milestone-half", icon: "💰", name: "Halfway to $500K", test: function (s) { return s.milestonesChecked >= 5; } },
+    { id: "cycle-1", icon: "🎖️", name: "1st 5-Month Cycle Committed", test: function (s) { return s.cyclesCompleted >= 1; } },
+    { id: "cycle-2", icon: "🎖️🎖️", name: "10 Months Committed", test: function (s) { return s.cyclesCompleted >= 2; } },
+    { id: "cycle-4", icon: "🏆", name: "1 Year Committed", test: function (s) { return s.cyclesCompleted >= 4; } },
   ];
 
+  function loadCommitStart() {
+    try {
+      var raw = localStorage.getItem("time-commit-start");
+      if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    } catch (e) {}
+    var today = todayISO();
+    try { localStorage.setItem("time-commit-start", today); } catch (e) {}
+    return today;
+  }
+  function saveCommitStart(iso) {
+    try { localStorage.setItem("time-commit-start", iso); } catch (e) {}
+  }
+
+  // walks forward from the start date in 5-month steps to find which cycle
+  // "today" currently falls in, and how far through it we are
+  function computeCommitCycle() {
+    var startISO = loadCommitStart();
+    var cycleStart = new Date(startISO + "T00:00:00");
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var cyclesCompleted = 0;
+    var cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + COMMIT_CYCLE_MONTHS, cycleStart.getDate());
+    while (today >= cycleEnd) {
+      cyclesCompleted++;
+      cycleStart = cycleEnd;
+      cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + COMMIT_CYCLE_MONTHS, cycleStart.getDate());
+    }
+    return {
+      startISO: startISO,
+      cyclesCompleted: cyclesCompleted,
+      currentCycleNum: cyclesCompleted + 1,
+      dayInCycle: Math.max(0, Math.round((today - cycleStart) / 86400000)),
+      totalCycleDays: Math.round((cycleEnd - cycleStart) / 86400000),
+    };
+  }
+
   function loadGamifyMeta() {
-    try { return JSON.parse(localStorage.getItem("time-gamify-meta") || "null") || { level: 0, badges: [], initialized: false }; }
-    catch (e) { return { level: 0, badges: [], initialized: false }; }
+    try { return JSON.parse(localStorage.getItem("time-gamify-meta") || "null") || { cyclesCompleted: 0, badges: [], initialized: false }; }
+    catch (e) { return { cyclesCompleted: 0, badges: [], initialized: false }; }
   }
   function saveGamifyMeta(meta) {
     try { localStorage.setItem("time-gamify-meta", JSON.stringify(meta)); } catch (e) {}
   }
 
-  function levelUpCelebrate(level) {
+  function cycleCompleteCelebrate(currentCycleNum) {
     playLevelUpSound();
     if (!reduceMotion) {
       burstConfetti(24);
@@ -1142,7 +1185,7 @@
       void badge.offsetWidth;
       badge.classList.add("gamify__level-badge--pop");
     }
-    toast("🎉 Level " + level + " reached!");
+    toast("🎉 5-month cycle complete — cycle " + currentCycleNum + " begins!");
   }
 
   function badgeUnlockCelebrate(ids) {
@@ -1164,16 +1207,24 @@
   }
 
   function renderGamification(stats) {
-    var xp = stats.totalDone * 5 + stats.completedGoals * 40 + stats.currentStreak * 10 + stats.milestonesChecked * 80;
-    var level = Math.floor(xp / XP_PER_LEVEL) + 1;
-    var xpIntoLevel = xp % XP_PER_LEVEL;
-    var pct = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100);
+    var cycle = computeCommitCycle();
+    var pct = cycle.totalCycleDays > 0 ? Math.min(100, Math.round((cycle.dayInCycle / cycle.totalCycleDays) * 100)) : 0;
 
-    $("#gamifyLevelBadge").textContent = level;
-    $("#gamifyXpText").textContent = xpIntoLevel + " / " + XP_PER_LEVEL + " XP";
+    $("#gamifyLevelBadge").textContent = cycle.currentCycleNum;
+    $("#gamifyXpText").textContent = "Day " + cycle.dayInCycle + " / " + cycle.totalCycleDays;
     $("#gamifyXpFill").style.width = pct + "%";
+    var startInput = $("#gamifyStartInput");
+    if (document.activeElement !== startInput) startInput.value = cycle.startISO;
 
-    var unlockedIds = BADGES.filter(function (b) { return b.test(stats); }).map(function (b) { return b.id; });
+    var fullStats = {
+      totalDone: stats.totalDone,
+      completedGoals: stats.completedGoals,
+      currentStreak: stats.currentStreak,
+      longestStreak: stats.longestStreak,
+      milestonesChecked: stats.milestonesChecked,
+      cyclesCompleted: cycle.cyclesCompleted,
+    };
+    var unlockedIds = BADGES.filter(function (b) { return b.test(fullStats); }).map(function (b) { return b.id; });
     $("#gamifyBadges").innerHTML = BADGES.map(function (b) {
       var unlocked = unlockedIds.indexOf(b.id) !== -1;
       return '<span class="badge-chip' + (unlocked ? " badge-chip--unlocked" : "") + '" data-id="' + b.id +
@@ -1182,12 +1233,18 @@
 
     var meta = loadGamifyMeta();
     if (meta.initialized) {
-      if (level > meta.level) levelUpCelebrate(level);
+      if (cycle.cyclesCompleted > meta.cyclesCompleted) cycleCompleteCelebrate(cycle.currentCycleNum);
       var newBadges = unlockedIds.filter(function (id) { return meta.badges.indexOf(id) === -1; });
       if (newBadges.length) badgeUnlockCelebrate(newBadges);
     }
-    saveGamifyMeta({ level: level, badges: unlockedIds, initialized: true });
+    saveGamifyMeta({ cyclesCompleted: cycle.cyclesCompleted, badges: unlockedIds, initialized: true });
   }
+
+  $("#gamifyStartInput").addEventListener("change", function () {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.value)) return;
+    saveCommitStart(this.value);
+    loadGamification();
+  });
 
   // recomputed from real data every time — never a separate counter that
   // could drift; failures here are swallowed since this is a bonus layer
