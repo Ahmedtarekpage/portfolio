@@ -39,20 +39,15 @@
     return el;
   }
 
-  // smooth Catmull-Rom-to-Bezier curve through [x, y] points — an "analog"
-  // sweeping line instead of sharp digital step corners
-  function smoothPath(pts) {
+  // "digital"/PWM-style step path through [x, y] points — holds flat at the
+  // previous value, then jumps vertically. Used by the Today tab's
+  // completion-pace graph, where each point is a discrete task completion,
+  // not a continuously varying signal.
+  function stepPath(pts) {
     if (!pts.length) return "";
-    if (pts.length === 1) return "M " + pts[0][0] + " " + pts[0][1];
     var d = "M " + pts[0][0] + " " + pts[0][1];
-    for (var i = 0; i < pts.length - 1; i++) {
-      var p0 = pts[i === 0 ? i : i - 1];
-      var p1 = pts[i];
-      var p2 = pts[i + 1];
-      var p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
-      var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
-      var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
-      d += " C " + c1x + " " + c1y + ", " + c2x + " " + c2y + ", " + p2[0] + " " + p2[1];
+    for (var i = 1; i < pts.length; i++) {
+      d += " L " + pts[i][0] + " " + pts[i - 1][1] + " L " + pts[i][0] + " " + pts[i][1];
     }
     return d;
   }
@@ -532,11 +527,11 @@
     svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(100), y2: y(100), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" }));
 
     var color = opts.color || "#60a5fa";
-    var d = smoothPath(actualPts.map(function (p) { return [x(p.t), y(p.pct)]; }));
+    var d = stepPath(actualPts.map(function (p) { return [x(p.t), y(p.pct)]; }));
     var lastT = actualPts[actualPts.length - 1].t;
     var extendTo = showNow ? Math.min(Math.max(nowT, lastT), end) : lastT;
     if (extendTo > lastT) d += " L " + x(extendTo) + " " + y(lastPct);
-    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "miter" });
     svg.appendChild(lineEl);
 
     if (showNow && nowT >= start && nowT <= end) {
