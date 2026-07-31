@@ -535,15 +535,11 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .milestone-row--next .milestone-row__date { color: var(--blue-2); font-weight: 600; }
 
-.milestone-amount-input {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-size: 0.82rem; color: var(--muted); margin-bottom: 12px;
-}
-.milestone-amount-input input {
-  width: 120px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 7px 10px; font: 600 0.88rem "Space Grotesk", sans-serif; outline: none;
-}
-.milestone-amount-input input:focus { border-color: var(--blue-2); }
+.milestone-total { font-size: 0.82rem; margin-bottom: 12px; }
+.milestone-total b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.milestone-row__reached { margin-top: 2px; }
+.milestone-row__amount-input { width: 84px; }
 
 .milestone-row__progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .milestone-row__bar { flex: 1; height: 6px; border-radius: 999px; background: var(--glass-brd); overflow: hidden; }

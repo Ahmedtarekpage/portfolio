@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=5" />
-  <link rel="stylesheet" href="time.css?v=24" />
+  <link rel="stylesheet" href="time.css?v=25" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -123,9 +123,7 @@
           <summary>🪜 Milestones to $500K/yr</summary>
           <div class="section-collapse__body">
             <p class="muted" style="margin:0 0 10px">Halved down from $500K to ~$976 — doubling every 5 months from today, 9 times in a row. Check one off once you've actually reached it.</p>
-            <label class="milestone-amount-input">💵 Amount reached so far
-              <input type="number" id="milestoneAmountInput" min="0" step="any" placeholder="0" />
-            </label>
+            <p class="milestone-total muted">💵 Total entered across all milestones: <b id="milestoneTotalAmount">$0</b></p>
             <div class="milestone-list" id="milestoneList"></div>
           </div>
         </details>
@@ -429,6 +427,6 @@
   </div>
 
   <script src="chart.js?v=10"></script>
-  <script src="time.js?v=34"></script>
+  <script src="time.js?v=35"></script>
 </body>
 </html>
