@@ -535,6 +535,25 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .milestone-row--next .milestone-row__date { color: var(--blue-2); font-weight: 600; }
 
+.milestone-amount-input {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 0.82rem; color: var(--muted); margin-bottom: 12px;
+}
+.milestone-amount-input input {
+  width: 120px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 7px 10px; font: 600 0.88rem "Space Grotesk", sans-serif; outline: none;
+}
+.milestone-amount-input input:focus { border-color: var(--blue-2); }
+
+.milestone-row__progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.milestone-row__bar { flex: 1; height: 6px; border-radius: 999px; background: var(--glass-brd); overflow: hidden; }
+.milestone-row__bar-fill {
+  display: block; height: 100%; border-radius: 999px; background: var(--grad);
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.milestone-row__bar-fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
+.milestone-row__pct { flex: none; font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2.4em; text-align: right; }
+
 /* ---------- pomodoro timer (25 focus / 5 short break / 15 long break) ---------- */
 .pomodoro-launcher { display: flex; gap: 8px; flex-wrap: wrap; }
 .pomodoro-launcher input {

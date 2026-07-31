@@ -328,7 +328,8 @@
       return;
     }
     box.classList.remove("countdown--ended");
-    label.textContent = "💰 Time left to hit $" + fmtMoney(next.value);
+    var pct = next.value > 0 ? Math.min(100, Math.round((loadMilestonesAmount() / next.value) * 100)) : 0;
+    label.textContent = "💰 Time left to hit $" + fmtMoney(next.value) + " (" + pct + "% there)";
     setCalendarUnits("nextMs", calendarDiff(now, next.date));
   }
 
@@ -345,12 +346,30 @@
     try { localStorage.setItem("time-milestones-checked", JSON.stringify(arr)); } catch (e) {}
   }
 
+  // a single running "how much have I actually reached so far" figure —
+  // separate localStorage key from the checkboxes above, purely additive,
+  // so it can't touch or overwrite any already-entered checked state. Every
+  // milestone row's percentage is this one number against that row's target.
+  function loadMilestonesAmount() {
+    try {
+      var raw = Number(localStorage.getItem("time-milestones-amount"));
+      return isFinite(raw) && raw >= 0 ? raw : 0;
+    } catch (e) { return 0; }
+  }
+  function saveMilestonesAmount(v) {
+    try { localStorage.setItem("time-milestones-amount", String(v)); } catch (e) {}
+  }
+
   function renderMilestones() {
     var list = $("#milestoneList");
     if (!list) return;
     var milestones = buildMilestones();
     var checked = loadMilestoneChecks();
     var nextIdx = milestones.findIndex(function (_, i) { return !checked[i]; });
+    var amount = loadMilestonesAmount();
+
+    var amountInput = $("#milestoneAmountInput");
+    if (amountInput && document.activeElement !== amountInput) amountInput.value = amount || "";
 
     list.innerHTML = milestones.map(function (m, i) {
       var isChecked = !!checked[i];
@@ -358,6 +377,7 @@
       var cls = "milestone-row" + (isChecked ? " milestone-row--done" : "") + (isNext ? " milestone-row--next" : "");
       var prevVal = i === 0 ? 0 : milestones[i - 1].value;
       var dateLabel = m.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      var pct = m.value > 0 ? Math.min(100, Math.round((amount / m.value) * 100)) : 0;
       return '<div class="' + cls + '" data-idx="' + i + '">' +
         '<input type="checkbox" class="task-row__check milestone-row__check"' + (isChecked ? " checked" : "") + ' aria-label="Mark $' + fmtMoney(m.value) + ' reached" />' +
         '<span class="milestone-row__body">' +
@@ -366,6 +386,11 @@
             '<span class="milestone-row__delta">+$' + fmtMoney(m.value - prevVal) + ' to add</span>' +
           '</span>' +
           '<span class="milestone-row__date">pace: by ' + dateLabel + '</span>' +
+          '<span class="milestone-row__progress">' +
+            '<span class="milestone-row__bar"><span class="milestone-row__bar-fill' + (pct >= 100 ? ' milestone-row__bar-fill--done' : '') +
+              '" style="width:' + pct + '%"></span></span>' +
+            '<span class="milestone-row__pct">' + pct + '%</span>' +
+          '</span>' +
         '</span></div>';
     }).join("");
 
@@ -383,6 +408,17 @@
         updateNextMilestoneCounter();
         loadGamification();
       });
+    });
+  }
+
+  var milestoneAmountInputEl = $("#milestoneAmountInput");
+  if (milestoneAmountInputEl) {
+    milestoneAmountInputEl.addEventListener("input", function () {
+      var v = this.value === "" ? 0 : Number(this.value);
+      if (!isFinite(v) || v < 0) return;
+      saveMilestonesAmount(v);
+      renderMilestones();
+      updateNextMilestoneCounter();
     });
   }
 
