@@ -491,7 +491,7 @@
     moodDate = date;
     $("#moodDayPicker").value = date;
     $("#moodSavedHint").hidden = true;
-    return api("/api/moods?date=" + date).then(function (data) {
+    return api("/api/health?type=mood&date=" + date).then(function (data) {
       selectedMoodEmoji = data.mood ? data.mood.emoji : null;
       $("#moodReasonInput").value = data.mood ? (data.mood.reason || "") : "";
       renderMoodPicker();
@@ -506,7 +506,7 @@
   $("#btnMoodSave").addEventListener("click", function () {
     if (!selectedMoodEmoji) { toast("Pick an emoji first", true); return; }
     var reason = $("#moodReasonInput").value.trim();
-    api("/api/moods", { method: "POST", body: { mood_date: moodDate, emoji: selectedMoodEmoji, reason: reason } })
+    api("/api/health?type=mood", { method: "POST", body: { mood_date: moodDate, emoji: selectedMoodEmoji, reason: reason } })
       .then(function () {
         playSuccessSound();
         $("#moodSavedHint").hidden = false;
@@ -518,7 +518,7 @@
   function loadMoodChart() {
     var to = todayISO();
     var from = addDays(to, -MOOD_CHART_WINDOW_DAYS);
-    return api("/api/moods?stats=1&from=" + from + "&to=" + to).then(function (data) {
+    return api("/api/health?type=mood&stats=1&from=" + from + "&to=" + to).then(function (data) {
       var moods = data.moods || [];
       $("#moodChartEmpty").hidden = moods.length > 0;
       if (!moods.length) { $("#moodChart").innerHTML = ""; $("#moodChartTip").hidden = true; return; }
@@ -564,7 +564,7 @@
   }
 
   function loadThoughts() {
-    return api("/api/thoughts").then(function (data) {
+    return api("/api/health?type=thought").then(function (data) {
       var thoughts = data.thoughts || [];
       $("#thoughtsEmpty").hidden = thoughts.length > 0;
       $("#thoughtList").innerHTML = thoughts.map(thoughtRowHtml).join("");
@@ -574,7 +574,7 @@
         row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditThought(t); });
         row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
           if (!confirm("Delete this idea?")) return;
-          api("/api/thoughts?id=" + id, { method: "DELETE" })
+          api("/api/health?type=thought&id=" + id, { method: "DELETE" })
             .then(function () { playDeleteSound(); if (editingThoughtId === id) stopEditThought(); return loadThoughts(); })
             .catch(function (e) { toast(e.message, true); });
         });
@@ -592,8 +592,8 @@
     };
     if (!body.thought) return;
     var req = editingThoughtId
-      ? api("/api/thoughts?id=" + editingThoughtId, { method: "PATCH", body: body })
-      : api("/api/thoughts", { method: "POST", body: body });
+      ? api("/api/health?type=thought&id=" + editingThoughtId, { method: "PATCH", body: body })
+      : api("/api/health?type=thought", { method: "POST", body: body });
     req.then(function () {
       playAddSound();
       stopEditThought();
