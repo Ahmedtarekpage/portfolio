@@ -146,6 +146,23 @@ async function migrate(sql) {
     photo_data TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // Health tab: one mood check-in per day (doctor-recommended daily mood tracking)
+  await sql`CREATE TABLE IF NOT EXISTS moods (
+    mood_date DATE PRIMARY KEY,
+    emoji TEXT NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  // Health tab: CBT-style thought records (thought -> feeling -> reframe),
+  // not tied to a specific day — added whenever an idea/thought comes up
+  await sql`CREATE TABLE IF NOT EXISTS thoughts (
+    id SERIAL PRIMARY KEY,
+    thought TEXT NOT NULL,
+    feeling TEXT,
+    reframe TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS thoughts_created_idx ON thoughts (created_at DESC)`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

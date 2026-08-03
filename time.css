@@ -651,3 +651,45 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   .goal-row__step { width: 30px; height: 30px; font-size: 1.05rem; }
   .task-row__handle, .goal-row__handle { padding: 8px 6px; font-size: 1.1rem; }
 }
+
+/* ---------- Health: mood check-in + CBT idea log ---------- */
+.mood-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.mood-picker__btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-width: 58px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
+  padding: 8px 6px; cursor: pointer; font-size: 1.4rem; line-height: 1;
+  transition: transform 0.1s ease, border-color 0.15s ease, background-color 0.2s ease;
+}
+.mood-picker__btn span { font-size: 0.66rem; color: var(--muted); font-weight: 600; }
+.mood-picker__btn:hover { border-color: rgba(96, 165, 250, 0.35); }
+.mood-picker__btn:active { transform: scale(0.94); }
+.mood-picker__btn--selected {
+  border-color: var(--blue-2); background: rgba(96, 165, 250, 0.12);
+  box-shadow: 0 0 0 1px var(--blue-2);
+}
+.mood-picker__btn--selected span { color: var(--blue-2); }
+
+.mood-reason-label { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+.mood-reason-label textarea {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 10px;
+  color: var(--ink); padding: 9px 12px; font: 400 0.9rem "Inter", sans-serif;
+  outline: none; resize: vertical; min-height: 44px;
+}
+.mood-reason-label textarea:focus { border-color: var(--blue); }
+
+.thought-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.thought-row {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 12px 14px;
+  animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.thought-row__top { display: flex; align-items: flex-start; gap: 8px; }
+.thought-row__text { flex: 1; min-width: 0; font-size: 0.9rem; }
+.thought-row__feeling {
+  flex: none; font-size: 0.7rem; font-weight: 600; color: var(--blue-2);
+  background: rgba(96, 165, 250, 0.12); border-radius: 6px; padding: 2px 7px;
+}
+.thought-row__reframe {
+  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--glass-brd);
+  font-size: 0.84rem; color: var(--muted); font-style: italic;
+}
+.thought-row__date { margin-top: 6px; font-size: 0.72rem; color: var(--faint); }

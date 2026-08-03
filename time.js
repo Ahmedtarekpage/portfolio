@@ -150,6 +150,7 @@
     if (!btn) return;
     showTab(btn.dataset.tab);
     if (btn.dataset.tab === "days") loadDaysGallery();
+    if (btn.dataset.tab === "health") loadHealthTab();
   });
 
   /* ---------------- live countdown to the selected quarter's start/end ---------------- */
@@ -446,6 +447,166 @@
     });
   }
 
+  /* ---------------- Health: daily mood check-in + CBT-style idea log ----------------
+     Doctor-recommended: one mood emoji + reason per day, and a running list
+     of thoughts/ideas logged in a lightweight CBT shape (thought -> feeling
+     -> optional balanced reframe). Both are DB-backed (not localStorage) —
+     real health data, same as tasks/goals, so it's the same on every device. */
+
+  var MOOD_OPTIONS = [
+    { emoji: "😄", label: "Great", score: 5 },
+    { emoji: "🙂", label: "Good", score: 4 },
+    { emoji: "😐", label: "Okay", score: 3 },
+    { emoji: "😔", label: "Low", score: 2 },
+    { emoji: "😰", label: "Anxious", score: 2 },
+    { emoji: "😴", label: "Tired", score: 2 },
+    { emoji: "😢", label: "Sad", score: 1 },
+    { emoji: "😡", label: "Angry", score: 1 },
+  ];
+  var MOOD_SCALE = [1, 2, 3, 4, 5].map(function (n) {
+    var opt = MOOD_OPTIONS.filter(function (o) { return o.score === n; })[0];
+    return { score: n, emoji: opt ? opt.emoji : String(n) };
+  });
+  var MOOD_SCORE_BY_EMOJI = {};
+  MOOD_OPTIONS.forEach(function (o) { MOOD_SCORE_BY_EMOJI[o.emoji] = o.score; });
+  var MOOD_CHART_WINDOW_DAYS = 60;
+
+  var moodDate = todayISO();
+  var selectedMoodEmoji = null;
+
+  function renderMoodPicker() {
+    $("#moodPicker").innerHTML = MOOD_OPTIONS.map(function (o) {
+      return '<button type="button" class="mood-picker__btn' + (o.emoji === selectedMoodEmoji ? " mood-picker__btn--selected" : "") +
+        '" data-emoji="' + o.emoji + '" title="' + o.label + '">' + o.emoji + '<span>' + o.label + '</span></button>';
+    }).join("");
+    $("#moodPicker").querySelectorAll(".mood-picker__btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        selectedMoodEmoji = btn.dataset.emoji;
+        renderMoodPicker();
+      });
+    });
+  }
+
+  function loadMoodDay(date) {
+    moodDate = date;
+    $("#moodDayPicker").value = date;
+    $("#moodSavedHint").hidden = true;
+    return api("/api/moods?date=" + date).then(function (data) {
+      selectedMoodEmoji = data.mood ? data.mood.emoji : null;
+      $("#moodReasonInput").value = data.mood ? (data.mood.reason || "") : "";
+      renderMoodPicker();
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  $("#moodDayPicker").addEventListener("change", function () { loadMoodDay(this.value || todayISO()); });
+  $("#btnMoodPrevDay").addEventListener("click", function () { loadMoodDay(addDays(moodDate, -1)); });
+  $("#btnMoodNextDay").addEventListener("click", function () { loadMoodDay(addDays(moodDate, 1)); });
+  $("#btnMoodToday").addEventListener("click", function () { loadMoodDay(todayISO()); });
+
+  $("#btnMoodSave").addEventListener("click", function () {
+    if (!selectedMoodEmoji) { toast("Pick an emoji first", true); return; }
+    var reason = $("#moodReasonInput").value.trim();
+    api("/api/moods", { method: "POST", body: { mood_date: moodDate, emoji: selectedMoodEmoji, reason: reason } })
+      .then(function () {
+        playSuccessSound();
+        $("#moodSavedHint").hidden = false;
+        loadMoodChart();
+      })
+      .catch(function (e) { toast(e.message, true); });
+  });
+
+  function loadMoodChart() {
+    var to = todayISO();
+    var from = addDays(to, -MOOD_CHART_WINDOW_DAYS);
+    return api("/api/moods?stats=1&from=" + from + "&to=" + to).then(function (data) {
+      var moods = data.moods || [];
+      $("#moodChartEmpty").hidden = moods.length > 0;
+      if (!moods.length) { $("#moodChart").innerHTML = ""; $("#moodChartTip").hidden = true; return; }
+      var points = moods.map(function (m) {
+        return { date: m.date, emoji: m.emoji, reason: m.reason, score: MOOD_SCORE_BY_EMOJI[m.emoji] || 3 };
+      });
+      window.renderMoodChart($("#moodChart"), $("#moodChartTip"), points, { scale: MOOD_SCALE });
+    }).catch(function () {});
+  }
+
+  function thoughtRowHtml(t) {
+    return '<div class="thought-row" data-id="' + t.id + '">' +
+      '<div class="thought-row__top">' +
+        '<span class="thought-row__text">' + esc(t.thought) + '</span>' +
+        (t.feeling ? '<span class="thought-row__feeling">' + esc(t.feeling) + '</span>' : '') +
+        '<button type="button" class="iconbtn iconbtn--edit" title="Edit idea">✎</button>' +
+        '<button type="button" class="iconbtn" title="Delete idea">✕</button>' +
+      '</div>' +
+      (t.reframe ? '<div class="thought-row__reframe">→ ' + esc(t.reframe) + '</div>' : '') +
+      '<div class="thought-row__date">' + fmtDate(t.created_at) + '</div>' +
+    '</div>';
+  }
+
+  var editingThoughtId = null;
+
+  function stopEditThought() {
+    editingThoughtId = null;
+    $("#thoughtForm").reset();
+    $("#btnThoughtSubmit").textContent = "Add idea";
+    $("#btnCancelThoughtEdit").hidden = true;
+  }
+  $("#btnCancelThoughtEdit").addEventListener("click", stopEditThought);
+
+  function startEditThought(t) {
+    editingThoughtId = t.id;
+    var form = $("#thoughtForm");
+    form.elements.thought.value = t.thought;
+    form.elements.feeling.value = t.feeling || "";
+    form.elements.reframe.value = t.reframe || "";
+    $("#btnThoughtSubmit").textContent = "Update";
+    $("#btnCancelThoughtEdit").hidden = false;
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function loadThoughts() {
+    return api("/api/thoughts").then(function (data) {
+      var thoughts = data.thoughts || [];
+      $("#thoughtsEmpty").hidden = thoughts.length > 0;
+      $("#thoughtList").innerHTML = thoughts.map(thoughtRowHtml).join("");
+      $("#thoughtList").querySelectorAll(".thought-row").forEach(function (row) {
+        var id = Number(row.dataset.id);
+        var t = thoughts.filter(function (x) { return x.id === id; })[0];
+        row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditThought(t); });
+        row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
+          if (!confirm("Delete this idea?")) return;
+          api("/api/thoughts?id=" + id, { method: "DELETE" })
+            .then(function () { playDeleteSound(); if (editingThoughtId === id) stopEditThought(); return loadThoughts(); })
+            .catch(function (e) { toast(e.message, true); });
+        });
+      });
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  $("#thoughtForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = ev.target;
+    var body = {
+      thought: form.elements.thought.value.trim(),
+      feeling: form.elements.feeling.value.trim(),
+      reframe: form.elements.reframe.value.trim(),
+    };
+    if (!body.thought) return;
+    var req = editingThoughtId
+      ? api("/api/thoughts?id=" + editingThoughtId, { method: "PATCH", body: body })
+      : api("/api/thoughts", { method: "POST", body: body });
+    req.then(function () {
+      playAddSound();
+      stopEditThought();
+      return loadThoughts();
+    }).catch(function (e) { toast(e.message, true); });
+  });
+
+  function loadHealthTab() {
+    loadMoodDay(moodDate);
+    loadMoodChart();
+    loadThoughts();
+  }
+
   /* ---------------- pomodoro timer (default 25 focus / 5 short break / 15 long
      break, long break every 4th focus round) — click a button, name what you're
      focusing on, and it opens a fullscreen "work alone" screen; auto-advances
@@ -735,6 +896,7 @@
         show("view-app");
         var activeTab = document.querySelector("#tabbar .tab--active");
         if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
+        if (activeTab && activeTab.dataset.tab === "health") loadHealthTab();
         loadGamification();
       })
       .catch(function (e) { toast(e.message, true); show("view-app"); });

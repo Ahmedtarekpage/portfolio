@@ -769,4 +769,137 @@
       });
     }
   };
+
+  /* One point per day with a mood check-in — a 1-5 wellbeing score on the
+     y-axis (labeled with emoji, not %), across an arbitrary date range.
+     Used by /time's Health tab.
+       points = [{ date: 'YYYY-MM-DD', score, emoji, reason }]
+       opts.scale — [{ score, emoji }] the 1-5 legend, low to high */
+  window.renderMoodChart = function (box, tip, points, opts) {
+    opts = opts || {};
+    box.innerHTML = "";
+    var cs = getComputedStyle(document.documentElement);
+    var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
+    var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
+    var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
+    var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
+
+    var pts = (points || []).map(function (p) {
+      return { t: new Date(String(p.date).slice(0, 10) + "T00:00:00Z").getTime(), score: Number(p.score) || 0, emoji: p.emoji, reason: p.reason, date: p.date };
+    });
+    if (!pts.length) { box.innerHTML = '<p class="muted center" style="margin:0">No mood check-ins yet.</p>'; return; }
+
+    var start = pts[0].t, end = pts[pts.length - 1].t;
+    if (end <= start) end = start + DAY;
+    var scale = opts.scale || [1, 2, 3, 4, 5].map(function (n) { return { score: n, emoji: String(n) }; });
+    var minScore = scale[0].score, maxScore = scale[scale.length - 1].score;
+    var todayT = new Date(todayISO() + "T00:00:00Z").getTime();
+
+    var W = Math.max(box.clientWidth || 600, 260), H = 190;
+    var M = { l: 34, r: 12, t: 14, b: 24 };
+    var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
+    var y = function (v) { return H - M.b - ((v - minScore) / (maxScore - minScore)) * (H - M.t - M.b); };
+
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Mood over time" });
+
+    scale.forEach(function (s) {
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(s.score), y2: y(s.score), stroke: gridColor, "stroke-width": 1 }));
+      var lbl = svgEl("text", { x: M.l - 6, y: y(s.score) + 4, "text-anchor": "end", "font-size": 11 });
+      lbl.textContent = s.emoji;
+      svg.appendChild(lbl);
+    });
+
+    var color = opts.color || "#60a5fa";
+    var d = "M " + x(pts[0].t) + " " + y(pts[0].score);
+    for (var i = 1; i < pts.length; i++) d += " L " + x(pts[i].t) + " " + y(pts[i].score);
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    svg.appendChild(lineEl);
+
+    if (todayT >= start && todayT <= end) {
+      svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
+    }
+
+    [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
+      var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
+      xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+      svg.appendChild(xl);
+    });
+
+    var markers = [];
+    pts.forEach(function (p) {
+      var cx = x(p.t), cy = y(p.score);
+      var m = svgEl("circle", { cx: cx, cy: cy, r: 5, fill: color, stroke: surface, "stroke-width": 2 });
+      svg.appendChild(m);
+      markers.push({ p: p, cx: cx, cy: cy, el: m });
+    });
+
+    if (tip && markers.length) {
+      var cross = svgEl("line", { y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, visibility: "hidden" });
+      var ring = svgEl("circle", { r: 8, fill: "none", stroke: color, "stroke-width": 1.5, visibility: "hidden" });
+      svg.appendChild(cross);
+      svg.appendChild(ring);
+
+      var overlay = svgEl("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: "transparent" });
+      overlay.style.touchAction = "pan-y";
+      overlay.style.cursor = "pointer";
+      svg.appendChild(overlay);
+
+      var nearest = function (ev) {
+        var rect = svg.getBoundingClientRect();
+        var px = ((ev.clientX - rect.left) / rect.width) * W;
+        var best = null, bestD = Infinity;
+        markers.forEach(function (m) {
+          var dd = Math.abs(m.cx - px);
+          if (dd < bestD) { bestD = dd; best = m; }
+        });
+        return best;
+      };
+      var showTip = function (best) {
+        cross.setAttribute("x1", best.cx); cross.setAttribute("x2", best.cx);
+        cross.setAttribute("visibility", "visible");
+        ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
+        ring.setAttribute("visibility", "visible");
+        var dateLabel = fmtDate(best.p.date);
+        tip.innerHTML = '<div class="muted">' + dateLabel + '</div><div>' + best.p.emoji + " " + esc(best.p.reason || "") + '</div>';
+        tip.hidden = false;
+        var bx = box.getBoundingClientRect();
+        var left = (best.cx / W) * bx.width + 12;
+        if (left + 190 > bx.width) left = left - 214;
+        tip.style.left = Math.max(left, 4) + "px";
+        tip.style.top = Math.max((best.cy / H) * bx.height - 40, 0) + "px";
+      };
+      var hideTip = function () {
+        cross.setAttribute("visibility", "hidden");
+        ring.setAttribute("visibility", "hidden");
+        tip.hidden = true;
+      };
+      overlay.addEventListener("pointermove", function (ev) { var best = nearest(ev); if (best) showTip(best); });
+      overlay.addEventListener("pointerdown", function (ev) { var best = nearest(ev); if (best) showTip(best); });
+      overlay.addEventListener("pointerleave", hideTip);
+    }
+
+    box.appendChild(svg);
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) {
+      try {
+        var len = lineEl.getTotalLength();
+        lineEl.style.strokeDasharray = len;
+        lineEl.style.strokeDashoffset = len;
+        lineEl.getBoundingClientRect();
+        lineEl.style.transition = "stroke-dashoffset 0.8s ease";
+        lineEl.style.strokeDashoffset = 0;
+      } catch (e) { /* SVG not measurable — skip animation */ }
+      markers.forEach(function (m, i) {
+        m.el.style.opacity = 0;
+        m.el.style.transform = "scale(0.4)";
+        m.el.style.transformOrigin = m.cx + "px " + m.cy + "px";
+        setTimeout(function () {
+          m.el.style.transition = "opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+          m.el.style.opacity = 1;
+          m.el.style.transform = "scale(1)";
+        }, 300 + i * 15);
+      });
+    }
+  };
 })();

@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=5" />
-  <link rel="stylesheet" href="time.css?v=25" />
+  <link rel="stylesheet" href="time.css?v=26" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -133,6 +133,7 @@
         <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label">Today</span></button>
         <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label">Quarter</span></button>
         <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label">Days</span></button>
+        <button type="button" class="tab" data-tab="health"><span class="tab__icon">❤️</span><span class="tab__label">Health</span></button>
         <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label">Analytics</span></button>
       </nav>
 
@@ -369,6 +370,54 @@
       </div>
       </section>
 
+      <!-- ---- Health: daily mood check-in + mood trend + CBT-style idea log ---- -->
+      <section class="tabpanel" data-tabpanel="health" hidden>
+      <div class="card">
+        <div class="card__head">
+          <h2>Mood check-in</h2>
+          <div class="day-nav">
+            <button id="btnMoodPrevDay" class="iconbtn" aria-label="Previous day">←</button>
+            <input type="date" id="moodDayPicker" />
+            <button id="btnMoodNextDay" class="iconbtn" aria-label="Next day">→</button>
+            <button id="btnMoodToday" class="btn btn--ghost btn--sm">Today</button>
+          </div>
+        </div>
+
+        <div class="mood-picker" id="moodPicker"></div>
+        <label class="mood-reason-label">Why?
+          <textarea id="moodReasonInput" rows="2" placeholder="What made you feel this way?"></textarea>
+        </label>
+        <div style="margin-top:10px; display:flex; align-items:center; gap:10px">
+          <button type="button" class="btn btn--primary btn--sm" id="btnMoodSave">Save mood</button>
+          <span class="muted" id="moodSavedHint" hidden>Saved ✓</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h2>Mood over time</h2></div>
+        <p id="moodChartEmpty" class="muted center" hidden>Log a few days to see your trend here.</p>
+        <div class="chart-tip-wrap">
+          <div class="chart" id="moodChart" style="min-height:190px"></div>
+          <div id="moodChartTip" class="tooltip" hidden></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h2>🧠 Ideas (CBT)</h2></div>
+        <form id="thoughtForm" class="form form--grid">
+          <label class="span2">Thought / idea<input name="thought" required placeholder="What's the automatic thought or idea?" /></label>
+          <label>Feeling<input name="feeling" placeholder="e.g. anxious, hopeful" /></label>
+          <label class="span2">Balanced response (optional)<input name="reframe" placeholder="A more balanced way to see it" /></label>
+          <div class="span2">
+            <button type="submit" class="btn btn--primary" id="btnThoughtSubmit">Add idea</button>
+            <button type="button" class="btn btn--ghost" id="btnCancelThoughtEdit" hidden>Cancel edit</button>
+          </div>
+        </form>
+        <div class="thought-list" id="thoughtList"></div>
+        <p id="thoughtsEmpty" class="muted center" hidden>No ideas logged yet.</p>
+      </div>
+      </section>
+
       <!-- ---- Analytics: at-a-glance charts across every category, for the selected quarter ---- -->
       <section class="tabpanel" data-tabpanel="analytics" hidden>
       <div class="card">
@@ -426,7 +475,7 @@
     </div>
   </div>
 
-  <script src="chart.js?v=10"></script>
-  <script src="time.js?v=35"></script>
+  <script src="chart.js?v=11"></script>
+  <script src="time.js?v=36"></script>
 </body>
 </html>
