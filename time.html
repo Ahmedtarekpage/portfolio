@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=5" />
-  <link rel="stylesheet" href="time.css?v=26" />
+  <link rel="stylesheet" href="time.css?v=27" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -400,6 +400,14 @@
           <div class="chart" id="moodChart" style="min-height:190px"></div>
           <div id="moodChartTip" class="tooltip" hidden></div>
         </div>
+
+        <div class="table-scroll" style="margin-top:16px">
+          <table class="table" id="moodTable">
+            <thead><tr><th>Date</th><th>Feeling</th><th>Reason</th><th></th></tr></thead>
+            <tbody id="moodTableBody"></tbody>
+          </table>
+        </div>
+        <p id="moodTableEmpty" class="muted center" hidden>No mood entries yet.</p>
       </div>
 
       <div class="card">
@@ -413,7 +421,12 @@
             <button type="button" class="btn btn--ghost" id="btnCancelThoughtEdit" hidden>Cancel edit</button>
           </div>
         </form>
-        <div class="thought-list" id="thoughtList"></div>
+        <div class="table-scroll" style="margin-top:14px">
+          <table class="table" id="thoughtTable">
+            <thead><tr><th>Thought</th><th>Feeling</th><th>Reframe</th><th>Date</th><th></th></tr></thead>
+            <tbody id="thoughtList"></tbody>
+          </table>
+        </div>
         <p id="thoughtsEmpty" class="muted center" hidden>No ideas logged yet.</p>
       </div>
       </section>
@@ -476,6 +489,6 @@
   </div>
 
   <script src="chart.js?v=11"></script>
-  <script src="time.js?v=37"></script>
+  <script src="time.js?v=38"></script>
 </body>
 </html>

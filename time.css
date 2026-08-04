@@ -677,19 +677,10 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .mood-reason-label textarea:focus { border-color: var(--blue); }
 
-.thought-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-.thought-row {
-  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 12px 14px;
-  animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
-}
-.thought-row__top { display: flex; align-items: flex-start; gap: 8px; }
-.thought-row__text { flex: 1; min-width: 0; font-size: 0.9rem; }
 .thought-row__feeling {
-  flex: none; font-size: 0.7rem; font-weight: 600; color: var(--blue-2);
-  background: rgba(96, 165, 250, 0.12); border-radius: 6px; padding: 2px 7px;
+  display: inline-block; font-size: 0.7rem; font-weight: 600; color: var(--blue-2);
+  background: rgba(96, 165, 250, 0.12); border-radius: 6px; padding: 2px 7px; white-space: nowrap;
 }
-.thought-row__reframe {
-  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--glass-brd);
-  font-size: 0.84rem; color: var(--muted); font-style: italic;
-}
-.thought-row__date { margin-top: 6px; font-size: 0.72rem; color: var(--faint); }
+.thought-row__reframe-text { font-style: italic; color: var(--muted); }
+#moodTable td:first-child, #thoughtTable td:last-child { white-space: nowrap; }
+#moodTable .mood-emoji-cell { font-size: 1.2rem; }

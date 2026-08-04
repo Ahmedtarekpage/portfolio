@@ -515,12 +515,47 @@
       .catch(function (e) { toast(e.message, true); });
   });
 
+  function moodRowHtml(m) {
+    return '<tr data-date="' + m.date + '">' +
+      '<td>' + fmtDate(m.date) + '</td>' +
+      '<td class="mood-emoji-cell">' + m.emoji + '</td>' +
+      '<td>' + esc(m.reason || "") + '</td>' +
+      '<td><button type="button" class="iconbtn iconbtn--edit" title="Edit mood">✎</button>' +
+        '<button type="button" class="iconbtn" title="Delete mood">✕</button></td>' +
+    '</tr>';
+  }
+
+  function renderMoodTable(moods) {
+    var rows = moods.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    $("#moodTableEmpty").hidden = rows.length > 0;
+    var tbody = $("#moodTableBody");
+    tbody.innerHTML = rows.map(moodRowHtml).join("");
+    tbody.querySelectorAll("tr").forEach(function (tr) {
+      var date = tr.dataset.date;
+      tr.querySelector(".iconbtn--edit").addEventListener("click", function () {
+        loadMoodDay(date);
+        $("#moodPicker").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      tr.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
+        if (!confirm("Delete the mood entry for " + fmtDate(date) + "?")) return;
+        api("/api/health?type=mood&date=" + date, { method: "DELETE" })
+          .then(function () {
+            playDeleteSound();
+            if (date === moodDate) { selectedMoodEmoji = null; $("#moodReasonInput").value = ""; renderMoodPicker(); }
+            loadMoodChart();
+          })
+          .catch(function (e) { toast(e.message, true); });
+      });
+    });
+  }
+
   function loadMoodChart() {
     var to = todayISO();
     var from = addDays(to, -MOOD_CHART_WINDOW_DAYS);
     return api("/api/health?type=mood&stats=1&from=" + from + "&to=" + to).then(function (data) {
       var moods = data.moods || [];
       $("#moodChartEmpty").hidden = moods.length > 0;
+      renderMoodTable(moods);
       if (!moods.length) { $("#moodChart").innerHTML = ""; $("#moodChartTip").hidden = true; return; }
       var points = moods.map(function (m) {
         return { date: m.date, emoji: m.emoji, reason: m.reason, score: MOOD_SCORE_BY_EMOJI[m.emoji] || 3 };
@@ -530,16 +565,14 @@
   }
 
   function thoughtRowHtml(t) {
-    return '<div class="thought-row" data-id="' + t.id + '">' +
-      '<div class="thought-row__top">' +
-        '<span class="thought-row__text">' + esc(t.thought) + '</span>' +
-        (t.feeling ? '<span class="thought-row__feeling">' + esc(t.feeling) + '</span>' : '') +
-        '<button type="button" class="iconbtn iconbtn--edit" title="Edit idea">✎</button>' +
-        '<button type="button" class="iconbtn" title="Delete idea">✕</button>' +
-      '</div>' +
-      (t.reframe ? '<div class="thought-row__reframe">→ ' + esc(t.reframe) + '</div>' : '') +
-      '<div class="thought-row__date">' + fmtDate(t.created_at) + '</div>' +
-    '</div>';
+    return '<tr data-id="' + t.id + '">' +
+      '<td>' + esc(t.thought) + '</td>' +
+      '<td>' + (t.feeling ? '<span class="thought-row__feeling">' + esc(t.feeling) + '</span>' : '') + '</td>' +
+      '<td>' + (t.reframe ? '<span class="thought-row__reframe-text">' + esc(t.reframe) + '</span>' : '') + '</td>' +
+      '<td class="muted">' + fmtDate(t.created_at) + '</td>' +
+      '<td><button type="button" class="iconbtn iconbtn--edit" title="Edit idea">✎</button>' +
+        '<button type="button" class="iconbtn" title="Delete idea">✕</button></td>' +
+    '</tr>';
   }
 
   var editingThoughtId = null;
@@ -568,7 +601,7 @@
       var thoughts = data.thoughts || [];
       $("#thoughtsEmpty").hidden = thoughts.length > 0;
       $("#thoughtList").innerHTML = thoughts.map(thoughtRowHtml).join("");
-      $("#thoughtList").querySelectorAll(".thought-row").forEach(function (row) {
+      $("#thoughtList").querySelectorAll("tr").forEach(function (row) {
         var id = Number(row.dataset.id);
         var t = thoughts.filter(function (x) { return x.id === id; })[0];
         row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditThought(t); });
