@@ -499,6 +499,18 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .badge--good { color: #6ee7b0; background: rgba(31, 168, 118, 0.16); border: 1px solid rgba(31, 168, 118, 0.45); }
 .badge--muted { color: var(--muted); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-brd); }
 
+/* ---------- quarters gallery: one card per quarter, tap to open ---------- */
+.quarter-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+.quarter-card {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
+  padding: 14px 16px; cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.3s ease, box-shadow 0.2s ease;
+}
+.quarter-card:hover { border-color: rgba(51, 170, 255, 0.4); transform: translateY(-2px); box-shadow: 0 14px 34px -22px rgba(51, 170, 255, 0.35); }
+.quarter-card__top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.quarter-card__name { font: 700 1rem "Manrope", sans-serif; }
+.quarter-card__dates { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+
 /* ---------- goals: concrete numeric milestones within a category ---------- */
 .goals { margin-top: 14px; border-top: 1px solid var(--glass-brd); padding-top: 12px; }
 .goals__label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); margin-bottom: 8px; }

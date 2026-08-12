@@ -159,6 +159,7 @@
     showTab(btn.dataset.tab);
     if (btn.dataset.tab === "days") loadDaysGallery();
     if (btn.dataset.tab === "ideas") loadIdeas();
+    if (btn.dataset.tab === "quarter") showQuarterGallery();
   });
 
   /* ---------------- live countdown to the selected quarter's start/end ---------------- */
@@ -754,6 +755,7 @@
         var activeTab = document.querySelector("#tabbar .tab--active");
         if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
         if (activeTab && activeTab.dataset.tab === "ideas") loadIdeas();
+        if (activeTab && activeTab.dataset.tab === "quarter") showQuarterGallery();
         loadGamification();
       })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
@@ -1369,10 +1371,7 @@
   function loadQuarters() {
     return api("/api/quarters").then(function (data) {
       state.quarters = data.quarters || [];
-      var sel = $("#quarterSelect");
-      sel.innerHTML = state.quarters.map(function (q) {
-        return '<option value="' + q.id + '">' + esc(q.name) + " (" + fmtDate(q.start_date) + "–" + fmtDate(q.end_date) + ")</option>";
-      }).join("");
+      renderQuarterGallery();
 
       if (!state.quarters.length) {
         state.selectedQuarterId = null;
@@ -1386,15 +1385,46 @@
       var pick = state.quarters.filter(function (q) { return q.start_date <= today && today <= q.end_date; })[0]
         || state.quarters[0];
       state.selectedQuarterId = pick.id;
-      sel.value = pick.id;
       return loadQuarterDetail(pick.id);
     }).catch(function (e) { toast(e.message, true); });
   }
 
-  $("#quarterSelect").addEventListener("change", function () {
-    state.selectedQuarterId = Number(this.value);
-    loadQuarterDetail(state.selectedQuarterId);
-  });
+  /* ---------------- quarters gallery: pick one card to open its detail view ---------------- */
+
+  function renderQuarterGallery() {
+    $("#noQuarters").hidden = state.quarters.length > 0;
+    var today = todayISO();
+    var box = $("#quarterGallery");
+    box.innerHTML = state.quarters.map(function (q) {
+      var badge = today < q.start_date ? '<span class="badge badge--muted">Upcoming</span>'
+        : today > q.end_date ? '<span class="badge badge--muted">Past</span>'
+        : '<span class="badge badge--good">Current</span>';
+      return '<div class="quarter-card" data-id="' + q.id + '">' +
+        '<div class="quarter-card__top"><span class="quarter-card__name">' + esc(q.name) + '</span>' + badge + '</div>' +
+        '<div class="quarter-card__dates">' + fmtDate(q.start_date) + ' – ' + fmtDate(q.end_date) + '</div>' +
+      '</div>';
+    }).join("");
+    box.querySelectorAll(".quarter-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        var id = Number(card.dataset.id);
+        state.selectedQuarterId = id;
+        loadQuarterDetail(id).then(function () { showQuarterDetailView(); });
+      });
+    });
+  }
+
+  function showQuarterGallery() {
+    $("#quarterGalleryView").hidden = false;
+    $("#quarterDetailView").hidden = true;
+    renderQuarterGallery();
+  }
+
+  function showQuarterDetailView() {
+    $("#quarterGalleryView").hidden = true;
+    $("#quarterDetailView").hidden = false;
+  }
+
+  $("#btnBackToQuarters").addEventListener("click", showQuarterGallery);
 
   function loadQuarterDetail(id) {
     return api("/api/quarters?id=" + id).then(function (data) {
@@ -1699,9 +1729,9 @@
   }
 
   function renderQuarter(data) {
-    $("#noQuarters").hidden = state.quarters.length > 0;
-    $("#quarterSelect").hidden = state.quarters.length === 0;
     $("#quarterActions").hidden = !data;
+    $("#quarterDetailName").textContent = data ? data.quarter.name : "";
+    $("#quarterDetailDates").textContent = data ? (fmtDate(data.quarter.start_date) + " – " + fmtDate(data.quarter.end_date)) : "";
     renderAnalytics(data);
 
     var quarterBarBox = $("#quarterOverallBar");
@@ -1961,6 +1991,7 @@
   $("#btnEditQuarter").addEventListener("click", function () {
     if (!state.quarterDetail) return;
     var q = state.quarterDetail.quarter;
+    showQuarterGallery(); // the create/edit form lives in the gallery view
     var form = $("#quarterForm");
     form.elements.name.value = q.name;
     form.elements.start_date.value = String(q.start_date).slice(0, 10);
@@ -1982,7 +2013,7 @@
     if (!confirm('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).')) return;
     api("/api/quarters?id=" + q.id, { method: "DELETE" })
       .then(function () { playDeleteSound(); toast("Quarter deleted"); return loadQuarters(); })
-      .then(function () { return loadDay(state.currentDate); })
+      .then(function () { showQuarterGallery(); return loadDay(state.currentDate); })
       .catch(function (e) { toast(e.message, true); });
   });
 
@@ -2018,8 +2049,7 @@
           var newId = editingId || (r.quarter && r.quarter.id);
           if (newId) {
             state.selectedQuarterId = newId;
-            $("#quarterSelect").value = newId;
-            return loadQuarterDetail(newId);
+            return loadQuarterDetail(newId).then(function () { showQuarterDetailView(); });
           }
         });
       })

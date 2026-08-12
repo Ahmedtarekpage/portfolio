@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=6" />
-  <link rel="stylesheet" href="time.css?v=30" />
+  <link rel="stylesheet" href="time.css?v=31" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -296,10 +296,11 @@
 
       <!-- ---- Quarters ---- -->
       <section class="tabpanel" data-tabpanel="quarter" hidden>
-      <div class="card">
+
+      <!-- ---- gallery: every quarter as a card; tap one to open it ---- -->
+      <div class="card" id="quarterGalleryView">
         <div class="card__head">
-          <h2>Quarterly goals</h2>
-          <select id="quarterSelect"></select>
+          <h2>Quarters</h2>
         </div>
 
         <details id="addQuarterBox">
@@ -325,6 +326,21 @@
 
         <p id="noQuarters" class="muted center" hidden>No quarters yet — create one above.</p>
 
+        <div class="quarter-gallery" id="quarterGallery"></div>
+      </div>
+
+      <!-- ---- detail: one quarter's categories/goals ---- -->
+      <div class="card" id="quarterDetailView" hidden>
+        <div class="card__head">
+          <button type="button" class="btn btn--ghost btn--sm" id="btnBackToQuarters">← All quarters</button>
+          <div class="topbar__actions" id="quarterActions" hidden>
+            <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
+            <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
+          </div>
+        </div>
+        <h2 id="quarterDetailName" style="margin:2px 0 2px"></h2>
+        <p class="muted" id="quarterDetailDates" style="margin:0 0 14px"></p>
+
         <div id="quarterOverallBar"></div>
 
         <div class="goals-view-toggle" id="goalsViewToggle">
@@ -336,11 +352,6 @@
         <p class="muted" id="goalsHiddenBanner" hidden><span class="goals-hidden-count">0</span> goal(s) hidden — <a href="#" id="btnShowHiddenGoals">show all</a></p>
         <div id="goalsFlatList" class="goals-flat-list" hidden></div>
         <p id="noGoalsFlat" class="muted center" hidden>No goals yet — add some from the category view above.</p>
-
-        <div class="topbar__actions" id="quarterActions" style="justify-content: flex-end; margin-top: 14px" hidden>
-          <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
-          <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
-        </div>
       </div>
       </section>
 
@@ -463,6 +474,6 @@
   </div>
 
   <script src="chart.js?v=12"></script>
-  <script src="time.js?v=41"></script>
+  <script src="time.js?v=42"></script>
 </body>
 </html>
