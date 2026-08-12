@@ -5,16 +5,16 @@
   --ink: #eef2f8;
   --muted: #9aa6b8;
   --faint: #5f6b7d;
-  --blue: #3b82f6;
-  --blue-2: #60a5fa;
-  --grad: linear-gradient(110deg, #38bdf8 0%, #3b82f6 55%, #2563eb 100%);
+  --blue: #0099ff;
+  --blue-2: #33aaff;
+  --grad: linear-gradient(110deg, #33aaff 0%, #0099ff 55%, #0077cc 100%);
   --glass: #131822;
   --glass-brd: rgba(255, 255, 255, 0.09);
   --btn-ink: #06101f;
   /* chart palette (validated against --bg-2) */
-  --c-line: #60a5fa;
+  --c-line: #33aaff;
   --c-purchase: #1fa876;
-  --c-session: #3b82f6;
+  --c-session: #0099ff;
   --c-expiry: #d97706;
   --c-danger: #e2586a;
 }
@@ -31,7 +31,7 @@ body {
   min-height: 100vh;
 }
 
-h1, h2 { font-family: "Space Grotesk", sans-serif; letter-spacing: -0.01em; }
+h1, h2 { font-family: "Manrope", sans-serif; font-weight: 800; letter-spacing: -0.01em; text-transform: uppercase; }
 h1 { font-size: 1.6rem; }
 h2 { font-size: 1.05rem; }
 code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 6px; font-size: 0.85em; }
@@ -44,12 +44,28 @@ code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 6px;
 
 /* ---------- cards ---------- */
 .card {
+  position: relative;
   background: var(--glass);
   border: 1px solid var(--glass-brd);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1), border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  transform-style: preserve-3d;
 }
+.card::before {
+  content: "";
+  position: absolute;
+  top: -1px; right: -1px;
+  width: 14px; height: 14px;
+  border-top: 2px solid var(--blue);
+  border-right: 2px solid var(--blue);
+  border-top-right-radius: 10px;
+  opacity: .4;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.card:hover::before { opacity: 1; }
 .card--center { text-align: center; padding: 40px 28px; }
 .card__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 
@@ -64,13 +80,14 @@ code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 6px;
 
 /* ---------- buttons ---------- */
 .btn {
-  font: 600 0.92rem "Inter", sans-serif;
-  border: none; border-radius: 12px;
+  font: 600 0.82rem "Roboto Mono", monospace;
+  text-transform: uppercase; letter-spacing: .3px;
+  border: none; border-radius: 6px;
   padding: 12px 22px; cursor: pointer;
-  transition: filter 0.15s, transform 0.05s;
+  transition: filter 0.15s, transform 0.05s, background-color 0.2s ease;
 }
 .btn:active { transform: scale(0.98); }
-.btn--primary { background: var(--grad); color: var(--btn-ink); }
+.btn--primary { background: var(--blue); color: #fff; }
 .btn--primary:hover { filter: brightness(1.1); }
 .btn--ghost { background: transparent; color: var(--ink); border: 1px solid var(--glass-brd); }
 .btn--ghost:hover { border-color: var(--blue-2); }
@@ -107,8 +124,8 @@ details > summary.btnish::-webkit-details-marker { display: none; }
 .table-scroll { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .table th {
-  text-align: left; font-weight: 600; color: var(--faint);
-  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+  text-align: left; font-family: "Roboto Mono", monospace; font-weight: 600; color: var(--faint);
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 8px 10px; border-bottom: 1px solid var(--glass-brd);
 }
 .table td { padding: 11px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
@@ -119,8 +136,8 @@ tr.rowlink { cursor: pointer; }
 tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
 
 .badge {
-  display: inline-block; font-size: 0.72rem; font-weight: 600;
-  padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: 1px;
+  display: inline-block; font-family: "Roboto Mono", monospace; font-size: 0.7rem; font-weight: 600;
+  padding: 2px 9px; border-radius: 6px; margin-left: 8px; vertical-align: 1px;
 }
 .badge--warn { color: #ffc46b; background: rgba(217, 119, 6, 0.16); border: 1px solid rgba(217, 119, 6, 0.45); }
 .badge--danger { color: #ff9aa7; background: rgba(226, 88, 106, 0.14); border: 1px solid rgba(226, 88, 106, 0.45); }
@@ -135,9 +152,9 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
 
 /* ---------- stat tiles ---------- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.tile { background: var(--glass); border: 1px solid var(--glass-brd); border-radius: 14px; padding: 14px 16px; }
-.tile .tile__label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--faint); }
-.tile .tile__value { font: 700 1.5rem "Space Grotesk", sans-serif; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tile { background: var(--glass); border: 1px solid var(--glass-brd); border-radius: 10px; padding: 14px 16px; }
+.tile .tile__label { font-family: "Roboto Mono", monospace; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--faint); }
+.tile .tile__value { font: 800 1.5rem "Manrope", sans-serif; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .tile .tile__sub { font-size: 0.78rem; color: var(--muted); }
 .tile--accent .tile__value { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .tile--warn .tile__value { color: #ffc46b; }
@@ -157,8 +174,8 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
 .chart-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
 .chip {
   background: transparent; border: 1px solid var(--glass-brd); color: var(--muted);
-  border-radius: 999px; padding: 5px 14px; cursor: pointer;
-  font: 600 0.78rem "Inter", sans-serif;
+  border-radius: 6px; padding: 5px 14px; cursor: pointer;
+  font: 600 0.74rem "Roboto Mono", monospace; text-transform: uppercase; letter-spacing: .3px;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .chip:hover { border-color: var(--blue-2); color: var(--ink); }
@@ -220,7 +237,7 @@ tr.rowlink:hover td { background: rgba(96, 165, 250, 0.06); }
 .avatar--sm { width: 30px; height: 30px; }
 .avatar--initial {
   background: var(--grad); color: var(--btn-ink);
-  font: 700 1.1rem "Space Grotesk", sans-serif;
+  font: 800 1.1rem "Manrope", sans-serif;
 }
 .avatar--sm.avatar--initial { font-size: 0.85rem; }
 .namecell { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }

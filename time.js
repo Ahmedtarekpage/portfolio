@@ -2280,6 +2280,17 @@
     }, 150);
   });
 
+  /* ---------------- 3D card tilt (same effect as ahmedtarek.tech) ---------------- */
+  document.querySelectorAll(".card").forEach(function (card) {
+    card.addEventListener("mousemove", function (e) {
+      var r = card.getBoundingClientRect();
+      var px = (e.clientX - r.left) / r.width - 0.5;
+      var py = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = "perspective(700px) rotateY(" + (px * 10) + "deg) rotateX(" + (-py * 10) + "deg) translateY(-4px)";
+    });
+    card.addEventListener("mouseleave", function () { card.style.transform = ""; });
+  });
+
   /* ---------------- go ---------------- */
   boot();
 })();
