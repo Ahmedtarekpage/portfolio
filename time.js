@@ -53,6 +53,14 @@
   function fmtDate(iso) {
     if (!iso) return "—";
     var d = new Date(String(iso).slice(0, 10) + "T00:00:00Z");
+    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  }
+
+  // day-tile grid only: no weekday text needed there since the Sat-Fri
+  // column headers above the grid already convey it
+  function fmtDayMonth(iso) {
+    if (!iso) return "—";
+    var d = new Date(String(iso).slice(0, 10) + "T00:00:00Z");
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
   }
 
@@ -150,7 +158,7 @@
     if (!btn) return;
     showTab(btn.dataset.tab);
     if (btn.dataset.tab === "days") loadDaysGallery();
-    if (btn.dataset.tab === "health") loadHealthTab();
+    if (btn.dataset.tab === "ideas") loadIdeas();
   });
 
   /* ---------------- live countdown to the selected quarter's start/end ---------------- */
@@ -185,6 +193,7 @@
       box.classList.add("countdown--ended");
       if (lastCountdownText !== "ended") {
         $("#countdownLabel").textContent = "This quarter has ended";
+        $("#countdownSpent").textContent = "";
         ["cdDays", "cdHours", "cdMinutes", "cdSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
         lastCountdownText = "ended";
       }
@@ -194,6 +203,14 @@
     box.classList.remove("countdown--ended");
     var target = now < start ? start : end;
     $("#countdownLabel").textContent = now < start ? "Starts in" : "Time left in this quarter";
+
+    if (now < start) {
+      $("#countdownSpent").textContent = "";
+    } else {
+      var totalQuarterDays = Math.max(1, Math.round((end - start) / 86400000));
+      var spentDays = Math.min(totalQuarterDays, Math.max(0, Math.floor((now - start) / 86400000)));
+      $("#countdownSpent").textContent = "· " + spentDays + " of " + totalQuarterDays + " days in";
+    }
 
     var totalSeconds = Math.max(0, Math.floor((target - now) / 1000));
     setCountdownUnit("cdDays", Math.floor(totalSeconds / 86400));
@@ -445,199 +462,6 @@
         updateNextMilestoneCounter();
       });
     });
-  }
-
-  /* ---------------- Health: daily mood check-in + CBT-style idea log ----------------
-     Doctor-recommended: one mood emoji + reason per day, and a running list
-     of thoughts/ideas logged in a lightweight CBT shape (thought -> feeling
-     -> optional balanced reframe). Both are DB-backed (not localStorage) —
-     real health data, same as tasks/goals, so it's the same on every device. */
-
-  var MOOD_OPTIONS = [
-    { emoji: "😄", label: "Great", score: 5 },
-    { emoji: "🙂", label: "Good", score: 4 },
-    { emoji: "😐", label: "Okay", score: 3 },
-    { emoji: "😔", label: "Low", score: 2 },
-    { emoji: "😰", label: "Anxious", score: 2 },
-    { emoji: "😴", label: "Tired", score: 2 },
-    { emoji: "😢", label: "Sad", score: 1 },
-    { emoji: "😡", label: "Angry", score: 1 },
-  ];
-  var MOOD_SCALE = [1, 2, 3, 4, 5].map(function (n) {
-    var opt = MOOD_OPTIONS.filter(function (o) { return o.score === n; })[0];
-    return { score: n, emoji: opt ? opt.emoji : String(n) };
-  });
-  var MOOD_SCORE_BY_EMOJI = {};
-  MOOD_OPTIONS.forEach(function (o) { MOOD_SCORE_BY_EMOJI[o.emoji] = o.score; });
-  var MOOD_CHART_WINDOW_DAYS = 60;
-
-  var moodDate = todayISO();
-  var selectedMoodEmoji = null;
-
-  function renderMoodPicker() {
-    $("#moodPicker").innerHTML = MOOD_OPTIONS.map(function (o) {
-      return '<button type="button" class="mood-picker__btn' + (o.emoji === selectedMoodEmoji ? " mood-picker__btn--selected" : "") +
-        '" data-emoji="' + o.emoji + '" title="' + o.label + '">' + o.emoji + '<span>' + o.label + '</span></button>';
-    }).join("");
-    $("#moodPicker").querySelectorAll(".mood-picker__btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        selectedMoodEmoji = btn.dataset.emoji;
-        renderMoodPicker();
-      });
-    });
-  }
-
-  function loadMoodDay(date) {
-    moodDate = date;
-    $("#moodDayPicker").value = date;
-    $("#moodSavedHint").hidden = true;
-    return api("/api/health?type=mood&date=" + date).then(function (data) {
-      selectedMoodEmoji = data.mood ? data.mood.emoji : null;
-      $("#moodReasonInput").value = data.mood ? (data.mood.reason || "") : "";
-      renderMoodPicker();
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  $("#moodDayPicker").addEventListener("change", function () { loadMoodDay(this.value || todayISO()); });
-  $("#btnMoodPrevDay").addEventListener("click", function () { loadMoodDay(addDays(moodDate, -1)); });
-  $("#btnMoodNextDay").addEventListener("click", function () { loadMoodDay(addDays(moodDate, 1)); });
-  $("#btnMoodToday").addEventListener("click", function () { loadMoodDay(todayISO()); });
-
-  $("#btnMoodSave").addEventListener("click", function () {
-    if (!selectedMoodEmoji) { toast("Pick an emoji first", true); return; }
-    var reason = $("#moodReasonInput").value.trim();
-    api("/api/health?type=mood", { method: "POST", body: { mood_date: moodDate, emoji: selectedMoodEmoji, reason: reason } })
-      .then(function () {
-        playSuccessSound();
-        $("#moodSavedHint").hidden = false;
-        loadMoodChart();
-      })
-      .catch(function (e) { toast(e.message, true); });
-  });
-
-  function moodRowHtml(m) {
-    return '<tr data-date="' + m.date + '">' +
-      '<td>' + fmtDate(m.date) + '</td>' +
-      '<td class="mood-emoji-cell">' + m.emoji + '</td>' +
-      '<td>' + esc(m.reason || "") + '</td>' +
-      '<td><button type="button" class="iconbtn iconbtn--edit" title="Edit mood">✎</button>' +
-        '<button type="button" class="iconbtn" title="Delete mood">✕</button></td>' +
-    '</tr>';
-  }
-
-  function renderMoodTable(moods) {
-    var rows = moods.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
-    $("#moodTableEmpty").hidden = rows.length > 0;
-    var tbody = $("#moodTableBody");
-    tbody.innerHTML = rows.map(moodRowHtml).join("");
-    tbody.querySelectorAll("tr").forEach(function (tr) {
-      var date = tr.dataset.date;
-      tr.querySelector(".iconbtn--edit").addEventListener("click", function () {
-        loadMoodDay(date);
-        $("#moodPicker").scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-      tr.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
-        if (!confirm("Delete the mood entry for " + fmtDate(date) + "?")) return;
-        api("/api/health?type=mood&date=" + date, { method: "DELETE" })
-          .then(function () {
-            playDeleteSound();
-            if (date === moodDate) { selectedMoodEmoji = null; $("#moodReasonInput").value = ""; renderMoodPicker(); }
-            loadMoodChart();
-          })
-          .catch(function (e) { toast(e.message, true); });
-      });
-    });
-  }
-
-  function loadMoodChart() {
-    var to = todayISO();
-    var from = addDays(to, -MOOD_CHART_WINDOW_DAYS);
-    return api("/api/health?type=mood&stats=1&from=" + from + "&to=" + to).then(function (data) {
-      var moods = data.moods || [];
-      $("#moodChartEmpty").hidden = moods.length > 0;
-      renderMoodTable(moods);
-      if (!moods.length) { $("#moodChart").innerHTML = ""; $("#moodChartTip").hidden = true; return; }
-      var points = moods.map(function (m) {
-        return { date: m.date, emoji: m.emoji, reason: m.reason, score: MOOD_SCORE_BY_EMOJI[m.emoji] || 3 };
-      });
-      window.renderMoodChart($("#moodChart"), $("#moodChartTip"), points, { scale: MOOD_SCALE });
-    }).catch(function () {});
-  }
-
-  function thoughtRowHtml(t) {
-    return '<tr data-id="' + t.id + '">' +
-      '<td>' + esc(t.thought) + '</td>' +
-      '<td>' + (t.feeling ? '<span class="thought-row__feeling">' + esc(t.feeling) + '</span>' : '') + '</td>' +
-      '<td>' + (t.reframe ? '<span class="thought-row__reframe-text">' + esc(t.reframe) + '</span>' : '') + '</td>' +
-      '<td class="muted">' + fmtDate(t.created_at) + '</td>' +
-      '<td><button type="button" class="iconbtn iconbtn--edit" title="Edit idea">✎</button>' +
-        '<button type="button" class="iconbtn" title="Delete idea">✕</button></td>' +
-    '</tr>';
-  }
-
-  var editingThoughtId = null;
-
-  function stopEditThought() {
-    editingThoughtId = null;
-    $("#thoughtForm").reset();
-    $("#btnThoughtSubmit").textContent = "Add idea";
-    $("#btnCancelThoughtEdit").hidden = true;
-  }
-  $("#btnCancelThoughtEdit").addEventListener("click", stopEditThought);
-
-  function startEditThought(t) {
-    editingThoughtId = t.id;
-    var form = $("#thoughtForm");
-    form.elements.thought.value = t.thought;
-    form.elements.feeling.value = t.feeling || "";
-    form.elements.reframe.value = t.reframe || "";
-    $("#btnThoughtSubmit").textContent = "Update";
-    $("#btnCancelThoughtEdit").hidden = false;
-    form.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
-  function loadThoughts() {
-    return api("/api/health?type=thought").then(function (data) {
-      var thoughts = data.thoughts || [];
-      $("#thoughtsEmpty").hidden = thoughts.length > 0;
-      $("#thoughtList").innerHTML = thoughts.map(thoughtRowHtml).join("");
-      $("#thoughtList").querySelectorAll("tr").forEach(function (row) {
-        var id = Number(row.dataset.id);
-        var t = thoughts.filter(function (x) { return x.id === id; })[0];
-        row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditThought(t); });
-        row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
-          if (!confirm("Delete this idea?")) return;
-          api("/api/health?type=thought&id=" + id, { method: "DELETE" })
-            .then(function () { playDeleteSound(); if (editingThoughtId === id) stopEditThought(); return loadThoughts(); })
-            .catch(function (e) { toast(e.message, true); });
-        });
-      });
-    }).catch(function (e) { toast(e.message, true); });
-  }
-
-  $("#thoughtForm").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var form = ev.target;
-    var body = {
-      thought: form.elements.thought.value.trim(),
-      feeling: form.elements.feeling.value.trim(),
-      reframe: form.elements.reframe.value.trim(),
-    };
-    if (!body.thought) return;
-    var req = editingThoughtId
-      ? api("/api/health?type=thought&id=" + editingThoughtId, { method: "PATCH", body: body })
-      : api("/api/health?type=thought", { method: "POST", body: body });
-    req.then(function () {
-      playAddSound();
-      stopEditThought();
-      return loadThoughts();
-    }).catch(function (e) { toast(e.message, true); });
-  });
-
-  function loadHealthTab() {
-    loadMoodDay(moodDate);
-    loadMoodChart();
-    loadThoughts();
   }
 
   /* ---------------- pomodoro timer (default 25 focus / 5 short break / 15 long
@@ -929,7 +753,7 @@
         show("view-app");
         var activeTab = document.querySelector("#tabbar .tab--active");
         if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
-        if (activeTab && activeTab.dataset.tab === "health") loadHealthTab();
+        if (activeTab && activeTab.dataset.tab === "ideas") loadIdeas();
         loadGamification();
       })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
@@ -2031,6 +1855,81 @@
 
   $("#btnAddCategoryRow").addEventListener("click", function () { addCategoryRow(); });
 
+  /* ---------------- Ideas: freeform, drag-to-reorder list ---------------- */
+
+  function ideaRowHtml(idea) {
+    return '<div class="idea-row idea-row--enter" data-id="' + idea.id + '">' +
+      '<span class="idea-row__handle" title="Drag to reorder">⠿</span>' +
+      '<div class="idea-row__body"><span class="idea-row__text">' + esc(idea.text) + '</span></div>' +
+      '<button type="button" class="iconbtn iconbtn--edit" title="Edit idea">✎</button>' +
+      '<button type="button" class="iconbtn" title="Delete idea">✕</button>' +
+    '</div>';
+  }
+
+  function startEditIdea(row, idea) {
+    var body = row.querySelector(".idea-row__body");
+    body.innerHTML = '<input class="idea-row__edit-input" value="' + esc(idea.text) + '" />';
+    var input = body.querySelector("input");
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    function save() {
+      var text = input.value.trim();
+      if (!text || text === idea.text) { renderIdeaBody(); return; }
+      api("/api/ideas?id=" + idea.id, { method: "PATCH", body: { text: text } })
+        .then(function (data) { idea.text = data.idea.text; renderIdeaBody(); })
+        .catch(function (e) { toast(e.message, true); renderIdeaBody(); });
+    }
+    function renderIdeaBody() {
+      body.innerHTML = '<span class="idea-row__text">' + esc(idea.text) + '</span>';
+    }
+    input.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); input.blur(); }
+      if (ev.key === "Escape") { ev.preventDefault(); renderIdeaBody(); }
+    });
+    input.addEventListener("blur", save);
+  }
+
+  function loadIdeas() {
+    return api("/api/ideas").then(function (data) {
+      var ideas = data.ideas || [];
+      $("#ideasEmpty").hidden = ideas.length > 0;
+      var list = $("#ideaList");
+      list.innerHTML = ideas.map(ideaRowHtml).join("");
+      list.querySelectorAll(".idea-row").forEach(function (row) {
+        var id = Number(row.dataset.id);
+        var idea = ideas.filter(function (x) { return x.id === id; })[0];
+        row.querySelector(".idea-row__text").addEventListener("click", function () { startEditIdea(row, idea); });
+        row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditIdea(row, idea); });
+        row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
+          if (!confirm("Delete this idea?")) return;
+          api("/api/ideas?id=" + id, { method: "DELETE" })
+            .then(function () { playDeleteSound(); return loadIdeas(); })
+            .catch(function (e) { toast(e.message, true); });
+        });
+      });
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  $("#ideaForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = ev.target;
+    var text = form.elements.text.value.trim();
+    if (!text) return;
+    api("/api/ideas", { method: "POST", body: { text: text } })
+      .then(function () { form.reset(); playAddSound(); return loadIdeas(); })
+      .catch(function (e) { toast(e.message, true); });
+  });
+
+  makeReorderable({
+    listEl: $("#ideaList"),
+    rowSelector: ".idea-row",
+    handleSelector: ".idea-row__handle",
+    draggingClass: "idea-row--dragging",
+    apiUrl: "/api/ideas?reorder=1",
+    onError: function (e) { toast(e.message, true); loadIdeas(); },
+  });
+
   function addCategoryRow(cat) {
     var row = document.createElement("div");
     row.className = "category-row";
@@ -2191,6 +2090,16 @@
     var today = todayISO();
     var sumPct = 0, countedDays = 0, totalDays = 0;
     var chartDays = [];
+
+    // weeks start Saturday: pad the grid with blank cells so day `from`
+    // lands in its real weekday column and every row is one calendar week
+    var leadingBlanks = (new Date(from + "T00:00:00Z").getUTCDay() + 1) % 7;
+    for (var i = 0; i < leadingBlanks; i++) {
+      var blank = document.createElement("div");
+      blank.className = "day-tile day-tile--placeholder";
+      box.appendChild(blank);
+    }
+
     var d = from;
     while (d <= to) {
       totalDays++;
@@ -2226,7 +2135,7 @@
       var meta = document.createElement("div");
       meta.className = "day-tile__meta";
       meta.title = "Open " + fmtDate(d) + "'s to-do list";
-      meta.innerHTML = "<span>" + fmtDate(d) + "</span><b>" + (pct == null ? "—" : pct + "%") + "</b>";
+      meta.innerHTML = "<span>" + fmtDayMonth(d) + "</span><b>" + (pct == null ? "—" : pct + "%") + "</b>";
       meta.addEventListener("click", function (dd) { return function () { openDayDetail(dd); }; }(d));
       tile.appendChild(meta);
 
@@ -2252,8 +2161,10 @@
         return function () {
           var file = this.files[0];
           if (!file) return;
-          resizeImageFile(file, 480, 0.75)
-            .then(function (dataUrl) { return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: dataUrl } }); })
+          Promise.all([resizeImageFile(file, 320, 0.72), resizeImageFile(file, 1800, 0.85)])
+            .then(function (sizes) {
+              return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: sizes[0], photo_full: sizes[1] } });
+            })
             .then(function () { playAddSound(); toast("Photo saved ✓"); return loadDaysGallery({ animate: false }); })
             .catch(function (e) { toast(e.message, true); });
         };
@@ -2288,9 +2199,20 @@
     $("#dayPhotoMenu").hidden = true;
     dayPhotoMenuState = null;
   }
-  function openDayPhotoView(url) {
-    $("#dayPhotoViewImg").src = url;
+  // shows the already-loaded thumbnail immediately, then swaps in the
+  // higher-resolution copy (fetched one at a time, not part of the bulk
+  // gallery load) once it arrives
+  function openDayPhotoView(date, thumbUrl) {
+    $("#dayPhotoViewImg").src = thumbUrl || "";
     $("#dayPhotoView").hidden = false;
+    $("#dayPhotoView").classList.add("photo-view--loading");
+    api("/api/day-photos?date=" + date + "&full=1")
+      .then(function (data) {
+        var url = data.photo_full || data.photo_data || thumbUrl;
+        if (url) $("#dayPhotoViewImg").src = url;
+      })
+      .catch(function () {})
+      .then(function () { $("#dayPhotoView").classList.remove("photo-view--loading"); });
   }
   function closeDayPhotoView() {
     $("#dayPhotoView").hidden = true;
@@ -2301,9 +2223,9 @@
   $("#dayPhotoMenuCancel").addEventListener("click", closeDayPhotoMenu);
   $("#dayPhotoMenuView").addEventListener("click", function () {
     if (!dayPhotoMenuState || !dayPhotoMenuState.photoUrl) return;
-    var url = dayPhotoMenuState.photoUrl;
+    var date = dayPhotoMenuState.date, url = dayPhotoMenuState.photoUrl;
     closeDayPhotoMenu();
-    openDayPhotoView(url);
+    openDayPhotoView(date, url);
   });
   $("#dayPhotoMenuUpload").addEventListener("click", function () {
     if (!dayPhotoMenuState) return;

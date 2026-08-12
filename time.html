@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=6" />
-  <link rel="stylesheet" href="time.css?v=29" />
+  <link rel="stylesheet" href="time.css?v=30" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -109,6 +109,7 @@
 
         <div class="countdown" id="quarterCountdown" hidden>
           <span class="countdown__label" id="countdownLabel">Time left in this quarter</span>
+          <span class="countdown__spent" id="countdownSpent"></span>
           <div class="countdown__units">
             <div class="countdown__unit"><span class="countdown__value" id="cdDays">00</span><span class="countdown__unit-label">days</span></div>
             <div class="countdown__unit"><span class="countdown__value" id="cdHours">00</span><span class="countdown__unit-label">hrs</span></div>
@@ -133,7 +134,7 @@
         <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label">Today</span></button>
         <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label">Quarter</span></button>
         <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label">Days</span></button>
-        <button type="button" class="tab" data-tab="health"><span class="tab__icon">❤️</span><span class="tab__label">Health</span></button>
+        <button type="button" class="tab" data-tab="ideas"><span class="tab__icon">💡</span><span class="tab__label">Ideas</span></button>
         <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label">Analytics</span></button>
       </nav>
 
@@ -366,68 +367,25 @@
         </div>
 
         <p class="muted center" id="dayGalleryHint" style="margin-top:16px">Tap a day's percentage to open its to-do list.</p>
-        <div class="day-gallery" id="dayGallery"></div>
+        <div class="day-gallery-wrap">
+          <div class="day-gallery__weekdays">
+            <span>Sat</span><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
+          </div>
+          <div class="day-gallery" id="dayGallery"></div>
+        </div>
       </div>
       </section>
 
-      <!-- ---- Health: daily mood check-in + mood trend + CBT-style idea log ---- -->
-      <section class="tabpanel" data-tabpanel="health" hidden>
+      <!-- ---- Ideas: a freeform list you can drag to reorder ---- -->
+      <section class="tabpanel" data-tabpanel="ideas" hidden>
       <div class="card">
-        <div class="card__head">
-          <h2>Mood check-in</h2>
-          <div class="day-nav">
-            <button id="btnMoodPrevDay" class="iconbtn" aria-label="Previous day">←</button>
-            <input type="date" id="moodDayPicker" />
-            <button id="btnMoodNextDay" class="iconbtn" aria-label="Next day">→</button>
-            <button id="btnMoodToday" class="btn btn--ghost btn--sm">Today</button>
-          </div>
-        </div>
-
-        <div class="mood-picker" id="moodPicker"></div>
-        <label class="mood-reason-label">Why?
-          <textarea id="moodReasonInput" rows="2" placeholder="What made you feel this way?"></textarea>
-        </label>
-        <div style="margin-top:10px; display:flex; align-items:center; gap:10px">
-          <button type="button" class="btn btn--primary btn--sm" id="btnMoodSave">Save mood</button>
-          <span class="muted" id="moodSavedHint" hidden>Saved ✓</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card__head"><h2>Mood over time</h2></div>
-        <p id="moodChartEmpty" class="muted center" hidden>Log a few days to see your trend here.</p>
-        <div class="chart-tip-wrap">
-          <div class="chart" id="moodChart" style="min-height:190px"></div>
-          <div id="moodChartTip" class="tooltip" hidden></div>
-        </div>
-
-        <div class="table-scroll" style="margin-top:16px">
-          <table class="table" id="moodTable">
-            <thead><tr><th>Date</th><th>Feeling</th><th>Reason</th><th></th></tr></thead>
-            <tbody id="moodTableBody"></tbody>
-          </table>
-        </div>
-        <p id="moodTableEmpty" class="muted center" hidden>No mood entries yet.</p>
-      </div>
-
-      <div class="card">
-        <div class="card__head"><h2>🧠 Ideas (CBT)</h2></div>
-        <form id="thoughtForm" class="form form--grid">
-          <label class="span2">Thought / idea<input name="thought" required placeholder="What's the automatic thought or idea?" /></label>
-          <label>Feeling<input name="feeling" placeholder="e.g. anxious, hopeful" /></label>
-          <label class="span2">Balanced response (optional)<input name="reframe" placeholder="A more balanced way to see it" /></label>
-          <div class="span2">
-            <button type="submit" class="btn btn--primary" id="btnThoughtSubmit">Add idea</button>
-            <button type="button" class="btn btn--ghost" id="btnCancelThoughtEdit" hidden>Cancel edit</button>
-          </div>
+        <div class="card__head"><h2>💡 Ideas</h2></div>
+        <form id="ideaForm" class="form" style="flex-direction:row; gap:8px; flex-wrap:wrap">
+          <input name="text" placeholder="Got an idea? Drop it here…" required style="flex:1; min-width:200px" />
+          <button type="submit" class="btn btn--primary">Add</button>
         </form>
-        <div class="table-scroll" style="margin-top:14px">
-          <table class="table" id="thoughtTable">
-            <thead><tr><th>Thought</th><th>Feeling</th><th>Reframe</th><th>Date</th><th></th></tr></thead>
-            <tbody id="thoughtList"></tbody>
-          </table>
-        </div>
-        <p id="thoughtsEmpty" class="muted center" hidden>No ideas logged yet.</p>
+        <div class="idea-list" id="ideaList" style="margin-top:16px"></div>
+        <p id="ideasEmpty" class="muted center" hidden>No ideas yet — add your first one above.</p>
       </div>
       </section>
 
@@ -504,7 +462,7 @@
     </div>
   </div>
 
-  <script src="chart.js?v=11"></script>
-  <script src="time.js?v=40"></script>
+  <script src="chart.js?v=12"></script>
+  <script src="time.js?v=41"></script>
 </body>
 </html>

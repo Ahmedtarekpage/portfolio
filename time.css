@@ -176,7 +176,18 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 
 /* ---------- Days: photo gallery, one tile per day in the selected quarter ---------- */
-.day-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; margin-top: 16px; }
+/* weeks start Saturday — 7 fixed columns so each row is exactly one calendar week */
+.day-gallery-wrap { overflow-x: auto; margin-top: 16px; }
+.day-gallery__weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;
+  min-width: 490px; margin-bottom: 6px;
+}
+.day-gallery__weekdays span {
+  text-align: center; font-family: "Roboto Mono", monospace; font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint);
+}
+.day-gallery { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; min-width: 490px; }
+.day-tile--placeholder { visibility: hidden; }
 .day-tile {
   position: relative; border-radius: 12px; overflow: hidden;
   background: var(--bg); border: 1px solid var(--glass-brd);
@@ -253,7 +264,9 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   max-width: 92vw; max-height: 90vh; border-radius: 8px;
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: opacity 0.2s ease, filter 0.2s ease;
 }
+.photo-view--loading .photo-view__img { opacity: 0.55; filter: blur(1px); }
 .photo-view__close {
   position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; border-radius: 50%;
   background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.16);
@@ -335,6 +348,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 .countdown__label { font-size: 0.76rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.countdown__spent { font-size: 0.76rem; color: var(--blue-2); font-weight: 600; margin-left: 4px; font-variant-numeric: tabular-nums; }
 .countdown__year-input {
   width: 4.2em; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
   color: var(--ink); text-transform: none; letter-spacing: normal; font: 700 0.82rem "Manrope", sans-serif;
@@ -696,44 +710,35 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   border-radius: 6px; padding: 2px 7px; flex: none;
 }
 
+/* ---------- ideas: freeform drag-to-reorder list ---------- */
+.idea-list { display: flex; flex-direction: column; gap: 8px; }
+.idea-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
+  padding: 10px 12px;
+  transition: opacity 0.3s ease, transform 0.15s ease, border-color 0.3s ease, background-color 0.3s ease;
+}
+.idea-row--enter { animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.idea-row:hover { border-color: rgba(51, 170, 255, 0.25); }
+.idea-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
+.idea-row__handle {
+  flex: none; cursor: grab; color: var(--faint); font-size: 0.95rem;
+  padding: 2px 2px; touch-action: none; line-height: 1;
+}
+.idea-row__handle:active { cursor: grabbing; }
+.idea-row__body { flex: 1; min-width: 0; font-size: 0.94rem; }
+.idea-row__text { cursor: text; }
+.idea-row__edit-input {
+  width: 100%; background: var(--bg-2); border: 1px solid var(--blue-2); border-radius: 8px;
+  color: var(--ink); padding: 5px 8px; font: 400 0.94rem "Inter", sans-serif; outline: none;
+}
+
 /* ---------- mobile: bigger tap targets for the most-tapped controls (task
    checkbox, goal +/- steppers, drag handles) ---------- */
 @media (max-width: 640px) {
   .task-row__check { width: 26px; height: 26px; }
   .task-row__check:checked::after { left: 8px; top: 3px; }
   .goal-row__step { width: 30px; height: 30px; font-size: 1.05rem; }
-  .task-row__handle, .goal-row__handle { padding: 8px 6px; font-size: 1.1rem; }
+  .task-row__handle, .goal-row__handle, .idea-row__handle { padding: 8px 6px; font-size: 1.1rem; }
 }
 
-/* ---------- Health: mood check-in + CBT idea log ---------- */
-.mood-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
-.mood-picker__btn {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  min-width: 58px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px;
-  padding: 8px 6px; cursor: pointer; font-size: 1.4rem; line-height: 1;
-  transition: transform 0.1s ease, border-color 0.15s ease, background-color 0.2s ease;
-}
-.mood-picker__btn span { font-size: 0.66rem; color: var(--muted); font-weight: 600; }
-.mood-picker__btn:hover { border-color: rgba(51, 170, 255, 0.35); }
-.mood-picker__btn:active { transform: scale(0.94); }
-.mood-picker__btn--selected {
-  border-color: var(--blue-2); background: rgba(51, 170, 255, 0.12);
-  box-shadow: 0 0 0 1px var(--blue-2);
-}
-.mood-picker__btn--selected span { color: var(--blue-2); }
-
-.mood-reason-label { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--muted); }
-.mood-reason-label textarea {
-  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 10px;
-  color: var(--ink); padding: 9px 12px; font: 400 0.9rem "Inter", sans-serif;
-  outline: none; resize: vertical; min-height: 44px;
-}
-.mood-reason-label textarea:focus { border-color: var(--blue); }
-
-.thought-row__feeling {
-  display: inline-block; font-size: 0.7rem; font-weight: 600; color: var(--blue-2);
-  background: rgba(51, 170, 255, 0.12); border-radius: 6px; padding: 2px 7px; white-space: nowrap;
-}
-.thought-row__reframe-text { font-style: italic; color: var(--muted); }
-#moodTable td:first-child, #thoughtTable td:last-child { white-space: nowrap; }
-#moodTable .mood-emoji-cell { font-size: 1.2rem; }

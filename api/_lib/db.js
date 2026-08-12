@@ -146,23 +146,20 @@ async function migrate(sql) {
     photo_data TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
-  // Health tab: one mood check-in per day (doctor-recommended daily mood tracking)
-  await sql`CREATE TABLE IF NOT EXISTS moods (
-    mood_date DATE PRIMARY KEY,
-    emoji TEXT NOT NULL,
-    reason TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`;
-  // Health tab: CBT-style thought records (thought -> feeling -> reframe),
-  // not tied to a specific day — added whenever an idea/thought comes up
-  await sql`CREATE TABLE IF NOT EXISTS thoughts (
+  // larger, higher-quality copy for the full-size lightbox — kept separate
+  // from photo_data (the small thumbnail) so the bulk gallery fetch stays fast
+  await sql`ALTER TABLE day_photos ADD COLUMN IF NOT EXISTS photo_full TEXT`;
+  // Health tab (mood check-ins + CBT thought log) was removed — drop its
+  // tables. IF EXISTS makes this a no-op after the first run post-deploy.
+  await sql`DROP TABLE IF EXISTS moods`;
+  await sql`DROP TABLE IF EXISTS thoughts`;
+  // Ideas tab: a freeform, drag-to-reorder list of ideas (not tied to a day)
+  await sql`CREATE TABLE IF NOT EXISTS ideas (
     id SERIAL PRIMARY KEY,
-    thought TEXT NOT NULL,
-    feeling TEXT,
-    reframe TEXT,
+    text TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
-  await sql`CREATE INDEX IF NOT EXISTS thoughts_created_idx ON thoughts (created_at DESC)`;
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */
