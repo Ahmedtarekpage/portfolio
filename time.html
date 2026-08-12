@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=6" />
-  <link rel="stylesheet" href="time.css?v=28" />
+  <link rel="stylesheet" href="time.css?v=29" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -486,9 +486,25 @@
         </div>
       </div>
     </div>
+
+    <div class="photo-menu" id="dayPhotoMenu" hidden>
+      <div class="photo-menu__backdrop" id="dayPhotoMenuBackdrop"></div>
+      <div class="photo-menu__sheet">
+        <div class="photo-menu__title" id="dayPhotoMenuTitle"></div>
+        <button type="button" class="photo-menu__btn" id="dayPhotoMenuView" hidden>🔍 View full size</button>
+        <button type="button" class="photo-menu__btn" id="dayPhotoMenuUpload">🔁 Replace photo</button>
+        <button type="button" class="photo-menu__btn" id="dayPhotoMenuGoto">📅 Go to day</button>
+        <button type="button" class="photo-menu__btn photo-menu__btn--cancel" id="dayPhotoMenuCancel">Cancel</button>
+      </div>
+    </div>
+
+    <div class="photo-view" id="dayPhotoView" hidden>
+      <button type="button" class="photo-view__close" id="dayPhotoViewClose" aria-label="Close">✕</button>
+      <img class="photo-view__img" id="dayPhotoViewImg" src="" alt="" />
+    </div>
   </div>
 
   <script src="chart.js?v=11"></script>
-  <script src="time.js?v=39"></script>
+  <script src="time.js?v=40"></script>
 </body>
 </html>

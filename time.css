@@ -205,6 +205,63 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .day-tile__remove:hover { background: rgba(226, 88, 106, 0.85); }
 
+/* ---------- day-tile photo action menu (tap the photo: view / replace / go to day) ---------- */
+.photo-menu {
+  position: fixed; inset: 0; z-index: 600;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.photo-menu__backdrop {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); cursor: pointer;
+  animation: photoMenuFadeIn 0.18s ease-out both;
+}
+@keyframes photoMenuFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.photo-menu__sheet {
+  position: relative; z-index: 1; width: min(360px, calc(100vw - 32px));
+  margin: 0 0 max(16px, env(safe-area-inset-bottom, 0)) 0;
+  background: var(--glass); border: 1px solid var(--glass-brd); border-radius: 10px;
+  padding: 8px; display: flex; flex-direction: column; gap: 4px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.4);
+  animation: photoMenuUp 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes photoMenuUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (min-width: 641px) {
+  .photo-menu { align-items: center; }
+  .photo-menu__sheet { margin: 0; }
+}
+.photo-menu__title {
+  font-family: "Roboto Mono", monospace; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--faint); padding: 10px 12px 6px;
+}
+.photo-menu__btn {
+  appearance: none; border: none; background: transparent; cursor: pointer;
+  text-align: left; padding: 13px 12px; border-radius: 8px;
+  font: 500 0.94rem "Inter", sans-serif; color: var(--ink);
+  transition: background-color 0.15s ease;
+}
+.photo-menu__btn:hover { background: rgba(51, 170, 255, 0.1); }
+.photo-menu__btn--cancel { color: var(--muted); border-top: 1px solid var(--glass-brd); border-radius: 0 0 8px 8px; margin-top: 4px; }
+.photo-menu__btn--cancel:hover { background: var(--bg); color: var(--ink); }
+
+/* ---------- day-tile photo full-size view ---------- */
+.photo-view {
+  position: fixed; inset: 0; z-index: 601;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.92); padding: 4vw;
+  animation: photoMenuFadeIn 0.2s ease-out both;
+}
+.photo-view__img {
+  max-width: 92vw; max-height: 90vh; border-radius: 8px;
+  box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.photo-view__close {
+  position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff; font-size: 1.1rem; cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.photo-view__close:hover { background: rgba(0, 153, 255, 0.3); border-color: var(--blue); }
+
 /* ---------- modern refresh: flat cards, no glass blur ---------- */
 .card {
   box-shadow: var(--shadow-card);

@@ -2203,7 +2203,7 @@
       var tile = document.createElement("div");
       tile.className = "day-tile" + (d === today ? " day-tile--today" : "") + (animate ? " day-tile--enter" : "");
 
-      var photoLabel = document.createElement("label");
+      var photoLabel = document.createElement("div");
       photoLabel.className = "day-tile__photo";
       if (photo) photoLabel.style.backgroundImage = "url(" + photo + ")";
       else photoLabel.textContent = "📷";
@@ -2212,6 +2212,10 @@
       fileInput.accept = "image/*";
       photoLabel.appendChild(fileInput);
       tile.appendChild(photoLabel);
+
+      photoLabel.addEventListener("click", function (dd, ph, input) {
+        return function () { openDayPhotoMenu(dd, ph, input); };
+      }(d, photo, fileInput));
 
       var bar = document.createElement("div");
       bar.className = "day-tile__bar";
@@ -2269,6 +2273,59 @@
   function openDayDetail(date) {
     return loadDay(date).then(function () { showTab("today"); });
   }
+
+  /* ---------------- day-tile photo action menu: view / replace / go to day ---------------- */
+  var dayPhotoMenuState = null;
+
+  function openDayPhotoMenu(date, photoUrl, fileInput) {
+    dayPhotoMenuState = { date: date, photoUrl: photoUrl, fileInput: fileInput };
+    $("#dayPhotoMenuTitle").textContent = fmtDate(date);
+    $("#dayPhotoMenuView").hidden = !photoUrl;
+    $("#dayPhotoMenuUpload").textContent = photoUrl ? "🔁 Replace photo" : "📤 Upload photo";
+    $("#dayPhotoMenu").hidden = false;
+  }
+  function closeDayPhotoMenu() {
+    $("#dayPhotoMenu").hidden = true;
+    dayPhotoMenuState = null;
+  }
+  function openDayPhotoView(url) {
+    $("#dayPhotoViewImg").src = url;
+    $("#dayPhotoView").hidden = false;
+  }
+  function closeDayPhotoView() {
+    $("#dayPhotoView").hidden = true;
+    $("#dayPhotoViewImg").src = "";
+  }
+
+  $("#dayPhotoMenuBackdrop").addEventListener("click", closeDayPhotoMenu);
+  $("#dayPhotoMenuCancel").addEventListener("click", closeDayPhotoMenu);
+  $("#dayPhotoMenuView").addEventListener("click", function () {
+    if (!dayPhotoMenuState || !dayPhotoMenuState.photoUrl) return;
+    var url = dayPhotoMenuState.photoUrl;
+    closeDayPhotoMenu();
+    openDayPhotoView(url);
+  });
+  $("#dayPhotoMenuUpload").addEventListener("click", function () {
+    if (!dayPhotoMenuState) return;
+    var input = dayPhotoMenuState.fileInput;
+    closeDayPhotoMenu();
+    input.click();
+  });
+  $("#dayPhotoMenuGoto").addEventListener("click", function () {
+    if (!dayPhotoMenuState) return;
+    var date = dayPhotoMenuState.date;
+    closeDayPhotoMenu();
+    openDayDetail(date);
+  });
+  $("#dayPhotoViewClose").addEventListener("click", closeDayPhotoView);
+  $("#dayPhotoView").addEventListener("click", function (ev) {
+    if (ev.target === this) closeDayPhotoView();
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape") return;
+    if (!$("#dayPhotoView").hidden) closeDayPhotoView();
+    else if (!$("#dayPhotoMenu").hidden) closeDayPhotoMenu();
+  });
 
   /* ---------------- resize: redraw progress charts ---------------- */
 
