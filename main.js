@@ -632,6 +632,8 @@ function sinceLabel(date) {
   if (!m) return date;
   return (LANG === "ar" ? "منذ " : "Since ") + m[0];
 }
+// Shots shown inline per project; the remainder open in the lightbox.
+const GALLERY_CAP = 4;
 function cardHTML(j, i) {
   return `
   <article class="prod glass reveal${j.featured ? " prod--featured" : ""}${j.bg ? " prod--bg" : ""}" style="--d:${Math.min(i * 0.05, 0.3)}s${j.bg ? `; --card-bg:url('${j.bg}')` : ""}">
@@ -656,7 +658,13 @@ function cardHTML(j, i) {
       : ""}
     ${(j.images && j.images.length)
       ? `<div class="prod__gallery${j.images.length === 1 ? " prod__gallery--single" : ""}">${j.images
-          .map((src) => `<a class="prod__shot" href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${j.company}" loading="lazy" onerror="this.closest('.prod__shot').remove()" /></a>`)
+          .map((src, i) => {
+            // Only GALLERY_CAP shots stay on the page; the rest ride along hidden
+            // so the lightbox can still page through the whole set.
+            const over = j.images.length - GALLERY_CAP;
+            const badge = (i === GALLERY_CAP - 1 && over > 0) ? ` data-more="+${over}"` : "";
+            return `<a class="prod__shot${i >= GALLERY_CAP ? " is-extra" : ""}"${badge} href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${j.company}" loading="lazy" onerror="this.closest('.prod__shot').remove()" /></a>`;
+          })
           .join("")}</div>`
       : ""}
     <div class="prod__section">

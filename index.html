@@ -62,15 +62,156 @@
     .js-menu:hover > button i, .js-menu:focus-within > button i { transform: rotate(180deg); }
     .js-menu > button i { transition: transform .16s ease; }
   </style>
+  <style>
+    /* ====================================================
+       RESPONSIVE — tablet and phone
+       Selectors match the *serialized* inline styles (the browser
+       rewrites `minmax(0, 1fr)` as `minmax(0px, 1fr)`), so keep the
+       0px spellings below in sync with what the DOM actually holds.
+       ==================================================== */
+    .site-nav-mobile { display: none; }
+
+    /* iPad and narrow laptops: tighten the gutters */
+    @media (max-width: 1180px) {
+      div[style*="max-width: 1120px"] { padding-left: 28px !important; padding-right: 28px !important; }
+      .site-nav-links { gap: 14px !important; font-size: 13.5px !important; }
+    }
+
+    /* the full link row stops fitting around here — same breakpoint as the journey pages */
+    @media (max-width: 1000px) {
+      .site-nav-links { display: none !important; }
+      .site-nav-mobile { display: block; position: relative; }
+      .site-nav-mobile > summary {
+        list-style: none; cursor: pointer; width: 40px; height: 40px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: var(--radius-md, 8px); border: 1px solid var(--color-neutral-700);
+        color: var(--color-text); font-size: 20px; background: #ffffff;
+      }
+      .site-nav-mobile > summary::-webkit-details-marker { display: none; }
+      .site-nav-mobile[open] > summary { border-color: var(--color-accent); color: var(--color-accent-300); }
+      .site-nav-sheet {
+        position: absolute; top: 50px; right: 0; z-index: 200;
+        min-width: 220px; display: flex; flex-direction: column; gap: 2px; padding: 8px;
+        background: #ffffff; border: 1px solid var(--color-neutral-700);
+        border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-lg);
+      }
+      .site-nav-sheet a {
+        padding: 11px 12px; border-radius: var(--radius-sm, 6px);
+        color: var(--color-text); font-size: 15px;
+      }
+      .site-nav-sheet a:hover { background: var(--color-neutral-900); color: var(--color-accent-300); }
+      .site-nav-sheet-cta {
+        margin-top: 4px; text-align: center; font-weight: 500;
+        border: 1px solid var(--color-accent-700); color: var(--color-accent-300) !important;
+      }
+
+      /* nothing may be wider than the screen */
+      div[style*="width: 720px"], div[style*="width: 640px"],
+      div[style*="width: 620px"], div[style*="width: 560px"],
+      div[style*="width: 480px"], div[style*="width: 460px"],
+      div[style*="width: 1000px"] { max-width: 100% !important; }
+    }
+
+    /* iPad portrait: card rows go two-up, the prose/media splits stack */
+    @media (max-width: 860px) {
+      div[style*="grid-template-columns: repeat(3, minmax(0px, 1fr))"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+      div[style*="grid-template-columns: minmax(0px, 1fr) minmax(0px, 1fr)"],
+      div[style*="grid-template-columns: minmax(0px, 1.55fr)"],
+      div[style*="grid-template-columns: minmax(0px, 1.1fr)"],
+      div[style*="grid-template-columns: minmax(0px, 0.85fr)"],
+      div[style*="grid-template-columns: 168px minmax(0px, 1fr)"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+      div[style*="grid-template-columns: 82px minmax(0px, 1fr)"] {
+        grid-template-columns: 62px minmax(0, 1fr) !important;
+      }
+    }
+
+    /* phones: single column throughout */
+    @media (max-width: 700px) {
+      div[style*="grid-template-columns: repeat(3, minmax(0px, 1fr))"],
+      div[style*="grid-template-columns: repeat(2, minmax(0px, 1fr))"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+      div[style*="grid-template-columns: 82px minmax(0px, 1fr)"] {
+        grid-template-columns: 54px minmax(0, 1fr) !important;
+      }
+    }
+
+    /* phones: the export's desktop padding eats the whole screen */
+    @media (max-width: 700px) {
+      div[style*="padding: 128px 40px"], div[style*="padding: 112px 40px"],
+      div[style*="padding: 104px 40px"], div[style*="padding: 96px 40px"],
+      div[style*="padding: 64px 40px"],  div[style*="padding: 44px 40px"],
+      div[style*="padding: 28px 40px"],  div[style*="padding: 20px 40px"],
+      div[style*="padding: 0px 40px"] {
+        padding-left: 18px !important; padding-right: 18px !important;
+      }
+      div[style*="padding: 128px 40px"] { padding-top: 64px !important; }
+      div[style*="padding: 112px 40px"] { padding-top: 64px !important; }
+      div[style*="padding: 104px 40px"] { padding-top: 60px !important; }
+      div[style*="padding: 96px 40px"]  { padding-top: 56px !important; padding-bottom: 60px !important; }
+      div[style*="padding: 64px 40px 56px"] { padding-top: 44px !important; padding-bottom: 36px !important; }
+      div[style*="padding: 60px"] { padding: 24px !important; }
+      div[style*="padding: 56px"] { padding: 24px !important; }
+      div[style*="padding: 34px"] { padding: 20px !important; }
+      div[style*="padding: 72px 24px"] { padding: 44px 18px !important; }
+      div[style*="gap: 56px"] { gap: 26px !important; }
+      div[style*="gap: 40px"] { gap: 24px !important; }
+      div[style*="gap: 32px"] { gap: 20px !important; }
+      /* decorative bloom circles overflow tiny cards */
+      div[style*="width: 620px"][style*="border-radius: 50%"] { display: none !important; }
+    }
+
+    /* phones: unstick the hero and let it stack */
+    @media (max-width: 860px) {
+      .hero-scroller { height: auto !important; }
+      .hero-stage {
+        position: static !important; height: auto !important; overflow: visible !important;
+        display: flex !important; flex-direction: column; align-items: center;
+        gap: 22px; padding: 8px 24px 40px;
+      }
+      .hero-stage > div {
+        position: static !important;
+        inset: auto !important;
+        width: 100% !important;
+        max-width: 520px !important;
+        transform: none !important;
+        opacity: 1 !important;
+        margin: 0 !important;
+      }
+      .hero-portrait { height: auto !important; aspect-ratio: auto !important; max-width: 340px !important; order: 1; }
+      .hero-name { order: 2; }
+      .hero-quote { order: 3; text-align: center !important; }
+      .hero-promise { order: 4; }
+      .hero-ctas {
+        order: 5;
+        display: flex !important; flex-wrap: wrap; justify-content: center; gap: 10px;
+        pointer-events: auto !important;
+      }
+      .hero-ctas > a { position: static !important; inset: auto !important; transform: none !important; }
+      /* the rotated name tags and the scroll cue only make sense in the scroll composition */
+      .hero-name span[style*="rotate("], .hero-name span[style*="text-transform: uppercase"] { display: none !important; }
+      .hero-name h1 { font-size: clamp(44px, 13vw, 72px) !important; }
+      .hero-quote span[data-quote], .hero-quote p span { font-size: clamp(22px, 6vw, 30px) !important; }
+    }
+
+    @media (max-width: 600px) {
+      div[style*="max-width: 1120px"] { padding-left: 18px !important; padding-right: 18px !important; }
+      .hero-stage { padding-left: 18px; padding-right: 18px; }
+    }
+  </style>
 </helmet>
 <div onMouseMove="{{ onMove }}" style="position: relative; overflow-x: clip;">
   <div style="position: relative; z-index: 1;">
-  <div style="max-width: 1120px; margin: 0 auto; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+  <div class="site-nav" style="max-width: 1120px; margin: 0 auto; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
     <div style="display: flex; align-items: center; gap: 10px;">
       <span style="width: 34px; height: 34px; border-radius: var(--radius-md, 8px); background: var(--color-text); color: var(--color-bg); display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 500; font-size: 15px;">AT.</span>
       <span style="font-weight: 500; font-size: 15px;">Ahmed Tarek</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 18px; font-size: 14px; white-space: nowrap;">
+    <div class="site-nav-links" style="display: flex; align-items: center; gap: 18px; font-size: 14px; white-space: nowrap;">
       <a href="#platform" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">Platform</a>
       <a href="#help" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">How I can help</a>
       <a href="#about" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">My story</a>
@@ -87,28 +228,41 @@
       <a href="#contact" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">Contact</a>
       <a href="#contact" style="padding: 10px 18px; border-radius: 999px; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); font-weight: 500;" style-hover="border-color: var(--color-accent); color: var(--color-accent-200);">Book a free consultation</a>
     </div>
+    <details class="site-nav-mobile">
+      <summary aria-label="Menu"><i class="ph ph-list"></i></summary>
+      <div class="site-nav-sheet">
+        <a href="#platform">Platform</a>
+        <a href="#help">How I can help</a>
+        <a href="#about">My story</a>
+        <a href="/full">Full story</a>
+        <a href="/educator">Educator</a>
+        <a href="/product">Product Manager</a>
+        <a href="#contact">Contact</a>
+        <a href="#contact" class="site-nav-sheet-cta">Book a free consultation</a>
+      </div>
+    </details>
   </div>
 
-  <div style="position: relative; height: 150vh;">
-  <div style="position: sticky; top: 0; height: calc(100vh - 74px); overflow: hidden;">
-    <div ref="{{ portrait }}" style="position: absolute; left: 50%; top: 34%; height: 62%; aspect-ratio: 2730 / 1536; margin: 0; transform: translate(-50%, -50%); z-index: 1; will-change: transform;">
+  <div class="hero-scroller" style="position: relative; height: 150vh;">
+  <div class="hero-stage" style="position: sticky; top: 0; height: calc(100vh - 74px); overflow: hidden;">
+    <div ref="{{ portrait }}" class="hero-portrait" style="position: absolute; left: 50%; top: 34%; height: 62%; aspect-ratio: 2730 / 1536; margin: 0; transform: translate(-50%, -50%); z-index: 1; will-change: transform;">
       <img src="assets/hero-photo-white.png" alt="Ahmed Tarek" style="width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; animation: portrait-in 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;">
     </div>
-    <div ref="{{ heroCtas }}" style="position: absolute; inset: 0; z-index: 2; pointer-events: none; will-change: opacity;">
+    <div ref="{{ heroCtas }}" class="hero-ctas" style="position: absolute; inset: 0; z-index: 2; pointer-events: none; will-change: opacity;">
       <a href="#contact" style="position: absolute; left: 11%; top: 26%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.4s ease-in-out infinite, fade-up 0.8s ease 0.5s both;" style-hover="border-color: var(--color-accent); color: var(--color-accent-200);"><i class="ph ph-calendar-check" style="font-size: 16px;"></i>Book a free consultation</a>
       <a href="https://ashrhly.com" style="position: absolute; right: 10%; top: 30%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 6.1s ease-in-out 0.6s infinite, fade-up 0.8s ease 0.65s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/ashrhly-lockup.png" alt="" style="height: 20px; width: auto; object-fit: contain; display: block;">Go to ashrhly.com</a>
       <a href="https://www.linkedin.com/in/ahmedtarekai" style="position: absolute; right: 13%; top: 50%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.6s ease-in-out 1.3s infinite, fade-up 0.8s ease 0.95s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><i class="ph ph-linkedin-logo" style="font-size: 16px;"></i>LinkedIn</a>
       <a href="https://www.youtube.com/@ahmedtarekai" style="position: absolute; left: 6%; top: 37%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 6.3s ease-in-out 0.4s infinite, fade-up 0.8s ease 1.1s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><i class="ph ph-youtube-logo" style="font-size: 16px;"></i>YouTube</a>
       <a href="/full" style="position: absolute; left: 9%; top: 55%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.8s ease-in-out 1s infinite, fade-up 0.8s ease 0.8s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><i class="ph ph-path" style="font-size: 16px;"></i>My journey</a>
     </div>
-    <div ref="{{ heroQuote }}" style="position: absolute; left: 6%; top: 50%; width: 38%; opacity: 0; z-index: 2; text-align: left; will-change: transform, opacity;">
+    <div ref="{{ heroQuote }}" class="hero-quote" style="position: absolute; left: 6%; top: 50%; width: 38%; opacity: 0; z-index: 2; text-align: left; will-change: transform, opacity;">
       <p style="animation: fade-in 0.9s ease 0.45s both;" data-quote="1"><span style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.35; letter-spacing: -0.01em; margin: 0; color: var(--color-neutral-200); text-wrap: pretty;">I'm Ahmed, a <span style="color: var(--color-accent);">Product Manager</span> and Entrepreneur with a software engineering background, educator of 3,000+ students, and builder of <a href="https://ashrhly.com" style="color: var(--color-accent); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;" style-hover="color: var(--color-accent-200);">ashrhly.com</a>.</span></p>
     </div>
-    <div ref="{{ heroPromise }}" style="position: absolute; left: 44%; right: 10%; top: 69%; opacity: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 15px; line-height: 1.5; color: var(--color-neutral-400); will-change: opacity;">
+    <div ref="{{ heroPromise }}" class="hero-promise" style="position: absolute; left: 44%; right: 10%; top: 69%; opacity: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 15px; line-height: 1.5; color: var(--color-neutral-400); will-change: opacity;">
       <span style="display: inline-flex; align-items: center; gap: 10px;"><i class="ph ph-cube" style="font-size: 16px; color: var(--color-accent);"></i>Companies get products <strong style="font-weight: 500; color: var(--color-text);">built and managed</strong></span>
       <span style="display: inline-flex; align-items: center; gap: 10px;"><i class="ph ph-path" style="font-size: 16px; color: var(--color-accent);"></i>Students find <strong style="font-weight: 500; color: var(--color-text);">tracks, not courses</strong></span>
     </div>
-    <div ref="{{ heroText }}" style="position: absolute; left: 0; right: 0; bottom: 13%; z-index: 3; display: flex; flex-direction: column; align-items: center; will-change: transform;">
+    <div ref="{{ heroText }}" class="hero-name" style="position: absolute; left: 0; right: 0; bottom: 13%; z-index: 3; display: flex; flex-direction: column; align-items: center; will-change: transform;">
       <div style="position: relative; text-align: center;">
         <span style="position: absolute; left: -26px; top: -12px; transform: rotate(-8deg); padding: 8px 16px; border-radius: 999px; background: #ffffff; color: var(--color-neutral-300); font-size: 13px; font-weight: 500; white-space: nowrap; z-index: 2; box-shadow: var(--shadow-sm); animation: fade-up 0.7s ease 1s both;">Hello, my name is</span>
         <span style="position: absolute; right: -44px; top: -12px; transform: rotate(7deg); display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 999px; background: #ffffff; color: var(--color-neutral-300); font-size: 13px; font-weight: 500; white-space: nowrap; z-index: 2; box-shadow: var(--shadow-sm); animation: fade-up 0.7s ease 1.15s both;"><i class="ph ph-map-pin" style="font-size: 14px; color: var(--color-accent);"></i>and I live in Dubai, UAE</span>
