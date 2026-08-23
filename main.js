@@ -230,7 +230,11 @@ const t = (s) => (LANG === "ar" ? AR[s] || s : s);
 const STATIC = {
   en: {
     "nav.story": "Story", "nav.journey": "Journey", "nav.products": "Products",
-    "nav.skills": "Skills", "nav.contact": "Contact", "nav.cta": "Let's talk",
+    "nav.skills": "Skills", "nav.contact": "Contact",
+    "nav.cta": "Book a free consultation",
+    "nav.platform": "Platform", "nav.help": "How I can help",
+    "nav.mystory": "My story", "nav.myjourney": "My journey",
+    "nav.jpm": "Product Manager",
     "hero.eyebrow": "EDUCATOR · ENGINEER · AI PRODUCT MANAGER",
     "hero.name": "Ahmed", "hero.surname": "Tarek",
     "hero.sub": "Ten years turning technology into impact — from teaching kids to build <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas. This is that journey.",
@@ -271,7 +275,11 @@ const STATIC = {
   },
   ar: {
     "nav.story": "القصة", "nav.journey": "الرحلة", "nav.products": "المنتجات",
-    "nav.skills": "المهارات", "nav.contact": "تواصل", "nav.cta": "لنتحدّث",
+    "nav.skills": "المهارات", "nav.contact": "تواصل",
+    "nav.cta": "احجز استشارة مجانية",
+    "nav.platform": "المنصة", "nav.help": "كيف أساعدك",
+    "nav.mystory": "قصتي", "nav.myjourney": "رحلتي",
+    "nav.jpm": "مدير المنتج",
     "hero.eyebrow": "مُعلّم · مهندس · مدير منتج ذكاء اصطناعي",
     "hero.name": "أحمد", "hero.surname": "طارق",
     "hero.sub": "عشر سنوات في تحويل التقنية إلى أثر — من تعليم الأطفال بناء <strong>الروبوتات</strong>، إلى هندسة أدوات <strong>التعليم التقني</strong>، إلى قيادة <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية. الفضول نفسه، ومساحة أكبر. هذه هي الرحلة.",

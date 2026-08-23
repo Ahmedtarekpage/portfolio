@@ -1312,3 +1312,68 @@ body.ar .contact__title { text-transform: none; }
 }
 .prod__cta { padding: 11px 20px; }
 .cookie__btn { padding: 9px 18px; }
+
+/* "My journey" dropdown — same hover behaviour as the landing page */
+.nav__menu { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.nav__menu-btn {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color .25s;
+}
+.nav__menu-caret { color: var(--muted); transition: transform .16s ease, color .25s; }
+.nav__menu:hover .nav__menu-btn,
+.nav__menu:focus-within .nav__menu-btn,
+.nav__menu:hover .nav__menu-caret,
+.nav__menu:focus-within .nav__menu-caret { color: var(--blue); }
+.nav__menu:hover .nav__menu-caret,
+.nav__menu:focus-within .nav__menu-caret { transform: rotate(180deg); }
+.nav__menu-panel {
+  position: absolute;
+  top: 100%; right: 0;
+  padding-top: 14px;
+  z-index: 60;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+.nav__menu:hover .nav__menu-panel,
+.nav__menu:focus-within .nav__menu-panel { opacity: 1; visibility: visible; transform: translateY(0); }
+.nav__menu-card {
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 18px 50px -16px rgba(23, 24, 31, 0.2);
+}
+.nav__menu-card a {
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--ink);
+  transition: background .2s, color .2s;
+}
+.nav__menu-card a:hover { background: var(--bg-2); color: var(--blue); }
+.nav__menu-card a.is-current { color: var(--blue); background: var(--bg-2); }
+[dir="rtl"] .nav__menu-panel { right: auto; left: 0; }
+
+/* same 1120px measure as the landing page's header */
+.nav {
+  padding: 20px max(40px, calc((100vw - 1120px) / 2 + 40px));
+}
+.nav.scrolled {
+  padding: 14px max(40px, calc((100vw - 1120px) / 2 + 40px));
+}
+/* links and the right-hand cluster read as one group, as on the landing page */
+.nav__links { margin-left: auto; }
+.nav__right { margin-left: 18px; gap: 12px; }

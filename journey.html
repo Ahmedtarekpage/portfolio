@@ -63,7 +63,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=41" />
+  <link rel="stylesheet" href="styles.css?v=44" />
 </head>
 <body>
   <!-- animated colour aurora (behind the 3D canvas) -->
@@ -84,15 +84,25 @@
   <nav class="nav" id="nav">
     <a href="/" class="nav__brand" aria-label="Ahmed Tarek — home"><span class="nav__mark">AT.</span><span class="nav__name">Ahmed Tarek</span></a>
     <div class="nav__links">
-      <a href="#about" data-i18n="nav.story">Story</a>
-      <a href="#educator" data-i18n="nav.journey">Journey</a>
-      <a href="#work" data-i18n="nav.products">Products</a>
-      <a href="#skills" data-i18n="nav.skills">Skills</a>
+      <a href="/#platform" data-i18n="nav.platform">Platform</a>
+      <a href="/#help" data-i18n="nav.help">How I can help</a>
+      <a href="/#about" data-i18n="nav.mystory">My story</a>
+      <div class="nav__menu">
+        <button type="button" class="nav__menu-btn" data-i18n="nav.myjourney">My journey</button>
+        <svg class="nav__menu-caret" width="10" height="7" viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M1 1.5 5 5.5 9 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="nav__menu-panel">
+          <div class="nav__menu-card">
+            <a href="/full" data-view-link="full" data-i18n="views.full">Full story</a>
+            <a href="/educator" data-view-link="educator" data-i18n="views.educator">Educator</a>
+            <a href="/product" data-view-link="product" data-i18n="nav.jpm">Product Manager</a>
+          </div>
+        </div>
+      </div>
       <a href="#contact" data-i18n="nav.contact">Contact</a>
     </div>
     <div class="nav__right">
       <button type="button" class="nav__lang" id="langToggle" aria-label="التبديل إلى العربية">ع</button>
-      <a href="#contact" class="nav__cta" data-i18n="nav.cta">Let's talk</a>
+      <a href="#contact" class="nav__cta" data-i18n="nav.cta">Book a free consultation</a>
     </div>
   </nav>
 
@@ -324,6 +334,6 @@
     </div>
   </div>
 
-  <script type="module" src="main.js?v=37"></script>
+  <script type="module" src="main.js?v=39"></script>
 </body>
 </html>
