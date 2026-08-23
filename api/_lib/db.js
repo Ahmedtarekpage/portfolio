@@ -154,6 +154,27 @@ async function migrate(sql) {
   await sql`DROP TABLE IF EXISTS moods`;
   await sql`DROP TABLE IF EXISTS thoughts`;
   // Ideas tab: a freeform, drag-to-reorder list of ideas (not tied to a day)
+  // Site CMS: per-element overrides for the public pages, keyed by the stable
+  // key cms.js derives from the DOM (template id where there is one, else a
+  // hash of the original content). An absent row means "use what's in source".
+  await sql`CREATE TABLE IF NOT EXISTS site_content (
+    key TEXT PRIMARY KEY,
+    kind TEXT NOT NULL DEFAULT 'text',
+    value TEXT NOT NULL,
+    page TEXT,
+    section TEXT,
+    label TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  // Uploaded images and short clips, served back from /api/media?id=N.
+  await sql`CREATE TABLE IF NOT EXISTS site_media (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    bytes INTEGER NOT NULL,
+    data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
   await sql`CREATE TABLE IF NOT EXISTS ideas (
     id SERIAL PRIMARY KEY,
     text TEXT NOT NULL,

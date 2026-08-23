@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#ffffff">
 <script src="./support.js"></script>
+<script src="./cms.js?v=1" defer></script>
 </head>
 <body>
 <x-dc>
@@ -163,6 +164,31 @@
       div[style*="gap: 32px"] { gap: 20px !important; }
       /* decorative bloom circles overflow tiny cards */
       div[style*="width: 620px"][style*="border-radius: 50%"] { display: none !important; }
+
+      /* The story photo grid: collapsing it to one column leaves an implicit
+         auto-sized second column behind, because its first tile still spans
+         two. Pin every tile to the full row instead. */
+      div[style*="grid-template-rows: minmax(200px, 290px)"] {
+        position: static !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: auto !important;
+      }
+      div[style*="grid-template-rows: minmax(200px, 290px)"] > div {
+        grid-column: 1 / -1 !important;
+        transform: none !important;
+      }
+      div[style*="grid-template-rows: minmax(200px, 290px)"] > div.lighten { min-height: 190px; }
+
+      /* centred pill rows overflow both edges once the pills stop fitting */
+      div[style*="justify-content: center"][style*="flex-wrap: wrap"] {
+        justify-content: flex-start !important;
+      }
+      div[style*="justify-content: center"][style*="flex-wrap: wrap"] > span,
+      div[style*="justify-content: center"][style*="flex-wrap: wrap"] > a {
+        max-width: 100%;
+        white-space: normal !important;
+      }
+      span[style*="border-radius: 999px"] { white-space: normal !important; }
     }
 
     /* phones: unstick the hero and let it stack */

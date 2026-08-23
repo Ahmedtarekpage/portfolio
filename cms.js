@@ -1,0 +1,358 @@
+/* =========================================================
+   cms.js — makes every piece of the public pages addressable.
+
+   It walks the rendered DOM, gives each editable thing a stable key,
+   and swaps in whatever /api/content holds for that key. Nothing is
+   marked up by hand: the pages stay plain HTML and this layer finds
+   the content in them.
+
+   Keys, in order of preference:
+     1. t<n>      the template runtime's data-dc-tpl id (index.html).
+                  Deterministic across renders, and it survives the text
+                  itself changing.
+     2. h<hash>   a hash of the *original* content (the journey pages,
+                  whose cards main.js generates). Survives reordering,
+                  which a positional path would not.
+   Each gets a #<kind> suffix, plus a :<n> occurrence index when one key
+   would otherwise cover several nodes.
+
+   The hash must come from what the page ships, never from what is on
+   screen — once an override is applied the visible text differs from
+   source, and re-hashing it would orphan the very override that changed
+   it. Originals are therefore cached per element the first time it is
+   seen, and every later scan re-reads that cache.
+
+   The dashboard loads these pages in an iframe with #cms-index and
+   reads the same index back over postMessage, so what it lists is
+   always what the page actually renders.
+   ========================================================= */
+(function () {
+  "use strict";
+
+  var API = "/api/content";
+  var PAGE = /\/(full|product|educator|journey)/.test(location.pathname) ? "journey" : "home";
+
+  // Anything that opens a new box on the page. An element is one editable
+  // run of text only when it contains none of these.
+  var BLOCK = /^(div|section|article|main|header|footer|nav|aside|figure|figcaption|ul|ol|li|dl|dt|dd|table|thead|tbody|tr|td|th|form|fieldset|video|audio|img|svg|canvas|iframe|picture|source|hr|script|style|noscript|template|image-slot|details|summary|h1|h2|h3|h4|h5|h6|p|blockquote|pre)$/;
+  var SKIP_IN = /^(script|style|noscript|template|svg)$/;
+  // The CMS's own furniture must never become editable content.
+  var SKIP_CLASS = /(^|\s)cms-/;
+  // Tags that can sit inside one editable run of text.
+  var FORMATTING = /^(strong|em|b|i|u|s|small|sup|sub|code|mark|br|abbr|span|a|label|button|time)$/;
+
+  var index = [];        // [{key, kind, page, section, label, original}]
+  var nodes = {};        // key -> [element, ...]
+  var overrides = null;  // key -> {kind, value}
+  var observer = null;
+  var scans = 0;
+  // Hard ceiling on re-scans. The idempotency checks in applyOne should stop
+  // things on their own, but an innerHTML round-trip can re-serialise into a
+  // string that never compares equal to what we wrote, and a runaway rescan
+  // loop on a visitor's page is not a failure worth risking.
+  var MAX_SCANS = 12;
+
+  /* ---------- helpers ---------- */
+
+  function hash(str) {
+    // FNV-1a in base36 — short, stable, and plenty to separate content runs.
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+    }
+    return h.toString(36);
+  }
+
+  function norm(s) { return String(s == null ? "" : s).replace(/\s+/g, " ").trim(); }
+
+  /* What this element held before the CMS touched it. Cached on the element
+     the first time we see it, so applying an override never moves its key. */
+  function original(el, kind, current) {
+    var store = el.__cmsOrig || (el.__cmsOrig = {});
+    if (!(kind in store)) store[kind] = current;
+    return store[kind];
+  }
+
+  function tplId(el) {
+    var n = el;
+    while (n && n.nodeType === 1) {
+      if (n.hasAttribute("data-dc-tpl")) return n.getAttribute("data-dc-tpl");
+      n = n.parentElement;
+    }
+    return null;
+  }
+
+  // The nearest thing a person would name when hunting for this on the page.
+  function sectionOf(el) {
+    var n = el;
+    while (n && n.nodeType === 1 && n !== document.body) {
+      if (n.id && n.id.indexOf("cms") !== 0) return n.id;
+      n = n.parentElement;
+    }
+    return "page";
+  }
+
+  function skip(el) {
+    var n = el;
+    while (n && n.nodeType === 1) {
+      if (SKIP_IN.test(n.tagName.toLowerCase())) return true;
+      var c = n.getAttribute("class");
+      if (c && SKIP_CLASS.test(c)) return true;
+      if (n.hasAttribute("data-cms-skip")) return true;
+      n = n.parentElement;
+    }
+    return false;
+  }
+
+  /* ---------- discovery ---------- */
+
+  var seen, claimed;
+
+  function keyFor(el, kind, orig) {
+    var t = tplId(el);
+    var base = t ? "t" + t : "h" + hash(norm(orig));
+    var k = PAGE + ":" + base + "#" + kind;
+    seen[k] = (seen[k] || 0) + 1;
+    if (seen[k] > 1) k += ":" + seen[k];
+    return k;
+  }
+
+  function add(el, kind, currentValue) {
+    var orig = original(el, kind, currentValue);
+    if (!norm(orig)) return;
+    var key = keyFor(el, kind, orig);
+    (nodes[key] || (nodes[key] = [])).push(el);
+    el.setAttribute("data-cms-" + kind, key);
+    index.push({
+      key: key,
+      kind: kind,
+      page: PAGE,
+      section: sectionOf(el),
+      label: norm(el.textContent).slice(0, 90) || norm(orig).slice(0, 90),
+      original: orig,
+    });
+  }
+
+  /* What kind of editable run this element is, or null if it is really a
+     container and its children should each be their own.
+
+     The pages built by the design tool use <span> as a layout box, not as
+     inline formatting, so "contains only inline tags" is not enough: a
+     header <div> of two styled spans would otherwise surface as one field
+     full of markup. An element only speaks for a whole run when it
+     contributes text of its own. */
+  function ownText(el) {
+    var t = "";
+    for (var n = el.firstChild; n; n = n.nextSibling) if (n.nodeType === 3) t += n.nodeValue;
+    return norm(t);
+  }
+
+  /* Whether an element's subtree holds anything that is not inline
+     formatting, and whether it holds any text at all. Both are worked out
+     for the whole page in one reverse pass over document order — children
+     always come after their parent there, so walking backwards means a
+     parent can read results its children already produced. Asking each
+     element about its own descendants instead would be quadratic, and on
+     the journey pages that was enough to keep the page busy forever. */
+  var blocked, hasText;
+
+  function measure(all) {
+    blocked = new Map();
+    hasText = new Map();
+    for (var i = all.length - 1; i >= 0; i--) {
+      var el = all[i];
+      var bad = false, text = !!ownText(el);
+      for (var c = el.firstElementChild; c; c = c.nextElementSibling) {
+        if (!FORMATTING.test(c.tagName.toLowerCase()) || blocked.get(c)) bad = true;
+        if (hasText.get(c)) text = true;
+      }
+      blocked.set(el, bad);
+      hasText.set(el, text);
+    }
+  }
+
+  function textUnitKind(el) {
+    if (!hasText.get(el)) return null;
+    if (!el.firstElementChild) return "text";
+    if (blocked.get(el)) return null;
+    var childText = false;
+    for (var c = el.firstElementChild; c; c = c.nextElementSibling) {
+      if (hasText.get(c)) { childText = true; break; }
+    }
+    // Decorative children only (an icon, a rule): the words are editable on
+    // their own and the decoration is left in place.
+    if (!childText) return "text";
+    // Mixed text and formatting — the markup has to come along.
+    return ownText(el) ? "html" : null;
+  }
+
+  function ancestorClaimed(el, root) {
+    var p = el.parentElement;
+    while (p && p !== root) {
+      if (claimed.has(p)) return true;
+      p = p.parentElement;
+    }
+    return false;
+  }
+
+  function scan(root) {
+    seen = {};
+    claimed = new Set();
+    index = [];
+    nodes = {};
+
+    var all = root.querySelectorAll("*");
+    measure(all);
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      var tag = el.tagName.toLowerCase();
+      if (skip(el)) continue;
+
+      // Pictures, uploads and embedded players.
+      if (tag === "img" && el.getAttribute("src")) { add(el, "src", el.getAttribute("src")); continue; }
+      if (tag === "image-slot") { add(el, "src", el.getAttribute("src") || ""); continue; }
+      if (tag === "video" && el.getAttribute("src")) { add(el, "src", el.getAttribute("src")); continue; }
+      if (el.hasAttribute("data-yt")) { add(el, "href", el.getAttribute("data-yt")); continue; }
+      if (el.hasAttribute("data-mp4")) { add(el, "src", el.getAttribute("data-mp4")); continue; }
+
+      // A link's destination is editable separately from its label. In-page
+      // anchors are navigation, not content.
+      if (tag === "a") {
+        var href = el.getAttribute("href") || "";
+        if (href && href.charAt(0) !== "#") add(el, "href", href);
+      }
+
+      // One run of text, taken as high as it goes, so a paragraph wins over
+      // the <strong> inside it.
+      var kind = textUnitKind(el);
+      if (kind && !ancestorClaimed(el, root)) {
+        claimed.add(el);
+        add(el, kind, kind === "html" ? el.innerHTML : (el.children.length ? ownText(el) : el.textContent));
+      }
+    }
+    return index;
+  }
+
+  /* ---------- applying ---------- */
+
+  function resolve(value) {
+    // Media ids picked in the dashboard resolve to the media endpoint.
+    return /^media:\d+$/.test(value) ? "/api/media?id=" + value.slice(6) : value;
+  }
+
+  /* Writing a value that is already in place would still register as a DOM
+     mutation, and the observer would call us straight back — so every branch
+     below no-ops when there is nothing to change. That is what lets the
+     observer stay connected for the life of the page instead of being timed
+     out, which in turn is what keeps overrides applied after a late re-render
+     (the journey pages redraw all their text on the Arabic toggle). */
+  function applyOne(el, kind, value) {
+    if (kind === "text") {
+      if ((el.children.length ? ownText(el) : el.textContent) === value) return;
+      // With decorative children present, rewrite only the element's own text
+      // nodes so the icon (or rule, or <br>) survives the edit.
+      if (el.children.length) {
+        var first = null;
+        for (var n = el.firstChild; n; n = n.nextSibling) if (n.nodeType === 3) { first = n; break; }
+        for (var m = el.firstChild, next; m; m = next) {
+          next = m.nextSibling;
+          if (m.nodeType === 3 && m !== first) el.removeChild(m);
+        }
+        if (first) first.nodeValue = value;
+        else el.insertBefore(document.createTextNode(value), el.firstChild);
+      } else {
+        el.textContent = value;
+      }
+      return;
+    }
+    if (kind === "html") { if (el.innerHTML !== value) el.innerHTML = value; return; }
+    if (kind === "src") {
+      var url = resolve(value);
+      var a = el.hasAttribute("data-mp4") ? "data-mp4" : "src";
+      if (el.getAttribute(a) !== url) el.setAttribute(a, url);
+      return;
+    }
+    if (kind === "href") {
+      var b = el.hasAttribute("data-yt") ? "data-yt" : "href";
+      var v = b === "href" ? resolve(value) : value;
+      if (el.getAttribute(b) !== v) el.setAttribute(b, v);
+    }
+  }
+
+  function apply() {
+    if (!overrides) return;
+    for (var key in overrides) {
+      var list = nodes[key];
+      if (!list) continue;
+      for (var i = 0; i < list.length; i++) {
+        // One bad key must not stop the rest of the page.
+        try { applyOne(list[i], overrides[key].kind, overrides[key].value); } catch (e) {}
+      }
+    }
+    // Drop the mutation records our own writes just produced, so they do not
+    // schedule another scan. A boolean flag cannot do this job: observer
+    // callbacks are delivered as microtasks, by which point it would already
+    // have been cleared.
+    if (observer) observer.takeRecords();
+  }
+
+  function run() {
+    scans++;
+    scan(document.body);
+    apply();
+    if (location.hash === "#cms-index" || location.search.indexOf("cmsindex=1") > -1) {
+      try {
+        parent.postMessage({ type: "cms-index", page: PAGE, items: index }, location.origin);
+      } catch (e) { /* not framed */ }
+    }
+  }
+
+  /* ---------- boot ----------
+     Both pages paint asynchronously — index.html through its template
+     runtime, the journey pages through main.js — so there is no one
+     "ready" moment. Fetch the overrides once, then re-scan whenever the
+     DOM settles, and stop once it clearly has. */
+
+  /* These pages never stop animating — counters tick, reveals fade, the
+     scroll rail redraws — so a mutation observer left running would re-scan
+     for the life of the tab and never let the page go idle. Watch only while
+     the initial render settles, then disconnect and re-scan on the one event
+     that genuinely rebuilds text afterwards: the Arabic toggle. */
+  var timer = null;
+  function schedule() {
+    if (scans >= MAX_SCANS) return;
+    clearTimeout(timer);
+    timer = setTimeout(run, 200);
+  }
+
+  fetch(API, { credentials: "same-origin" })
+    .then(function (r) { return r.ok ? r.json() : { content: {} }; })
+    .then(function (d) { overrides = d.content || {}; })
+    .catch(function () { overrides = {}; })
+    .then(function () {
+      run();
+      observer = new MutationObserver(schedule);
+      observer.observe(document.body, { childList: true, subtree: true });
+      setTimeout(function () {
+        observer.disconnect();
+        observer = null;
+        clearTimeout(timer);
+        run();
+      }, 6000);
+
+      // main.js rewrites every data-i18n string on language change.
+      document.addEventListener("click", function (e) {
+        if (e.target && e.target.closest && e.target.closest("#langToggle")) {
+          setTimeout(function () { scans = 0; run(); }, 80);
+          setTimeout(run, 600);
+        }
+      });
+    });
+
+  window.__cms = {
+    index: function () { return index; },
+    rescan: function () { scans = 0; run(); },
+    page: PAGE,
+  };
+})();

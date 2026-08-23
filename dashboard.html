@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content — Ahmed Tarek</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#0b0e14" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=6" />
+  <link rel="stylesheet" href="dashboard.css?v=1" />
+  <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <section id="view-loading" class="view">
+      <div class="card card--center"><p class="muted">Loading…</p></div>
+    </section>
+
+    <section id="view-login" class="view" hidden>
+      <div class="card card--center login-card">
+        <div class="lock-icon" aria-hidden="true">🔐</div>
+        <h1>Content</h1>
+        <p class="muted">Sign in with your passkey — the same one that opens /admin.</p>
+        <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
+        <p id="loginError" class="error" hidden></p>
+      </div>
+    </section>
+
+    <section id="view-locked" class="view" hidden>
+      <div class="card card--center login-card">
+        <div class="lock-icon" aria-hidden="true">📱</div>
+        <h1>No passkey yet</h1>
+        <p class="muted">Register your iPhone at <a href="/admin">/admin</a> first — this dashboard shares that login.</p>
+      </div>
+    </section>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section id="view-app" class="view" hidden>
+
+      <header class="dash-head">
+        <div>
+          <h1>Site content</h1>
+          <p class="muted" id="dashSub">Every text, image and link on the public pages.</p>
+        </div>
+        <div class="dash-head__actions">
+          <a class="btn btn--ghost btn--sm" href="/admin">Clients</a>
+          <a class="btn btn--ghost btn--sm" href="/" target="_blank" rel="noopener">View site ↗</a>
+          <button id="btnLogout" class="btn btn--ghost btn--sm">Sign out</button>
+        </div>
+      </header>
+
+      <nav class="dash-tabs">
+        <button class="dash-tab is-on" data-tab="content">Content</button>
+        <button class="dash-tab" data-tab="media">Media library</button>
+      </nav>
+
+      <!-- ---------- CONTENT ---------- -->
+      <div id="tab-content" class="dash-panel">
+        <div class="dash-toolbar">
+          <div class="dash-pages" id="pagePicker"></div>
+          <input id="filter" class="dash-filter" type="search" placeholder="Filter by text…" />
+          <span class="dash-count muted" id="itemCount"></span>
+          <button id="btnSave" class="btn btn--primary btn--sm" disabled>Save changes</button>
+        </div>
+        <p class="muted dash-hint">
+          Editing a field overrides what the page ships with. Clear a field to put the original back.
+          Changes go live as soon as you save — no redeploy.
+        </p>
+        <div id="loadingPage" class="card card--center" hidden><p class="muted">Reading the page…</p></div>
+        <div id="groups"></div>
+        <iframe id="probe" class="cms-probe" title="page probe" aria-hidden="true"></iframe>
+      </div>
+
+      <!-- ---------- MEDIA ---------- -->
+      <div id="tab-media" class="dash-panel" hidden>
+        <div class="dash-toolbar">
+          <label class="btn btn--primary btn--sm upload-label">
+            Upload file<input id="mediaUpload" type="file" accept="image/*,video/mp4,video/webm" hidden multiple />
+          </label>
+          <span class="muted">Images and short clips, up to 3&nbsp;MB each. For long video, host it on YouTube and paste the link instead.</span>
+        </div>
+        <p id="mediaError" class="error" hidden></p>
+        <div id="mediaGrid" class="media-grid"></div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- media picker -->
+  <div id="picker" class="picker" hidden>
+    <div class="picker__box">
+      <div class="picker__head">
+        <strong id="pickerTitle">Choose an image</strong>
+        <button id="pickerClose" class="iconbtn" aria-label="Close">✕</button>
+      </div>
+      <div class="picker__url">
+        <input id="pickerUrl" type="url" placeholder="…or paste a URL (https://, /assets/…)" />
+        <button id="pickerUseUrl" class="btn btn--sm">Use URL</button>
+      </div>
+      <label class="btn btn--ghost btn--sm upload-label picker__upload">
+        Upload a new file<input id="pickerUpload" type="file" accept="image/*,video/mp4,video/webm" hidden />
+      </label>
+      <p id="pickerError" class="error" hidden></p>
+      <div id="pickerGrid" class="media-grid media-grid--pick"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="dashboard.js?v=1"></script>
+</body>
+</html>

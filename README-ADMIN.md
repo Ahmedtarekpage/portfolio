@@ -17,6 +17,47 @@ Static frontend + Vercel serverless functions in [api/](api/) + Neon Postgres.
   **drops** when a package expires. Upcoming expiries are drawn dashed after the
   "today" line. Sessions always consume from the package that expires soonest.
 
+## Site content dashboard — `/dashboard`
+
+Edit every word, picture and link on the public pages without touching code or
+redeploying. Same passkey as `/admin`; there is a **Site content** button in the
+admin topbar.
+
+**How it finds the content.** Nothing is tagged by hand. [cms.js](cms.js) runs on
+`/`, `/full`, `/product` and `/educator`, walks the rendered page, and gives every
+run of text, every image and every outbound link a stable key. The dashboard loads
+each page in a hidden iframe and reads that same list back, so it can only ever
+show what the page actually renders — around 220 items on the home page and 250–460
+on the journey pages.
+
+Keys come from the template runtime's `data-dc-tpl` id where there is one
+(`index.html`), and otherwise from a hash of the original content (the journey
+pages, whose cards `main.js` generates). Hashing the *original* rather than what is
+on screen is what lets an override survive the very edit it applies. Change the
+source text of an element and its override is dropped, which is the intended
+behaviour — the page goes back to speaking for itself.
+
+**Editing.** Type in a field and press *Save changes*; the live site picks it up on
+the next load. Clear a field to revert that one item to whatever the page ships
+with. Overrides live in the `site_content` table; nothing is written back to the
+HTML.
+
+**Media.** The *Media library* tab takes images and short clips up to **3 MB**
+(Vercel caps a function request body at ~4.5 MB and base64 adds a third). They are
+stored in `site_media` and served from `/api/media?id=N`. For real video, upload to
+YouTube and paste the link into the relevant field instead. A picked file is stored
+as `media:<id>` and resolved at render time.
+
+**Limits worth knowing**
+- Text and links are safe to edit freely. A handful of fields are marked `html`
+  because the sentence has formatting inside it — those show markup, so edit the
+  words and leave the tags alone.
+- The three empty photo slots in the home page's *My story* section appear as `src`
+  fields with an empty value; fill them from the media library.
+- A page-structure change in `index.html` or `main.js` can orphan overrides that
+  pointed at the old content. They stay in the database, harmless, and the page
+  falls back to source. Clear them with `DELETE /api/content?all=1`.
+
 ## One-time setup (≈5 minutes)
 
 1. **Deploy the repo on Vercel** (it already is, if the site is live).
