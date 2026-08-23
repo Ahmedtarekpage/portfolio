@@ -56,6 +56,11 @@
     [data-ground="1"] div[style*="background: #ffffff"] div[style*="font-family: var(--font-heading)"] { color: #ffffff !important; }
     [data-ground="1"] input { background: rgba(255,255,255,0.08) !important; border-color: rgba(233,233,237,0.2) !important; color: #ffffff !important; }
     [data-ground="1"] blockquote { color: #d8d9e4 !important; }
+    .js-menu > .js-menu-panel { opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .16s ease, transform .16s ease, visibility .16s; }
+    .js-menu:hover > .js-menu-panel, .js-menu:focus-within > .js-menu-panel { opacity: 1; visibility: visible; transform: translateY(0); }
+    .js-menu:hover > button, .js-menu:focus-within > button { color: var(--color-accent-300) !important; }
+    .js-menu:hover > button i, .js-menu:focus-within > button i { transform: rotate(180deg); }
+    .js-menu > button i { transition: transform .16s ease; }
   </style>
 </helmet>
 <div onMouseMove="{{ onMove }}" style="position: relative; overflow-x: clip;">
@@ -69,15 +74,15 @@
       <a href="#platform" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">Platform</a>
       <a href="#help" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">How I can help</a>
       <a href="#about" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">My story</a>
-      <div style="position: relative;">
-        <button onClick="{{ toggleJourney }}" style="display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--color-neutral-300); font-size: 14px; font-family: inherit; cursor: pointer; padding: 0;" style-hover="color: var(--color-accent-300);">My journey <i class="ph ph-caret-down" style="font-size: 12px;"></i></button>
-        <sc-if value="{{ journeyOpen }}" hint-placeholder-val="{{ false }}">
-          <div style="position: absolute; top: 32px; right: 0; min-width: 200px; display: flex; flex-direction: column; gap: 2px; padding: 8px; z-index: 50; background: #ffffff; border: 1px solid var(--color-neutral-700); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md);">
+      <div class="js-menu" style="position: relative;">
+        <button style="display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--color-neutral-300); font-size: 14px; font-family: inherit; cursor: pointer; padding: 0;">My journey <i class="ph ph-caret-down" style="font-size: 12px;"></i></button>
+        <div class="js-menu-panel" style="position: absolute; top: 100%; right: 0; padding-top: 12px; z-index: 50;">
+          <div style="min-width: 200px; display: flex; flex-direction: column; gap: 2px; padding: 8px; background: #ffffff; border: 1px solid var(--color-neutral-700); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md);">
             <a href="/full" style="padding: 9px 12px; border-radius: var(--radius-sm, 6px); color: var(--color-text); font-size: 14px;" style-hover="background: var(--color-neutral-900); color: var(--color-accent-300);">Full story</a>
             <a href="/educator" style="padding: 9px 12px; border-radius: var(--radius-sm, 6px); color: var(--color-text); font-size: 14px;" style-hover="background: var(--color-neutral-900); color: var(--color-accent-300);">Educator</a>
             <a href="/product" style="padding: 9px 12px; border-radius: var(--radius-sm, 6px); color: var(--color-text); font-size: 14px;" style-hover="background: var(--color-neutral-900); color: var(--color-accent-300);">Product Manager</a>
           </div>
-        </sc-if>
+        </div>
       </div>
       <a href="#contact" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">Contact</a>
       <a href="#contact" style="padding: 10px 18px; border-radius: 999px; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); font-weight: 500;" style-hover="border-color: var(--color-accent); color: var(--color-accent-200);">Book a free consultation</a>
@@ -769,8 +774,6 @@ class Component extends DCLogic {
     };
     return {
       heroCtaLabel: ctas[this.props.heroCta ?? "Platform"],
-      journeyOpen: !!this.state.journeyOpen,
-      toggleJourney: () => this.setState(s => ({ journeyOpen: !s.journeyOpen })),
       glow: set('glow'), far: set('far'), portrait: set('portrait'), heroText: set('heroText'), heroQuote: set('heroQuote'), heroCtas: set('heroCtas'), heroPromise: set('heroPromise'), trackDots: set('trackDots'), trackFill: set('trackFill'), trackBase: set('trackBase'), trackSvg: set('trackSvg'),
       onMove: e => {
         this.mouse = {
