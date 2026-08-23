@@ -1,328 +1,786 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ahmed Tarek — AI Product Manager</title>
-  <meta name="description" content="Ahmed Tarek — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products." />
-  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <meta name="theme-color" content="#ffffff" />
-
-  <!-- ============================================================
-       ANALYTICS + FORM CONFIG
-       Paste your real IDs below. Leave the "XXX" placeholders to
-       keep each feature disabled (no errors, no network calls).
-       ============================================================ -->
-  <script>
-    window.SITE_CONFIG = {
-      GA4_ID: "G-MQ8TXQH3NX",     // Google Analytics 4 — Measurement ID (Admin → Data Streams)
-      CLARITY_ID: "xfso0z6dlc",   // Microsoft Clarity — Project ID (Settings → Overview)
-      FORMSPREE_ID: "xgojnrrq",   // Formspree — the code after formspree.io/f/______
-      RESUME_URL: "assets/Ahmed-Tarek-Mourssi-Product-Manager.pdf",     // product / full pages
-      RESUME_URL_EDU: "assets/Ahmed-Tarek-Mourssi-CS-Instructor.pdf",  // educator page
-      BOOKING_URL: "https://tidycal.com/ahmedtarek/vip-booking"
-    };
-  </script>
-  <script>
-    // Analytics load only AFTER the visitor consents (see cookie banner).
-    // Defined here so it runs as early as possible once consent exists.
-    window.__initAnalytics = function () {
-      if (window.__analyticsLoaded) return;
-      window.__analyticsLoaded = true;
-      var c = window.SITE_CONFIG || {};
-      var valid = function (v) { return v && v.indexOf("XXX") === -1; };
-      // Google Analytics 4
-      if (valid(c.GA4_ID)) {
-        var g = document.createElement("script");
-        g.async = true;
-        g.src = "https://www.googletagmanager.com/gtag/js?id=" + c.GA4_ID;
-        document.head.appendChild(g);
-        window.dataLayer = window.dataLayer || [];
-        window.gtag = function () { dataLayer.push(arguments); };
-        gtag("js", new Date());
-        gtag("config", c.GA4_ID);
-      }
-      // Microsoft Clarity
-      if (valid(c.CLARITY_ID)) {
-        (function (m, a, g, e, s) {
-          m[e] = m[e] || function () { (m[e].q = m[e].q || []).push(arguments); };
-          s = a.createElement(g); s.async = 1;
-          s.src = "https://www.clarity.ms/tag/" + c.CLARITY_ID;
-          var y = a.getElementsByTagName(g)[0]; y.parentNode.insertBefore(s, y);
-        })(window, document, "script", "clarity");
-      }
-    };
-    // If they already accepted on a previous visit, start immediately.
-    try {
-      if (localStorage.getItem("cookie-consent") === "granted") window.__initAnalytics();
-    } catch (e) {}
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=37" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ahmed Tarek — AI Product Manager</title>
+<meta name="description" content="Ahmed Tarek — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products. Based in Dubai, working globally.">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff">
+<script src="./support.js"></script>
 </head>
 <body>
-  <!-- animated colour aurora (behind the 3D canvas) -->
-  <div class="aurora" aria-hidden="true">
-    <span class="aurora__blob aurora__blob--1"></span>
-    <span class="aurora__blob aurora__blob--2"></span>
-    <span class="aurora__blob aurora__blob--3"></span>
-    <span class="aurora__blob aurora__blob--4"></span>
-  </div>
-
-  <!-- custom cursor glow -->
-  <div class="cursor-glow" id="cursorGlow"></div>
-
-  <!-- scroll progress -->
-  <div class="scroll-progress" id="scrollProgress"></div>
-
-  <!-- NAV -->
-  <nav class="nav" id="nav">
-    <a href="#hero" class="nav__brand"><img src="assets/logo.png" alt="" class="nav__logo" width="38" height="38" />AT<span>.</span></a>
-    <div class="nav__links">
-      <a href="#about" data-i18n="nav.story">Story</a>
-      <a href="#educator" data-i18n="nav.journey">Journey</a>
-      <a href="#work" data-i18n="nav.products">Products</a>
-      <a href="#skills" data-i18n="nav.skills">Skills</a>
-      <a href="#contact" data-i18n="nav.contact">Contact</a>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/nocturne-15e55385-183a-4254-85f5-b504ac252e84/styles.css">
+  <script src="_ds/nocturne-15e55385-183a-4254-85f5-b504ac252e84/_ds_bundle.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <script src="./image-slot.js"></script>
+  <style>
+    :root {
+      --color-bg: #ffffff; --color-text: #17181f;
+      --color-neutral-100: #191a24; --color-neutral-200: #23242f; --color-neutral-300: #3c3e4d; --color-neutral-400: #5c5e70; --color-neutral-500: #5c5e70; --color-neutral-600: #a2a4b5; --color-neutral-700: #c9cad8; --color-neutral-800: #e4e5ee; --color-neutral-900: #f4f4f9;
+      --color-accent: #7263c9; --color-accent-100: #241d55; --color-accent-200: #3f3486; --color-accent-300: #4c3fa0; --color-accent-400: #5e50b5; --color-accent-600: #8b7fd6; --color-accent-700: #b7aee9; --color-accent-800: #ded9f6; --color-accent-900: #efedfb;
+      --color-section: #e3e0f6; --color-section-2: #edebf9;
+      --shadow-sm: 0 1px 3px rgba(23, 24, 31, 0.08); --shadow-md: 0 6px 24px -8px rgba(23, 24, 31, 0.14); --shadow-lg: 0 18px 50px -16px rgba(23, 24, 31, 0.2);
+    }
+    .lighten { mix-blend-mode: multiply; }
+    .card { background: #ffffff; border: 1px solid var(--color-neutral-700); box-shadow: var(--shadow-sm); }
+    .card .card-title { color: var(--color-text); }
+    .card .card-body { color: var(--color-neutral-400); }
+    .card .card-kicker, .card .card-meta { color: var(--color-neutral-500); }
+    .input { background: #ffffff; color: var(--color-text); border: 1px solid var(--color-neutral-700); }
+    .tag-neutral { background: #eceef4; color: var(--color-neutral-300); }
+    body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); }
+    a { color: var(--color-accent-300); text-decoration: none; }
+    a:hover { color: var(--color-accent-200); }
+    ::selection { background: var(--color-accent-800); }
+    @keyframes portrait-in { 0% { opacity: 0; transform: translateY(56px) scale(0.94); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+    @keyframes pill-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes fade-up { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+    [data-ground="1"] h2, [data-ground="1"] h3, [data-ground="1"] strong { color: #ffffff !important; }
+    [data-ground="1"] p, [data-ground="1"] li { color: #c2c3d0 !important; }
+    [data-ground="1"] a:not([data-cta]) { color: #cbc4ee !important; }
+    [data-ground="1"] a[data-cta="solid"] { color: #ffffff !important; }
+    [data-ground="1"] a[data-cta="light"] { color: #262757 !important; }
+    [data-ground="1"] span[style*="color: var(--color-accent-300)"] { color: #b0a5e4 !important; }
+    [data-ground="1"] span[style*="color: var(--color-neutral-500)"] { color: #a9abbd !important; }
+    [data-ground="1"] span[style*="background: var(--color-accent)"] { background: var(--color-accent) !important; }
+    [data-ground="1"] i[class^="ph"] { color: #b0a5e4 !important; }
+    [data-ground="1"] div[style*="background: #ffffff"] { background: rgba(255,255,255,0.06) !important; border-color: rgba(233,233,237,0.16) !important; }
+    [data-ground="1"] div[style*="background: #ffffff"] div, [data-ground="1"] div[style*="background: #ffffff"] span { color: #d8d9e4 !important; }
+    [data-ground="1"] div[style*="background: #ffffff"] div[style*="font-family: var(--font-heading)"] { color: #ffffff !important; }
+    [data-ground="1"] input { background: rgba(255,255,255,0.08) !important; border-color: rgba(233,233,237,0.2) !important; color: #ffffff !important; }
+    [data-ground="1"] blockquote { color: #d8d9e4 !important; }
+  </style>
+</helmet>
+<div onMouseMove="{{ onMove }}" style="position: relative; overflow-x: clip;">
+  <div style="position: relative; z-index: 1;">
+  <div style="max-width: 1120px; margin: 0 auto; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 34px; height: 34px; border-radius: var(--radius-md, 8px); background: var(--color-text); color: var(--color-bg); display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 500; font-size: 15px;">AT.</span>
+      <span style="font-weight: 500; font-size: 15px;">Ahmed Tarek</span>
     </div>
-    <div class="nav__right">
-      <button type="button" class="nav__lang" id="langToggle" aria-label="التبديل إلى العربية">ع</button>
-      <a href="#contact" class="nav__cta" data-i18n="nav.cta">Let's talk</a>
-    </div>
-  </nav>
-
-  <main>
-    <!-- HERO -->
-    <section class="hero" id="hero">
-      <div class="hero__grid">
-      <div class="hero__inner">
-        <p class="hero__eyebrow reveal" data-i18n="hero.eyebrow">EDUCATOR · ENGINEER · AI PRODUCT MANAGER</p>
-        <h1 class="hero__title">
-          <span class="reveal" style="--d:.05s" data-i18n="hero.name">Ahmed</span>
-          <span class="reveal grad" style="--d:.15s" data-i18n="hero.surname">Tarek</span>
-        </h1>
-        <p class="hero__sub reveal" style="--d:.28s" data-i18n="hero.sub">
-          Ten years turning technology into impact — from teaching kids to build
-          <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading
-          <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas.
-          This is that journey.
-        </p>
-        <div class="hero__actions reveal" style="--d:.4s">
-          <a href="#educator" class="btn btn--primary" data-i18n="hero.btnPrimary">Read my story</a>
-          <a href="#" class="btn btn--book" data-cta="book" data-i18n="cta.book"><span class="btn__icon">📅</span> Book a call</a>
-          <a href="#" class="btn btn--cv" data-cta="resume" download data-i18n="cta.cv"><span class="btn__icon">⬇</span> Download CV</a>
-          <a href="#contact" class="btn btn--ghost" data-i18n="hero.btnGhost">Get in touch</a>
-        </div>
-
-        <div class="persona reveal" style="--d:.5s">
-          <span class="persona__label" data-i18n="persona.label">What are you hiring for?</span>
-          <div class="persona__btns">
-            <a href="#work" class="persona__btn" data-persona="pm">
-              <span class="persona__btn-icon">🚀</span>
-              <span class="persona__btn-text"><strong data-i18n="persona.pm">Product Manager</strong><em data-i18n="persona.pmSub">AI · SaaS · B2B/B2C</em></span>
-            </a>
-            <a href="#educator" class="persona__btn" data-persona="edu">
-              <span class="persona__btn-icon">🎓</span>
-              <span class="persona__btn-text"><strong data-i18n="persona.edu">Educator / STEAM</strong><em data-i18n="persona.eduSub">Robotics · CS · Curriculum</em></span>
-            </a>
+    <div style="display: flex; align-items: center; gap: 18px; font-size: 14px; white-space: nowrap;">
+      <a href="#platform" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">Platform</a>
+      <a href="#help" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">How I can help</a>
+      <a href="#about" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">My story</a>
+      <div style="position: relative;">
+        <button onClick="{{ toggleJourney }}" style="display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--color-neutral-300); font-size: 14px; font-family: inherit; cursor: pointer; padding: 0;" style-hover="color: var(--color-accent-300);">My journey <i class="ph ph-caret-down" style="font-size: 12px;"></i></button>
+        <sc-if value="{{ journeyOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; top: 32px; right: 0; min-width: 200px; display: flex; flex-direction: column; gap: 2px; padding: 8px; z-index: 50; background: #ffffff; border: 1px solid var(--color-neutral-700); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md);">
+            <a href="/full" style="padding: 9px 12px; border-radius: var(--radius-sm, 6px); color: var(--color-text); font-size: 14px;" style-hover="background: var(--color-neutral-900); color: var(--color-accent-300);">Full story</a>
+            <a href="/educator" style="padding: 9px 12px; border-radius: var(--radius-sm, 6px); color: var(--color-text); font-size: 14px;" style-hover="background: var(--color-neutral-900); color: var(--color-accent-300);">Educator</a>
+            <a href="/product" style="padding: 9px 12px; border-radius: var(--radius-sm, 6px); color: var(--color-text); font-size: 14px;" style-hover="background: var(--color-neutral-900); color: var(--color-accent-300);">Product Manager</a>
           </div>
-        </div>
-        <div class="hero__stats reveal" style="--d:.55s">
-          <div class="stat"><span class="stat__num" data-count="10" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat1">Years in tech &amp; education</span></div>
-          <div class="stat"><span class="stat__num" data-count="3000" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat2">Students taught</span></div>
-          <div class="stat"><span class="stat__num" data-count="10000" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat3">Product users reached</span></div>
-          <div class="stat"><span class="stat__num" data-count="3" data-suffix="%">0</span><span class="stat__label" data-i18n="hero.stat4">Top-rated globally</span></div>
-        </div>
+        </sc-if>
       </div>
-
-      <div class="hero__photo reveal" style="--d:.35s">
-        <div class="hero__photo-ring"></div>
-        <div class="hero__photo-frame">
-          <img
-            src="assets/ahmed.jpg"
-            alt="Ahmed Tarek"
-            class="hero__photo-img"
-            onerror="this.style.display='none'; this.parentElement.classList.add('is-empty');"
-          />
-          <span class="hero__photo-fallback">AT</span>
-        </div>
-        <span class="hero__photo-badge">
-          <span class="hero__photo-dot"></span> <span data-i18n="hero.badge">Open to work</span>
-        </span>
-      </div>
-      </div>
-      <div class="hero__scroll">
-        <span data-i18n="hero.scroll">Scroll</span>
-        <div class="hero__scroll-line"></div>
-      </div>
-    </section>
-
-    <!-- ABOUT -->
-    <section class="section about" id="about">
-      <div class="section__head">
-        <span class="section__index" data-i18n="story.index">01 · THE STORY</span>
-        <h2 class="section__title reveal" data-i18n="story.title">One journey,<br /><span class="grad">three chapters.</span></h2>
-      </div>
-      <div class="about__grid">
-        <p class="about__lead reveal" data-i18n="story.lead">
-          I started out teaching children to build robots and write their first lines of code.
-          To teach it well, I had to <strong>build it myself</strong> — so I became an engineer.
-          And to build things that truly mattered, I learned to <strong>lead the whole product</strong>.
-          Educator, engineer, product manager — three chapters, one throughline:
-          <strong>making technology create real impact for real people.</strong>
-        </p>
-        <div class="about__cards">
-          <div class="glass tilt reveal">
-            <span class="about__chapter" data-i18n="story.c1label">Chapter One</span>
-            <h3 data-i18n="story.c1h">The Educator</h3>
-            <p data-i18n="story.c1p">10 years of STEAM &amp; CS teaching, 3,000+ students, RoboCup champion. Where the curiosity started.</p>
-          </div>
-          <div class="glass tilt reveal" style="--d:.1s">
-            <span class="about__chapter" data-i18n="story.c2label">Chapter Two</span>
-            <h3 data-i18n="story.c2h">The Builder</h3>
-            <p data-i18n="story.c2p">Python, automation and EdTech engineering — Top 3% globally on Upwork, $80K+ delivered.</p>
-          </div>
-          <div class="glass tilt reveal" style="--d:.2s">
-            <span class="about__chapter" data-i18n="story.c3label">Chapter Three</span>
-            <h3 data-i18n="story.c3h">The Product Manager</h3>
-            <p data-i18n="story.c3p">Leading AI-powered platforms from zero to launch, aligning engineering, design &amp; ops.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CHAPTER ONE — EDUCATOR -->
-    <section class="section work" id="educator">
-      <div class="section__head">
-        <span class="section__index" data-i18n="edu.index">CHAPTER ONE</span>
-        <h2 class="section__title reveal" data-i18n="edu.title">The Educator</h2>
-        <p class="section__lead reveal" style="--d:.1s" data-i18n="edu.lead">
-          Before I built products, I built <strong>curiosity</strong>. A decade teaching STEAM,
-          robotics and code across the UAE, USA, Saudi Arabia and Egypt — and a RoboCup title
-          that started it all.
-        </p>
-      </div>
-      <div class="products" id="eduTimeline">
-        <!-- injected by main.js -->
-      </div>
-    </section>
-
-    <!-- CHAPTER TWO — BUILDER -->
-    <section class="section work" id="builder">
-      <div class="section__head">
-        <span class="section__index" data-i18n="build.index">CHAPTER TWO</span>
-        <h2 class="section__title reveal" data-i18n="build.title">The Builder</h2>
-        <p class="section__lead reveal" style="--d:.1s" data-i18n="build.lead">
-          To teach technology well, I learned to <strong>build it</strong> — Python automation,
-          data tooling and EdTech platforms, delivered to clients worldwide at the top of the field.
-        </p>
-      </div>
-      <div class="products" id="buildTimeline">
-        <!-- injected by main.js -->
-      </div>
-    </section>
-
-    <!-- CHAPTER THREE — PRODUCT MANAGER -->
-    <section class="section work" id="work">
-      <div class="section__head">
-        <span class="section__index" data-i18n="work.index">CHAPTER THREE</span>
-        <h2 class="section__title reveal" data-i18n="work.title">The Product Manager</h2>
-        <p class="section__lead reveal" style="--d:.1s" data-i18n="work.lead">
-          Today I lead products end-to-end. Not a list of job titles — the actual products I built,
-          the problem each solved, and where you can go see them for yourself.
-        </p>
-      </div>
-      <div class="products" id="timeline">
-        <!-- injected by main.js -->
-      </div>
-    </section>
-
-    <!-- SKILLS -->
-    <section class="section skills" id="skills">
-      <div class="section__head">
-        <span class="section__index" data-i18n="skills.index">04 · TOOLKIT</span>
-        <h2 class="section__title reveal" data-i18n="skills.title">Skills &amp; toolkit</h2>
-      </div>
-      <div class="skills__grid" id="skillsGrid">
-        <!-- injected by main.js -->
-      </div>
-    </section>
-
-    <!-- CONTACT -->
-    <section class="section contact" id="contact">
-      <div class="contact__inner">
-        <span class="section__index" data-i18n="contact.index">05 · CONTACT</span>
-        <h2 class="contact__title reveal" data-i18n="contact.title">Let's build<br /><span class="grad">something great.</span></h2>
-        <p class="contact__sub reveal" style="--d:.1s" data-i18n="contact.sub">
-          Open to <strong>Product Manager</strong>, <strong>AI Product</strong> and <strong>STEAM / EdTech leadership</strong> roles. Based in Dubai, working globally.
-        </p>
-        <div class="contact__ctas reveal" style="--d:.16s">
-          <a href="#" class="btn btn--book" data-cta="book" data-i18n="cta.book"><span class="btn__icon">📅</span> Book a call</a>
-          <a href="#" class="btn btn--cv" data-cta="resume" download data-i18n="cta.cv"><span class="btn__icon">⬇</span> Download CV</a>
-        </div>
-        <form class="contact__form reveal" id="contactForm" style="--d:.15s" novalidate>
-          <div class="form__row">
-            <input type="text" name="name" placeholder="Your name" data-i18n-ph="form.name" required autocomplete="name" />
-            <input type="email" name="email" placeholder="Your email" data-i18n-ph="form.email" required autocomplete="email" />
-          </div>
-          <input type="text" name="company" placeholder="Company / role (optional)" data-i18n-ph="form.company" autocomplete="organization" />
-          <textarea name="message" rows="4" placeholder="What role or project do you have in mind?" data-i18n-ph="form.message" required></textarea>
-          <input type="hidden" name="_subject" value="New message from your portfolio" />
-          <button type="submit" class="btn btn--primary form__submit"><span data-i18n="form.submit">Send message</span> <span class="prod__cta-arrow">↗</span></button>
-          <p class="form__status" id="formStatus" role="status" aria-live="polite"></p>
-        </form>
-
-        <div class="contact__links reveal" style="--d:.28s">
-          <a class="contact__link" href="mailto:se.ahmedtprofile@gmail.com">
-            <span class="contact__link-label" data-i18n="contact.email">Email</span>
-            <span class="contact__link-val">se.ahmedtprofile@gmail.com</span>
-          </a>
-          <a class="contact__link" href="tel:+971588558039">
-            <span class="contact__link-label" data-i18n="contact.phone">Phone</span>
-            <span class="contact__link-val">+971 58 855 8039</span>
-          </a>
-          <a class="contact__link" href="https://linkedin.com/in/ahmedtarekpage" target="_blank" rel="noopener">
-            <span class="contact__link-label" data-i18n="contact.linkedin">LinkedIn</span>
-            <span class="contact__link-val">/in/ahmedtarekpage</span>
-          </a>
-        </div>
-      </div>
-      <footer class="footer">
-        <span data-i18n="footer.copy">© 2026 Ahmed Tarek</span>
-        <nav class="footer__views" aria-label="Portfolio views">
-          <a href="/product" data-view-link="product" data-i18n="views.product">Product</a>
-          <a href="/educator" data-view-link="educator" data-i18n="views.educator">Educator</a>
-          <a href="/full" data-view-link="full" data-i18n="views.full">Full story</a>
-        </nav>
-      </footer>
-    </section>
-  </main>
-
-  <!-- lightbox -->
-  <div class="lightbox" id="lightbox" aria-hidden="true">
-    <button class="lightbox__close" aria-label="Close">✕</button>
-    <button class="lightbox__nav lightbox__prev" aria-label="Previous">‹</button>
-    <img class="lightbox__img" src="" alt="" />
-    <button class="lightbox__nav lightbox__next" aria-label="Next">›</button>
-  </div>
-
-  <!-- cookie consent -->
-  <div class="cookie" id="cookieBanner" hidden>
-    <p class="cookie__text" data-i18n="cookie.text">
-      This site uses privacy-friendly analytics (Google Analytics &amp; Microsoft Clarity)
-      to understand how visitors engage. Nothing loads until you choose.
-    </p>
-    <div class="cookie__actions">
-      <button class="cookie__btn cookie__btn--ghost" id="cookieDecline" data-i18n="cookie.decline">Decline</button>
-      <button class="cookie__btn cookie__btn--accept" id="cookieAccept" data-i18n="cookie.accept">Accept</button>
+      <a href="#contact" style="color: var(--color-neutral-300);" style-hover="color: var(--color-accent-300);">Contact</a>
+      <a href="#contact" style="padding: 10px 18px; border-radius: 999px; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); font-weight: 500;" style-hover="border-color: var(--color-accent); color: var(--color-accent-200);">Book a free consultation</a>
     </div>
   </div>
 
-  <script type="module" src="main.js?v=36"></script>
+  <div style="position: relative; height: 150vh;">
+  <div style="position: sticky; top: 0; height: calc(100vh - 74px); overflow: hidden;">
+    <div ref="{{ portrait }}" style="position: absolute; left: 50%; top: 34%; height: 62%; aspect-ratio: 2730 / 1536; margin: 0; transform: translate(-50%, -50%); z-index: 1; will-change: transform;">
+      <img src="assets/hero-photo-white.png" alt="Ahmed Tarek" style="width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; animation: portrait-in 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;">
+    </div>
+    <div ref="{{ heroCtas }}" style="position: absolute; inset: 0; z-index: 2; pointer-events: none; will-change: opacity;">
+      <a href="#contact" style="position: absolute; left: 11%; top: 26%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.4s ease-in-out infinite, fade-up 0.8s ease 0.5s both;" style-hover="border-color: var(--color-accent); color: var(--color-accent-200);"><i class="ph ph-calendar-check" style="font-size: 16px;"></i>Book a free consultation</a>
+      <a href="https://ashrhly.com" style="position: absolute; right: 10%; top: 30%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 6.1s ease-in-out 0.6s infinite, fade-up 0.8s ease 0.65s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/ashrhly-lockup.png" alt="" style="height: 20px; width: auto; object-fit: contain; display: block;">Go to ashrhly.com</a>
+      <a href="https://www.linkedin.com/in/ahmedtarekai" style="position: absolute; right: 13%; top: 50%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.6s ease-in-out 1.3s infinite, fade-up 0.8s ease 0.95s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><i class="ph ph-linkedin-logo" style="font-size: 16px;"></i>LinkedIn</a>
+      <a href="https://www.youtube.com/@ahmedtarekai" style="position: absolute; left: 6%; top: 37%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 6.3s ease-in-out 0.4s infinite, fade-up 0.8s ease 1.1s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><i class="ph ph-youtube-logo" style="font-size: 16px;"></i>YouTube</a>
+      <a href="/full" style="position: absolute; left: 9%; top: 55%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.8s ease-in-out 1s infinite, fade-up 0.8s ease 0.8s both;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><i class="ph ph-path" style="font-size: 16px;"></i>My journey</a>
+    </div>
+    <div ref="{{ heroQuote }}" style="position: absolute; left: 6%; top: 50%; width: 38%; opacity: 0; z-index: 2; text-align: left; will-change: transform, opacity;">
+      <p style="animation: fade-in 0.9s ease 0.45s both;" data-quote="1"><span style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.35; letter-spacing: -0.01em; margin: 0; color: var(--color-neutral-200); text-wrap: pretty;">I'm Ahmed, a <span style="color: var(--color-accent);">Product Manager</span> and Entrepreneur with a software engineering background, educator of 3,000+ students, and builder of <a href="https://ashrhly.com" style="color: var(--color-accent); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;" style-hover="color: var(--color-accent-200);">ashrhly.com</a>.</span></p>
+    </div>
+    <div ref="{{ heroPromise }}" style="position: absolute; left: 44%; right: 10%; top: 69%; opacity: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 9px; font-size: 15px; line-height: 1.5; color: var(--color-neutral-400); will-change: opacity;">
+      <span style="display: inline-flex; align-items: center; gap: 10px;"><i class="ph ph-cube" style="font-size: 16px; color: var(--color-accent);"></i>Companies get products <strong style="font-weight: 500; color: var(--color-text);">built and managed</strong></span>
+      <span style="display: inline-flex; align-items: center; gap: 10px;"><i class="ph ph-path" style="font-size: 16px; color: var(--color-accent);"></i>Students find <strong style="font-weight: 500; color: var(--color-text);">tracks, not courses</strong></span>
+    </div>
+    <div ref="{{ heroText }}" style="position: absolute; left: 0; right: 0; bottom: 13%; z-index: 3; display: flex; flex-direction: column; align-items: center; will-change: transform;">
+      <div style="position: relative; text-align: center;">
+        <span style="position: absolute; left: -26px; top: -12px; transform: rotate(-8deg); padding: 8px 16px; border-radius: 999px; background: #ffffff; color: var(--color-neutral-300); font-size: 13px; font-weight: 500; white-space: nowrap; z-index: 2; box-shadow: var(--shadow-sm); animation: fade-up 0.7s ease 1s both;">Hello, my name is</span>
+        <span style="position: absolute; right: -44px; top: -12px; transform: rotate(7deg); display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 999px; background: #ffffff; color: var(--color-neutral-300); font-size: 13px; font-weight: 500; white-space: nowrap; z-index: 2; box-shadow: var(--shadow-sm); animation: fade-up 0.7s ease 1.15s both;"><i class="ph ph-map-pin" style="font-size: 14px; color: var(--color-accent);"></i>and I live in Dubai, UAE</span>
+        <span style="position: absolute; left: 50%; bottom: -46px; transform: translateX(-50%); display: inline-flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); white-space: nowrap; animation: fade-up 0.8s ease 1.4s both;">Scroll<i class="ph ph-arrow-down" style="font-size: 15px; animation: pill-float 1.8s ease-in-out infinite;"></i></span>
+        <h1 style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(64px, 9vw, 128px); line-height: 1; margin: 0; letter-spacing: -0.02em; background: linear-gradient(180deg, #17181f 35%, rgba(23,24,31,0.3)); -webkit-background-clip: text; background-clip: text; color: transparent; animation: fade-up 0.9s ease 0.8s both;">Ahmed Tarek</h1>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div style="border-top: 1px solid var(--color-neutral-700); border-bottom: 1px solid var(--color-neutral-700); background: var(--color-neutral-900);">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px;">
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <span style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Taught with</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-udacity.png" alt="Udacity" style="height: 15px; width: auto; object-fit: contain; display: block;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-decubs-mark.png" alt="Digital Egypt Cubs" style="height: 24px; width: auto; object-fit: contain; display: block;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-upwork-word.png" alt="Upwork" style="height: 14px; width: auto; object-fit: contain; display: block;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-robocup-mark.png" alt="RoboCup" style="height: 24px; width: auto; object-fit: contain; display: block;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease; background: #17181f; border-color: #17181f;"><img src="assets/logo-almentor-trim.png" alt="almentor" style="height: 13px; width: auto; object-fit: contain; display: block;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-preply-word.png" alt="Preply" style="height: 15px; width: auto; object-fit: contain; display: block;"></span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 18px; padding: 0 40px; border-left: 1px solid var(--color-neutral-800); border-right: 1px solid var(--color-neutral-800);">
+        <span style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Trusted by</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: var(--font-heading); font-size: 15px; font-weight: 500; color: var(--color-neutral-400);">
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-microsoft-sq2.png" alt="" style="height: 16px; width: auto; object-fit: contain; display: block;">Microsoft<span style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--color-accent-800); color: var(--color-accent-200);">In progress</span></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="font-size: 15px; line-height: 1;">🇸🇦</span>Saudi Gov projects</span></span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <span style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Product manager at</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: var(--font-heading); font-size: 15px; font-weight: 500; color: var(--color-neutral-400);">
+          <a href="https://ashrhly.com" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/ashrhly-lockup.png" alt="Ashrhly" style="height: 30px; width: auto; object-fit: contain; display: block;"></a>
+          <a href="https://inkryptvideos.com" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/logo-inkrypt-tight.png" alt="Inkrypt Videos" style="height: 16px; width: auto; object-fit: contain; display: block;"></a>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #0d1b2a; border: 1px solid #0d1b2a; font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-sakina.jpg" alt="SAKINA Tours" style="height: 22px; width: auto; object-fit: contain; display: block; border-radius: 4px;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-alafein.png" alt="AlaFein" style="height: 13px; width: auto; object-fit: contain; display: block;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #ffffff;">
+
+  <div id="content" style="max-width: 1120px; margin: 0 auto; padding: 112px 40px 0 40px; display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-family: var(--font-heading); font-size: 13px; color: var(--color-accent-300); font-weight: 500;">01</span>
+        <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+        <span style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Content hub</span>
+      </div>
+      <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 38px; line-height: 1.15; letter-spacing: -0.01em; margin: 0; max-width: 720px;">Free every week: the systems I actually use.</h2>
+    </div>
+    <div data-reveal="1" style="display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 32px; align-items: start;">
+      <div data-reveal="2" style="display: flex; flex-direction: column; gap: 14px;">
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: block; position: relative; border-radius: 12px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;" style-hover="opacity: 0.94;">
+          <image-slot id="yt-feature" shape="rect" src="assets/thumb-track.png" placeholder="Featured video thumbnail"></image-slot>
+          <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(255,0,0,0.92); display: flex; align-items: center; justify-content: center;"><i class="ph ph-play" style="font-size: 26px; color: #ffffff;"></i></span>
+          
+        </a>
+        <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: 22px; line-height: 1.3; margin: 0;">Stop collecting courses — here's what to do instead</h3>
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; gap: 10px;">
+            <span style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--color-neutral-800); display: block;"><img src="assets/hero-photo-white.png" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; display: block;"></span>
+            <span style="display: flex; flex-direction: column;"><span style="font-size: 14px; font-weight: 500;">Ahmed Tarek</span><span style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</span></span>
+          </span>
+          <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; background: #ff0000; color: #ffffff; font-size: 14px; font-weight: 500;" style-hover="opacity: 0.9;"><i class="ph ph-youtube-logo" style="font-size: 17px;"></i>Subscribe</a>
+        </div>
+      </div>
+      <div data-reveal="3" style="display: flex; flex-direction: column; gap: 16px; max-height: 460px; overflow-y: auto; padding-right: 8px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-neutral-700);">
+          <span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Video list</span>
+          <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="font-size: 13px;">Channel →</a>
+        </div>
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
+          <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
+            <image-slot id="rec-1837" shape="rect" src="assets/thumb-build.png" placeholder="Thumbnail"></image-slot>
+            
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">How I use AI to build an EdTech product from scratch</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-500);">Ahmed Tarek</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</div>
+          </div>
+        </a>
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
+          <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
+            <image-slot id="rec-1522" shape="rect" src="assets/thumb-roadmap.png" placeholder="Thumbnail"></image-slot>
+            
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">The AI Product Manager roadmap — where to start</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-500);">Ahmed Tarek</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</div>
+          </div>
+        </a>
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
+          <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
+            <image-slot id="rec-0941" shape="rect" src="assets/thumb-track.png" placeholder="Thumbnail"></image-slot>
+            
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">Tracks, not courses — the system I teach</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-500);">Ahmed Tarek</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</div>
+          </div>
+        </a>
+  </div>
+  </div>
+  </div>
+  </div>
+
+  <div id="about" style="max-width: 1120px; margin: 0 auto; padding: 112px 40px 0 40px;">
+    <div data-reveal="1" style="position: relative; overflow: hidden; border-radius: 20px; background: var(--color-neutral-900); border: 1px solid var(--color-neutral-800); padding: 60px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: start;">
+      <div style="position: absolute; right: -120px; top: -140px; width: 620px; height: 620px; border-radius: 50%; background: var(--color-accent-900); pointer-events: none;"></div>
+      <div style="position: relative; display: flex; flex-direction: column; gap: 22px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-family: var(--font-heading); font-size: 13px; color: var(--color-accent-300); font-weight: 500;">02</span>
+          <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+          <span style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">My story</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-family: var(--font-heading); font-size: 34px; font-weight: 400; color: var(--color-neutral-300);">Hey, I'm</span>
+          <span style="font-family: var(--font-heading); font-size: 46px; font-weight: 500; letter-spacing: -0.01em; color: var(--color-text);">Ahmed Tarek</span>
+          <svg viewBox="0 0 300 18" style="width: 260px; height: 16px; margin-top: 4px; overflow: visible;"><path d="M4 12 C 60 4, 120 15, 178 8 C 226 3, 262 11, 296 6" stroke="var(--color-accent)" stroke-width="4" fill="none" stroke-linecap="round"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; border-radius: 12px; background: #ffffff; border: 1px solid var(--color-neutral-700); border-left: 3px solid var(--color-accent);">
+          <span style="font-family: var(--font-heading); font-weight: 500; font-size: 21px; line-height: 1.35; color: var(--color-text);">"Tracks, not courses."</span>
+          <span style="font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-500);">What I tell every student</span>
+        </div>
+        <p style="font-size: 15px; line-height: 1.85; color: var(--color-neutral-400); margin: 0;">I learned that the hard way. RoboCup champion at 16, then 3,000+ students taught across four countries — and everywhere the same sight: motivated people drowning in tutorials. Not for lack of effort. For lack of a path.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; border-radius: 12px; background: #ffffff; border: 1px solid var(--color-neutral-700); border-left: 3px solid var(--color-accent);">
+          <span style="font-family: var(--font-heading); font-weight: 500; font-size: 21px; line-height: 1.35; color: var(--color-text);">"Learning is a product problem."</span>
+          <span style="font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-500);">What I tell every company</span>
+        </div>
+        <p style="font-size: 15px; line-height: 1.85; color: var(--color-neutral-400); margin: 0;">So I built the product instead. Python engineer first — top 3% on Upwork — then Dubai as a <strong style="font-weight: 500; color: var(--color-text);">product manager</strong>, leading AI products end to end: discovery, roadmap, delivery, launch. That work includes <strong style="font-weight: 500; color: var(--color-text);">government projects in Saudi Arabia and Egypt</strong> — a confidential Saudi platform built around Matterport 3D capture, and a national AI and Python programme with Udacity — plus EdTech platforms reaching 10,000+ users across six countries.</p>
+        <p style="font-size: 15px; line-height: 1.85; color: var(--color-neutral-400); margin: 0;">Now I do that job on my own product: <a href="https://ashrhly.com">ashrhly.com</a>, concept to launch, an AI tutor that gives every student one guided track. Engineering taught me how to build. Teaching taught me what to build. Product is where they meet.</p>
+        <a href="/full" style="display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 5px; align-self: flex-start;">Read my full story <i class="ph ph-arrow-right" style="font-size: 16px;"></i></a>
+      </div>
+      <div style="position: relative; align-self: start; position: sticky; top: 100px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(200px, 290px) minmax(160px, 200px) auto; gap: 16px;">
+        <div class="lighten" style="grid-column: span 2; height: 100%; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-md);">
+          <image-slot id="story-shot-1" shape="rounded" radius="14" placeholder="Leading a product session"></image-slot>
+        </div>
+        <div class="lighten" style="height: 100%; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-md); transform: rotate(-2deg);">
+          <image-slot id="story-shot-2" shape="rounded" radius="14" placeholder="Teaching / robotics"></image-slot>
+        </div>
+        <div class="lighten" style="height: 100%; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-md); transform: rotate(2deg);">
+          <image-slot id="story-shot-3" shape="rounded" radius="14" placeholder="ashrhly / building"></image-slot>
+        </div>
+        <div style="grid-column: 1 / -1; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 22px;">
+          <span style="display: inline-flex; align-items: baseline; gap: 8px; padding: 11px 18px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700);"><span style="font-family: var(--font-heading); font-size: 18px; font-weight: 500; color: var(--color-accent-300);">0 → 1</span><span style="font-size: 13px; color: var(--color-neutral-500);">AI products led</span></span>
+          <span style="display: inline-flex; align-items: baseline; gap: 8px; padding: 11px 18px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700);"><span style="font-family: var(--font-heading); font-size: 18px; font-weight: 500; color: var(--color-accent-300);">10,000+</span><span style="font-size: 13px; color: var(--color-neutral-500);">users reached</span></span>
+          <span style="display: inline-flex; align-items: baseline; gap: 8px; padding: 11px 18px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700);"><span style="font-family: var(--font-heading); font-size: 18px; font-weight: 500; color: var(--color-accent-300);">3,000+</span><span style="font-size: 13px; color: var(--color-neutral-500);">students taught</span></span>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; grid-column: 1 / -1; margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--color-neutral-800);">
+          <a href="#contact" style="padding: 12px 24px; border-radius: 999px; background: var(--color-accent); color: #ffffff; font-size: 14px; font-weight: 500;" style-hover="background: var(--color-accent-400);">See my product work</a>
+          <a href="#content" style="padding: 12px 24px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);">Watch my videos</a>
+          <a href="#contact" style="padding: 12px 24px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); color: var(--color-neutral-300); font-size: 14px; font-weight: 500;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);">Work with me</a>
+        </div>
+    </div>
+  </div>
+
+  <div style="background: #ffffff;">
+  <div id="help" style="max-width: 1120px; margin: 0 auto; padding: 128px 40px 0 40px;">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; align-items: start;">
+      <div style="display: flex; flex-direction: column; gap: 32px;">
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: 18px; min-height: 210px; padding: 8px 0 24px 0;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-family: var(--font-heading); font-size: 13px; color: var(--color-accent-300); font-weight: 500;">03</span>
+            <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+            <span style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">What I do</span>
+          </div>
+          <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 58px; line-height: 1.06; letter-spacing: -0.015em; margin: 0;">How Can<br>I Help <span style="position: relative; display: inline-block;">You?<svg viewBox="0 0 150 64" style="position: absolute; left: -12px; top: -8px; width: 126%; height: 130%; overflow: visible; pointer-events: none;"><ellipse cx="75" cy="32" rx="66" ry="26" stroke="var(--color-accent)" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="330" stroke-dashoffset="14" transform="rotate(-4 75 32)"></ellipse></svg></span></h2>
+        </div>
+      <div data-reveal="1" style="display: flex; flex-direction: column; gap: 18px; padding: 44px 40px; border-radius: 18px; background: #f7f4ef; transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-5px); box-shadow: var(--shadow-lg);">
+        <i class="ph ph-path" style="font-size: 46px; color: #5e50b5;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text); margin-top: 8px;">Learn on a Track</div>
+        <div style="font-size: 16px; line-height: 1.75; color: var(--color-neutral-400);">Start your tech or AI career with a step-by-step track. No more guessing what to learn next.</div>
+        <a href="#platform" style="display: inline-flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 15px; font-weight: 500; color: var(--color-text); border-bottom: 1px solid var(--color-neutral-600); padding-bottom: 2px; align-self: flex-start;" style-hover="gap: 14px; color: #5e50b5; border-color: #5e50b5;">Get started <i class="ph ph-arrow-right" style="font-size: 15px;"></i></a>
+      </div>
+      <div data-reveal="3" style="display: flex; flex-direction: column; gap: 18px; padding: 44px 40px; border-radius: 18px; background: #f7f4ef; transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-5px); box-shadow: var(--shadow-lg);">
+        <i class="ph ph-buildings" style="font-size: 46px; color: #b45309;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text); margin-top: 8px;">Solutions for Institutions</div>
+        <div style="font-size: 16px; line-height: 1.75; color: var(--color-neutral-400);">Learning products for schools, programmes and ministries — built to grow and show results.</div>
+        <a href="#contact" style="display: inline-flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 15px; font-weight: 500; color: var(--color-text); border-bottom: 1px solid var(--color-neutral-600); padding-bottom: 2px; align-self: flex-start;" style-hover="gap: 14px; color: #b45309; border-color: #b45309;">Request a demo <i class="ph ph-arrow-right" style="font-size: 15px;"></i></a>
+      </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 32px; margin-top: 40px;">
+      <div data-reveal="2" style="display: flex; flex-direction: column; gap: 18px; padding: 44px 40px; border-radius: 18px; background: #f7f4ef; transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-5px); box-shadow: var(--shadow-lg);">
+        <i class="ph ph-cube" style="font-size: 46px; color: #1d4ed8;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text); margin-top: 8px;">Work With Me as AI PM</div>
+        <div style="font-size: 16px; line-height: 1.75; color: var(--color-neutral-400);">I take AI and EdTech products from idea to launch — discovery, roadmap, delivery — and I have done it before.</div>
+        <a href="/full" style="display: inline-flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 15px; font-weight: 500; color: var(--color-text); border-bottom: 1px solid var(--color-neutral-600); padding-bottom: 2px; align-self: flex-start;" style-hover="gap: 14px; color: #1d4ed8; border-color: #1d4ed8;">See my experience <i class="ph ph-arrow-right" style="font-size: 15px;"></i></a>
+      </div>
+      <div data-reveal="4" style="display: flex; flex-direction: column; gap: 18px; padding: 44px 40px; border-radius: 18px; background: #f7f4ef; transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-5px); box-shadow: var(--shadow-lg);">
+        <i class="ph ph-play-circle" style="font-size: 46px; color: #0f7a4f;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text); margin-top: 8px;">Free Content</div>
+        <div style="font-size: 16px; line-height: 1.75; color: var(--color-neutral-400);">Videos, articles, and a weekly newsletter on building AI careers and products — plus the daily productivity systems that get you to the goal. Free, always.</div>
+        <a href="#content" style="display: inline-flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 15px; font-weight: 500; color: var(--color-text); border-bottom: 1px solid var(--color-neutral-600); padding-bottom: 2px; align-self: flex-start;" style-hover="gap: 14px; color: #0f7a4f; border-color: #0f7a4f;">Explore content <i class="ph ph-arrow-right" style="font-size: 15px;"></i></a>
+      </div>
+        <div data-reveal="5" style="display: flex; flex-direction: column; gap: 18px; padding: 44px 40px; border-radius: 18px; background: #f7f4ef;">
+          <div style="font-family: var(--font-heading); font-weight: 500; font-size: 30px; line-height: 1.2; color: var(--color-text);">… and more!</div>
+          <a href="#content" style="display: inline-flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 500; color: var(--color-text); border-bottom: 1px solid var(--color-neutral-600); padding-bottom: 2px; align-self: flex-start;" style-hover="gap: 14px; color: var(--color-accent-300); border-color: var(--color-accent);">Explore all content <i class="ph ph-arrow-right" style="font-size: 15px;"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <div style="margin-top: 112px; background: #ffffff;">
+  <div id="platform">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 104px 40px 0 40px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <span style="font-family: var(--font-heading); font-size: 13px; color: var(--color-accent-300); font-weight: 500;">04</span>
+        <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+        <span style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">The track method</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;">
+        <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 42px; line-height: 1.12; letter-spacing: -0.01em; margin: 0; max-width: 720px;">Watching videos won't change your life. A track will.</h2>
+        <p style="font-size: 16px; line-height: 1.8; color: var(--color-neutral-400); margin: 0; max-width: 560px;">A course gives you lessons. A track gives you an order, a deadline, and proof you can point at. Six steps, and it starts with a conversation.</p>
+      </div>
+      <div id="track-rail" style="position: relative; margin: 64px auto 0 auto; width: min(640px, 100%);">
+        <svg ref="{{ trackSvg }}" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none;">
+          <path ref="{{ trackBase }}" fill="none" stroke="var(--color-neutral-800)" stroke-width="2" stroke-linecap="round"></path>
+          <path ref="{{ trackFill }}" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"></path>
+        </svg>
+        <div data-track-step style="position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 26px; padding: 0 0 58px 0;">
+          <div style="position: relative; display: flex; justify-content: center;">
+            <span data-track-dot style="position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); border: 1px solid var(--color-accent); display: flex; align-items: center; justify-content: center; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;"><i class="ph ph-calendar-check" data-track-icon style="font-size: 21px; color: #ffffff; transition: color 0.35s ease;"></i></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px; padding-top: 9px;">
+            <span style="font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-weight: 500;">01</span>
+            <div style="font-family: var(--font-heading); font-weight: 500; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text);">Book a free consultation</div>
+            <div style="font-size: 15px; line-height: 1.75; color: var(--color-neutral-400); max-width: 480px;">Thirty minutes, free. You describe where your learners or your users get stuck, and I tell you honestly whether I am the right person for it.</div>
+            <a href="#contact" style="align-self: flex-start; margin-top: 8px; display: inline-flex; align-items: center; gap: 9px; padding: 13px 26px; border-radius: 999px; background: var(--color-accent); color: #ffffff; font-size: 15px; font-weight: 500; white-space: nowrap; transition: transform 0.2s ease, box-shadow 0.2s ease;" style-hover="transform: translateY(-2px); box-shadow: var(--shadow-md);"><i class="ph ph-calendar-check" style="font-size: 17px;"></i>Book a free consultation</a>
+          </div>
+        </div>
+        <div data-track-step style="position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 26px; padding: 0 0 58px 0;">
+          <div style="position: relative; display: flex; justify-content: center;">
+            <span data-track-dot style="position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); border: 1px solid var(--color-accent); display: flex; align-items: center; justify-content: center; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;"><i class="ph ph-target" data-track-icon style="font-size: 21px; color: #ffffff; transition: color 0.35s ease;"></i></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px; padding-top: 9px;">
+            <span style="font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-weight: 500;">02</span>
+            <div style="font-family: var(--font-heading); font-weight: 500; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text);">Start from the goal</div>
+            <div style="font-size: 15px; line-height: 1.75; color: var(--color-neutral-400); max-width: 480px;">First I need to know your real goal — a job, freelance, or your own business — and your situation: your time, your money, what you can actually commit to. Without a realistic goal you get lost. No single course fits everyone, so the plan is built around you. And we plan backwards, from the end to the start: if the goal is a million dollars a year, a job will not get you there — so the goal has to match the road. That is where a track starts.</div>
+          </div>
+        </div>
+        <div data-track-step style="position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 26px; padding: 0 0 58px 0;">
+          <div style="position: relative; display: flex; justify-content: center;">
+            <span data-track-dot style="position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); border: 1px solid var(--color-accent); display: flex; align-items: center; justify-content: center; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;"><i class="ph ph-list-checks" data-track-icon style="font-size: 21px; color: #ffffff; transition: color 0.35s ease;"></i></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px; padding-top: 9px;">
+            <span style="font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-weight: 500;">03</span>
+            <div style="font-family: var(--font-heading); font-weight: 500; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text);">Cut it into steps</div>
+            <div style="font-size: 15px; line-height: 1.75; color: var(--color-neutral-400); max-width: 480px;">Once the goal is real, we read what it actually requires. If it is a role at a specific company, that role needs ten skills — so those ten become the track, in order, each step small enough to finish this week. We keep breaking it down until you know exactly what to do today.</div>
+          </div>
+        </div>
+        <div data-track-step style="position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 26px; padding: 0 0 58px 0;">
+          <div style="position: relative; display: flex; justify-content: center;">
+            <span data-track-dot style="position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); border: 1px solid var(--color-accent); display: flex; align-items: center; justify-content: center; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;"><i class="ph ph-seal-check" data-track-icon style="font-size: 21px; color: #ffffff; transition: color 0.35s ease;"></i></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px; padding-top: 9px;">
+            <span style="font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-weight: 500;">04</span>
+            <div style="font-family: var(--font-heading); font-weight: 500; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text);">Prove each step</div>
+            <div style="font-size: 15px; line-height: 1.75; color: var(--color-neutral-400); max-width: 480px;">Every step closes with real data — a project, an exam, something you can show — not motivational words. That is how we know where you stand and what comes next.</div>
+          </div>
+        </div>
+        <div data-track-step style="position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 26px; padding: 0 0 58px 0;">
+          <div style="position: relative; display: flex; justify-content: center;">
+            <span data-track-dot style="position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); border: 1px solid var(--color-accent); display: flex; align-items: center; justify-content: center; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;"><i class="ph ph-chart-line-up" data-track-icon style="font-size: 21px; color: #ffffff; transition: color 0.35s ease;"></i></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px; padding-top: 9px;">
+            <span style="font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-weight: 500;">05</span>
+            <div style="font-family: var(--font-heading); font-weight: 500; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text);">See where you are</div>
+            <div style="font-size: 15px; line-height: 1.75; color: var(--color-neutral-400); max-width: 480px;">Progress you can actually see, so you always know what is next and how far is left.</div>
+          </div>
+        </div>
+        <div data-track-step style="position: relative; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 26px; padding: 0 0 58px 0;">
+          <div style="position: relative; display: flex; justify-content: center;">
+            <span data-track-dot style="position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: var(--color-accent); border: 1px solid var(--color-accent); display: flex; align-items: center; justify-content: center; transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;"><i class="ph ph-rocket-launch" data-track-icon style="font-size: 21px; color: #ffffff; transition: color 0.35s ease;"></i></span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px; padding-top: 9px;">
+            <span style="font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-weight: 500;">06</span>
+            <div style="font-family: var(--font-heading); font-weight: 500; font-size: 27px; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-text);">Build and ship it</div>
+            <div style="font-size: 15px; line-height: 1.75; color: var(--color-neutral-400); max-width: 480px;">A written scope, weekly visible progress, decisions written down, and something real that reaches users.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <div data-ground="1" style="margin-top: 112px; background: linear-gradient(140deg, #262757, #191a3c); color: #e9e9ed;">
+  <div id="testimonials" style="max-width: 1120px; margin: 0 auto; padding: 96px 40px 104px 40px; display: flex; flex-direction: column; gap: 44px;">
+    <div style="display: flex; align-items: end; justify-content: space-between; gap: 32px; flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-family: var(--font-heading); font-size: 13px; color: #b0a5e4; font-weight: 500;">05</span>
+          <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+          <span style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(233,233,237,0.55); font-weight: 500;">Testimonials</span>
+        </div>
+        <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 40px; line-height: 1.12; letter-spacing: -0.01em; margin: 0; max-width: 640px;">What students and clients say.</h2>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);">
+        <span style="display: flex; gap: 2px; color: #f0a500;"><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i><i class="ph ph-star-fill"></i></span>
+        <span style="font-size: 13px; color: rgba(233,233,237,0.72);">95% satisfaction — students, companies and institutions</span>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
+      <figure data-reveal="1" style="margin: 0; display: flex; flex-direction: column; gap: 18px; padding: 34px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-6px); box-shadow: var(--shadow-lg);">
+        <span style="font-family: var(--font-heading); font-size: 42px; line-height: 0.6; color: #5e50b5;">&ldquo;</span>
+        <blockquote style="margin: 0; font-size: 16px; line-height: 1.8; color: var(--color-neutral-300);">Ahmed has an in-depth knowledge of AI, ML, and Robotics. He’s very passionate about the topic of Robotics and willing to explore new areas with great dedication and enthusiasm. He’s very methodical in his engineering approach to problems with a great attitude for working with others in learning new concepts.</blockquote>
+        <figcaption style="display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--color-neutral-800);">
+          <span style="width: 42px; height: 42px; border-radius: 50%; background: #e6e2f8; color: #5e50b5; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 15px; font-weight: 500;">MS</span>
+          <span style="display: flex; flex-direction: column;"><span style="font-size: 14px; font-weight: 500; color: #f7f6fb;">Mohammad Shaban</span><span style="font-size: 12.5px; color: rgba(233,233,237,0.55);">TPM/Release at Waymo · ex-Zoox</span></span>
+        </figcaption>
+      </figure>
+      <figure data-reveal="2" style="margin: 0; display: flex; flex-direction: column; gap: 18px; padding: 34px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-6px); box-shadow: var(--shadow-lg);">
+        <span style="font-family: var(--font-heading); font-size: 42px; line-height: 0.6; color: #1d4ed8;">&ldquo;</span>
+        <blockquote style="margin: 0; font-size: 16px; line-height: 1.8; color: var(--color-neutral-300);">Ahmed identified a bug in the SWVL software and exercised responsible disclosure to notify the organization and walk us through the issue. He provided insights into the way he was able to identify the software flaw to allow engineering to quickly apply a fix to the problem. Great work!!</blockquote>
+        <figcaption style="display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--color-neutral-800);">
+          <span style="width: 42px; height: 42px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 15px; font-weight: 500;">NM</span>
+          <span style="display: flex; flex-direction: column;"><span style="font-size: 14px; font-weight: 500; color: #f7f6fb;">Nami Mufti</span><span style="font-size: 12.5px; color: rgba(233,233,237,0.55);">Ex-cybersecurity lead, Spotify &amp; SWVL</span></span>
+        </figcaption>
+      </figure>
+      <figure data-reveal="3" style="margin: 0; display: flex; flex-direction: column; gap: 18px; padding: 34px; border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); transition: transform 0.26s ease, box-shadow 0.26s ease;" style-hover="transform: translateY(-6px); box-shadow: var(--shadow-lg);">
+        <span style="font-family: var(--font-heading); font-size: 42px; line-height: 0.6; color: #0f7a4f;">&ldquo;</span>
+        <blockquote style="margin: 0; font-size: 16px; line-height: 1.8; color: var(--color-neutral-300);">As AlaFein, creating our first production app starting with approx. 10K users, we are absolutely thrilled with the work Ahmed Tarek and his team did on the AlaFein application for both iOS and Android, as well as the comprehensive dashboard.<span data-more style="display: none;"> Over the course of a year we worked with them from writing requirements and UI/UX design to front-end and back-end development, deploying, maintenance, and testing. Throughout the project they were professional, always available, punctual, and incredibly collaborative. We highly recommend Ahmed Tarek and his team.</span><button type="button" data-more-btn style="display: block; margin-top: 10px; border: none; background: none; padding: 0; cursor: pointer; font-family: var(--font-body); font-size: 14px; font-weight: 500; color: #cbc4ee; border-bottom: 1px solid rgba(203,196,238,0.4);">See more</button></blockquote>
+        <figcaption style="display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--color-neutral-800);">
+          <span style="width: 42px; height: 42px; border-radius: 50%; background: #d9f2e5; color: #0f7a4f; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 15px; font-weight: 500;">AF</span>
+          <span style="display: flex; flex-direction: column;"><span style="font-size: 14px; font-weight: 500; color: #f7f6fb;">AlaFein</span><span style="font-size: 12.5px; color: rgba(233,233,237,0.55);">Arts &amp; culture events platform</span></span>
+        </figcaption>
+      </figure>
+  </div>
+
+  </div>
+  </div>
+
+  <div style="background: #ffffff;">
+  <div id="resources" style="max-width: 1120px; margin: 0 auto; padding: 112px 40px 0 40px; display: flex; flex-direction: column; gap: 36px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-family: var(--font-heading); font-size: 13px; color: var(--color-accent-300); font-weight: 500;">06</span>
+          <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+          <span style="font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Free resources</span>
+        </div>
+        <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 38px; line-height: 1.15; letter-spacing: -0.01em; margin: 0; max-width: 720px;">Take something useful with you.</h2>
+      </div>
+    <p style="font-size: 13px; color: var(--color-neutral-500); margin: -18px 0 0 0;">Draft placeholders — link the real files when they are ready.</p>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+      <a href="#contact" style="display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-700); border-top: 2px solid var(--color-accent); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; color: inherit;" style-hover="transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent-700);">
+        <i class="ph ph-file-text" style="color: var(--color-accent); font-size: 26px;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; color: var(--color-text);">The AI PM roadmap (PDF)</div>
+        <div style="font-size: 14px; line-height: 1.7; color: var(--color-neutral-400);">The order I would learn product management and AI in today — one page, no fluff.</div>
+        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Get the PDF →</span>
+      </a>
+      <a href="#contact" style="display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-700); border-top: 2px solid var(--color-accent); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; color: inherit;" style-hover="transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent-700);">
+        <i class="ph ph-check-square" style="color: var(--color-accent); font-size: 26px;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; color: var(--color-text);">Track-builder checklist</div>
+        <div style="font-size: 14px; line-height: 1.7; color: var(--color-neutral-400);">Turn any pile of courses into a sequenced track with a clear finish line.</div>
+        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Download →</span>
+      </a>
+      <a href="#contact" style="display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-700); border-top: 2px solid var(--color-accent); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; color: inherit;" style-hover="transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent-700);">
+        <i class="ph ph-sparkle" style="color: var(--color-accent); font-size: 26px;"></i>
+        <div style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; color: var(--color-text);">Prompt pack for learners</div>
+        <div style="font-size: 14px; line-height: 1.7; color: var(--color-neutral-400);">The prompts I give students to study faster with AI without skipping the thinking.</div>
+        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Get the pack →</span>
+      </a>
+    </div>
+  </div>
+
+  </div>
+  </div>
+
+  <div id="newsletter" style="margin-top: 112px; background: linear-gradient(180deg, #ffffff, var(--color-accent-900) 55%, #ffffff); padding: 72px 24px;">
+    <div style="max-width: 1000px; margin: 0 auto; background: #ffffff; border: 1px solid var(--color-accent-800); border-radius: 26px; box-shadow: 0 26px 60px -32px rgba(60,52,120,0.28); padding: 56px; display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); gap: 52px; align-items: start;">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 40px; line-height: 1.08; letter-spacing: -0.015em; margin: 0;">Subscribe to<br><span style="color: var(--color-accent);">The Track</span></h2>
+        <p style="font-size: 15px; line-height: 1.7; color: var(--color-neutral-400); margin: 0;">Join <strong style="font-weight: 500; color: var(--color-text);">3,000+ students and builders</strong> already following the tracks.</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex;">
+            <span style="width: 34px; height: 34px; border-radius: 50%; background: var(--color-accent-800); border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--color-accent-200);">AM</span>
+            <span style="width: 34px; height: 34px; border-radius: 50%; background: var(--color-neutral-800); border: 2px solid #ffffff; margin-left: -10px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--color-neutral-300);">RS</span>
+            <span style="width: 34px; height: 34px; border-radius: 50%; background: var(--color-accent-400); border: 2px solid #ffffff; margin-left: -10px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #ffffff;">HK</span>
+          </div>
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 13px; color: var(--color-accent);">★★★★★</span>
+            <span style="font-size: 13px; color: var(--color-neutral-500);">from students in 4 countries</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <p style="font-size: 17px; line-height: 1.7; color: var(--color-text); margin: 0;">Every week I send one track-shaped lesson: what to learn next in AI and tech, how to build products that ship, and the daily systems behind it. Free, always.</p>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 20px; border-radius: 999px; background: var(--color-accent-900); border: 1px solid var(--color-accent-800);">
+          <input type="email" placeholder="Your email" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); padding: 10px 0;">
+          <button type="button" style="border: none; cursor: pointer; padding: 13px 26px; border-radius: 999px; background: var(--color-accent); color: #ffffff; font-family: var(--font-body); font-size: 15px; font-weight: 500; white-space: nowrap; transition: transform 0.2s ease;" style-hover="transform: translateY(-2px);">Subscribe</button>
+        </div>
+        <p style="font-size: 13px; line-height: 1.7; color: var(--color-neutral-500); margin: 0;">By subscribing you'll get the newsletter and the occasional note about a new track or course. Unsubscribe any time, no hard feelings.</p>
+      </div>
+    </div>
+  </div>
+
+  <div data-ground="1" style="margin-top: 112px; background: linear-gradient(140deg, #262757, #191a3c); color: #e9e9ed;">
+  <div id="contact" style="max-width: 1120px; margin: 0 auto; padding: 64px 40px 56px 40px;">
+    <div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 40px; align-items: center;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-family: var(--font-heading); font-size: 13px; color: var(--color-accent-700); font-weight: 500;">07</span>
+          <span style="width: 26px; height: 2px; background: var(--color-accent);"></span>
+          <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-700);">Let's talk</span>
+        </div>
+        <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 26px; line-height: 1.2; margin: 0;">Book a free consultation</h2>
+        <p style="font-size: 15px; line-height: 1.7; color: var(--color-neutral-400); margin: 0; max-width: 460px;">Thirty minutes, no pitch. Tell me what you're building or where you're stuck, and I'll tell you what I'd do next.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+        <a href="mailto:se.ahmedtprofile@gmail.com" data-cta="solid" style="display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 22px; border-radius: 999px; background: linear-gradient(120deg, var(--color-accent-500), var(--color-accent-400) 60%); color: #ffffff; font-size: 14px; font-weight: 500; box-shadow: 0 6px 0 -3px var(--color-accent-800), 0 14px 30px -14px rgba(111,97,198,0.5); transition: transform 0.22s ease;" style-hover="transform: translateY(-3px);"><i class="ph ph-calendar-check" style="font-size: 17px;"></i>Book a free consultation</a>
+        <a href="https://www.linkedin.com/in/ahmedtarekai" style="display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 22px; border-radius: 999px; background: transparent; border: 1px solid rgba(233,233,237,0.3); color: #e9e9ed; font-size: 14px; font-weight: 500;" style-hover="border-color: #9184d9; color: var(--color-accent-700);"><i class="ph ph-linkedin-logo" style="font-size: 17px;"></i>Message me on LinkedIn</a>
+  </div>
+
+  <div style="border-top: 1px solid var(--color-neutral-800);">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 28px 40px 32px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+        <span style="font-size: 12.5px; color: var(--color-neutral-500);">© Ahmed Tarek 2026 · ahmedtarek.tech · Dubai, working globally</span>
+        <div style="display: flex; justify-content: center; gap: 16px; font-size: 13px; flex-wrap: wrap; white-space: nowrap;">
+          <a href="mailto:se.ahmedtprofile@gmail.com" style="color: var(--color-neutral-400);">se.ahmedtprofile@gmail.com</a>
+          <a href="tel:+971588558039" style="color: var(--color-neutral-400);">+971588558039</a>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 16px; font-size: 13px; flex-wrap: wrap; white-space: nowrap; padding-top: 2px;">
+          <a href="/product" style="color: var(--color-neutral-500);">Product</a>
+          <a href="/educator" style="color: var(--color-neutral-500);">Educator</a>
+          <a href="/full" style="color: var(--color-neutral-500);">Full story</a>
+        </div>
+      </div>
+      <div style="display: flex; gap: 16px; font-size: 17px;">
+        <a href="https://www.youtube.com/@ahmedtarekai" style="color: var(--color-neutral-400);" style-hover="color: var(--color-accent-300);"><i class="ph ph-youtube-logo"></i></a>
+        <a href="https://linkedin.com/in/ahmedtarekpage" style="color: var(--color-neutral-400);" style-hover="color: var(--color-accent-300);"><i class="ph ph-linkedin-logo"></i></a>
+        <a href="https://www.instagram.com" style="color: var(--color-neutral-400);" style-hover="color: var(--color-accent-300);"><i class="ph ph-instagram-logo"></i></a>
+        <a href="https://x.com" style="color: var(--color-neutral-400);" style-hover="color: var(--color-accent-300);"><i class="ph ph-x-logo"></i></a>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroCta&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;Platform&quot;, &quot;Newsletter&quot;, &quot;Book a call&quot;], &quot;default&quot;: &quot;Platform&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Hero&quot;}}">
+class Component extends DCLogic {
+  els = {};
+  componentDidMount() {
+    this.moreHandler = e => {
+      const btn = e.target.closest('[data-more-btn]');
+      if (!btn) return;
+      const q = btn.closest('blockquote');
+      const more = q && q.querySelector('[data-more]');
+      if (!more) return;
+      const open = more.style.display !== 'none';
+      more.style.display = open ? 'none' : 'inline';
+      btn.textContent = open ? 'See more' : 'See less';
+    };
+    document.addEventListener('click', this.moreHandler);
+    this.mouse = { x: 0, y: 0 };
+    this.tick = () => {
+      const r = this.els, y = window.scrollY || 0, vh = window.innerHeight || 800;
+      const t = Math.min(y / vh, 1.4), mx = this.mouse.x, my = this.mouse.y;
+
+
+      const split = Math.max(0, Math.min(y / (vh * 0.5), 1));
+      if (r.portrait) {
+        r.portrait.style.transform = `perspective(1200px) translate(-50%, -50%) translateX(${split * 17}vw) rotateY(${mx * 5}deg) rotateX(${my * -4}deg) scale(${1 - split * 0.03})`;
+      }
+      if (r.heroCtas) {
+        const goneC = Math.max(0, Math.min((split - 0.1) / 0.3, 1));
+        r.heroCtas.style.opacity = String(1 - goneC);
+        r.heroCtas.style.pointerEvents = goneC > 0.5 ? 'none' : '';
+      }
+      const hub = document.getElementById('content');
+      if (hub && hub.parentElement) {
+        const js = document.getElementById('journey-scroll');
+        if (js) {
+          const jb = js.getBoundingClientRect();
+          const jp = Math.max(0, Math.min((-jb.top) / Math.max(js.offsetHeight - vh, 1), 1));
+          // lie on the tabletop: tilt tracks the camera's elevation over the surface
+          const K = [[0, 84], [0.16, 34], [0.30, 2], [0.44, 66], [0.56, 74]];
+          let k = 0;
+          while (k < K.length - 2 && jp > K[k + 1][0]) k++;
+          const [p0, a0] = K[k], [p1, a1] = K[k + 1];
+          const tt = Math.max(0, Math.min((jp - p0) / (p1 - p0), 1));
+          const tilt = a0 + (a1 - a0) * tt;
+          const yaw = jp > 0.32 ? Math.min((jp - 0.32) / 0.14, 1) * -14 : 0;
+          hub.parentElement.style.perspective = '1000px';
+          hub.parentElement.style.transformStyle = 'preserve-3d';
+          hub.style.transform = `rotateX(${tilt}deg) rotateY(${yaw}deg) translateZ(${-jp * 30}px) scale(${1 - jp * 0.05})`;
+          hub.style.transformOrigin = 'center 42%';
+        }
+      }
+      if (r.portrait) {
+        const stage = r.portrait.parentElement;
+        const nav = stage && stage.parentElement ? stage.parentElement.previousElementSibling : null;
+        if (stage && nav) {
+          const navH = nav.getBoundingClientRect().height;
+          const want = Math.round(vh - navH) + 'px';
+          if (stage.style.height !== want) stage.style.height = want;
+        }
+      }
+      const ts = document.getElementById('track-scroll');
+      if (ts) {
+        const b = ts.getBoundingClientRect();
+        const p = Math.max(0, Math.min((-b.top) / Math.max(ts.offsetHeight - vh, 1), 1));
+        const cards = ts.querySelectorAll('[data-track-card]');
+        const n = cards.length;
+        const focus = p * (n - 1);
+        for (let i = 0; i < n; i++) {
+          const el = cards[i], d = i - focus, a = Math.abs(d);
+          const vis = Math.max(0, 1 - a / 1.9);
+          el.style.transform = `translate3d(${d * 46}px, ${d * 30 + Math.min(a, 3) * 8}px, ${-a * 240}px) rotateX(${d * -5}deg) rotateY(${d * 7}deg) scale(${1 - a * 0.06})`;
+          el.style.opacity = String(a < 0.001 ? 1 : vis * (d < 0 ? 0.35 : 0.75));
+          el.style.zIndex = String(100 - Math.round(a * 10));
+          el.style.pointerEvents = a < 0.4 ? 'auto' : 'none';
+          el.style.filter = a > 0.35 ? `blur(${Math.min(a * 2.2, 5)}px)` : 'none';
+        }
+        if (this.els.trackDots) {
+          const dots = this.els.trackDots;
+          if (dots.childElementCount !== n) {
+            dots.innerHTML = '';
+            for (let i = 0; i < n; i++) {
+              const s = document.createElement('span');
+              s.style.cssText = 'width:26px;height:3px;border-radius:2px;transition:background .25s ease';
+              dots.appendChild(s);
+            }
+          }
+          const cur = Math.round(focus);
+          for (let i = 0; i < n; i++) {
+            dots.children[i].style.background = i === cur ? '#ffffff' : 'rgba(255,255,255,0.22)';
+          }
+        }
+      }
+      const rail = document.getElementById('track-rail');
+      if (rail) {
+        const steps = rail.querySelectorAll('[data-track-step]');
+        const rr = rail.getBoundingClientRect();
+        const dots = rail.querySelectorAll('[data-track-dot]');
+        const sig = Math.round(rr.width) + 'x' + Math.round(rail.offsetHeight) + 'x' + dots.length;
+        if (this.els.trackBase && sig !== this.pathSig && dots.length > 1) {
+          // layout coords (offset*) so the path ignores the 3D transforms on the steps
+          const pts = [];
+          for (let i = 0; i < dots.length; i++) {
+            let el = dots[i], x = el.offsetWidth / 2, y = el.offsetHeight / 2;
+            while (el && el !== rail) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; }
+            pts.push({ x, y });
+          }
+          let d = 'M ' + pts[0].x + ' ' + pts[0].y;
+          for (let i = 1; i < pts.length; i++) {
+            const a = pts[i - 1], z = pts[i];
+            const bulge = (i % 2 === 1 ? 1 : -1) * 46;
+            d += ` C ${a.x + bulge} ${a.y + (z.y - a.y) * 0.42}, ${z.x + bulge} ${z.y - (z.y - a.y) * 0.42}, ${z.x} ${z.y}`;
+          }
+          this.els.trackBase.setAttribute('d', d);
+          if (this.els.trackFill) this.els.trackFill.setAttribute('d', d);
+          this.pathSig = sig;
+        }
+        const line = vh * 0.55;
+        let lastY = 0;
+        for (let i = 0; i < steps.length; i++) {
+          const el = steps[i], b = el.getBoundingClientRect();
+          const active = b.top < line && b.bottom > vh * 0.12;
+          // 3D travel along the track: distance from the reading line drives depth
+          const dist = (b.top + b.height * 0.35 - line) / vh;
+          const k = Math.max(-1, Math.min(dist / 0.55, 1));
+          const ak = Math.abs(k);
+          el.style.transform = '';
+          const txt = el.lastElementChild;
+          if (txt) {
+            txt.style.transformStyle = 'preserve-3d';
+            txt.style.transformOrigin = 'left center';
+            txt.style.transform = `perspective(1100px) rotateX(${k * -13}deg) rotateY(${k * 11}deg) translate3d(${k * 24}px, 0, ${-ak * 150}px) scale(${1 - ak * 0.06})`;
+            txt.style.willChange = 'transform, opacity';
+            txt.style.transition = 'opacity 0.3s ease';
+            txt.style.opacity = String(Math.max(0.22, 1 - ak * 1.15));
+          }
+          const dot = el.querySelector('[data-track-dot]');
+          if (dot) {
+            dot.style.background = 'var(--color-accent)';
+            dot.style.borderColor = 'var(--color-accent)';
+            dot.style.transform = active ? 'scale(1.08)' : 'scale(1)';
+            dot.style.boxShadow = active ? '0 0 0 7px rgba(145,132,217,0.16)' : 'none';
+            const ic = dot.querySelector('[data-track-icon]');
+            if (ic) ic.style.color = '#ffffff';
+          }
+          if (b.top < line) lastY = b.top + 34;
+        }
+        if (this.els.trackFill) {
+          const rb = rail.getBoundingClientRect();
+          const frac = Math.max(0, Math.min((lastY - rb.top) / Math.max(rail.offsetHeight - 40, 1), 1));
+          this.els.trackFill.setAttribute('stroke-dashoffset', String(1 - frac));
+        }
+      }
+      const reveals = document.querySelectorAll('[data-reveal]');
+      for (let i = 0; i < reveals.length; i++) {
+        const el = reveals[i];
+        const b = el.getBoundingClientRect();
+        if (b.top > vh + 60 || b.bottom < -60) continue;
+        const step = Number(el.dataset.reveal) || 1;
+        const k = Math.max(0, Math.min((vh * 0.9 - b.top) / (vh * 0.42) - step * 0.12, 1));
+        el.style.opacity = String(0.15 + k * 0.85);
+        el.style.transform = `translateY(${(1 - k) * 42}px) scale(${0.985 + k * 0.015})`;
+        el.style.willChange = 'transform, opacity';
+      }
+      if (r.heroPromise) {
+        const ap2 = Math.max(0, Math.min((split - 0.3) / 0.5, 1));
+        r.heroPromise.style.opacity = String(ap2);
+        r.heroPromise.style.transform = `translateY(${(1 - ap2) * 18}px)`;
+      }
+      if (r.heroQuote) {
+        const app = Math.max(0, Math.min((split - 0.12) / 0.55, 1));
+        r.heroQuote.style.opacity = String(app);
+        r.heroQuote.style.transform = `translate3d(${(1 - app) * -28}px, -50%, 0)`;
+      }
+      if (r.heroText) {
+        const gone = Math.max(0, Math.min((split - 0.15) / 0.35, 1));
+        r.heroText.style.transform = `translate3d(${mx * 8}px, ${gone * 90}px, 0)`;
+        r.heroText.style.opacity = String(1 - gone);
+      }
+      if (!this.sections) {
+        const list = ['help', 'about', 'newsletter']
+          .map(id => document.getElementById(id)).filter(Boolean);
+        if (list.length) this.sections = list;
+      }
+      if (this.sections) this.sections.forEach((el, i) => {
+        const b = el.getBoundingClientRect();
+        if (b.bottom < -80 || b.top > vh + 80) {
+          el.style.transform = '';
+          el.style.opacity = '1';
+          return;
+        }
+        const mid = vh / 2;
+        let k = 0;
+        if (b.top > mid) k = Math.min(1, (b.top - mid) / (vh * 0.6));
+        else if (b.bottom < mid) k = -Math.min(1, (mid - b.bottom) / (vh * 0.6));
+        const dir = i % 2 === 0 ? 1 : -1;
+        el.style.transform = `perspective(1100px) rotateX(${k * 7}deg) rotateY(${k * dir * 3}deg) translate3d(0, ${k * 30}px, ${-Math.abs(k) * 70}px)`;
+        el.style.opacity = String(Math.max(0.5, 1 - Math.abs(k) * 0.5));
+        el.style.willChange = 'transform, opacity';
+      });
+      this.raf = requestAnimationFrame(this.tick);
+    };
+    this.raf = requestAnimationFrame(this.tick);
+  }
+  componentWillUnmount() {
+    cancelAnimationFrame(this.raf);
+    if (this.moreHandler) document.removeEventListener('click', this.moreHandler);
+  }
+  renderVals() {
+    const set = name => el => { this.els[name] = el; };
+    const ctas = {
+      "Platform": "Discover the platform",
+      "Newsletter": "Join the newsletter",
+      "Book a call": "Book a call"
+    };
+    return {
+      heroCtaLabel: ctas[this.props.heroCta ?? "Platform"],
+      journeyOpen: !!this.state.journeyOpen,
+      toggleJourney: () => this.setState(s => ({ journeyOpen: !s.journeyOpen })),
+      glow: set('glow'), far: set('far'), portrait: set('portrait'), heroText: set('heroText'), heroQuote: set('heroQuote'), heroCtas: set('heroCtas'), heroPromise: set('heroPromise'), trackDots: set('trackDots'), trackFill: set('trackFill'), trackBase: set('trackBase'), trackSvg: set('trackSvg'),
+      onMove: e => {
+        this.mouse = {
+          x: (e.clientX / window.innerWidth - 0.5) * 2,
+          y: (e.clientY / window.innerHeight - 0.5) * 2
+        };
+      }
+    };
+  }
+}
+</script>
 </body>
 </html>

@@ -3,8 +3,8 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/time", "destination": "/time.html" },
     { "source": "/c/:token", "destination": "/share.html" },
-    { "source": "/product", "destination": "/index.html" },
-    { "source": "/educator", "destination": "/index.html" },
-    { "source": "/full", "destination": "/index.html" }
+    { "source": "/product", "destination": "/journey.html" },
+    { "source": "/educator", "destination": "/journey.html" },
+    { "source": "/full", "destination": "/journey.html" }
   ]
 }

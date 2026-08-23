@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ahmed Tarek — AI Product Manager</title>
+  <meta name="description" content="Ahmed Tarek — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products." />
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="theme-color" content="#ffffff" />
+
+  <!-- ============================================================
+       ANALYTICS + FORM CONFIG
+       Paste your real IDs below. Leave the "XXX" placeholders to
+       keep each feature disabled (no errors, no network calls).
+       ============================================================ -->
+  <script>
+    window.SITE_CONFIG = {
+      GA4_ID: "G-MQ8TXQH3NX",     // Google Analytics 4 — Measurement ID (Admin → Data Streams)
+      CLARITY_ID: "xfso0z6dlc",   // Microsoft Clarity — Project ID (Settings → Overview)
+      FORMSPREE_ID: "xgojnrrq",   // Formspree — the code after formspree.io/f/______
+      RESUME_URL: "assets/Ahmed-Tarek-Mourssi-Product-Manager.pdf",     // product / full pages
+      RESUME_URL_EDU: "assets/Ahmed-Tarek-Mourssi-CS-Instructor.pdf",  // educator page
+      BOOKING_URL: "https://tidycal.com/ahmedtarek/vip-booking"
+    };
+  </script>
+  <script>
+    // Analytics load only AFTER the visitor consents (see cookie banner).
+    // Defined here so it runs as early as possible once consent exists.
+    window.__initAnalytics = function () {
+      if (window.__analyticsLoaded) return;
+      window.__analyticsLoaded = true;
+      var c = window.SITE_CONFIG || {};
+      var valid = function (v) { return v && v.indexOf("XXX") === -1; };
+      // Google Analytics 4
+      if (valid(c.GA4_ID)) {
+        var g = document.createElement("script");
+        g.async = true;
+        g.src = "https://www.googletagmanager.com/gtag/js?id=" + c.GA4_ID;
+        document.head.appendChild(g);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { dataLayer.push(arguments); };
+        gtag("js", new Date());
+        gtag("config", c.GA4_ID);
+      }
+      // Microsoft Clarity
+      if (valid(c.CLARITY_ID)) {
+        (function (m, a, g, e, s) {
+          m[e] = m[e] || function () { (m[e].q = m[e].q || []).push(arguments); };
+          s = a.createElement(g); s.async = 1;
+          s.src = "https://www.clarity.ms/tag/" + c.CLARITY_ID;
+          var y = a.getElementsByTagName(g)[0]; y.parentNode.insertBefore(s, y);
+        })(window, document, "script", "clarity");
+      }
+    };
+    // If they already accepted on a previous visit, start immediately.
+    try {
+      if (localStorage.getItem("cookie-consent") === "granted") window.__initAnalytics();
+    } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=37" />
+</head>
+<body>
+  <!-- animated colour aurora (behind the 3D canvas) -->
+  <div class="aurora" aria-hidden="true">
+    <span class="aurora__blob aurora__blob--1"></span>
+    <span class="aurora__blob aurora__blob--2"></span>
+    <span class="aurora__blob aurora__blob--3"></span>
+    <span class="aurora__blob aurora__blob--4"></span>
+  </div>
+
+  <!-- custom cursor glow -->
+  <div class="cursor-glow" id="cursorGlow"></div>
+
+  <!-- scroll progress -->
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <a href="/" class="nav__brand"><img src="assets/logo.png" alt="" class="nav__logo" width="38" height="38" />AT<span>.</span></a>
+    <div class="nav__links">
+      <a href="#about" data-i18n="nav.story">Story</a>
+      <a href="#educator" data-i18n="nav.journey">Journey</a>
+      <a href="#work" data-i18n="nav.products">Products</a>
+      <a href="#skills" data-i18n="nav.skills">Skills</a>
+      <a href="#contact" data-i18n="nav.contact">Contact</a>
+    </div>
+    <div class="nav__right">
+      <button type="button" class="nav__lang" id="langToggle" aria-label="التبديل إلى العربية">ع</button>
+      <a href="#contact" class="nav__cta" data-i18n="nav.cta">Let's talk</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <div class="hero__grid">
+      <div class="hero__inner">
+        <p class="hero__eyebrow reveal" data-i18n="hero.eyebrow">EDUCATOR · ENGINEER · AI PRODUCT MANAGER</p>
+        <h1 class="hero__title">
+          <span class="reveal" style="--d:.05s" data-i18n="hero.name">Ahmed</span>
+          <span class="reveal grad" style="--d:.15s" data-i18n="hero.surname">Tarek</span>
+        </h1>
+        <p class="hero__sub reveal" style="--d:.28s" data-i18n="hero.sub">
+          Ten years turning technology into impact — from teaching kids to build
+          <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading
+          <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas.
+          This is that journey.
+        </p>
+        <div class="hero__actions reveal" style="--d:.4s">
+          <a href="#educator" class="btn btn--primary" data-i18n="hero.btnPrimary">Read my story</a>
+          <a href="#" class="btn btn--book" data-cta="book" data-i18n="cta.book"><span class="btn__icon">📅</span> Book a call</a>
+          <a href="#" class="btn btn--cv" data-cta="resume" download data-i18n="cta.cv"><span class="btn__icon">⬇</span> Download CV</a>
+          <a href="#contact" class="btn btn--ghost" data-i18n="hero.btnGhost">Get in touch</a>
+        </div>
+
+        <div class="persona reveal" style="--d:.5s">
+          <span class="persona__label" data-i18n="persona.label">What are you hiring for?</span>
+          <div class="persona__btns">
+            <a href="#work" class="persona__btn" data-persona="pm">
+              <span class="persona__btn-icon">🚀</span>
+              <span class="persona__btn-text"><strong data-i18n="persona.pm">Product Manager</strong><em data-i18n="persona.pmSub">AI · SaaS · B2B/B2C</em></span>
+            </a>
+            <a href="#educator" class="persona__btn" data-persona="edu">
+              <span class="persona__btn-icon">🎓</span>
+              <span class="persona__btn-text"><strong data-i18n="persona.edu">Educator / STEAM</strong><em data-i18n="persona.eduSub">Robotics · CS · Curriculum</em></span>
+            </a>
+          </div>
+        </div>
+        <div class="hero__stats reveal" style="--d:.55s">
+          <div class="stat"><span class="stat__num" data-count="10" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat1">Years in tech &amp; education</span></div>
+          <div class="stat"><span class="stat__num" data-count="3000" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat2">Students taught</span></div>
+          <div class="stat"><span class="stat__num" data-count="10000" data-suffix="+">0</span><span class="stat__label" data-i18n="hero.stat3">Product users reached</span></div>
+          <div class="stat"><span class="stat__num" data-count="3" data-suffix="%">0</span><span class="stat__label" data-i18n="hero.stat4">Top-rated globally</span></div>
+        </div>
+      </div>
+
+      <div class="hero__photo reveal" style="--d:.35s">
+        <div class="hero__photo-ring"></div>
+        <div class="hero__photo-frame">
+          <img
+            src="assets/ahmed.jpg"
+            alt="Ahmed Tarek"
+            class="hero__photo-img"
+            onerror="this.style.display='none'; this.parentElement.classList.add('is-empty');"
+          />
+          <span class="hero__photo-fallback">AT</span>
+        </div>
+        <span class="hero__photo-badge">
+          <span class="hero__photo-dot"></span> <span data-i18n="hero.badge">Open to work</span>
+        </span>
+      </div>
+      </div>
+      <div class="hero__scroll">
+        <span data-i18n="hero.scroll">Scroll</span>
+        <div class="hero__scroll-line"></div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="section about" id="about">
+      <div class="section__head">
+        <span class="section__index" data-i18n="story.index">01 · THE STORY</span>
+        <h2 class="section__title reveal" data-i18n="story.title">One journey,<br /><span class="grad">three chapters.</span></h2>
+      </div>
+      <div class="about__grid">
+        <p class="about__lead reveal" data-i18n="story.lead">
+          I started out teaching children to build robots and write their first lines of code.
+          To teach it well, I had to <strong>build it myself</strong> — so I became an engineer.
+          And to build things that truly mattered, I learned to <strong>lead the whole product</strong>.
+          Educator, engineer, product manager — three chapters, one throughline:
+          <strong>making technology create real impact for real people.</strong>
+        </p>
+        <div class="about__cards">
+          <div class="glass tilt reveal">
+            <span class="about__chapter" data-i18n="story.c1label">Chapter One</span>
+            <h3 data-i18n="story.c1h">The Educator</h3>
+            <p data-i18n="story.c1p">10 years of STEAM &amp; CS teaching, 3,000+ students, RoboCup champion. Where the curiosity started.</p>
+          </div>
+          <div class="glass tilt reveal" style="--d:.1s">
+            <span class="about__chapter" data-i18n="story.c2label">Chapter Two</span>
+            <h3 data-i18n="story.c2h">The Builder</h3>
+            <p data-i18n="story.c2p">Python, automation and EdTech engineering — Top 3% globally on Upwork, $80K+ delivered.</p>
+          </div>
+          <div class="glass tilt reveal" style="--d:.2s">
+            <span class="about__chapter" data-i18n="story.c3label">Chapter Three</span>
+            <h3 data-i18n="story.c3h">The Product Manager</h3>
+            <p data-i18n="story.c3p">Leading AI-powered platforms from zero to launch, aligning engineering, design &amp; ops.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHAPTER ONE — EDUCATOR -->
+    <section class="section work" id="educator">
+      <div class="section__head">
+        <span class="section__index" data-i18n="edu.index">CHAPTER ONE</span>
+        <h2 class="section__title reveal" data-i18n="edu.title">The Educator</h2>
+        <p class="section__lead reveal" style="--d:.1s" data-i18n="edu.lead">
+          Before I built products, I built <strong>curiosity</strong>. A decade teaching STEAM,
+          robotics and code across the UAE, USA, Saudi Arabia and Egypt — and a RoboCup title
+          that started it all.
+        </p>
+      </div>
+      <div class="products" id="eduTimeline">
+        <!-- injected by main.js -->
+      </div>
+    </section>
+
+    <!-- CHAPTER TWO — BUILDER -->
+    <section class="section work" id="builder">
+      <div class="section__head">
+        <span class="section__index" data-i18n="build.index">CHAPTER TWO</span>
+        <h2 class="section__title reveal" data-i18n="build.title">The Builder</h2>
+        <p class="section__lead reveal" style="--d:.1s" data-i18n="build.lead">
+          To teach technology well, I learned to <strong>build it</strong> — Python automation,
+          data tooling and EdTech platforms, delivered to clients worldwide at the top of the field.
+        </p>
+      </div>
+      <div class="products" id="buildTimeline">
+        <!-- injected by main.js -->
+      </div>
+    </section>
+
+    <!-- CHAPTER THREE — PRODUCT MANAGER -->
+    <section class="section work" id="work">
+      <div class="section__head">
+        <span class="section__index" data-i18n="work.index">CHAPTER THREE</span>
+        <h2 class="section__title reveal" data-i18n="work.title">The Product Manager</h2>
+        <p class="section__lead reveal" style="--d:.1s" data-i18n="work.lead">
+          Today I lead products end-to-end. Not a list of job titles — the actual products I built,
+          the problem each solved, and where you can go see them for yourself.
+        </p>
+      </div>
+      <div class="products" id="timeline">
+        <!-- injected by main.js -->
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="section skills" id="skills">
+      <div class="section__head">
+        <span class="section__index" data-i18n="skills.index">04 · TOOLKIT</span>
+        <h2 class="section__title reveal" data-i18n="skills.title">Skills &amp; toolkit</h2>
+      </div>
+      <div class="skills__grid" id="skillsGrid">
+        <!-- injected by main.js -->
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="section contact" id="contact">
+      <div class="contact__inner">
+        <span class="section__index" data-i18n="contact.index">05 · CONTACT</span>
+        <h2 class="contact__title reveal" data-i18n="contact.title">Let's build<br /><span class="grad">something great.</span></h2>
+        <p class="contact__sub reveal" style="--d:.1s" data-i18n="contact.sub">
+          Open to <strong>Product Manager</strong>, <strong>AI Product</strong> and <strong>STEAM / EdTech leadership</strong> roles. Based in Dubai, working globally.
+        </p>
+        <div class="contact__ctas reveal" style="--d:.16s">
+          <a href="#" class="btn btn--book" data-cta="book" data-i18n="cta.book"><span class="btn__icon">📅</span> Book a call</a>
+          <a href="#" class="btn btn--cv" data-cta="resume" download data-i18n="cta.cv"><span class="btn__icon">⬇</span> Download CV</a>
+        </div>
+        <form class="contact__form reveal" id="contactForm" style="--d:.15s" novalidate>
+          <div class="form__row">
+            <input type="text" name="name" placeholder="Your name" data-i18n-ph="form.name" required autocomplete="name" />
+            <input type="email" name="email" placeholder="Your email" data-i18n-ph="form.email" required autocomplete="email" />
+          </div>
+          <input type="text" name="company" placeholder="Company / role (optional)" data-i18n-ph="form.company" autocomplete="organization" />
+          <textarea name="message" rows="4" placeholder="What role or project do you have in mind?" data-i18n-ph="form.message" required></textarea>
+          <input type="hidden" name="_subject" value="New message from your portfolio" />
+          <button type="submit" class="btn btn--primary form__submit"><span data-i18n="form.submit">Send message</span> <span class="prod__cta-arrow">↗</span></button>
+          <p class="form__status" id="formStatus" role="status" aria-live="polite"></p>
+        </form>
+
+        <div class="contact__links reveal" style="--d:.28s">
+          <a class="contact__link" href="mailto:se.ahmedtprofile@gmail.com">
+            <span class="contact__link-label" data-i18n="contact.email">Email</span>
+            <span class="contact__link-val">se.ahmedtprofile@gmail.com</span>
+          </a>
+          <a class="contact__link" href="tel:+971588558039">
+            <span class="contact__link-label" data-i18n="contact.phone">Phone</span>
+            <span class="contact__link-val">+971 58 855 8039</span>
+          </a>
+          <a class="contact__link" href="https://linkedin.com/in/ahmedtarekpage" target="_blank" rel="noopener">
+            <span class="contact__link-label" data-i18n="contact.linkedin">LinkedIn</span>
+            <span class="contact__link-val">/in/ahmedtarekpage</span>
+          </a>
+        </div>
+      </div>
+      <footer class="footer">
+        <span data-i18n="footer.copy">© 2026 Ahmed Tarek</span>
+        <nav class="footer__views" aria-label="Portfolio views">
+          <a href="/">Home</a>
+          <a href="/product" data-view-link="product" data-i18n="views.product">Product</a>
+          <a href="/educator" data-view-link="educator" data-i18n="views.educator">Educator</a>
+          <a href="/full" data-view-link="full" data-i18n="views.full">Full story</a>
+        </nav>
+      </footer>
+    </section>
+  </main>
+
+  <!-- lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <button class="lightbox__close" aria-label="Close">✕</button>
+    <button class="lightbox__nav lightbox__prev" aria-label="Previous">‹</button>
+    <img class="lightbox__img" src="" alt="" />
+    <button class="lightbox__nav lightbox__next" aria-label="Next">›</button>
+  </div>
+
+  <!-- cookie consent -->
+  <div class="cookie" id="cookieBanner" hidden>
+    <p class="cookie__text" data-i18n="cookie.text">
+      This site uses privacy-friendly analytics (Google Analytics &amp; Microsoft Clarity)
+      to understand how visitors engage. Nothing loads until you choose.
+    </p>
+    <div class="cookie__actions">
+      <button class="cookie__btn cookie__btn--ghost" id="cookieDecline" data-i18n="cookie.decline">Decline</button>
+      <button class="cookie__btn cookie__btn--accept" id="cookieAccept" data-i18n="cookie.accept">Accept</button>
+    </div>
+  </div>
+
+  <script type="module" src="main.js?v=36"></script>
+</body>
+</html>
