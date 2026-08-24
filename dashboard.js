@@ -155,7 +155,7 @@
     "buildTimeline": "Engineering entries", "work": "Products chapter",
     "timeline": "Product entries", "skills": "Skills", "skillsGrid": "Skill groups",
     "contactForm": "Contact form", "lightbox": "Photo viewer",
-    "cookieBanner": "Cookie notice", "langToggle": "Language button",
+    "site-settings": "Your links", "cookieBanner": "Cookie notice", "langToggle": "Language button",
   };
   function sectionName(id) { return SECTION_NAMES[id] || id; }
 
@@ -163,6 +163,7 @@
      sentences and pictures are what someone actually opens this to change,
      so the rest starts out folded away. */
   function isMinor(it) {
+    if (it.pinned) return false;
     if (it.kind === "src") return false;
     if (it.kind === "href") return true;
     return String(it.original || "").trim().length < 25;
@@ -181,8 +182,9 @@
 
     // Pictures first — they are the hardest thing to find otherwise, and the
     // empty slots are invisible on the page itself.
-    var pics = pool.filter(function (it) { return it.kind === "src"; });
-    var rest = pool.filter(function (it) { return it.kind !== "src"; });
+    var pinned = pool.filter(function (it) { return it.pinned; });
+    var pics = pool.filter(function (it) { return !it.pinned && it.kind === "src"; });
+    var rest = pool.filter(function (it) { return !it.pinned && it.kind !== "src"; });
 
     var order = [], bySection = {};
     rest.forEach(function (it) {
@@ -191,6 +193,10 @@
     });
 
     var html = "";
+    if (pinned.length) {
+      html += groupHTML("Your links", pinned, true,
+        "Set once here, and every button on the site that uses it follows.");
+    }
     if (pics.length) {
       html += groupHTML("Photos on this page", pics, true,
         "Every picture here, including empty slots waiting for one.");
@@ -253,9 +259,10 @@
     }
 
     if (it.kind === "href") {
-      return '<div class="' + cls + '"><div class="fld__label">Link — ' +
-        esc(it.label || "link") + undo + "</div>" +
-        '<input type="text" data-in="' + esc(it.key) + '" value="' + esc(v) + '" placeholder="https://…" />' +
+      return '<div class="' + cls + '"><div class="fld__label">' +
+        (it.pinned ? "" : "Link \u2014 ") + esc(it.label || "link") + undo + "</div>" +
+        (it.hint ? '<p class="fld__hint">' + esc(it.hint) + "</p>" : "") +
+        '<input type="text" data-in="' + esc(it.key) + '" value="' + esc(v) + '" placeholder="https://\u2026" />' +
         "</div>";
     }
 

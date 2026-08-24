@@ -135,6 +135,48 @@
     return f.charAt(0).toUpperCase() + f.slice(1);
   }
 
+  /* A few things are one setting, not one field per place they turn up. The
+     booking link sits behind nine buttons across two pages; editing it nine
+     times is a way to get it wrong eight times. These carry a fixed key that
+     does not depend on the page or on where the button sits, so the dashboard
+     shows them once, near the top, and every button follows. */
+  var SITEWIDE = [{
+    key: "site:booking#href",
+    kind: "href",
+    sel: '[data-cta="book"], [data-book]',
+    label: "Booking calendar",
+    hint: "Where every \u201cBook a free consultation\u201d button sends people \u2014 paste the link to your calendar page.",
+    fallback: "https://tidycal.com/ahmedtarek/vip-booking",
+  }];
+
+  var defaults = {};
+
+  function addSitewide() {
+    for (var i = 0; i < SITEWIDE.length; i++) {
+      var s = SITEWIDE[i];
+      var list = document.querySelectorAll(s.sel);
+      if (!list.length) continue;
+      // Whatever the page itself ships with wins over the constant, so the
+      // dashboard never shows a link the site is not actually using.
+      var live = "";
+      for (var j = 0; j < list.length; j++) {
+        var el = list[j];
+        el.__cmsFixed = true;
+        el.setAttribute("data-cms-" + s.kind, s.key);
+        var h = norm(el.getAttribute("href") || "");
+        if (!live && h && h.charAt(0) !== "#") live = h;
+      }
+      var cfg = (window.SITE_CONFIG || {}).BOOKING_URL;
+      var orig = live || (cfg && cfg.indexOf("XXX") < 0 ? cfg : "") || s.fallback;
+      defaults[s.key] = orig;
+      nodes[s.key] = Array.prototype.slice.call(list);
+      index.push({
+        key: s.key, kind: s.kind, page: PAGE, section: "site-settings",
+        label: s.label, hint: s.hint, pinned: true, original: orig,
+      });
+    }
+  }
+
   function add(el, kind, currentValue) {
     var orig = original(el, kind, currentValue);
     // An empty picture slot is the one thing worth listing precisely because
@@ -253,6 +295,8 @@
     index = [];
     nodes = {};
 
+    addSitewide();
+
     var all = root.querySelectorAll("*");
     measure(all);
     for (var i = 0; i < all.length; i++) {
@@ -273,7 +317,7 @@
       // to a booking page instead.
       if (tag === "a") {
         var href = el.getAttribute("href") || "";
-        if (href) add(el, "href", href);
+        if (href && !el.__cmsFixed) add(el, "href", href);
       }
 
       // One run of text, taken as high as it goes, so a paragraph wins over
@@ -334,7 +378,16 @@
   }
 
   function apply() {
-    if (!overrides) return;
+    // A shared setting still has to reach the buttons that have never been
+    // edited — that is what makes one field speak for all of them.
+    for (var s = 0; s < SITEWIDE.length; s++) {
+      var sw = SITEWIDE[s], sl = nodes[sw.key];
+      if (!sl || (overrides && overrides[sw.key])) continue;
+      for (var n = 0; n < sl.length; n++) {
+        try { applyOne(sl[n], sw.kind, defaults[sw.key]); } catch (e) {}
+      }
+    }
+    if (!overrides) { if (observer) observer.takeRecords(); return; }
     for (var key in overrides) {
       var list = nodes[key];
       if (!list) continue;

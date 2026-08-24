@@ -119,6 +119,18 @@ vercel dev            # http://localhost:3000/admin
 - If a session can't be covered by any active package, the uncovered time shows up
   as **Unpaid hours** on the client page.
 
+## The booking calendar link
+
+Nine buttons across the site say "Book a free consultation" or "Book a call".
+They all read one setting: **/dashboard → Your links → Booking calendar**, the
+first thing on the page. Change it once and every button follows.
+
+The link is also hard-coded into the buttons themselves, so they still work
+before the dashboard's script has loaded. If you ever change it in the HTML,
+change `SITE_CONFIG.BOOKING_URL` in journey.html and the `fallback` in cms.js's
+`SITEWIDE` list to match — otherwise the dashboard will show the old one until
+you save over it.
+
 ## The twelve-function ceiling
 
 Vercel's Hobby plan allows **12 Serverless Functions per deployment**, and this
