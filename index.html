@@ -193,6 +193,21 @@
     }
 
     /* phones: unstick the hero and let it stack */
+    /* The hero is a stack of layers that cross-fade as you scroll, and a
+       layer at opacity 0 is still a click target. The buttons layer already
+       gets pointer-events: none the moment it fades, but the quote and the
+       promise do not — so at the top of the page an invisible .hero-quote
+       (z-index 2, later in the DOM) sat over "Book a free consultation" and
+       ate every click on it. Lifting the buttons above the layers that fade
+       in later fixes it in the direction the design already works: the
+       buttons stop intercepting as soon as they themselves fade out.
+
+       Nothing moves visually — the layers this lifts above are all at
+       opacity 0 whenever the buttons are visible, and vice versa. */
+    .hero-ctas { z-index: 6 !important; }
+    /* Two lines of decorative text with nothing to click in them. */
+    .hero-promise { pointer-events: none !important; }
+
     @media (max-width: 860px) {
       .hero-scroller { height: auto !important; }
       .hero-stage {
