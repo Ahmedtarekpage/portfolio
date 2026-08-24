@@ -11,7 +11,7 @@
                   Deterministic across renders, and it survives the text
                   itself changing.
      2. h<hash>   a hash of the *original* content (the journey pages,
-                  whose cards main.js generates). Survives reordering,
+                  whose cards journey.js generates). Survives reordering,
                   which a positional path would not.
    Each gets a #<kind> suffix, plus a :<n> occurrence index when one key
    would otherwise cover several nodes.
@@ -468,7 +468,7 @@
 
   /* ---------- boot ----------
      Both pages paint asynchronously — index.html through its template
-     runtime, the journey pages through main.js — so there is no one
+     runtime, the journey pages through journey.js — so there is no one
      "ready" moment. Fetch the overrides once, then re-scan whenever the
      DOM settles, and stop once it clearly has. */
 
@@ -499,7 +499,7 @@
         run();
       }, 6000);
 
-      // main.js rewrites every data-i18n string on language change.
+      // journey.js rewrites every data-i18n string on language change.
       document.addEventListener("click", function (e) {
         if (e.target && e.target.closest && e.target.closest("#langToggle")) {
           setTimeout(function () { scans = 0; run(); }, 80);

@@ -1,8 +1,8 @@
 /* Content dashboard: passkey gate, per-element editing, media library.
 
    The list of editable things is not maintained here. Each page is loaded
-   into a hidden iframe with #cms-index, where cms.js walks the rendered DOM
-   and posts back everything it found. That keeps this dashboard honest —
+   into a hidden iframe with #cms-index, where the site's cms.js walks the
+   rendered DOM and posts back everything it found. That keeps this dashboard honest —
    it can only ever show what the page actually renders.
 
    Everything on screen is written for a person, not a developer: no keys,

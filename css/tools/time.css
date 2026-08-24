@@ -1,7 +1,7 @@
-/* Time-tracking page — extends admin.css with day/task/quarter-specific bits,
+/* Time-tracking page — extends app.css with day/task/quarter-specific bits,
    plus a light/dark theme system and a modern "refresh" pass (glass cards,
    soft shadows, smoother hovers). Everything here is scoped to /time only —
-   admin.css and /admin are never touched. */
+   app.css and /admin are never touched. */
 
 /* ---------- theme variables ---------- */
 :root {
@@ -23,8 +23,8 @@
 }
 
 /* smooth cross-fade whenever the theme is switched (disabled site-wide for
-   prefers-reduced-motion via admin.css's global override). .tile and .btn
-   already get transform transitions from admin.css / further below in this
+   prefers-reduced-motion via app.css's global override). .tile and .btn
+   already get transform transitions from app.css / further below in this
    file — merged there instead of overridden here. */
 body, .card, .badge, input, select, .toast, .task-row__icon {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
@@ -579,7 +579,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .checkline { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted); }
 .checkline input { width: 16px; height: 16px; accent-color: var(--blue); }
 
-/* toast entrance (scoped to /time — admin.css's #toast has no animation) */
+/* toast entrance (scoped to /time — app.css's #toast has no animation) */
 @keyframes toastIn {
   from { opacity: 0; transform: translate(-50%, 10px); }
   to { opacity: 1; transform: translate(-50%, 0); }

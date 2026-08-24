@@ -2233,7 +2233,10 @@
   // higher-resolution copy (fetched one at a time, not part of the bulk
   // gallery load) once it arrives
   function openDayPhotoView(date, thumbUrl) {
-    $("#dayPhotoViewImg").src = thumbUrl || "";
+    // src="" is not "no picture" — the browser reads it as this page's own
+    // URL and downloads the whole document again to try to decode it
+    if (thumbUrl) $("#dayPhotoViewImg").src = thumbUrl;
+    else $("#dayPhotoViewImg").removeAttribute("src");
     $("#dayPhotoView").hidden = false;
     $("#dayPhotoView").classList.add("photo-view--loading");
     api("/api/day-photos?date=" + date + "&full=1")
@@ -2246,7 +2249,7 @@
   }
   function closeDayPhotoView() {
     $("#dayPhotoView").hidden = true;
-    $("#dayPhotoViewImg").src = "";
+    $("#dayPhotoViewImg").removeAttribute("src");
   }
 
   $("#dayPhotoMenuBackdrop").addEventListener("click", closeDayPhotoMenu);

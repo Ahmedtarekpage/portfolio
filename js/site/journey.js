@@ -1,3 +1,16 @@
+/* Everything the three deep-dive pages do — /product, /educator and /full,
+   which are one file, journey.html, showing a different slice of the same
+   content.
+
+   It has no build step and no framework: the résumé data lives in this file
+   as plain objects, the cards are generated from it, and the rest is scroll
+   reveals, count-ups, the lightbox and the tab bar's active state. The
+   editable words and pictures are not here — cms.js paints those over the
+   page once it has fetched them.
+
+   Sections below, in order: the translation layer (now English-only), the
+   content data, rendering, and then the behaviours. */
+
 /* =========================================================
    i18n — language + translation layer
    ========================================================= */

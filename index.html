@@ -1,14 +1,28 @@
 <!DOCTYPE html>
+<!--
+  The landing page.
+
+  Unlike every other page here, this one is a design tool export: its markup
+  carries inline styles and the runtime in js/runtime/ paints it. Do not
+  reformat it by hand — a re-export would overwrite the work.
+
+  What was added on top, and is safe to edit:
+    - the <script> tags at the end of <head>
+    - the window.__resources map, which pins React to /vendor
+    - the <style> block inside <helmet>
+    - data-cms-* / data-yt / data-book attributes, which is how the dashboard
+      finds the words, pictures, videos and booking links it may change
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ahmed Tarek — AI Product Manager</title>
 <meta name="description" content="Ahmed Tarek — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products. Based in Dubai, working globally.">
-<link rel="icon" type="image/png" sizes="64x64" href="logo/favicon-64.png">
-<link rel="icon" type="image/png" sizes="32x32" href="logo/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/logo/favicon-64.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/logo/favicon-32.png">
 
-<link rel="apple-touch-icon" href="logo/favicon-180.png">
+<link rel="apple-touch-icon" href="/logo/favicon-180.png">
 <meta name="theme-color" content="#ffffff">
 <script>
   /* The page's own runtime fetches React from unpkg. When unpkg is slow or
@@ -21,21 +35,20 @@
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "/vendor/react-dom-18.3.1.min.js",
   };
 </script>
-<script src="./support.js?v=2"></script>
-<script src="./cms.js?v=8" defer></script>
+<script src="./js/runtime/support.js?v=2"></script>
+<script src="./js/site/cms.js?v=8" defer></script>
 
-<script src="./subscribe.js?v=2" defer></script>
-<script src="./videos.js?v=3" defer></script>
-<script src="./tabbar.js?v=2" defer></script>
-<script src="./ascii.js?v=13" defer></script>
+<script src="./js/site/newsletter.js?v=2" defer></script>
+<script src="./js/site/videos.js?v=3" defer></script>
+<script src="./js/site/tabbar.js?v=2" defer></script>
 </head>
 <body>
 <x-dc>
 <helmet>
   <link rel="stylesheet" href="_ds/nocturne-15e55385-183a-4254-85f5-b504ac252e84/styles.css">
   <script src="_ds/nocturne-15e55385-183a-4254-85f5-b504ac252e84/_ds_bundle.js"></script>
-  <link rel="stylesheet" href="./icons.css?v=1">
-  <script src="./image-slot.js?v=2"></script>
+  <link rel="stylesheet" href="./css/site/icons.css?v=1">
+  <script src="./js/runtime/image-slot.js?v=2"></script>
   <style>
     :root {
       --color-bg: #ffffff; --color-text: #17181f;
@@ -87,23 +100,6 @@
        0px spellings below in sync with what the DOM actually holds.
        ==================================================== */
     .site-nav-mobile { display: none; }
-
-    /* The ASCII band: a window onto something bigger than itself, which is
-       why it clips. It starts inert — ascii.js turns the pointer on once it
-       has something drawn to click, so a failure leaves plain decoration. */
-    .ascii-band {
-      position: relative;
-      max-width: 1120px;
-      margin: 76px auto 0;
-      padding: 0 40px;
-      height: 270px;
-      pointer-events: none;
-      -webkit-user-select: none; user-select: none;
-      overflow: hidden;
-    }
-    @media (max-width: 700px) {
-      .ascii-band { height: 175px; margin-top: 56px; padding: 0 18px; }
-    }
 
     /* ---- the phone's navigation is a tab bar, not a menu ----
        A hamburger hides everything behind a tap and then asks you to read a
@@ -557,9 +553,6 @@
   </div>
 
   <div style="background: #ffffff;">
-  <!-- the phrase the whole site is built around, written in noise -->
-  <div class="ascii-band" data-ascii data-cms-skip aria-hidden="true"></div>
-
   <div id="help" style="max-width: 1120px; margin: 0 auto; padding: 128px 40px 0 40px;">
     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; align-items: start;">
       <div style="display: flex; flex-direction: column; gap: 32px;">

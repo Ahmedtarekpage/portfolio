@@ -1,16 +1,22 @@
 <!DOCTYPE html>
+<!--
+  The client CRM, behind a passkey: clients, hour packages, sessions,
+  payments and the balance chart. Never linked from the public site.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Ahmed Tarek</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="icon" type="image/png" sizes="64x64" href="logo/favicon-64.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/logo/favicon-64.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/logo/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/logo/favicon-180.png" />
   <meta name="theme-color" content="#0b0e14" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=6" />
+  <link rel="stylesheet" href="css/tools/app.css?v=6" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -225,7 +231,7 @@
     <p id="toast" class="toast" hidden></p>
   </div>
 
-  <script src="chart.js?v=5"></script>
-  <script src="admin.js?v=3"></script>
+  <script src="js/tools/chart.js?v=5"></script>
+  <script src="js/tools/admin.js?v=3"></script>
 </body>
 </html>

@@ -1,7 +1,13 @@
-# Admin panel — setup guide
+# Architecture and operations
 
-A private client-hours CRM at **`/admin`**, protected by iPhone passkeys (Face ID).
-Static frontend + Vercel serverless functions in [api/](api/) + Neon Postgres.
+The long version. [`README.md`](../README.md) is the overview — the layout, how
+to run it, and the rules to work by. This document is the detail behind it: how
+the content overlay decides what is editable, what each private tool does, how
+the hours and newsletter engines work, and how to operate the thing.
+
+It starts with the client CRM at **`/admin`**, protected by iPhone passkeys
+(Face ID): a static front end, Vercel serverless functions in [api/](../api/),
+and Neon Postgres.
 
 ## What it does
 - **Passkey login, one device only** — no passwords, no secrets. The FIRST device to
@@ -23,7 +29,7 @@ Edit every word, picture and link on the public pages without touching code or
 redeploying. Same passkey as `/admin`; there is a **Site content** button in the
 admin topbar.
 
-**How it finds the content.** Nothing is tagged by hand. [cms.js](cms.js) runs on
+**How it finds the content.** Nothing is tagged by hand. [cms.js](../js/site/cms.js) runs on
 `/`, `/full`, `/product` and `/educator`, walks the rendered page, and gives every
 run of text, every image and every outbound link a stable key. The dashboard loads
 each page in a hidden iframe and reads that same list back, so it can only ever
@@ -32,7 +38,7 @@ on the journey pages.
 
 Keys come from the template runtime's `data-dc-tpl` id where there is one
 (`index.html`), and otherwise from a hash of the original content (the journey
-pages, whose cards `main.js` generates). Hashing the *original* rather than what is
+pages, whose cards `js/site/journey.js` generates). Hashing the *original* rather than what is
 on screen is what lets an override survive the very edit it applies. Change the
 source text of an element and its override is dropped, which is the intended
 behaviour — the page goes back to speaking for itself.
@@ -50,7 +56,7 @@ as `media:<id>` and resolved at render time.
 
 **Photos are dashboard-only.** The `image-slot` component ships as a live drop
 target — click an empty one and it opens a file picker, drag a file onto it and it
-takes it. That belongs in a design tool, not on a public page, so `cms.js` makes
+takes it. That belongs in a design tool, not on a public page, so `js/site/cms.js` makes
 every slot inert and removes empty ones from the layout entirely (collapsing the
 grid rows they were holding open). A slot reappears the moment a photo is set for
 it from the dashboard. Visitors cannot upload anything.
@@ -65,7 +71,7 @@ it from the dashboard. Visitors cannot upload anything.
   `**🇸🇦**Saudi Gov projects`. Harmless, and the asterisks stay out of the page.
 - Short labels, buttons and links start out folded away behind *Show everything* —
   roughly 70 of 240 items on the home page are shown by default.
-- A page-structure change in `index.html` or `main.js` can orphan overrides that
+- A page-structure change in `index.html` or `js/site/journey.js` can orphan overrides that
   pointed at the old content. They stay in the database, harmless, and the page
   falls back to source. Clear them with `DELETE /api/cms?all=1`.
 
@@ -237,10 +243,10 @@ not there.
 **Nothing on the public pages comes from someone else's CDN any more.** The
 page's own runtime fetched React from unpkg at load; with unpkg unreachable
 the home page rendered *blank* — no nav, no text, nothing. React and ReactDOM
-are now served from `/vendor`, byte-identical to the versions `support.js`
+are now served from `/vendor`, byte-identical to the versions `js/runtime/support.js`
 pins by SHA-384 (verified against those hashes), wired through the runtime's
 own `window.__resources` override. The 220 KB Phosphor icon stylesheet and
-webfont are replaced by `icons.css`: the 24 icons this site actually uses, as
+webfont are replaced by `css/site/icons.css`: the 24 icons this site actually uses, as
 CSS masks, 18 KB, same `<i class="ph ph-play">` markup, and `star-fill` now
 renders — it never had a glyph in the regular webfont.
 
@@ -283,7 +289,7 @@ means merging it into an existing one.
 
 | Path | Role |
 |---|---|
-| `admin.html` / `admin.css` / `admin.js` | the admin app (list, detail, chart, forms) |
+| `admin.html` + `css/tools/app.css` + `js/tools/admin.js` | the admin app (list, detail, chart, forms) |
 | `api/auth.js` | WebAuthn passkey register / login / logout |
 | `api/clients.js`, `api/client.js` | clients CRUD + per-client detail & timeline |
 | `api/packages.js`, `api/sessions.js`, `api/pdf.js` | purchases, session records, PDF download |

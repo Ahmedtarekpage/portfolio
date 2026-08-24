@@ -1,3 +1,14 @@
+/* The three deep-dive pages — /product, /educator and /full, all served from
+   journey.html.
+
+   The landing page does not use this file: it is painted by the design tool's
+   own stylesheet in _ds/. So everything here belongs to journey.html alone,
+   and the two only have to agree on the palette, which is the block of custom
+   properties immediately below.
+
+   Order of the file: tokens, then base elements, then components roughly in
+   the order they appear down the page, then the responsive overrides last. */
+
 :root {
   --bg: #ffffff;
   --bg-2: #f4f4f9;

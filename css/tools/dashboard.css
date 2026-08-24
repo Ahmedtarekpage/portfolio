@@ -1,4 +1,4 @@
-/* Content dashboard — sits on top of admin.css, same dark palette. */
+/* Content dashboard — sits on top of app.css, same dark palette. */
 
 .dash-head {
   display: flex; align-items: flex-start; justify-content: space-between;
