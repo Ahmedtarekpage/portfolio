@@ -48,6 +48,13 @@ stored in `site_media` and served from `/api/cms?resource=media&id=N`. For real 
 YouTube and paste the link into the relevant field instead. A picked file is stored
 as `media:<id>` and resolved at render time.
 
+**Photos are dashboard-only.** The `image-slot` component ships as a live drop
+target — click an empty one and it opens a file picker, drag a file onto it and it
+takes it. That belongs in a design tool, not on a public page, so `cms.js` makes
+every slot inert and removes empty ones from the layout entirely (collapsing the
+grid rows they were holding open). A slot reappears the moment a photo is set for
+it from the dashboard. Visitors cannot upload anything.
+
 **Limits worth knowing**
 - A sentence with styling inside it is shown as plain words with the styled run in
   `**asterisks**` — no markup anywhere in the dashboard. Keep the same number of

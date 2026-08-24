@@ -350,10 +350,41 @@
     if (observer) observer.takeRecords();
   }
 
+  /* The picture component ships as a live drop target: click an empty one
+     and it opens a file picker, drag onto it and it takes the file. That is
+     right inside a design tool and wrong on a public page, where it reads as
+     an unfinished admin screen a visitor is invited to write to.
+
+     So every slot is made inert, and empty ones leave the layout altogether —
+     a photo shows up here when one is set from the dashboard, and until then
+     there is simply nothing there. An explicit grid holds on to the rows it
+     was given even when they are empty, so those collapse too. */
+  function lockPictures() {
+    var slots = document.getElementsByTagName("image-slot");
+    var grids = [];
+    for (var i = 0; i < slots.length; i++) {
+      var el = slots[i];
+      el.style.pointerEvents = "none";
+      if (norm(el.getAttribute("src"))) { el.style.display = ""; continue; }
+      // The tile wrapper carries the rounded corners and shadow, so hiding
+      // the slot alone would leave an empty card behind.
+      var tile = (el.parentElement && el.parentElement.children.length === 1) ? el.parentElement : el;
+      tile.style.display = "none";
+      var grid = tile.parentElement;
+      if (grid && grids.indexOf(grid) < 0) grids.push(grid);
+    }
+    for (var g = 0; g < grids.length; g++) {
+      try {
+        if (getComputedStyle(grids[g]).display === "grid") grids[g].style.gridTemplateRows = "auto";
+      } catch (e) {}
+    }
+  }
+
   function run() {
     scans++;
     scan(document.body);
     apply();
+    lockPictures();
     if (location.hash === "#cms-index" || location.search.indexOf("cmsindex=1") > -1) {
       try {
         parent.postMessage({ type: "cms-index", page: PAGE, items: index }, location.origin);
