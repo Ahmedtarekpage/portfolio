@@ -189,6 +189,9 @@ async function migrate(sql) {
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     unsubscribed_at TIMESTAMPTZ
   )`;
+  // The address that signed someone up, kept only to rate-limit the public
+  // form. Nothing reads it back out.
+  await sql`ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS ip TEXT`;
   // What was sent, to how many, and when — so a send can never be a mystery.
   await sql`CREATE TABLE IF NOT EXISTS newsletter_campaigns (
     id SERIAL PRIMARY KEY,

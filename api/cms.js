@@ -27,6 +27,17 @@ import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { mailConfig, renderEmail, renderText, sendBatch } from "./_lib/mail.js";
 
 const KINDS = new Set(["text", "rich", "html", "src", "href"]);
+
+/* A link the dashboard saves ends up as an href on a public page. Anything
+   that is not a way of addressing a document — javascript:, data:, vbscript:
+   — is a way of running code, and there is no reason for one to be here. */
+const SAFE_LINK = /^(https?:\/\/|mailto:|tel:|\/|#|\.\.?\/|media:\d+$|[\w.-]+\/)/i;
+function unsafeLink(kind, value) {
+  if (kind !== "href" && kind !== "src") return false;
+  const v = value.trim();
+  if (!v) return false;
+  return !SAFE_LINK.test(v);
+}
 const MAX_VALUE = 200_000;
 
 // Vercel caps a serverless request body at ~4.5 MB, and base64 inflates by a
@@ -48,6 +59,11 @@ async function handleMedia(req, res, sql) {
     // Rows are never rewritten in place — a replacement gets a new id — so the
     // bytes behind an id really are immutable.
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    // An uploaded file is served from the same origin as /admin, so it must
+    // not be able to run anything. An SVG opened directly in a tab would
+    // otherwise execute its own script with this site's origin.
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     return res.status(200).end(buf);
   }
 
@@ -110,7 +126,7 @@ function siteUrl(req) {
   return `${proto}://${host}`;
 }
 
-function page(res, status, title, message) {
+function page(res, status, title, message, confirmToken) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(status).end(`<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" /><title>${title}</title></head>
@@ -118,7 +134,10 @@ function page(res, status, title, message) {
 <div style="max-width:460px;text-align:center;background:#fff;border:1px solid #e4e5ee;border-radius:18px;padding:40px 32px;">
 <h1 style="margin:0 0 12px;font-size:22px;font-weight:600;">${title}</h1>
 <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#5c5e70;">${message}</p>
-<a href="/" style="display:inline-block;padding:12px 24px;border-radius:999px;background:#7263c9;color:#fff;font-size:14px;font-weight:600;text-decoration:none;">Back to the site</a>
+${confirmToken ? `<form method="POST" action="/unsubscribe?token=${encodeURIComponent(confirmToken)}" style="margin:0 0 14px;">
+<button type="submit" style="padding:12px 24px;border:0;border-radius:999px;background:#7263c9;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Yes, unsubscribe me</button>
+</form>` : ""}
+<a href="/" style="display:inline-block;padding:12px 24px;border-radius:999px;${confirmToken ? "background:transparent;color:#5c5e70;border:1px solid #e4e5ee;" : "background:#7263c9;color:#fff;"}font-size:14px;font-weight:600;text-decoration:none;">${confirmToken ? "No, keep me subscribed" : "Back to the site"}</a>
 </div></body></html>`);
 }
 
@@ -126,30 +145,60 @@ async function handleNewsletter(req, res, sql) {
   const action = String(req.query.action || "");
 
   // --- public: someone unsubscribing from a link in an email ---
-  if (req.method === "GET" && action === "unsubscribe") {
-    const token = String(req.query.token || "");
+  //
+  // Corporate mail filters open every link in a message to check it. If the
+  // GET did the unsubscribing, they would quietly unsubscribe the person they
+  // are protecting. So the GET asks, and the POST acts — which is also the
+  // method a mail client's own one-click unsubscribe uses.
+  if (action === "unsubscribe" && (req.method === "GET" || req.method === "POST")) {
+    const token = String(req.query.token || req.body?.token || "");
     if (!token) return page(res, 400, "Link incomplete", "That unsubscribe link is missing its code.");
+
+    if (req.method === "GET") {
+      const [row] = await sql`SELECT status FROM newsletter_subscribers WHERE token = ${token}`;
+      if (!row) return page(res, 404, "Nothing to do", "That link is not one of ours, or the address is no longer on the list.");
+      if (row.status !== "active") return page(res, 200, "Already unsubscribed", "You are not on the list. Nothing more to do.");
+      return page(res, 200, "Unsubscribe?", "One click and no more emails come to you.", token);
+    }
+
     const [row] = await sql`UPDATE newsletter_subscribers
       SET status = 'unsubscribed', unsubscribed_at = now()
       WHERE token = ${token} RETURNING email`;
-    if (!row) return page(res, 404, "Already done", "That link has already been used, or the address is no longer on the list.");
-    return page(res, 200, "You're unsubscribed",
-      `No more emails will go to ${row.email.replace(/</g, "")}. Thanks for reading.`);
+    if (!row) return page(res, 404, "Nothing to do", "That link has already been used, or the address is no longer on the list.");
+    return page(res, 200, "You're unsubscribed", "No more emails will come to you. Thanks for reading.");
   }
 
   // --- public: subscribing from the site ---
   if (req.method === "POST" && (!action || action === "subscribe")) {
     const b = req.body || {};
+
+    // A field no person can see and no person fills in. A script that posts
+    // every input it finds fills it, and is told the same thing a success is
+    // told — there is nothing to learn from the answer.
+    if (String(b.website || "").trim()) return json(res, 201, { ok: true });
+
     const email = String(b.email || "").trim().toLowerCase().slice(0, 254);
     if (!EMAIL_RE.test(email)) return json(res, 400, { error: "That does not look like an email address." });
+
+    // Anyone can post here, so anyone can fill the table, burn the daily
+    // sending quota, and sign up addresses that are not theirs. A handful an
+    // hour from one address is more than a real person needs.
+    const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim().slice(0, 45) || null;
+    if (ip) {
+      const [{ count }] = await sql`SELECT count(*)::int AS count FROM newsletter_subscribers
+        WHERE ip = ${ip} AND created_at > now() - interval '1 hour'`;
+      if (count >= 5) {
+        return json(res, 429, { error: "That is a lot of sign-ups from one place. Try again in an hour." });
+      }
+    }
     const name = String(b.name || "").trim().slice(0, 120) || null;
     const source = String(b.source || "site").trim().slice(0, 60);
     const token = crypto.randomBytes(24).toString("base64url");
 
     // Someone re-subscribing after opting out is asking to come back, and the
     // row keeps its original token so old unsubscribe links still work.
-    await sql`INSERT INTO newsletter_subscribers (email, name, source, token)
-      VALUES (${email}, ${name}, ${source}, ${token})
+    await sql`INSERT INTO newsletter_subscribers (email, name, source, token, ip)
+      VALUES (${email}, ${name}, ${source}, ${token}, ${ip})
       ON CONFLICT (email) DO UPDATE SET
         status = 'active',
         unsubscribed_at = NULL,
@@ -286,6 +335,11 @@ export default withErrors(async (req, res) => {
       const kind = KINDS.has(it.kind) ? it.kind : "text";
       const value = it.value == null ? "" : String(it.value);
       if (value.length > MAX_VALUE) return json(res, 400, { error: `Value for ${key} is too large` });
+      if (unsafeLink(kind, value)) {
+        return json(res, 400, {
+          error: "That link is not a web address. Start it with https://, mailto:, tel:, / or #.",
+        });
+      }
 
       // An empty value is "put it back the way the page ships it", not "blank it out".
       if (!value.trim()) {

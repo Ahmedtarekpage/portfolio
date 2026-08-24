@@ -344,9 +344,15 @@
 
   /* ---------- applying ---------- */
 
+  /* A saved link is checked when it is saved, but it is written onto a live
+     page here — so it is checked again on the way in. Anything that is not a
+     way of addressing a document is a way of running code. */
+  var SAFE_LINK = /^(https?:\/\/|mailto:|tel:|\/|#|\.\.?\/|[\w.-]+\/)/i;
+
   function resolve(value) {
     // Media ids picked in the dashboard resolve to the media endpoint.
-    return /^media:\d+$/.test(value) ? "/api/cms?resource=media&id=" + value.slice(6) : value;
+    if (/^media:\d+$/.test(value)) return "/api/cms?resource=media&id=" + value.slice(6);
+    return SAFE_LINK.test(String(value).trim()) || !String(value).trim() ? value : "#";
   }
 
   /* Writing a value that is already in place would still register as a DOM

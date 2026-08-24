@@ -1057,7 +1057,7 @@ function lbOpen(group, i) {
 function lbClose() {
   lb.classList.remove("open");
   document.body.style.overflow = "";
-  lbImg.src = "";
+  lbImg.removeAttribute("src");
 }
 
 if (lb) {

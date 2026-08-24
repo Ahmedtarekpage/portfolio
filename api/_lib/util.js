@@ -116,8 +116,11 @@ export function withErrors(handler) {
     try {
       await handler(req, res);
     } catch (err) {
+      // The real reason goes to the Vercel logs, where only the owner can read
+      // it. What comes back over the wire says nothing about the database, the
+      // query or the file that failed.
       console.error(err);
-      res.status(500).json({ error: err.message || "Server error" });
+      res.status(500).json({ error: "Something went wrong on the server." });
     }
   };
 }

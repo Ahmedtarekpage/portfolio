@@ -45,7 +45,12 @@
     fetch("/api/cms?resource=newsletter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email, source: "landing" }),
+      body: JSON.stringify({
+        email: email,
+        source: "landing",
+        // Empty for a person; a script that fills every field gives itself away.
+        website: (document.getElementById("subWebsite") || {}).value || "",
+      }),
     })
       .then(function (r) {
         return r.json().catch(function () { return {}; })

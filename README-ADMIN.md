@@ -225,6 +225,46 @@ Every copy carries a personal `/unsubscribe?token=…` link and a
 `List-Unsubscribe` header. Unsubscribing flips the row's status rather than
 deleting it.
 
+## Performance and hardening
+
+**The home page went from 6.75 MB to 0.74 MB.** Six PNGs were doing 5.5 MB of
+that — photographs saved as PNG, at up to 2730px for a slot that shows them at
+700. They are WebP now, alpha intact, at twice their displayed size and no
+more. The rest of the referenced images were re-encoded in place, same
+filenames, so nothing in the markup could end up pointing at a file that is
+not there.
+
+**Nothing on the public pages comes from someone else's CDN any more.** The
+page's own runtime fetched React from unpkg at load; with unpkg unreachable
+the home page rendered *blank* — no nav, no text, nothing. React and ReactDOM
+are now served from `/vendor`, byte-identical to the versions `support.js`
+pins by SHA-384 (verified against those hashes), wired through the runtime's
+own `window.__resources` override. The 220 KB Phosphor icon stylesheet and
+webfont are replaced by `icons.css`: the 24 icons this site actually uses, as
+CSS masks, 18 KB, same `<i class="ph ph-play">` markup, and `star-fill` now
+renders — it never had a glyph in the regular webfont.
+
+`.image-slots.state.json` was a 404 on every single page load: a sidecar only
+the design tool writes. It is not requested outside that tool now. An
+`<img src="">` in the lightbox made the browser download the whole page a
+second time each time the lightbox closed.
+
+### Security
+
+| | |
+| --- | --- |
+| Headers | CSP (`frame-ancestors`, `base-uri`, `object-src`, `form-action`), `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` |
+| Uploaded files | served with `sandbox` CSP + `nosniff`, so an SVG cannot run script on this origin |
+| Saved links | must be http(s)/mailto/tel/relative/anchor — `javascript:` and `data:` are refused on save *and* on the way onto the page |
+| Public sign-up | five per hour per address, plus a hidden field no person fills in |
+| Unsubscribing | the GET asks, the POST acts, so a corporate mail scanner opening every link cannot unsubscribe the person it is protecting |
+| Server errors | the reason goes to the Vercel log; the response says only that something went wrong |
+| `/admin`, `/dashboard`, `/time` | `Cache-Control: private, no-store` |
+
+All twelve API routes were checked for an auth guard ahead of any data access.
+Everything private answers 401 without a session. Queries are tagged
+templates throughout, so there is no string-built SQL anywhere.
+
 ## The twelve-function ceiling
 
 Vercel's Hobby plan allows **12 Serverless Functions per deployment**, and this

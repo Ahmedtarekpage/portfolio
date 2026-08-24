@@ -10,9 +10,20 @@
 
 <link rel="apple-touch-icon" href="logo/favicon-180.png">
 <meta name="theme-color" content="#ffffff">
-<script src="./support.js"></script>
-<script src="./cms.js?v=7" defer></script>
-<script src="./subscribe.js?v=1" defer></script>
+<script>
+  /* The page's own runtime fetches React from unpkg. When unpkg is slow or
+     unreachable the whole page renders blank — nothing paints at all — and a
+     CDN that can be changed by someone else is a CDN that can rewrite this
+     page. Both copies below are byte-identical to the versions support.js
+     pins by SHA-384, served from this origin. */
+  window.__resources = {
+    "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "/vendor/react-18.3.1.min.js",
+    "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "/vendor/react-dom-18.3.1.min.js",
+  };
+</script>
+<script src="./support.js?v=2"></script>
+<script src="./cms.js?v=8" defer></script>
+<script src="./subscribe.js?v=2" defer></script>
 <script src="./videos.js?v=3" defer></script>
 </head>
 <body>
@@ -20,8 +31,8 @@
 <helmet>
   <link rel="stylesheet" href="_ds/nocturne-15e55385-183a-4254-85f5-b504ac252e84/styles.css">
   <script src="_ds/nocturne-15e55385-183a-4254-85f5-b504ac252e84/_ds_bundle.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-  <script src="./image-slot.js"></script>
+  <link rel="stylesheet" href="./icons.css?v=1">
+  <script src="./image-slot.js?v=2"></script>
   <style>
     :root {
       --color-bg: #ffffff; --color-text: #17181f;
@@ -289,7 +300,7 @@
   <div class="hero-scroller" style="position: relative; height: 150vh;">
   <div class="hero-stage" style="position: sticky; top: 0; height: calc(100vh - 74px); overflow: hidden;">
     <div ref="{{ portrait }}" class="hero-portrait" style="position: absolute; left: 50%; top: 34%; height: 62%; aspect-ratio: 2730 / 1536; margin: 0; transform: translate(-50%, -50%); z-index: 1; will-change: transform;">
-      <img src="assets/hero-photo-white.png" alt="Ahmed Tarek" style="width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; animation: portrait-in 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;">
+      <img src="assets/hero-photo-white.webp" alt="Ahmed Tarek" style="width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; animation: portrait-in 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;">
     </div>
     <div ref="{{ heroCtas }}" class="hero-ctas" style="position: absolute; inset: 0; z-index: 2; pointer-events: none; will-change: opacity;">
       <a href="https://tidycal.com/ahmedtarek/vip-booking" target="_blank" rel="noopener" data-book style="position: absolute; left: 11%; top: 26%; pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-accent-700); color: var(--color-accent-300); font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-md); animation: pill-float 5.4s ease-in-out infinite, fade-up 0.8s ease 0.5s both;" style-hover="border-color: var(--color-accent); color: var(--color-accent-200);"><i class="ph ph-calendar-check" style="font-size: 16px;"></i>Book a free consultation</a>
@@ -322,7 +333,7 @@
         <span style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Taught with</span>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-udacity.png" alt="Udacity" style="height: 15px; width: auto; object-fit: contain; display: block;"></span>
-          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-decubs-mark.png" alt="Digital Egypt Cubs" style="height: 24px; width: auto; object-fit: contain; display: block;"></span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-decubs-mark.webp" alt="Digital Egypt Cubs" style="height: 24px; width: auto; object-fit: contain; display: block;"></span>
           <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-upwork-word.png" alt="Upwork" style="height: 14px; width: auto; object-fit: contain; display: block;"></span>
           <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-robocup-mark.png" alt="RoboCup" style="height: 24px; width: auto; object-fit: contain; display: block;"></span>
           <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease; background: #17181f; border-color: #17181f;"><img src="assets/logo-almentor-trim.png" alt="almentor" style="height: 13px; width: auto; object-fit: contain; display: block;"></span>
@@ -340,7 +351,7 @@
         <span style="font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Product manager at</span>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-family: var(--font-heading); font-size: 15px; font-weight: 500; color: var(--color-neutral-400);">
           <a href="https://ashrhly.com" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/ashrhly-lockup.png" alt="Ashrhly" style="height: 30px; width: auto; object-fit: contain; display: block;"></a>
-          <a href="https://inkryptvideos.com" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/logo-inkrypt-tight.png" alt="Inkrypt Videos" style="height: 16px; width: auto; object-fit: contain; display: block;"></a>
+          <a href="https://inkryptvideos.com" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;" style-hover="border-color: var(--color-accent-700); color: var(--color-accent-300);"><img src="assets/logo-inkrypt-tight.webp" alt="Inkrypt Videos" style="height: 16px; width: auto; object-fit: contain; display: block;"></a>
           <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #0d1b2a; border: 1px solid #0d1b2a; font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-sakina.jpg" alt="SAKINA Tours" style="height: 22px; width: auto; object-fit: contain; display: block; border-radius: 4px;"></span>
           <span style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 13px; white-space: nowrap; border-radius: 999px; background: #ffffff; border: 1px solid var(--color-neutral-700); font-size: 12.5px; font-weight: 500; color: var(--color-neutral-300); transition: border-color 0.2s ease, color 0.2s ease;"><img src="assets/logo-alafein.png" alt="AlaFein" style="height: 13px; width: auto; object-fit: contain; display: block;"></span>
         </div>
@@ -362,14 +373,14 @@
     <div data-reveal="1" style="display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 32px; align-items: start;">
       <div data-reveal="2" style="display: flex; flex-direction: column; gap: 14px;">
         <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-video-main style="display: block; position: relative; border-radius: 12px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;" style-hover="opacity: 0.94;">
-          <image-slot id="yt-feature" data-cms-skip data-video-main-thumb shape="rect" src="assets/thumb-track.png" placeholder="Featured video thumbnail"></image-slot>
+          <image-slot id="yt-feature" data-cms-skip data-video-main-thumb shape="rect" src="assets/thumb-track.webp" placeholder="Featured video thumbnail"></image-slot>
           <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(255,0,0,0.92); display: flex; align-items: center; justify-content: center;"><i class="ph ph-play" style="font-size: 26px; color: #ffffff;"></i></span>
           
         </a>
         <h3 data-video-title data-cms-skip style="font-family: var(--font-heading); font-weight: 500; font-size: 22px; line-height: 1.3; margin: 0;">Stop collecting courses — here's what to do instead</h3>
         <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
           <span style="display: inline-flex; align-items: center; gap: 10px;">
-            <span style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--color-neutral-800); display: block;"><img src="assets/hero-photo-white.png" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; display: block;"></span>
+            <span style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--color-neutral-800); display: block;"><img src="assets/hero-photo-white.webp" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; display: block;"></span>
             <span style="display: flex; flex-direction: column;"><span data-video-main-author data-cms-skip style="font-size: 14px; font-weight: 500;">Ahmed Tarek</span><span data-video-soon data-cms-skip style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</span></span>
           </span>
           <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt-subscribe style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; background: #ff0000; color: #ffffff; font-size: 14px; font-weight: 500;" style-hover="opacity: 0.9;"><i class="ph ph-youtube-logo" style="font-size: 17px;"></i>Subscribe</a>
@@ -382,7 +393,7 @@
         </div>
         <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-1" data-yt-label="Video 1 — this one fills the big player" data-video-item style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
           <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
-            <image-slot data-cms-skip data-video-thumb id="rec-1837" shape="rect" src="assets/thumb-build.png" placeholder="Thumbnail"></image-slot>
+            <image-slot data-cms-skip data-video-thumb id="rec-1837" shape="rect" src="assets/thumb-build.webp" placeholder="Thumbnail"></image-slot>
             
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -393,7 +404,7 @@
         </a>
         <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-2" data-yt-label="Video 2" data-video-item style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
           <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
-            <image-slot data-cms-skip data-video-thumb id="rec-1522" shape="rect" src="assets/thumb-roadmap.png" placeholder="Thumbnail"></image-slot>
+            <image-slot data-cms-skip data-video-thumb id="rec-1522" shape="rect" src="assets/thumb-roadmap.webp" placeholder="Thumbnail"></image-slot>
             
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -404,7 +415,7 @@
         </a>
         <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-3" data-yt-label="Video 3" data-video-item style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
           <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
-            <image-slot data-cms-skip data-video-thumb id="rec-0941" shape="rect" src="assets/thumb-track.png" placeholder="Thumbnail"></image-slot>
+            <image-slot data-cms-skip data-video-thumb id="rec-0941" shape="rect" src="assets/thumb-track.webp" placeholder="Thumbnail"></image-slot>
             
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -703,6 +714,7 @@
       <div style="display: flex; flex-direction: column; gap: 18px;">
         <p style="font-size: 17px; line-height: 1.7; color: var(--color-text); margin: 0;">Every week I send one track-shaped lesson: what to learn next in AI and tech, how to build products that ship, and the daily systems behind it. Free, always.</p>
         <form id="subForm" data-cms-skip style="display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 20px; border-radius: 999px; background: var(--color-accent-900); border: 1px solid var(--color-accent-800);">
+          <input id="subWebsite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" data-cms-skip style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;">
           <input id="subEmail" type="email" name="email" required autocomplete="email" placeholder="Your email" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); padding: 10px 0;">
           <button id="subBtn" type="submit" style="border: none; cursor: pointer; padding: 13px 26px; border-radius: 999px; background: var(--color-accent); color: #ffffff; font-family: var(--font-body); font-size: 15px; font-weight: 500; white-space: nowrap; transition: transform 0.2s ease;" style-hover="transform: translateY(-2px);">Subscribe</button>
         </form>

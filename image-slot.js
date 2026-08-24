@@ -171,6 +171,14 @@
 
   function load() {
     if (loadP) return loadP;
+    // The sidecar only exists inside the design tool that writes it. On the
+    // published site the fetch is a guaranteed 404 on every page load — a
+    // wasted request and a console error for something that can never be
+    // there. Slots are read-only here anyway; their src is in the markup.
+    if (!window.omelette) {
+      loaded = true;
+      return (loadP = Promise.resolve(null));
+    }
     loadP = fetch(STATE_FILE)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
