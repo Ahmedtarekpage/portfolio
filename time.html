@@ -9,9 +9,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Time — Ahmed Tarek</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="icon" type="image/png" sizes="64x64" href="/logo/favicon-64.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/logo/favicon-32.png" />
-  <link rel="apple-touch-icon" href="/logo/favicon-180.png" />
+  <!-- Google looks for /favicon.ico at the root before anything declared here,
+       and it wants a square in a multiple of 48px — which 32 and 64, what this
+       used to offer, are not. Hence both: the .ico for the crawler and the old
+       convention, the 96 and 192 for everything modern. -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="96x96" href="/logo/icon-96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/logo/icon-192.png">
+  <link rel="apple-touch-icon" href="/logo/favicon-180.png">
   <meta name="theme-color" content="#0b0e14" />
   <script>
     // set the theme before CSS applies, so there's no flash of the wrong theme
