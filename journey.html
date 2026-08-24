@@ -33,6 +33,51 @@
   <meta name="twitter:description" content="The AI and EdTech products I have owned end to end — discovery, roadmap, delivery, launch." />
   <meta name="twitter:image" content="https://ahmedtarek.tech/logo/og-card.jpg" />
 
+  <!-- The same person as the one described on the home page — same @id, so
+       a search engine reading both pages understands one identity rather
+       than two. applyViewMeta() repoints the page node per view. -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ProfilePage",
+      "@id": "https://ahmedtarek.tech/product#page",
+      "url": "https://ahmedtarek.tech/product",
+      "name": "Ahmed Tarek — AI Product Manager for AI, SaaS & EdTech",
+      "description": "The AI and EdTech products I have owned end to end — discovery, roadmap, delivery, launch.",
+      "inLanguage": "en",
+      "mainEntity": {
+        "@id": "https://ahmedtarek.tech/#ahmed"
+      },
+      "isPartOf": {
+        "@id": "https://ahmedtarek.tech/#website"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://ahmedtarek.tech/#ahmed",
+      "name": "Ahmed Tarek Mourssi",
+      "alternateName": "Ahmed Tarek",
+      "url": "https://ahmedtarek.tech/",
+      "jobTitle": "AI Product Manager",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Dubai",
+        "addressCountry": "AE"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/in/ahmedtarekai",
+        "https://www.youtube.com/@ahmedtarekai",
+        "https://www.instagram.com/ahmedtarekai",
+        "https://x.com/ahmedtarekai",
+        "https://ashrhly.com"
+      ]
+    }
+  ]
+}
+  </script>
+
   <link rel="icon" type="image/png" sizes="64x64" href="/logo/favicon-64.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/logo/favicon-32.png" />
   <link rel="apple-touch-icon" href="/logo/favicon-180.png" />

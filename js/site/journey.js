@@ -892,6 +892,22 @@ function applyViewMeta() {
   set("meta[name='twitter:title']", "content", meta.title);
   set("meta[name='twitter:description']", "content", meta.description);
 
+  // The structured data names this page too, so it moves with the rest.
+  const ld = document.head.querySelector('script[type="application/ld+json"]');
+  if (ld) {
+    try {
+      const data = JSON.parse(ld.textContent);
+      const page = (data["@graph"] || []).find((n) => n["@type"] === "ProfilePage");
+      if (page) {
+        page["@id"] = url + "#page";
+        page.url = url;
+        page.name = meta.title;
+        page.description = meta.description;
+        ld.textContent = JSON.stringify(data, null, 2);
+      }
+    } catch (e) { /* leave the shipped copy alone rather than write nonsense */ }
+  }
+
   function set(selector, attr, value) {
     const el = document.head.querySelector(selector);
     if (el) el.setAttribute(attr, value);
