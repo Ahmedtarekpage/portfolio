@@ -27,7 +27,7 @@
 <script src="./subscribe.js?v=2" defer></script>
 <script src="./videos.js?v=3" defer></script>
 <script src="./tabbar.js?v=2" defer></script>
-<script src="./ascii.js?v=12" defer></script>
+<script src="./ascii.js?v=13" defer></script>
 </head>
 <body>
 <x-dc>
@@ -88,8 +88,9 @@
        ==================================================== */
     .site-nav-mobile { display: none; }
 
-    /* The ASCII band. Decoration, so it never takes a click and never
-       reserves more room than it is given. */
+    /* The ASCII band: a window onto something bigger than itself, which is
+       why it clips. It starts inert — ascii.js turns the pointer on once it
+       has something drawn to click, so a failure leaves plain decoration. */
     .ascii-band {
       position: relative;
       max-width: 1120px;
