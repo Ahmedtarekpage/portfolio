@@ -449,6 +449,10 @@
     scan(document.body);
     apply();
     lockPictures();
+    // Anything that reads a value the dashboard can change — the video hub
+    // reading its YouTube links, say — needs to know when those values have
+    // landed, which is not any of the browser's own ready events.
+    try { document.dispatchEvent(new CustomEvent("cms:applied")); } catch (e) {}
     if (location.hash === "#cms-index" || location.search.indexOf("cmsindex=1") > -1) {
       try {
         parent.postMessage({ type: "cms-index", page: PAGE, items: index }, location.origin);

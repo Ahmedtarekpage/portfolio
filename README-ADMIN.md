@@ -133,24 +133,32 @@ you save over it.
 
 ## The video hub — /dashboard → Videos
 
-The four videos on the home page (the big one and the three in the list) each
-carry a `data-yt` attribute. The dashboard's **Videos** group, near the top of
-the Content tab, is a box per video: paste a YouTube link and save.
+There are three videos, all of them in the list. The big frame is not a fourth
+one: it shows whichever list video is chosen, and the first one to begin with.
+Click any of them and it plays there, with that video's own title above it.
 
-Any shape of link works — `youtube.com/watch?v=…`, `youtu.be/…`, `/shorts/…`,
-or the bare eleven-character id.
+The dashboard's **Videos** group is one box per video. Paste a YouTube link and
+save — any shape works (`youtube.com/watch?v=…`, `youtu.be/…`, `/shorts/…`, or
+the bare eleven-character id). Nothing else has to be entered.
 
-On the site, clicking any of the four plays it in the big frame, and the
-heading beside it changes to that video's own title. The pictures and titles
-are whatever the page ships with; nothing about them has to be re-entered.
+**Thumbnails come from YouTube.** `maxresdefault.jpg` is tried first and
+measured, because asking for one that does not exist hands back a 120px grey
+placeholder rather than a 404; anything smaller falls back to `hqdefault.jpg`,
+which every video has. So the pictures are never uploaded and never go stale —
+which is why the four thumbnails and the big heading are marked
+`data-cms-skip` and no longer appear under Photos. A field that is always
+overwritten is a trap, not a feature.
 
-A video with no link yet behaves the way it always did: the click goes to the
-YouTube channel. So the section is never half-broken while it is being filled
-in.
+A video with no link yet keeps the shipped placeholder, and clicking it goes to
+the YouTube channel — the section is never half-broken while it is filled in.
 
-The keys are hand-given (`data-cms-key="video-main"`, `video-1`…) rather than
-hashed from content, because a field that starts out empty hashes the same as
-every other empty field.
+The player is `youtube-nocookie.com`, so nothing is set until someone presses
+play.
+
+The keys are hand-given (`data-cms-key="video-1"`…) rather than hashed from
+content, because a field that starts out empty hashes the same as every other
+empty field. cms.js fires a `cms:applied` event once overrides have landed,
+which is how videos.js knows the links have arrived.
 
 ## Newsletter — /dashboard → Newsletter
 
