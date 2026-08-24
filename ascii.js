@@ -1,27 +1,31 @@
-/* "TRACKS NOT COURSES", drawn out of noise, awake under the cursor.
+/* "TRACKS NOT COURSES", written in noise, sliding with the mouse.
 
-   The words are rasterised once into a grid of on/off cells, and every cell
-   that is on gets a random character. At rest the grid barely moves — a few
-   characters swapping every so often, faint enough to read as texture. Near
-   the pointer the characters churn and brighten, so the phrase surfaces where
-   the mouse is and settles again behind it.
+   The words are rasterised once into a grid of characters. The grid is drawn
+   wider than the band that holds it, and the band clips it — so as the pointer
+   moves left and right the whole block slides with it, and more of the phrase
+   comes out from behind the edge it was hiding under.
 
-   It costs almost nothing when nobody is looking at it: an observer stops the
-   loop the moment the band scrolls off screen, the idle shimmer is a handful
-   of cells rather than a repaint, and a device without a real pointer gets a
-   single static frame. Anyone who has asked for less motion gets that frame
-   and nothing else. */
+   Following the mouse is a transform, not a repaint: the characters are drawn
+   once and the browser slides the finished canvas, so a move costs a
+   compositor frame and nothing else. The only redraws are the slow shimmer, a
+   handful of cells at a time, which is what keeps it looking alive rather
+   than printed.
+
+   It costs nothing when nobody is looking at it: an observer stops everything
+   the moment the band leaves the screen, and a device with no real pointer —
+   or anyone who has asked for less motion — gets one still frame and no
+   timers at all. */
 (function () {
   "use strict";
 
   var CHARS = "01<>{}[]()/\\|-_+=*&^%$#@!?;:,.~ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  var PHRASE = "TRACKS NOT COURSES";
-  var WRAPPED = ["TRACKS", "NOT COURSES"];
+  var LINES = ["TRACKS", "NOT COURSES"];
 
   var CELL_W = 6;         // one character cell, css pixels
   var CELL_H = 8;
-  var RADIUS = 110;       // how far from the pointer the churn reaches
-  var IDLE_SWAPS = 14;    // cells re-rolled per idle tick — texture, not motion
+  var WIDE = 1.42;        // how much wider than the band the grid is drawn
+  var EASE = 0.09;        // how lazily it catches up with the pointer
+  var IDLE_SWAPS = 14;    // cells re-rolled per shimmer tick
 
   function make(host) {
     // The band's height comes from a stylesheet the design tool's runtime
@@ -33,14 +37,18 @@
 
     var canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
-    canvas.style.cssText = "display:block;width:100%;height:100%;";
+    canvas.style.cssText =
+      "position:absolute;top:0;left:50%;height:100%;" +
+      "width:" + (WIDE * 100) + "%;margin-left:" + (-WIDE * 50) + "%;" +
+      "will-change:transform;";
     host.appendChild(canvas);
 
     var ctx = canvas.getContext("2d", { alpha: true });
-    var cols = 0, rows = 0, on = null, glyph = null, heat = null, shade = null, tint = null;
+    var cols = 0, rows = 0, on = null, glyph = null, shade = null, tint = null;
     var dpr = Math.min(2, window.devicePixelRatio || 1);
-    var px = -1e6, py = -1e6;
-    var live = false, queued = false, idleTimer = null;
+    var span = 0;                    // how far it can travel each way
+    var target = 0, current = 0;
+    var live = false, queued = false, sliding = false, idleTimer = null;
 
     var reduced = false;
     try { reduced = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
@@ -60,38 +68,33 @@
       off.width = cols;
       off.height = rows;
       var o = off.getContext("2d");
-      o.clearRect(0, 0, cols, rows);
       o.fillStyle = "#fff";
       o.textAlign = "center";
       o.textBaseline = "middle";
 
-      /* Two lines, always. Eighteen characters in a row leaves each letter
-         too few columns to hold its shape — the block reads as a smear
-         rather than a word. Stacked, the longest line is eleven and every
-         letter gets room. */
-      var lines = WRAPPED;
-
       /* The biggest type that fits both ways. Measured once at 100px and
          scaled, rather than guessed at and shrunk in a loop — a loop that
          only ever shrinks leaves the words far narrower than the space when
-         height is the binding constraint, which is most of the time here. */
-      var lineH = rows / (lines.length + 0.28);
+         height is the binding constraint, which here it always is. The width
+         allowance is the visible band, not the wider grid, so the phrase
+         still fits on screen when the block is sitting at either end. */
+      var lineH = rows / (LINES.length + 0.28);
       o.font = "700 100px 'Arial Black', Impact, system-ui, sans-serif";
       var widest100 = 0;
-      for (var i = 0; i < lines.length; i++) widest100 = Math.max(widest100, o.measureText(lines[i]).width);
-      var byWidth = widest100 ? (cols * 0.96) / widest100 * 100 : lineH;
+      for (var i = 0; i < LINES.length; i++) widest100 = Math.max(widest100, o.measureText(LINES[i]).width);
+      var byWidth = widest100 ? (cols / WIDE * 0.94) / widest100 * 100 : lineH;
       var byHeight = lineH * 1.3;          // Arial Black caps sit at about .72em
       var size = Math.min(byWidth, byHeight);
+
       o.font = "700 " + size + "px 'Arial Black', Impact, system-ui, sans-serif";
-      var top = (rows - lines.length * lineH) / 2;
-      for (var j = 0; j < lines.length; j++) {
-        o.fillText(lines[j], cols / 2, top + (j + 0.5) * lineH);
+      var top = (rows - LINES.length * lineH) / 2;
+      for (var j = 0; j < LINES.length; j++) {
+        o.fillText(LINES[j], cols / 2, top + (j + 0.5) * lineH);
       }
 
       var data = o.getImageData(0, 0, cols, rows).data;
       on = new Uint8Array(cols * rows);
       glyph = new Array(cols * rows);
-      heat = new Float32Array(cols * rows);
       // A flat wash of identical characters reads as a grey box. Fixed
       // per-cell weight and a scattering of accent-coloured ones give the
       // block the grain that makes the word legible at this opacity.
@@ -108,28 +111,28 @@
     function resize() {
       var r = host.getBoundingClientRect();
       if (!r.width || !r.height) return false;
-      canvas.width = Math.round(r.width * dpr);
+      var w = r.width * WIDE;
+      canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(r.height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      build(r.width, r.height);
+      // the overhang is split between the two sides, so that is the travel
+      span = (w - r.width) / 2;
+      build(w, r.height);
       return true;
     }
 
     function draw() {
       queued = false;
       if (!on) return;
-      var r = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, r.width, r.height);
+      ctx.clearRect(0, 0, (cols + 1) * CELL_W, (rows + 1) * CELL_H);
       ctx.font = "500 " + (CELL_H - 1) + "px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
       ctx.textBaseline = "top";
-
       for (var y = 0; y < rows; y++) {
         for (var x = 0; x < cols; x++) {
           var i = y * cols + x;
           if (!on[i]) continue;
-          var a = 0.34 * shade[i] + heat[i] * 0.62;
-          // warm cells take the accent; so do the scattered ones at rest
-          ctx.fillStyle = (heat[i] > 0.05 || tint[i])
+          var a = 0.4 * shade[i];
+          ctx.fillStyle = tint[i]
             ? "rgba(114, 99, 201, " + a + ")"
             : "rgba(23, 24, 31, " + a + ")";
           ctx.fillText(glyph[i], x * CELL_W, y * CELL_H);
@@ -143,48 +146,22 @@
       requestAnimationFrame(draw);
     }
 
-    /* Warm the cells under the pointer and re-roll them; cool everything else
-       a little. Only cells that changed cost anything. */
-    function stir() {
-      if (!on) return;
-      var r = canvas.getBoundingClientRect();
-      var mx = px - r.left, my = py - r.top;
-      var touched = false;
-
-      for (var y = 0; y < rows; y++) {
-        for (var x = 0; x < cols; x++) {
-          var i = y * cols + x;
-          if (!on[i]) continue;
-          var dx = x * CELL_W + CELL_W / 2 - mx;
-          var dy = y * CELL_H + CELL_H / 2 - my;
-          var d = Math.sqrt(dx * dx + dy * dy);
-          if (d < RADIUS) {
-            var want = 1 - d / RADIUS;
-            if (want > heat[i]) { heat[i] = want; touched = true; }
-            if (Math.random() < want * 0.5) { glyph[i] = rand(); touched = true; }
-          } else if (heat[i] > 0) {
-            heat[i] = Math.max(0, heat[i] - 0.06);
-            touched = true;
-          }
-        }
-      }
-      if (touched) schedule();
-      // keep cooling until everything is cold again
-      for (var k = 0; k < heat.length; k++) if (heat[k] > 0) return true;
-      return false;
-    }
-
-    var cooling = false;
-    function cool() {
-      if (!live) { cooling = false; return; }
-      cooling = stir();
-      if (cooling) requestAnimationFrame(cool);
+    /* Catching up with the pointer is a transform on an already-drawn canvas,
+       so a frame here costs the compositor and nothing else. */
+    function slide() {
+      if (!live) { sliding = false; return; }
+      current += (target - current) * EASE;
+      canvas.style.transform = "translate3d(" + current.toFixed(2) + "px,0,0)";
+      if (Math.abs(target - current) > 0.25) requestAnimationFrame(slide);
+      else sliding = false;
     }
 
     function onMove(e) {
-      if (!live || reduced || !fine) return;
-      px = e.clientX; py = e.clientY;
-      if (!cooling) { cooling = true; requestAnimationFrame(cool); }
+      if (!live || reduced || !fine || !span) return;
+      // where the pointer is across the window: -1 at the left edge, 1 at the right
+      var t = (e.clientX / window.innerWidth) * 2 - 1;
+      target = Math.max(-1, Math.min(1, t)) * span;
+      if (!sliding) { sliding = true; requestAnimationFrame(slide); }
     }
 
     function idle() {
@@ -198,9 +175,9 @@
 
     function startIdle() {
       stopIdle();
-      // A phone has no cursor to reveal anything with, so the shimmer would
-      // be a timer running for no one — and a timer running for no one on a
-      // phone is battery. It gets the single static frame.
+      // A phone has no cursor to move it with, so the shimmer would be a
+      // timer running for no one — and a timer running for no one on a phone
+      // is battery. It gets the single still frame.
       if (reduced || !fine) return;
       idleTimer = setInterval(idle, 420);
     }
@@ -209,11 +186,10 @@
     if (!resize()) return false;
     draw();
 
-    // Nothing runs while the band is not on screen.
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (entries) {
         live = entries[0].isIntersecting;
-        if (live) startIdle(); else { stopIdle(); px = py = -1e6; }
+        if (live) startIdle(); else stopIdle();
       }, { rootMargin: "80px" }).observe(host);
     } else {
       live = true;
@@ -225,7 +201,12 @@
     var rt = null;
     window.addEventListener("resize", function () {
       clearTimeout(rt);
-      rt = setTimeout(function () { if (resize()) draw(); }, 200);
+      rt = setTimeout(function () {
+        if (!resize()) return;
+        current = target = 0;
+        canvas.style.transform = "translate3d(0,0,0)";
+        draw();
+      }, 200);
     }, { passive: true });
 
     return true;
