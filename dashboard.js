@@ -3,12 +3,17 @@
    The list of editable things is not maintained here. Each page is loaded
    into a hidden iframe with #cms-index, where cms.js walks the rendered DOM
    and posts back everything it found. That keeps this dashboard honest —
-   it can only ever show what the page actually renders. */
+   it can only ever show what the page actually renders.
+
+   Everything on screen is written for a person, not a developer: no keys,
+   no tags, no markup. A sentence with styling in it arrives as plain words
+   with **asterisks** around the highlighted part, and a picture is a
+   thumbnail with a button. */
 (function () {
   "use strict";
 
   var PAGES = [
-    { id: "home", label: "Home", url: "/" },
+    { id: "home", label: "Home page", url: "/" },
     { id: "full", label: "Full story", url: "/full" },
     { id: "educator", label: "Educator", url: "/educator" },
     { id: "product", label: "Product", url: "/product" },
@@ -21,6 +26,7 @@
   var edits = {};      // key -> value, unsaved
   var media = [];
   var pickerTarget = null;
+  var showAll = false;
 
   /* ---------- plumbing ---------- */
 
@@ -54,7 +60,7 @@
     t.hidden = false;
     t.style.borderColor = bad ? "var(--c-danger)" : "";
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.hidden = true; }, 3200);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 3600);
   }
 
   function esc(s) {
@@ -117,7 +123,6 @@
     items = [];
     $("#groups").innerHTML = "";
     $("#loadingPage").hidden = false;
-    // cms.js posts its index back on every settle, so the last message wins.
     $("#probe").src = page.url + (page.url.indexOf("?") > -1 ? "&" : "?") + "cmsindex=1#cms-index";
   }
 
@@ -135,98 +140,137 @@
     if (saved[it.key]) return saved[it.key].value;
     return it.original;
   }
-
   function isDirty(it) { return it.key in edits && edits[it.key] !== (saved[it.key] ? saved[it.key].value : it.original); }
   function isSet(it) { return !!saved[it.key]; }
 
+  /* Plain-language names for the parts of each page. */
+  var SECTION_NAMES = {
+    "dc-root": "Header, hero and menu", "page": "Page", "content": "Videos and content hub",
+    "about": "Who I am", "help": "How I can help", "platform": "Platform",
+    "track-rail": "The track method", "testimonials": "What people say",
+    "resources": "Free downloads", "newsletter": "Newsletter sign-up",
+    "contact": "Contact and footer", "nav": "Top menu",
+    "hero": "Hero — name and buttons", "educator": "Educator chapter",
+    "eduTimeline": "Teaching entries", "builder": "Builder chapter",
+    "buildTimeline": "Engineering entries", "work": "Products chapter",
+    "timeline": "Product entries", "skills": "Skills", "skillsGrid": "Skill groups",
+    "contactForm": "Contact form", "lightbox": "Photo viewer",
+    "cookieBanner": "Cookie notice", "langToggle": "Language button",
+  };
+  function sectionName(id) { return SECTION_NAMES[id] || id; }
+
+  /* Short strings are almost always a button or a one-word label. Real
+     sentences and pictures are what someone actually opens this to change,
+     so the rest starts out folded away. */
+  function isMinor(it) {
+    if (it.kind === "src") return false;
+    if (it.kind === "href") return true;
+    return String(it.original || "").trim().length < 25;
+  }
+
   function render() {
     var q = $("#filter").value.trim().toLowerCase();
-    var shown = items.filter(function (it) {
-      if (!q) return true;
-      return (it.label + " " + it.original + " " + it.section).toLowerCase().indexOf(q) > -1;
+    var pool = items.filter(function (it) {
+      if (q) return (it.label + " " + it.original + " " + sectionName(it.section)).toLowerCase().indexOf(q) > -1;
+      return showAll || !isMinor(it) || isSet(it);
     });
 
-    $("#itemCount").textContent = shown.length + (q ? " of " + items.length : "") + " items";
+    var hidden = items.length - pool.length;
+    $("#itemCount").textContent = pool.length + " of " + items.length;
+    $("#btnShowAll").textContent = showAll ? "Show the main things" : "Show everything";
 
-    var order = [];
-    var bySection = {};
-    shown.forEach(function (it) {
+    // Pictures first — they are the hardest thing to find otherwise, and the
+    // empty slots are invisible on the page itself.
+    var pics = pool.filter(function (it) { return it.kind === "src"; });
+    var rest = pool.filter(function (it) { return it.kind !== "src"; });
+
+    var order = [], bySection = {};
+    rest.forEach(function (it) {
       if (!bySection[it.section]) { bySection[it.section] = []; order.push(it.section); }
       bySection[it.section].push(it);
     });
 
-    var openFirst = !!q;
-    $("#groups").innerHTML = order.map(function (sec, i) {
-      var list = bySection[sec];
-      var nSet = list.filter(isSet).length;
-      return '<section class="grp' + (openFirst || i === 0 ? " is-open" : "") + '" data-sec="' + esc(sec) + '">' +
-        '<button class="grp__head"><span class="grp__caret">▶</span>' + esc(sectionName(sec)) +
-          (nSet ? ' <span class="fld__kind" data-k="set">' + nSet + " edited</span>" : "") +
-          '<span class="grp__n">' + list.length + "</span></button>" +
-        '<div class="grp__body">' + list.map(fieldHTML).join("") + "</div>" +
-      "</section>";
-    }).join("") || '<p class="muted">Nothing matches that filter.</p>';
+    var html = "";
+    if (pics.length) {
+      html += groupHTML("Photos on this page", pics, true,
+        "Every picture here, including empty slots waiting for one.");
+    }
+    order.forEach(function (sec, i) {
+      html += groupHTML(sectionName(sec), bySection[sec], (!pics.length && i === 0) || !!q);
+    });
+    $("#groups").innerHTML = html || '<p class="muted">Nothing matches that.</p>';
+
+    var note = $("#hiddenNote");
+    note.hidden = !(hidden > 0 && !q && !showAll);
+    note.textContent = hidden + " buttons, links and short labels are folded away. " +
+      "Use “Show everything” if you need one of them.";
 
     bindFields();
     updateSaveButton();
   }
 
-  var SECTION_NAMES = {
-    "dc-root": "Header & hero", "page": "Page", "content": "Content hub",
-    "about": "My story", "help": "How I can help", "platform": "Platform",
-    "track-rail": "The track method", "testimonials": "Testimonials",
-    "resources": "Free resources", "newsletter": "Newsletter", "contact": "Contact",
-    "nav": "Navigation", "hero": "Hero", "educator": "Educator chapter",
-    "eduTimeline": "Educator entries", "builder": "Builder chapter",
-    "buildTimeline": "Builder entries", "work": "Products chapter",
-    "timeline": "Product entries", "skills": "Skills", "skillsGrid": "Skill groups",
-    "contactForm": "Contact form", "lightbox": "Lightbox", "cookieBanner": "Cookie banner",
-    "langToggle": "Language toggle",
-  };
-  function sectionName(id) { return SECTION_NAMES[id] || id; }
+  function groupHTML(name, list, open, sub) {
+    var nSet = list.filter(isSet).length;
+    return '<section class="grp' + (open ? " is-open" : "") + '">' +
+      '<button class="grp__head"><span class="grp__caret">▶</span>' + esc(name) +
+        (nSet ? ' <span class="grp__edited">' + nSet + " changed</span>" : "") +
+        '<span class="grp__n">' + list.length + "</span></button>" +
+      '<div class="grp__body">' +
+        (sub ? '<p class="grp__sub">' + esc(sub) + "</p>" : "") +
+        list.map(fieldHTML).join("") +
+      "</div></section>";
+  }
+
+  function mediaUrl(v) {
+    return /^media:\d+$/.test(v) ? "/api/cms?resource=media&id=" + v.slice(6) : v;
+  }
+
+  // Name a field by what it says, not by where it lives.
+  function shortLabel(it) {
+    var t = String(it.original || "").replace(/\*\*/g, "").trim();
+    if (!t) return "Empty photo slot";
+    return t.length <= 44 ? t : t.slice(0, 44) + "…";
+  }
 
   function fieldHTML(it) {
     var v = valueOf(it);
     var cls = "fld" + (isDirty(it) ? " is-dirty" : "") + (isSet(it) ? " is-set" : "");
-    var head = '<div class="fld__top">' +
-      '<span class="fld__kind" data-k="' + it.kind + '">' + it.kind + "</span>" +
-      (isSet(it) ? '<button class="fld__revert" data-revert="' + esc(it.key) + '">revert to original</button>' : "") +
-      '<span class="fld__where">' + esc(it.label.slice(0, 46)) + "</span></div>";
+    var undo = isSet(it) ? '<button class="fld__revert" data-revert="' + esc(it.key) + '">undo</button>' : "";
 
     if (it.kind === "src") {
-      var url = /^media:\d+$/.test(v) ? "/api/cms?resource=media&id=" + v.slice(6) : v;
-      var isVid = /\.(mp4|webm)(\?|$)/i.test(url) || /video/.test(url);
+      var url = mediaUrl(v);
       var thumb = !url
-        ? '<div class="fld__thumb fld__thumb--empty">empty</div>'
-        : isVid
-          ? '<div class="fld__thumb fld__thumb--empty">video</div>'
-          : '<img class="fld__thumb" src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.opacity=.25" />';
-      return '<div class="' + cls + '" data-key="' + esc(it.key) + '">' + head +
+        ? '<div class="fld__thumb fld__thumb--empty">No photo yet</div>'
+        : /\.(mp4|webm)(\?|$)/i.test(url)
+          ? '<div class="fld__thumb fld__thumb--empty">Video</div>'
+          : '<img class="fld__thumb" src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.opacity=.2" />';
+      return '<div class="' + cls + '"><div class="fld__label">' +
+        esc(it.label || shortLabel(it)) + undo + "</div>" +
         '<div class="fld__media">' + thumb +
-        '<div class="fld__mediaval">' +
-          '<button class="btn btn--sm" data-pick="' + esc(it.key) + '">Choose or upload…</button>' +
-          '<span class="fld__path">' + esc(v || "(empty)") + "</span>" +
-        "</div></div></div>";
+          '<div class="fld__mediaval"><button class="btn btn--sm" data-pick="' + esc(it.key) + '">' +
+            (url ? "Change photo" : "Add a photo") + "</button></div>" +
+        "</div></div>";
     }
 
     if (it.kind === "href") {
-      return '<div class="' + cls + '" data-key="' + esc(it.key) + '">' + head +
-        '<input type="url" data-in="' + esc(it.key) + '" value="' + esc(v) + '" />' +
-        (/^(https?:|mailto:|tel:)/.test(v) ? "" : '<span class="fld__path">relative link</span>') +
+      return '<div class="' + cls + '"><div class="fld__label">Link — ' +
+        esc(it.label || "link") + undo + "</div>" +
+        '<input type="text" data-in="' + esc(it.key) + '" value="' + esc(v) + '" placeholder="https://…" />' +
         "</div>";
     }
 
-    var rows = Math.min(10, Math.max(2, Math.ceil(v.length / 78)));
-    return '<div class="' + cls + '" data-key="' + esc(it.key) + '">' + head +
-      '<textarea data-in="' + esc(it.key) + '" data-k="' + it.kind + '" rows="' + rows + '">' + esc(v) + "</textarea>" +
-      "</div>";
+    var rows = Math.min(9, Math.max(1, Math.ceil(v.length / 70)));
+    var hint = it.kind === "rich"
+      ? '<p class="fld__hint">Words between **asterisks** are the highlighted part — keep the asterisks to keep the styling.</p>'
+      : "";
+    return '<div class="' + cls + '"><div class="fld__label">' + esc(shortLabel(it)) + undo + "</div>" +
+      hint + '<textarea data-in="' + esc(it.key) + '" rows="' + rows + '">' + esc(v) + "</textarea></div>";
   }
 
   function bindFields() {
     Array.prototype.forEach.call(document.querySelectorAll("[data-in]"), function (el) {
       el.addEventListener("input", function () {
-        var key = el.getAttribute("data-in");
-        edits[key] = el.value;
+        edits[el.getAttribute("data-in")] = el.value;
         el.closest(".fld").classList.add("is-dirty");
         updateSaveButton();
       });
@@ -235,29 +279,24 @@
       b.addEventListener("click", function () { openPicker(b.getAttribute("data-pick")); });
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-revert]"), function (b) {
-      b.addEventListener("click", function () {
-        var key = b.getAttribute("data-revert");
-        edits[key] = "";
-        save();
-      });
+      b.addEventListener("click", function () { edits[b.getAttribute("data-revert")] = ""; save(); });
     });
     Array.prototype.forEach.call(document.querySelectorAll(".grp__head"), function (h) {
       h.addEventListener("click", function () { h.parentElement.classList.toggle("is-open"); });
     });
   }
 
+  function byKey(k) {
+    for (var i = 0; i < items.length; i++) if (items[i].key === k) return items[i];
+    return null;
+  }
+
   function dirtyKeys() {
     return Object.keys(edits).filter(function (k) {
       var it = byKey(k);
       if (!it) return false;
-      var base = saved[k] ? saved[k].value : it.original;
-      return edits[k] !== base;
+      return edits[k] !== (saved[k] ? saved[k].value : it.original);
     });
-  }
-
-  function byKey(k) {
-    for (var i = 0; i < items.length; i++) if (items[i].key === k) return items[i];
-    return null;
   }
 
   function updateSaveButton() {
@@ -272,27 +311,21 @@
     if (!keys.length) return;
     var payload = keys.map(function (k) {
       var it = byKey(k);
-      // An empty value tells the API to drop the row, so the page falls back
-      // to what it ships with.
       var value = edits[k];
+      // Empty tells the API to drop the row, so the page goes back to normal.
       if (value.trim() === "" || value === it.original) value = "";
       return { key: k, kind: it.kind, value: value, page: it.page, section: it.section, label: it.label };
     });
     $("#btnSave").disabled = true;
     api("/api/cms", { method: "PUT", body: { items: payload } })
-      .then(function () {
-        edits = {};
-        return loadSaved();
-      })
-      .then(function () {
-        toast("Saved — the live site is updated");
-        loadPage(current);
-      })
+      .then(function () { edits = {}; return loadSaved(); })
+      .then(function () { toast("Saved — your site is updated"); loadPage(current); })
       .catch(function (e) { toast(e.message, true); updateSaveButton(); });
   }
 
   $("#btnSave").addEventListener("click", save);
   $("#filter").addEventListener("input", render);
+  $("#btnShowAll").addEventListener("click", function () { showAll = !showAll; render(); });
   $("#pagePicker").addEventListener("click", function (e) {
     var b = e.target.closest("[data-page]");
     if (!b) return;
@@ -321,18 +354,13 @@
 
   function mediaCardHTML(m, pick) {
     var url = "/api/cms?resource=media&id=" + m.id;
-    var isImg = /^image\//.test(m.mime);
     return '<div class="media-card" data-id="' + m.id + '">' +
-      (isImg
+      (/^image\//.test(m.mime)
         ? '<img class="media-card__img" src="' + url + '" alt="" loading="lazy" />'
         : '<div class="media-card__vid">▶</div>') +
       '<div class="media-card__meta"><div class="media-card__name" title="' + esc(m.name) + '">' + esc(m.name) + "</div>" +
         (m.bytes / 1024).toFixed(0) + " KB</div>" +
-      (pick ? "" :
-        '<div class="media-card__row">' +
-          '<button class="btn btn--sm" data-copy="' + m.id + '">Copy ref</button>' +
-          '<button class="btn btn--sm btn--danger" data-del="' + m.id + '">Delete</button>' +
-        "</div>") +
+      (pick ? "" : '<div class="media-card__row"><button class="btn btn--sm btn--danger" data-del="' + m.id + '">Delete</button></div>') +
       "</div>";
   }
 
@@ -340,16 +368,10 @@
     var g = $("#mediaGrid");
     g.innerHTML = media.length
       ? media.map(function (m) { return mediaCardHTML(m, false); }).join("")
-      : '<p class="muted">Nothing uploaded yet.</p>';
-    Array.prototype.forEach.call(g.querySelectorAll("[data-copy]"), function (b) {
-      b.addEventListener("click", function () {
-        var ref = "media:" + b.getAttribute("data-copy");
-        navigator.clipboard.writeText(ref).then(function () { toast("Copied " + ref); });
-      });
-    });
+      : '<p class="muted">Nothing uploaded yet. Use the button above, or add a photo straight from the Content tab.</p>';
     Array.prototype.forEach.call(g.querySelectorAll("[data-del]"), function (b) {
       b.addEventListener("click", function () {
-        if (!confirm("Delete this file? Anything still pointing at it will break.")) return;
+        if (!confirm("Delete this file? Anywhere it is used will go blank.")) return;
         api("/api/cms?resource=media&id=" + b.getAttribute("data-del"), { method: "DELETE" })
           .then(loadMedia).then(renderMedia).then(function () { toast("Deleted"); })
           .catch(function (e) { toast(e.message, true); });
@@ -380,10 +402,9 @@
     if (!files.length) return;
     files.reduce(function (chain, f) {
       return chain.then(function () { return upload(f, $("#mediaError")); });
-    }, Promise.resolve()).then(function () {
-      renderMedia();
-      toast("Uploaded");
-    }).catch(function () { renderMedia(); });
+    }, Promise.resolve())
+      .then(function () { renderMedia(); toast("Uploaded"); })
+      .catch(function () { renderMedia(); });
   });
 
   /* ---------- picker ---------- */
@@ -391,7 +412,7 @@
   function openPicker(key) {
     pickerTarget = key;
     var it = byKey(key);
-    $("#pickerTitle").textContent = "Choose a file for: " + (it ? it.label.slice(0, 40) : "");
+    $("#pickerTitle").textContent = it ? "Photo for: " + shortLabel(it) : "Choose a photo";
     $("#pickerUrl").value = it ? valueOf(it) : "";
     $("#pickerError").hidden = true;
     $("#pickerGrid").innerHTML = media.length
@@ -411,8 +432,9 @@
     render();
   }
 
-  $("#pickerClose").addEventListener("click", function () { $("#picker").hidden = true; pickerTarget = null; });
-  $("#picker").addEventListener("click", function (e) { if (e.target === $("#picker")) { $("#picker").hidden = true; pickerTarget = null; } });
+  function closePicker() { $("#picker").hidden = true; pickerTarget = null; }
+  $("#pickerClose").addEventListener("click", closePicker);
+  $("#picker").addEventListener("click", function (e) { if (e.target === $("#picker")) closePicker(); });
   $("#pickerUseUrl").addEventListener("click", function () { setPicked($("#pickerUrl").value.trim()); });
   $("#pickerUpload").addEventListener("change", function (e) {
     var f = (e.target.files || [])[0];

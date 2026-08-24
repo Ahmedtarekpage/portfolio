@@ -17,7 +17,7 @@
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 
-const KINDS = new Set(["text", "html", "src", "href"]);
+const KINDS = new Set(["text", "rich", "html", "src", "href"]);
 const MAX_VALUE = 200_000;
 
 // Vercel caps a serverless request body at ~4.5 MB, and base64 inflates by a

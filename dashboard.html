@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=6" />
-  <link rel="stylesheet" href="dashboard.css?v=1" />
+  <link rel="stylesheet" href="dashboard.css?v=2" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
       <header class="dash-head">
         <div>
           <h1>Site content</h1>
-          <p class="muted" id="dashSub">Every text, image and link on the public pages.</p>
+          <p class="muted" id="dashSub">Change any words, photos or buttons on your site.</p>
         </div>
         <div class="dash-head__actions">
           <a class="btn btn--ghost btn--sm" href="/admin">Clients</a>
@@ -62,16 +62,18 @@
 
       <!-- ---------- CONTENT ---------- -->
       <div id="tab-content" class="dash-panel">
+        <div class="dash-pages" id="pagePicker"></div>
         <div class="dash-toolbar">
-          <div class="dash-pages" id="pagePicker"></div>
-          <input id="filter" class="dash-filter" type="search" placeholder="Filter by text…" />
+          <input id="filter" class="dash-filter" type="search" placeholder="Search for the words you want to change…" />
+          <button id="btnShowAll" class="btn btn--ghost btn--sm">Show everything</button>
           <span class="dash-count muted" id="itemCount"></span>
           <button id="btnSave" class="btn btn--primary btn--sm" disabled>Save changes</button>
         </div>
         <p class="muted dash-hint">
-          Editing a field overrides what the page ships with. Clear a field to put the original back.
-          Changes go live as soon as you save — no redeploy.
+          Change the words, swap a photo, point a button somewhere new — then press Save.
+          Your site updates straight away. Empty a box and press Save to put the original back.
         </p>
+        <p class="muted dash-hint" id="hiddenNote" hidden></p>
         <div id="loadingPage" class="card card--center" hidden><p class="muted">Reading the page…</p></div>
         <div id="groups"></div>
         <iframe id="probe" class="cms-probe" title="page probe" aria-hidden="true"></iframe>
@@ -81,9 +83,9 @@
       <div id="tab-media" class="dash-panel" hidden>
         <div class="dash-toolbar">
           <label class="btn btn--primary btn--sm upload-label">
-            Upload file<input id="mediaUpload" type="file" accept="image/*,video/mp4,video/webm" hidden multiple />
+            Upload photos<input id="mediaUpload" type="file" accept="image/*,video/mp4,video/webm" hidden multiple />
           </label>
-          <span class="muted">Images and short clips, up to 3&nbsp;MB each. For long video, host it on YouTube and paste the link instead.</span>
+          <span class="muted">Photos and short clips, up to 3&nbsp;MB each. For a long video, put it on YouTube and paste the link into the video field instead.</span>
         </div>
         <p id="mediaError" class="error" hidden></p>
         <div id="mediaGrid" class="media-grid"></div>
@@ -96,15 +98,15 @@
   <div id="picker" class="picker" hidden>
     <div class="picker__box">
       <div class="picker__head">
-        <strong id="pickerTitle">Choose an image</strong>
+        <strong id="pickerTitle">Choose a photo</strong>
         <button id="pickerClose" class="iconbtn" aria-label="Close">✕</button>
       </div>
       <div class="picker__url">
-        <input id="pickerUrl" type="url" placeholder="…or paste a URL (https://, /assets/…)" />
-        <button id="pickerUseUrl" class="btn btn--sm">Use URL</button>
+        <input id="pickerUrl" type="url" placeholder="…or paste a web address for a photo" />
+        <button id="pickerUseUrl" class="btn btn--sm">Use this</button>
       </div>
       <label class="btn btn--ghost btn--sm upload-label picker__upload">
-        Upload a new file<input id="pickerUpload" type="file" accept="image/*,video/mp4,video/webm" hidden />
+        Upload from this device<input id="pickerUpload" type="file" accept="image/*,video/mp4,video/webm" hidden />
       </label>
       <p id="pickerError" class="error" hidden></p>
       <div id="pickerGrid" class="media-grid media-grid--pick"></div>
@@ -113,6 +115,6 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="dashboard.js?v=1"></script>
+  <script src="dashboard.js?v=2"></script>
 </body>
 </html>

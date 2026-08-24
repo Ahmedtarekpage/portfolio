@@ -49,11 +49,15 @@ YouTube and paste the link into the relevant field instead. A picked file is sto
 as `media:<id>` and resolved at render time.
 
 **Limits worth knowing**
-- Text and links are safe to edit freely. A handful of fields are marked `html`
-  because the sentence has formatting inside it — those show markup, so edit the
-  words and leave the tags alone.
-- The three empty photo slots in the home page's *My story* section appear as `src`
-  fields with an empty value; fill them from the media library.
+- A sentence with styling inside it is shown as plain words with the styled run in
+  `**asterisks**` — no markup anywhere in the dashboard. Keep the same number of
+  asterisk pairs and the styling survives the edit; change how many there are and
+  there is no way to tell which run is which, so the words are kept and the styling
+  is dropped.
+- A one-emoji `<span>` counts as a styled run, so a few fields read like
+  `**🇸🇦**Saudi Gov projects`. Harmless, and the asterisks stay out of the page.
+- Short labels, buttons and links start out folded away behind *Show everything* —
+  roughly 70 of 240 items on the home page are shown by default.
 - A page-structure change in `index.html` or `main.js` can orphan overrides that
   pointed at the old content. They stay in the database, harmless, and the page
   falls back to source. Clear them with `DELETE /api/cms?all=1`.

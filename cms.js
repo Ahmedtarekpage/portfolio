@@ -118,9 +118,28 @@
     return k;
   }
 
+  /* Name a picture the way a person would look for it. A file path is the
+     last resort, not the first: alt text and the slot's own placeholder are
+     already written for a reader, and failing those the caption or heading
+     it sits next to says more than "assets/logo-udacity.png" ever will. */
+  function pictureLabel(el, orig) {
+    var a = norm(el.getAttribute("alt") || el.getAttribute("placeholder") || "");
+    if (a) return a.slice(0, 70);
+    var p = el.parentElement;
+    for (var i = 0; i < 3 && p; i++, p = p.parentElement) {
+      var t = norm(p.textContent);
+      if (t && t.length < 70) return t;
+    }
+    var f = String(orig || "").split("/").pop().split("?")[0].replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim();
+    if (!f) return "Empty photo slot";
+    return f.charAt(0).toUpperCase() + f.slice(1);
+  }
+
   function add(el, kind, currentValue) {
     var orig = original(el, kind, currentValue);
-    if (!norm(orig)) return;
+    // An empty picture slot is the one thing worth listing precisely because
+    // it has no content yet — that is how a photo gets added at all.
+    if (!norm(orig) && kind !== "src") return;
     var key = keyFor(el, kind, orig);
     (nodes[key] || (nodes[key] = [])).push(el);
     el.setAttribute("data-cms-" + kind, key);
@@ -129,7 +148,9 @@
       kind: kind,
       page: PAGE,
       section: sectionOf(el),
-      label: norm(el.textContent).slice(0, 90) || norm(orig).slice(0, 90),
+      label: kind === "src"
+        ? pictureLabel(el, orig)
+        : (norm(el.textContent).slice(0, 90) || norm(orig).slice(0, 90)),
       original: orig,
     });
   }
@@ -142,6 +163,35 @@
      header <div> of two styled spans would otherwise surface as one field
      full of markup. An element only speaks for a whole run when it
      contributes text of its own. */
+  /* A sentence with styling inside it, written the way a person would type
+     it: plain words, with each styled run wrapped in **asterisks**. Editing
+     markup is not something anyone should have to do to fix a typo. */
+  function richOf(el) {
+    var out = "";
+    for (var n = el.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 3) out += n.nodeValue;
+      else if (n.nodeType === 1 && n.textContent) out += "**" + n.textContent + "**";
+    }
+    return norm(out);
+  }
+
+  function applyRich(el, value) {
+    var parts = String(value).split("**");
+    var kids = [];
+    for (var c = el.firstElementChild; c; c = c.nextElementSibling) kids.push(c);
+    var marked = Math.floor(parts.length / 2);
+    // Asterisk pairs no longer line up with the styled runs, so there is no
+    // way to know which is which. Keep the words, drop the styling.
+    if (marked !== kids.length) { el.textContent = parts.join(""); return; }
+    var frag = document.createDocumentFragment(), mi = 0;
+    for (var j = 0; j < parts.length; j++) {
+      if (j % 2 === 0) { if (parts[j]) frag.appendChild(document.createTextNode(parts[j])); }
+      else { kids[mi].textContent = parts[j]; frag.appendChild(kids[mi++]); }
+    }
+    el.textContent = "";
+    el.appendChild(frag);
+  }
+
   function ownText(el) {
     var t = "";
     for (var n = el.firstChild; n; n = n.nextSibling) if (n.nodeType === 3) t += n.nodeValue;
@@ -183,8 +233,9 @@
     // Decorative children only (an icon, a rule): the words are editable on
     // their own and the decoration is left in place.
     if (!childText) return "text";
-    // Mixed text and formatting — the markup has to come along.
-    return ownText(el) ? "html" : null;
+    // Mixed text and formatting: editable as one plain sentence, with the
+    // styled runs marked by asterisks rather than shown as tags.
+    return ownText(el) ? "rich" : null;
   }
 
   function ancestorClaimed(el, root) {
@@ -216,11 +267,13 @@
       if (el.hasAttribute("data-yt")) { add(el, "href", el.getAttribute("data-yt")); continue; }
       if (el.hasAttribute("data-mp4")) { add(el, "src", el.getAttribute("data-mp4")); continue; }
 
-      // A link's destination is editable separately from its label. In-page
-      // anchors are navigation, not content.
+      // A link's destination is editable separately from its label —
+      // in-page anchors included, since "Book a free consultation" ships
+      // pointing at #contact and the whole point is to be able to send it
+      // to a booking page instead.
       if (tag === "a") {
         var href = el.getAttribute("href") || "";
-        if (href && href.charAt(0) !== "#") add(el, "href", href);
+        if (href) add(el, "href", href);
       }
 
       // One run of text, taken as high as it goes, so a paragraph wins over
@@ -228,7 +281,7 @@
       var kind = textUnitKind(el);
       if (kind && !ancestorClaimed(el, root)) {
         claimed.add(el);
-        add(el, kind, kind === "html" ? el.innerHTML : (el.children.length ? ownText(el) : el.textContent));
+        add(el, kind, kind === "rich" ? richOf(el) : (el.children.length ? ownText(el) : el.textContent));
       }
     }
     return index;
@@ -266,7 +319,7 @@
       }
       return;
     }
-    if (kind === "html") { if (el.innerHTML !== value) el.innerHTML = value; return; }
+    if (kind === "rich") { if (richOf(el) !== norm(value)) applyRich(el, value); return; }
     if (kind === "src") {
       var url = resolve(value);
       var a = el.hasAttribute("data-mp4") ? "data-mp4" : "src";
