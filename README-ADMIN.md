@@ -141,19 +141,31 @@ The dashboard's **Videos** group is one box per video. Paste a YouTube link and
 save — any shape works (`youtube.com/watch?v=…`, `youtu.be/…`, `/shorts/…`, or
 the bare eleven-character id). Nothing else has to be entered.
 
+**Titles and channel names come from YouTube too**, through its oEmbed
+endpoint — no API key, and it sends an `Access-Control-Allow-Origin` for this
+site, so there is no server in the middle. A video that is already up also
+stops saying "Coming soon".
+
 **Thumbnails come from YouTube.** `maxresdefault.jpg` is tried first and
 measured, because asking for one that does not exist hands back a 120px grey
 placeholder rather than a 404; anything smaller falls back to `hqdefault.jpg`,
 which every video has. So the pictures are never uploaded and never go stale —
-which is why the four thumbnails and the big heading are marked
-`data-cms-skip` and no longer appear under Photos. A field that is always
-overwritten is a trap, not a feature.
+which is why the thumbnails, titles, channel names and the big
+heading are all marked `data-cms-skip` and no longer appear in the dashboard.
+A field that is always overwritten is a trap, not a feature — the link is the
+only thing to enter.
 
 A video with no link yet keeps the shipped placeholder, and clicking it goes to
 the YouTube channel — the section is never half-broken while it is filled in.
 
 The player is `youtube-nocookie.com`, so nothing is set until someone presses
 play.
+
+**Subscribe** opens YouTube's own subscribe dialog in a 560×660 window rather
+than sending the visitor away — the page they came from is still behind it.
+Nobody can be subscribed without confirming with their own Google account;
+that is YouTube's rule. If the browser blocks the popup the link behaves the
+way it always did.
 
 The keys are hand-given (`data-cms-key="video-1"`…) rather than hashed from
 content, because a field that starts out empty hashes the same as every other
