@@ -830,6 +830,12 @@ if (VIEW !== "full") {
   document.querySelectorAll("[data-view-link]").forEach((a) => {
     if (a.getAttribute("data-view-link") === VIEW) a.classList.add("is-current");
   });
+  // The phone tab bar shows which of the three views you are on, the way an
+  // app's tab bar does.
+  document.querySelectorAll("[data-view-tab]").forEach((a) => {
+    a.classList.toggle("is-on", a.getAttribute("data-view-tab") === VIEW);
+    if (a.getAttribute("data-view-tab") === VIEW) a.setAttribute("aria-current", "page");
+  });
   document.body.dataset.view = VIEW;
   document.title = (VIEW_TITLE[VIEW] || VIEW_TITLE.full)[LANG] || (VIEW_TITLE[VIEW] || VIEW_TITLE.full).en;
 })();

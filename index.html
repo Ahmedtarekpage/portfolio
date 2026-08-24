@@ -23,8 +23,10 @@
 </script>
 <script src="./support.js?v=2"></script>
 <script src="./cms.js?v=8" defer></script>
+
 <script src="./subscribe.js?v=2" defer></script>
 <script src="./videos.js?v=3" defer></script>
+<script src="./tabbar.js?v=2" defer></script>
 </head>
 <body>
 <x-dc>
@@ -84,6 +86,62 @@
        0px spellings below in sync with what the DOM actually holds.
        ==================================================== */
     .site-nav-mobile { display: none; }
+
+    /* ---- the phone's navigation is a tab bar, not a menu ----
+       A hamburger hides everything behind a tap and then asks you to read a
+       list. On a phone the pattern people already know is a row of tabs at
+       the bottom, in reach of a thumb, showing where you are. So that is what
+       the phone gets, and the menu goes away entirely. */
+    .tabbar { display: none; }
+
+    @media (max-width: 1000px) {
+      .tabbar {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;
+        background: rgba(255, 255, 255, 0.92);
+        -webkit-backdrop-filter: saturate(180%) blur(18px);
+        backdrop-filter: saturate(180%) blur(18px);
+        border-top: 1px solid var(--color-neutral-800);
+        /* clear of the home-bar on a modern iPhone */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .tabbar a {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 3px; padding: 9px 2px 8px; min-height: 54px;
+        color: var(--color-neutral-500); font-size: 10.5px; font-weight: 500;
+        letter-spacing: 0.01em; text-align: center; line-height: 1.2;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .tabbar a i { font-size: 21px; }
+      .tabbar a.is-on { color: var(--color-accent); }
+      .tabbar a:active { background: var(--color-neutral-900); }
+      /* The one thing the page is for gets the colour. It cannot get a
+         filled pill: an icon drawn as a mask uses background-color as its
+         own paint, so a background here would be the icon, not a pill
+         behind it. Colour and weight carry it instead. */
+      .tabbar a.tabbar__cta { color: var(--color-accent); font-weight: 600; }
+      /* nothing should end up underneath the bar */
+      body { padding-bottom: 66px; }
+      /* the menu button has nothing left to do */
+      .site-nav-mobile { display: none !important; }
+    }
+
+      /* On a tablet the bar still spans the screen, but five tabs stretched
+         across 800px stop reading as a group. Keep them together in the
+         middle, at the width they have on a phone. */
+
+    @media (min-width: 620px) {
+      .tabbar {
+        padding-left: max(0px, calc((100% - 520px) / 2));
+        padding-right: max(0px, calc((100% - 520px) / 2));
+      }
+    }
+
+    @media (max-width: 1000px) and (prefers-color-scheme: dark) {
+      /* the page itself is light either way — keep the bar readable on it */
+      .tabbar { background: rgba(255, 255, 255, 0.94); }
+    }
 
     /* iPad and narrow laptops: tighten the gutters */
     @media (max-width: 1180px) {
@@ -995,5 +1053,12 @@ class Component extends DCLogic {
   }
 }
 </script>
+<nav class="tabbar" data-cms-skip aria-label="Sections">
+  <a href="#top" data-tab-top><i class="ph ph-house" aria-hidden="true"></i>Home</a>
+  <a href="#help" data-tab-for="help"><i class="ph ph-squares-four" aria-hidden="true"></i>Services</a>
+  <a href="#content" data-tab-for="content"><i class="ph ph-play-circle" aria-hidden="true"></i>Videos</a>
+  <a href="#about" data-tab-for="about"><i class="ph ph-user" aria-hidden="true"></i>My story</a>
+  <a class="tabbar__cta" href="https://tidycal.com/ahmedtarek/vip-booking" target="_blank" rel="noopener" data-book><i class="ph ph-calendar-check" aria-hidden="true"></i>Book</a>
+</nav>
 </body>
 </html>

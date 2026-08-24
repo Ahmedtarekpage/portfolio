@@ -62,7 +62,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=49" />
+  <link rel="stylesheet" href="icons.css?v=2" />
+  <link rel="stylesheet" href="styles.css?v=53" />
 </head>
 <body>
   <!-- animated colour aurora (behind the 3D canvas) -->
@@ -335,7 +336,15 @@
     </div>
   </div>
 
-  <script type="module" src="main.js?v=42"></script>
+  <nav class="tabbar" data-cms-skip aria-label="Sections">
+    <a href="/"><i class="ph ph-house" aria-hidden="true"></i>Home</a>
+    <a href="/product" data-view-tab="product"><i class="ph ph-cube" aria-hidden="true"></i>Product</a>
+    <a href="/educator" data-view-tab="educator"><i class="ph ph-graduation-cap" aria-hidden="true"></i>Educator</a>
+    <a href="/full" data-view-tab="full"><i class="ph ph-book-open-text" aria-hidden="true"></i>Full story</a>
+    <a class="tabbar__cta" href="https://tidycal.com/ahmedtarek/vip-booking" target="_blank" rel="noopener" data-book><i class="ph ph-calendar-check" aria-hidden="true"></i>Book</a>
+  </nav>
+
+  <script type="module" src="main.js?v=43"></script>
   <script src="cms.js?v=8"></script>
 </body>
 </html>

@@ -1493,3 +1493,55 @@ body.ar .contact__title { text-transform: none; }
 @media (max-width: 360px) {
   .nav__name { display: none; }
 }
+
+/* ============================================================
+   PHONE TAB BAR
+   A hamburger hides everything behind a tap and then asks you to
+   read a list. On a phone the pattern people already know is a row
+   of tabs at the bottom, in reach of a thumb, showing where you
+   are — so the three views become the tabs and the menu goes.
+   ============================================================ */
+.tabbar { display: none; }
+
+@media (max-width: 1000px) {
+  .tabbar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    backdrop-filter: saturate(180%) blur(18px);
+    border-top: 1px solid var(--line, rgba(23, 24, 31, 0.1));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tabbar a {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 9px 2px 8px; min-height: 54px;
+    color: var(--muted, #5c5e70); font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px; font-weight: 500; line-height: 1.2;
+    letter-spacing: 0; text-transform: none; text-align: center; text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tabbar a i { font-size: 21px; }
+  .tabbar a.is-on { color: var(--blue, #7263c9); }
+  /* An icon drawn as a mask uses background-color as its own paint, so a
+     filled pill behind it is not available here. Colour and weight do it. */
+  .tabbar a.tabbar__cta { color: var(--blue, #7263c9); font-weight: 600; }
+  /* nothing should end up underneath the bar */
+  body { padding-bottom: 66px; }
+  /* the menu button has nothing left to do */
+  .nav__burger { display: none !important; }
+  /* the cookie banner is fixed to the bottom too — it sits above the bar,
+     not on top of it */
+  .cookie { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* On a tablet the bar still spans the screen, but five tabs stretched across
+   800px stop reading as a group. Keep them together in the middle, at the
+   width they have on a phone. */
+@media (min-width: 620px) and (max-width: 1000px) {
+  .tabbar {
+    padding-left: max(0px, calc((100% - 520px) / 2));
+    padding-right: max(0px, calc((100% - 520px) / 2));
+  }
+}
