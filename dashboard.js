@@ -609,9 +609,42 @@
     });
   }
 
+  /* A photo off a phone is four thousand pixels wide and several megabytes,
+     and it lands on a page that shows it at six hundred. Shrinking it here
+     means the visitor downloads what the page needs, not what the camera
+     produced — and it happens before the upload, so the wait is shorter too.
+
+     Anything that is not a plain photo is passed through untouched: a video
+     has no canvas to draw to, a PNG may be a logo whose transparency matters,
+     and an SVG must not be turned into pixels. */
+  var MAX_EDGE = 1600;
+  function shrink(file) {
+    if (!/^image\/(jpeg|jpg|webp)$/i.test(file.type)) return readAsDataUrl(file);
+    return readAsDataUrl(file).then(function (dataUrl) {
+      return new Promise(function (res) {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));
+          if (scale === 1 && dataUrl.length < 400000) return res(dataUrl);
+          var c = document.createElement("canvas");
+          c.width = Math.round(img.width * scale);
+          c.height = Math.round(img.height * scale);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          var out;
+          try { out = c.toDataURL("image/webp", 0.82); } catch (e) { out = null; }
+          // A browser that cannot write WebP still writes JPEG.
+          if (!out || out.indexOf("data:image/webp") !== 0) out = c.toDataURL("image/jpeg", 0.82);
+          res(out.length < dataUrl.length ? out : dataUrl);
+        };
+        img.onerror = function () { res(dataUrl); };   // not decodable here — let the server judge
+        img.src = dataUrl;
+      });
+    });
+  }
+
   function upload(file, errEl) {
     errEl.hidden = true;
-    return readAsDataUrl(file)
+    return shrink(file)
       .then(function (dataUrl) { return api("/api/cms?resource=media", { method: "POST", body: { name: file.name, dataUrl: dataUrl } }); })
       .then(function (d) { return loadMedia().then(function () { return d.media; }); })
       .catch(function (e) { errEl.textContent = e.message; errEl.hidden = false; throw e; });
