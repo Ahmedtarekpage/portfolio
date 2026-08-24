@@ -27,6 +27,7 @@
 <script src="./subscribe.js?v=2" defer></script>
 <script src="./videos.js?v=3" defer></script>
 <script src="./tabbar.js?v=2" defer></script>
+<script src="./ascii.js?v=11" defer></script>
 </head>
 <body>
 <x-dc>
@@ -86,6 +87,21 @@
        0px spellings below in sync with what the DOM actually holds.
        ==================================================== */
     .site-nav-mobile { display: none; }
+
+    /* The ASCII band. Decoration, so it never takes a click and never
+       reserves more room than it is given. */
+    .ascii-band {
+      max-width: 1120px;
+      margin: 76px auto 0;
+      padding: 0 40px;
+      height: 270px;
+      pointer-events: none;
+      -webkit-user-select: none; user-select: none;
+      overflow: hidden;
+    }
+    @media (max-width: 700px) {
+      .ascii-band { height: 175px; margin-top: 56px; padding: 0 18px; }
+    }
 
     /* ---- the phone's navigation is a tab bar, not a menu ----
        A hamburger hides everything behind a tap and then asks you to read a
@@ -539,6 +555,9 @@
   </div>
 
   <div style="background: #ffffff;">
+  <!-- the phrase the whole site is built around, written in noise -->
+  <div class="ascii-band" data-ascii data-cms-skip aria-hidden="true"></div>
+
   <div id="help" style="max-width: 1120px; margin: 0 auto; padding: 128px 40px 0 40px;">
     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; align-items: start;">
       <div style="display: flex; flex-direction: column; gap: 32px;">
