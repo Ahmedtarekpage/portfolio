@@ -1545,3 +1545,6 @@ body.ar .contact__title { text-transform: none; }
     padding-right: max(0px, calc((100% - 520px) / 2));
   }
 }
+
+/* the two credit lines stack, so the footer's other half stays put */
+.footer__credit { display: flex; flex-direction: column; gap: 3px; }
