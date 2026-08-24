@@ -805,10 +805,33 @@ const VIEW_TEXT = {
   },
 };
 
-const VIEW_TITLE = {
-  full: { en: "Ahmed Tarek — Educator, Builder & AI Product Manager", ar: "أحمد طارق — مُعلّم ومهندس ومدير منتج ذكاء اصطناعي" },
-  product: { en: "Ahmed Tarek — AI Product Manager", ar: "أحمد طارق — مدير منتج ذكاء اصطناعي" },
-  educator: { en: "Ahmed Tarek — STEAM Educator & Robotics Instructor", ar: "أحمد طارق — مُعلّم STEAM ومدرّس روبوتيات" },
+/* Three URLs, one file — so the three cannot each ship their own <head>.
+   The markup carries the /product view, which is also the default, and the
+   other two rewrite what a search engine and a link preview will read.
+
+   Each is written for the person who would search for it: a company looking
+   for a product manager, a school looking for someone to build or fix their
+   learning programme, and someone deciding what to learn to get paid for it.
+
+   Google renders JavaScript, so it sees these. Several AI crawlers do not,
+   and read the markup as shipped — which is why the file's own <head> is a
+   real page's description rather than a placeholder. */
+const VIEW_META = {
+  product: {
+    path: "/product",
+    title: "Ahmed Tarek — AI Product Manager for AI, SaaS & EdTech",
+    description: "The AI and EdTech products I have owned end to end — discovery, roadmap, delivery, launch — including government platforms and EdTech reaching 10,000+ users. Dubai, working globally.",
+  },
+  educator: {
+    path: "/educator",
+    title: "Ahmed Tarek — STEAM Educator & EdTech Consultant, Dubai",
+    description: "A decade teaching STEAM, robotics and computer science to 3,000+ students across the UAE, USA, Saudi Arabia and Egypt — and building the learning programmes and platforms behind them, for schools, universities and ministries.",
+  },
+  full: {
+    path: "/full",
+    title: "Ahmed Tarek — Educator, Engineer & AI Product Manager",
+    description: "The whole story: RoboCup champion at 16, 3,000+ students taught across four countries, Python engineer in the top 3% on Upwork, then AI product manager in Dubai leading EdTech and government products.",
+  },
 };
 
 if (VIEW !== "full") {
@@ -852,8 +875,28 @@ if (VIEW !== "full") {
     if (a.getAttribute("data-view-tab") === VIEW) a.setAttribute("aria-current", "page");
   });
   document.body.dataset.view = VIEW;
-  document.title = (VIEW_TITLE[VIEW] || VIEW_TITLE.full)[LANG] || (VIEW_TITLE[VIEW] || VIEW_TITLE.full).en;
+  applyViewMeta();
 })();
+
+/** Point the title, description, canonical and link preview at this view. */
+function applyViewMeta() {
+  const meta = VIEW_META[VIEW] || VIEW_META.product;
+  const url = "https://ahmedtarek.tech" + meta.path;
+
+  document.title = meta.title;
+  set("meta[name='description']", "content", meta.description);
+  set("link[rel='canonical']", "href", url);
+  set("meta[property='og:url']", "content", url);
+  set("meta[property='og:title']", "content", meta.title);
+  set("meta[property='og:description']", "content", meta.description);
+  set("meta[name='twitter:title']", "content", meta.title);
+  set("meta[name='twitter:description']", "content", meta.description);
+
+  function set(selector, attr, value) {
+    const el = document.head.querySelector(selector);
+    if (el) el.setAttribute(attr, value);
+  }
+}
 
 // Wire the Résumé download + Book-a-call buttons from SITE_CONFIG.
 (function wireCTAs() {

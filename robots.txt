@@ -1,0 +1,125 @@
+# ahmedtarek.tech
+#
+# Everything public is open to everyone, search engines and answer engines
+# alike — being quoted by an assistant is how a growing share of people arrive,
+# and there is nothing here worth hiding from a crawler.
+#
+# The named groups are not decoration. A crawler that finds a group matching
+# its own name obeys that group and ignores "User-agent: *" completely — so
+# naming a bot in order to welcome it, without repeating the private paths
+# underneath, would quietly hand it the pages meant to stay out of search.
+# Hence the same block, repeated, for every agent named here.
+#
+# What is disallowed: the passkey-gated tools, and the client share links.
+# Those refuse without a passkey and carry noindex already, but a share token
+# turning up in a search result would expose a client's own page.
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /time
+Disallow: /c/
+Disallow: /unsubscribe
+Disallow: /api/
+
+Sitemap: https://ahmedtarek.tech/sitemap.xml

@@ -26,6 +26,7 @@ Clone it, serve the folder, and you are looking at the site.
 - [The newsletter](#the-newsletter)
 - [Environment variables](#environment-variables)
 - [Deploying](#deploying)
+- [Findability (SEO and AI search)](#findability-seo-and-ai-search)
 - [Conventions](#conventions)
 - [Things that have bitten us](#things-that-have-bitten-us)
 
@@ -109,10 +110,13 @@ pointing it at production — the database holds real client records.
 │   └── _lib/             shared server code (db, auth, hours engine, email)
 │
 ├── assets/               photographs, video, client logos, CV PDFs
-├── logo/                 the site's own mark, in the sizes browsers and email want
+├── logo/                 the site's mark in the sizes browsers and email want,
+│                        plus og-card.jpg, the link preview
 ├── vendor/               React, pinned and self-hosted (see Conventions)
 ├── _ds/                  GENERATED — the design tool's bundle for index.html
 ├── docs/ARCHITECTURE.md  the long version: CMS internals, admin tools, operations
+├── robots.txt            crawl rules — read the comment before editing
+├── sitemap.xml           the four public URLs
 └── vercel.json           routing, security headers, caching
 ```
 
@@ -302,6 +306,42 @@ compile, so a deploy is a copy plus the functions.
 - **Caching** — `/assets`, `/logo` and `/vendor` are immutable for a year.
   `css/` and `js/` are not, because they change; they are cache-busted by the
   `?v=` on each tag instead.
+
+## Findability (SEO and AI search)
+
+The site is written to be found two ways: by search engines, and by the
+assistants people increasingly ask instead of searching. Both are served by
+the same thing — clear answers, in the words people use to ask, marked up so a
+machine can tell what it is looking at.
+
+What is in place:
+
+- **`robots.txt`** — open to everyone, including the AI crawlers, each named
+  explicitly. Note the comment in that file: a bot that finds a group with its
+  own name ignores `User-agent: *` entirely, so the private paths are repeated
+  in every group. Removing that repetition would hand those bots `/admin` and
+  the client share links.
+- **`sitemap.xml`** — the four public URLs, each self-canonical.
+- **Per-page metadata** — title, description, canonical, Open Graph and Twitter
+  cards on every public page. `logo/og-card.jpg` is the 1200×630 preview.
+- **`journey.html` serves three URLs**, so it cannot ship three `<head>`s.
+  `applyViewMeta()` in `js/site/journey.js` rewrites the title, description,
+  canonical and preview tags per view. Google renders JavaScript and sees them;
+  several AI crawlers do not, which is why the markup's own `<head>` describes
+  a real view (`/product`) rather than a placeholder.
+- **JSON-LD in `index.html`** — a `@graph` of `Person`, `ProfessionalService`
+  with an offer catalogue of the three things he actually does, `WebSite`, and
+  `FAQPage`. This is the file that tells an assistant who he is, what he sells,
+  and to whom.
+- **A visible FAQ (`#faq`)** whose answers are written to stand on their own out
+  of context, because that is the form an assistant can quote. The JSON-LD is
+  generated from that markup, so the two cannot drift — if you edit an answer,
+  edit the schema block to match, or Google will treat the mismatch as a
+  violation.
+
+When editing any of this, keep one rule: **the structured data must describe
+what is visibly on the page.** Marking up an FAQ that a visitor cannot read is
+a manual-action risk, not a shortcut.
 
 ## Conventions
 
