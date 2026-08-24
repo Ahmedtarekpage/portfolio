@@ -1214,8 +1214,9 @@ body.ar .contact__title { text-transform: none; }
   justify-content: center;
   border-radius: var(--radius-md, 8px);
   background: var(--ink);
-  color: var(--bg);
+  flex: 0 0 auto;
 }
+.nav__brand .nav__mark img { width: 20px; height: 20px; display: block; }
 .nav__brand .nav__name { color: var(--ink); }
 .nav__brand:hover { opacity: .82; }
 

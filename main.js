@@ -1,8 +1,12 @@
 /* =========================================================
    i18n — language + translation layer
    ========================================================= */
-let LANG = "en";
-try { LANG = localStorage.getItem("lang") || "en"; } catch (e) {}
+// The journey pages are English only. The Arabic strings below are kept so
+// the t() call sites stay intact, but nothing switches to them any more —
+// and a language stored before the toggle was removed is cleared, so no one
+// is left holding a page they cannot read their way out of.
+const LANG = "en";
+try { localStorage.removeItem("lang"); } catch (e) {}
 
 // Arabic translations for dynamic (card/skill) strings.
 // t() returns the Arabic value in AR mode, else the original English key.
@@ -729,12 +733,6 @@ function applyStatic() {
     const v = dict[el.getAttribute("data-i18n-ph")];
     if (v != null) el.setAttribute("placeholder", v);
   });
-  const tg = document.getElementById("langToggle");
-  if (tg) {
-    tg.textContent = LANG === "ar" ? "EN" : "ع";
-    tg.setAttribute("aria-label", LANG === "ar" ? "Switch to English" : "التبديل إلى العربية");
-  }
-  try { localStorage.setItem("lang", LANG); } catch (e) {}
 }
 
 /* =========================================================
@@ -863,21 +861,6 @@ if (VIEW !== "full") {
 renderCards();
 applyStatic();
 
-// toggle handler
-const langToggle = document.getElementById("langToggle");
-if (langToggle) {
-  langToggle.addEventListener("click", () => {
-    LANG = LANG === "ar" ? "en" : "ar";
-    renderCards();
-    applyStatic();
-    const tt = VIEW_TITLE[VIEW] || VIEW_TITLE.full;
-    document.title = tt[LANG] || tt.en;
-    // re-rendered cards are new nodes; reveal them immediately (user already scrolled)
-    document
-      .querySelectorAll("#eduTimeline .reveal, #buildTimeline .reveal, #timeline .reveal, #skillsGrid .reveal")
-      .forEach((el) => el.classList.add("in"));
-  });
-}
 
 /* =========================================================
    REVEAL ON SCROLL

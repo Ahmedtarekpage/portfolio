@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Content — Ahmed Tarek</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/png" sizes="64x64" href="logo/favicon-64.png" />
   <meta name="theme-color" content="#0b0e14" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=6" />
-  <link rel="stylesheet" href="dashboard.css?v=2" />
+  <link rel="stylesheet" href="dashboard.css?v=3" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -58,6 +58,7 @@
       <nav class="dash-tabs">
         <button class="dash-tab is-on" data-tab="content">Content</button>
         <button class="dash-tab" data-tab="media">Media library</button>
+        <button class="dash-tab" data-tab="news">Newsletter</button>
       </nav>
 
       <!-- ---------- CONTENT ---------- -->
@@ -91,6 +92,67 @@
         <div id="mediaGrid" class="media-grid"></div>
       </div>
 
+
+      <!-- ---------- NEWSLETTER ---------- -->
+      <div id="tab-news" class="dash-panel" hidden>
+
+        <div class="news-cols">
+
+          <section class="news-col">
+            <div class="news-head">
+              <h2>Who is subscribed</h2>
+              <div class="news-head__actions">
+                <button id="btnExport" class="btn btn--ghost btn--sm">Download as CSV</button>
+                <button id="btnReloadSubs" class="btn btn--ghost btn--sm">Refresh</button>
+              </div>
+            </div>
+            <p class="muted news-sub" id="subsCount">Loading…</p>
+            <input id="subsFilter" class="dash-filter" type="search" placeholder="Search a name or address…" />
+            <div id="subsList" class="subs"></div>
+          </section>
+
+          <section class="news-col">
+            <div class="news-head"><h2>Write an email</h2></div>
+            <p class="muted news-sub" id="mailState"></p>
+
+            <label class="news-field">
+              <span>Subject line <em>— what they see in their inbox</em></span>
+              <input id="mSubject" type="text" placeholder="This week on The Track" />
+            </label>
+            <label class="news-field">
+              <span>Heading <em>— the big line at the top of the email</em></span>
+              <input id="mHeading" type="text" placeholder="What to learn next in AI" />
+            </label>
+            <label class="news-field">
+              <span>Your message</span>
+              <textarea id="mBody" rows="10" placeholder="Write it the way you would write any email.&#10;&#10;Leave a blank line between paragraphs. Put **asterisks** around words to make them bold. Start a line with - to make a bullet."></textarea>
+            </label>
+            <div class="news-row">
+              <label class="news-field">
+                <span>Button text <em>— optional</em></span>
+                <input id="mCtaLabel" type="text" placeholder="Read the full thing" />
+              </label>
+              <label class="news-field">
+                <span>Button link</span>
+                <input id="mCtaUrl" type="text" placeholder="https://…" />
+              </label>
+            </div>
+
+            <div class="news-actions">
+              <button id="btnPreview" class="btn btn--ghost btn--sm">See how it looks</button>
+              <button id="btnTest" class="btn btn--ghost btn--sm">Send a test to me</button>
+              <button id="btnSend" class="btn btn--primary btn--sm">Send to everyone</button>
+            </div>
+            <p id="sendState" class="muted news-sub" hidden></p>
+          </section>
+
+        </div>
+
+        <section class="news-past">
+          <h2>Already sent</h2>
+          <div id="campaigns"></div>
+        </section>
+      </div>
     </section>
   </div>
 
@@ -113,8 +175,19 @@
     </div>
   </div>
 
+  <!-- email preview -->
+  <div id="mailPreview" class="picker" hidden>
+    <div class="picker__box picker__box--wide">
+      <div class="picker__head">
+        <strong>This is what lands in their inbox</strong>
+        <button id="previewClose" class="iconbtn" aria-label="Close">✕</button>
+      </div>
+      <iframe id="previewFrame" class="mail-frame" title="Email preview"></iframe>
+    </div>
+  </div>
+
   <div id="toast" class="toast" hidden></div>
 
-  <script src="dashboard.js?v=3"></script>
+  <script src="dashboard.js?v=4"></script>
 </body>
 </html>

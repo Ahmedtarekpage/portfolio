@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ahmed Tarek — AI Product Manager</title>
 <meta name="description" content="Ahmed Tarek — AI Product Manager with 7 years building AI-powered EdTech, SaaS and B2B/B2C products. Based in Dubai, working globally.">
-<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="64x64" href="logo/favicon-64.png">
+<link rel="icon" type="image/png" sizes="32x32" href="logo/favicon-32.png">
+
+<link rel="apple-touch-icon" href="logo/favicon-180.png">
 <meta name="theme-color" content="#ffffff">
 <script src="./support.js"></script>
 <script src="./cms.js?v=4" defer></script>
+<script src="./subscribe.js?v=1" defer></script>
 </head>
 <body>
 <x-dc>
@@ -234,7 +235,7 @@
   <div style="position: relative; z-index: 1;">
   <div class="site-nav" style="max-width: 1120px; margin: 0 auto; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
     <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="width: 34px; height: 34px; border-radius: var(--radius-md, 8px); background: var(--color-text); color: var(--color-bg); display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 500; font-size: 15px;">AT.</span>
+      <span style="width: 34px; height: 34px; border-radius: var(--radius-md, 8px); background: var(--color-text); display: flex; align-items: center; justify-content: center;"><img src="logo/summit-mono-white.svg" alt="Ahmed Tarek logo" width="20" height="20" style="width: 20px; height: 20px; display: block;"></span>
       <span style="font-weight: 500; font-size: 15px;">Ahmed Tarek</span>
     </div>
     <div class="site-nav-links" style="display: flex; align-items: center; gap: 18px; font-size: 14px; white-space: nowrap;">
@@ -685,10 +686,11 @@
       </div>
       <div style="display: flex; flex-direction: column; gap: 18px;">
         <p style="font-size: 17px; line-height: 1.7; color: var(--color-text); margin: 0;">Every week I send one track-shaped lesson: what to learn next in AI and tech, how to build products that ship, and the daily systems behind it. Free, always.</p>
-        <div style="display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 20px; border-radius: 999px; background: var(--color-accent-900); border: 1px solid var(--color-accent-800);">
-          <input type="email" placeholder="Your email" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); padding: 10px 0;">
-          <button type="button" style="border: none; cursor: pointer; padding: 13px 26px; border-radius: 999px; background: var(--color-accent); color: #ffffff; font-family: var(--font-body); font-size: 15px; font-weight: 500; white-space: nowrap; transition: transform 0.2s ease;" style-hover="transform: translateY(-2px);">Subscribe</button>
-        </div>
+        <form id="subForm" data-cms-skip style="display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 20px; border-radius: 999px; background: var(--color-accent-900); border: 1px solid var(--color-accent-800);">
+          <input id="subEmail" type="email" name="email" required autocomplete="email" placeholder="Your email" style="flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); padding: 10px 0;">
+          <button id="subBtn" type="submit" style="border: none; cursor: pointer; padding: 13px 26px; border-radius: 999px; background: var(--color-accent); color: #ffffff; font-family: var(--font-body); font-size: 15px; font-weight: 500; white-space: nowrap; transition: transform 0.2s ease;" style-hover="transform: translateY(-2px);">Subscribe</button>
+        </form>
+        <p id="subMsg" role="status" data-cms-skip style="display: none; font-size: 14px; line-height: 1.7; margin: 0; color: var(--color-accent-300);"></p>
         <p style="font-size: 13px; line-height: 1.7; color: var(--color-neutral-500); margin: 0;">By subscribing you'll get the newsletter and the occasional note about a new track or course. Unsubscribe any time, no hard feelings.</p>
       </div>
     </div>

@@ -131,6 +131,41 @@ change `SITE_CONFIG.BOOKING_URL` in journey.html and the `fallback` in cms.js's
 `SITEWIDE` list to match — otherwise the dashboard will show the old one until
 you save over it.
 
+## Newsletter — /dashboard → Newsletter
+
+The **Subscribe to The Track** box on the home page writes to
+`newsletter_subscribers`. The dashboard's Newsletter tab shows who is on the
+list, exports it as CSV, removes an address, and is where an email is written
+and sent.
+
+Writing an email is plain text: a blank line starts a new paragraph,
+`**asterisks**` make a word bold, a line starting with `-` becomes a bullet,
+and `[words](https://link)` becomes a link. **See how it looks** renders the
+real email — the same code that sends it — so nothing is a surprise.
+
+### Switching sending on
+
+Nothing is sent until two environment variables exist in the Vercel project
+(Settings → Environment Variables), after which the project needs a redeploy:
+
+| Variable | Value |
+| --- | --- |
+| `RESEND_API_KEY` | `re_…` from resend.com/api-keys |
+| `NEWSLETTER_FROM` | `Ahmed Tarek <newsletter@ahmedtarek.tech>` |
+
+The from-address has to sit on a domain verified in Resend, or Resend refuses
+the send. Until the key is there the tab says so plainly and everything else —
+collecting subscribers, writing, previewing — still works.
+
+A send goes out in chunks of 60: the browser asks for one chunk, the function
+sends it and says where it got to, and the loop repeats. That is what keeps a
+list of any size inside a serverless request's time limit, and why a send that
+fails partway can still say how many went out.
+
+Every copy carries a personal `/unsubscribe?token=…` link and a
+`List-Unsubscribe` header. Unsubscribing flips the row's status rather than
+deleting it.
+
 ## The twelve-function ceiling
 
 Vercel's Hobby plan allows **12 Serverless Functions per deployment**, and this

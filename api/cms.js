@@ -5,6 +5,13 @@
 //   GET    /api/cms?index=1               -> { items: [...] } full rows            (authed)
 //   PUT    /api/cms                       -> { items: [...] }; empty value reverts (authed)
 //   DELETE /api/cms?key=K | ?all=1                                                 (authed)
+// Newsletter (?resource=newsletter):
+//   POST   /api/cms?resource=newsletter               -> { email, name }   PUBLIC
+//   GET    /api/cms?resource=newsletter&action=unsubscribe&token=T  PUBLIC (html)
+//   GET    /api/cms?resource=newsletter               -> list + campaigns  (authed)
+//   POST   /api/cms?resource=newsletter&action=preview -> { html }         (authed)
+//   POST   /api/cms?resource=newsletter&action=send    -> one chunk        (authed)
+//   DELETE /api/cms?resource=newsletter&id=N                               (authed)
 // Media (?resource=media):
 //   GET    /api/cms?resource=media&id=N   -> the file, immutable-cached            PUBLIC
 //   GET    /api/cms?resource=media        -> { media: [...] } metadata             (authed)
@@ -14,8 +21,10 @@
 // Content and media share one function on purpose: the Hobby plan allows
 // twelve Serverless Functions per deployment and the project was already at
 // the line. Splitting them back out will fail the deploy.
+import crypto from "node:crypto";
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
+import { mailConfig, renderEmail, renderText, sendBatch } from "./_lib/mail.js";
 
 const KINDS = new Set(["text", "rich", "html", "src", "href"]);
 const MAX_VALUE = 200_000;
@@ -82,9 +91,169 @@ async function handleMedia(req, res, sql) {
   return json(res, 405, { error: "Method not allowed" });
 }
 
+
+/* ---------------------------------------------------------------
+   Newsletter
+   --------------------------------------------------------------- */
+
+const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i;
+
+// Resend takes at most 100 messages per batch call, and a serverless request
+// has to finish inside its time limit — so the dashboard sends one chunk at a
+// time and comes back for the next. A list of any size gets through, and a
+// send that dies halfway has already recorded what it delivered.
+const CHUNK = 60;
+
+function siteUrl(req) {
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "ahmedtarek.tech";
+  const proto = req.headers["x-forwarded-proto"] || (String(host).startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+function page(res, status, title, message) {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(status).end(`<!doctype html><html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" /><title>${title}</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f4f9;font-family:Inter,Helvetica,Arial,sans-serif;color:#17181f;padding:24px;">
+<div style="max-width:460px;text-align:center;background:#fff;border:1px solid #e4e5ee;border-radius:18px;padding:40px 32px;">
+<h1 style="margin:0 0 12px;font-size:22px;font-weight:600;">${title}</h1>
+<p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#5c5e70;">${message}</p>
+<a href="/" style="display:inline-block;padding:12px 24px;border-radius:999px;background:#7263c9;color:#fff;font-size:14px;font-weight:600;text-decoration:none;">Back to the site</a>
+</div></body></html>`);
+}
+
+async function handleNewsletter(req, res, sql) {
+  const action = String(req.query.action || "");
+
+  // --- public: someone unsubscribing from a link in an email ---
+  if (req.method === "GET" && action === "unsubscribe") {
+    const token = String(req.query.token || "");
+    if (!token) return page(res, 400, "Link incomplete", "That unsubscribe link is missing its code.");
+    const [row] = await sql`UPDATE newsletter_subscribers
+      SET status = 'unsubscribed', unsubscribed_at = now()
+      WHERE token = ${token} RETURNING email`;
+    if (!row) return page(res, 404, "Already done", "That link has already been used, or the address is no longer on the list.");
+    return page(res, 200, "You're unsubscribed",
+      `No more emails will go to ${row.email.replace(/</g, "")}. Thanks for reading.`);
+  }
+
+  // --- public: subscribing from the site ---
+  if (req.method === "POST" && (!action || action === "subscribe")) {
+    const b = req.body || {};
+    const email = String(b.email || "").trim().toLowerCase().slice(0, 254);
+    if (!EMAIL_RE.test(email)) return json(res, 400, { error: "That does not look like an email address." });
+    const name = String(b.name || "").trim().slice(0, 120) || null;
+    const source = String(b.source || "site").trim().slice(0, 60);
+    const token = crypto.randomBytes(24).toString("base64url");
+
+    // Someone re-subscribing after opting out is asking to come back, and the
+    // row keeps its original token so old unsubscribe links still work.
+    await sql`INSERT INTO newsletter_subscribers (email, name, source, token)
+      VALUES (${email}, ${name}, ${source}, ${token})
+      ON CONFLICT (email) DO UPDATE SET
+        status = 'active',
+        unsubscribed_at = NULL,
+        name = COALESCE(EXCLUDED.name, newsletter_subscribers.name)`;
+    return json(res, 201, { ok: true });
+  }
+
+  if (!requireAuth(req, res)) return;
+
+  if (req.method === "GET") {
+    const subscribers = await sql`SELECT id, email, name, source, status, created_at
+      FROM newsletter_subscribers ORDER BY created_at DESC`;
+    const campaigns = await sql`SELECT id, subject, recipients, failed, errors, created_at
+      FROM newsletter_campaigns ORDER BY created_at DESC LIMIT 25`;
+    return json(res, 200, { subscribers, campaigns, mail: mailConfig() });
+  }
+
+  if (req.method === "DELETE") {
+    const id = Number(req.query.id);
+    if (!id) return json(res, 400, { error: "id is required" });
+    await sql`DELETE FROM newsletter_subscribers WHERE id = ${id}`;
+    return json(res, 200, { ok: true });
+  }
+
+  if (req.method === "POST" && action === "preview") {
+    const b = req.body || {};
+    return json(res, 200, {
+      html: renderEmail({ ...b, siteUrl: siteUrl(req), unsubUrl: siteUrl(req) + "/unsubscribe?token=preview" }),
+    });
+  }
+
+  if (req.method === "POST" && action === "send") {
+    const b = req.body || {};
+    const subject = String(b.subject || "").trim();
+    if (!subject) return json(res, 400, { error: "The email needs a subject line." });
+    if (!String(b.body || "").trim()) return json(res, 400, { error: "The email has no text in it." });
+
+    const cfg = mailConfig();
+    if (!cfg.configured) {
+      return json(res, 400, {
+        error: "Email sending is not switched on yet. Add RESEND_API_KEY (and NEWSLETTER_FROM) " +
+               "to the project's environment variables in Vercel, then redeploy.",
+      });
+    }
+
+    const base = siteUrl(req);
+    const build = (to, token) => {
+      // /unsubscribe is a rewrite onto this same function — a link someone
+      // reads in an email should look like a link, not a query string.
+      const unsubUrl = `${base}/unsubscribe?token=${encodeURIComponent(token)}`;
+      return {
+        from: cfg.from,
+        to: [to],
+        reply_to: cfg.replyTo,
+        subject,
+        html: renderEmail({ ...b, unsubUrl, siteUrl: base }),
+        text: renderText({ ...b, unsubUrl }),
+        headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      };
+    };
+
+    // A test goes to one address and is not recorded as a campaign.
+    if (b.testTo) {
+      const to = String(b.testTo).trim().toLowerCase();
+      if (!EMAIL_RE.test(to)) return json(res, 400, { error: "That test address is not valid." });
+      const r = await sendBatch([build(to, "preview")]);
+      if (r.error) return json(res, 502, { error: r.error });
+      return json(res, 200, { ok: true, test: true, sent: r.sent });
+    }
+
+    const offset = Math.max(0, Number(b.offset) || 0);
+    const rows = await sql`SELECT email, token FROM newsletter_subscribers
+      WHERE status = 'active' ORDER BY id LIMIT ${CHUNK} OFFSET ${offset}`;
+    const [{ count }] = await sql`SELECT count(*)::int AS count FROM newsletter_subscribers WHERE status = 'active'`;
+
+    if (!count) return json(res, 400, { error: "There is nobody on the list yet." });
+
+    let campaignId = Number(b.campaignId) || 0;
+    if (!campaignId) {
+      const [c] = await sql`INSERT INTO newsletter_campaigns (subject, html, recipients)
+        VALUES (${subject}, ${renderEmail({ ...b, siteUrl: base })}, 0) RETURNING id`;
+      campaignId = c.id;
+    }
+
+    const r = rows.length ? await sendBatch(rows.map((x) => build(x.email, x.token))) : { sent: 0, failed: 0 };
+    await sql`UPDATE newsletter_campaigns
+      SET recipients = recipients + ${r.sent}, failed = failed + ${r.failed},
+          errors = COALESCE(${r.error || null}, errors)
+      WHERE id = ${campaignId}`;
+
+    const nextOffset = offset + rows.length;
+    return json(res, 200, {
+      ok: !r.error, campaignId, total: count, sent: r.sent, failed: r.failed,
+      error: r.error || null, nextOffset, done: nextOffset >= count || !rows.length,
+    });
+  }
+
+  return json(res, 405, { error: "Method not allowed" });
+}
+
 export default withErrors(async (req, res) => {
   const sql = await db();
   if (req.query.resource === "media") return handleMedia(req, res, sql);
+  if (req.query.resource === "newsletter") return handleNewsletter(req, res, sql);
 
   if (req.method === "GET" && !req.query.index) {
     const rows = await sql`SELECT key, kind, value FROM site_content`;

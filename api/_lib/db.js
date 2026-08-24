@@ -175,6 +175,30 @@ async function migrate(sql) {
     data BYTEA NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // Newsletter. A subscriber's token is what an unsubscribe link carries, so
+  // nobody has to be logged in — or guessable — to get off the list. Removing
+  // someone keeps the row and flips the status, so a re-subscribe cannot
+  // silently resurrect an address that asked to be left alone.
+  await sql`CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT,
+    source TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    token TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    unsubscribed_at TIMESTAMPTZ
+  )`;
+  // What was sent, to how many, and when — so a send can never be a mystery.
+  await sql`CREATE TABLE IF NOT EXISTS newsletter_campaigns (
+    id SERIAL PRIMARY KEY,
+    subject TEXT NOT NULL,
+    html TEXT NOT NULL,
+    recipients INTEGER NOT NULL DEFAULT 0,
+    failed INTEGER NOT NULL DEFAULT 0,
+    errors TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
   await sql`CREATE TABLE IF NOT EXISTS ideas (
     id SERIAL PRIMARY KEY,
     text TEXT NOT NULL,

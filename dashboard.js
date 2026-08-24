@@ -349,11 +349,212 @@
       Array.prototype.forEach.call(document.querySelectorAll(".dash-tab"), function (x) { x.classList.toggle("is-on", x === t); });
       $("#tab-content").hidden = t.dataset.tab !== "content";
       $("#tab-media").hidden = t.dataset.tab !== "media";
+      $("#tab-news").hidden = t.dataset.tab !== "news";
       if (t.dataset.tab === "media") renderMedia();
+      if (t.dataset.tab === "news") loadNewsletter();
     });
   });
 
   /* ---------- media ---------- */
+
+
+  /* ---------- newsletter ----------
+
+     Two jobs on one screen: who is on the list, and what to send them. The
+     email is written as plain text — blank line for a new paragraph,
+     **asterisks** for bold, a leading dash for a bullet — and the preview
+     is rendered by the same code that will send it, so what is on screen is
+     what arrives.
+
+     A send goes out in chunks. The server takes one chunk per request and
+     says where it got to; this loops until it is done. That is what lets a
+     list of any size go out inside a serverless request's time limit, and it
+     is why a send that fails halfway can still report what it delivered. */
+
+  var subs = [];
+  var campaigns = [];
+  var mailCfg = { configured: false, from: "" };
+  var subsLoaded = false;
+  var sending = false;
+
+  function loadNewsletter(force) {
+    if (subsLoaded && !force) return;
+    $("#subsCount").textContent = "Loading…";
+    api("/api/cms?resource=newsletter").then(function (d) {
+      subs = d.subscribers || [];
+      campaigns = d.campaigns || [];
+      mailCfg = d.mail || mailCfg;
+      subsLoaded = true;
+      renderSubs();
+      renderCampaigns();
+      var st = $("#mailState");
+      if (mailCfg.configured) {
+        st.textContent = "Sent from " + mailCfg.from + ".";
+        st.style.color = "";
+      } else {
+        st.textContent = "Sending is not switched on yet. Add RESEND_API_KEY and NEWSLETTER_FROM " +
+          "to the project's environment variables in Vercel and redeploy — until then you can still " +
+          "collect subscribers and write and preview an email.";
+        st.style.color = "var(--c-danger, #e5484d)";
+      }
+    }).catch(function (e) { $("#subsCount").textContent = e.message; });
+  }
+
+  function activeSubs() { return subs.filter(function (x) { return x.status === "active"; }); }
+
+  function when(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function renderSubs() {
+    var q = ($("#subsFilter").value || "").trim().toLowerCase();
+    var list = subs.filter(function (x) {
+      return !q || ((x.email || "") + " " + (x.name || "")).toLowerCase().indexOf(q) > -1;
+    });
+    var n = activeSubs().length;
+    $("#subsCount").textContent = n === 0
+      ? "Nobody has subscribed yet."
+      : n + (n === 1 ? " person is" : " people are") + " subscribed" +
+        (subs.length > n ? " · " + (subs.length - n) + " unsubscribed" : "");
+
+    $("#subsList").innerHTML = list.length
+      ? list.map(function (x) {
+          return '<div class="sub-row' + (x.status === "active" ? "" : " is-out") + '">' +
+            '<div class="sub-row__who">' +
+              '<div class="sub-row__mail">' + esc(x.email) + "</div>" +
+              '<div class="sub-row__meta">' + esc(x.name || "") + (x.name ? " · " : "") +
+                when(x.created_at) + (x.source ? " · from the " + esc(x.source) : "") +
+                (x.status === "active" ? "" : " · unsubscribed") + "</div>" +
+            "</div>" +
+            '<button class="sub-row__x" data-del="' + x.id + '" title="Remove from the list">✕</button>' +
+          "</div>";
+        }).join("")
+      : '<p class="muted">Nothing matches that.</p>';
+
+    Array.prototype.forEach.call($("#subsList").querySelectorAll("[data-del]"), function (b) {
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-del");
+        var row = subs.filter(function (x) { return String(x.id) === id; })[0];
+        if (!confirm("Remove " + (row ? row.email : "this address") + " from the list?")) return;
+        api("/api/cms?resource=newsletter&id=" + id, { method: "DELETE" })
+          .then(function () { loadNewsletter(true); toast("Removed"); })
+          .catch(function (e) { toast(e.message, true); });
+      });
+    });
+  }
+
+  function renderCampaigns() {
+    $("#campaigns").innerHTML = campaigns.length
+      ? campaigns.map(function (c) {
+          return '<div class="camp"><span class="camp__subject">' + esc(c.subject) + "</span>" +
+            '<span class="camp__meta">' + c.recipients + " sent" +
+              (c.failed ? " · " + c.failed + " failed" : "") + " · " + when(c.created_at) + "</span>" +
+            (c.errors ? '<span class="camp__err">' + esc(c.errors) + "</span>" : "") +
+          "</div>";
+        }).join("")
+      : '<p class="muted">No emails sent yet.</p>';
+  }
+
+  function draft() {
+    return {
+      subject: $("#mSubject").value.trim(),
+      heading: $("#mHeading").value.trim(),
+      body: $("#mBody").value,
+      ctaLabel: $("#mCtaLabel").value.trim(),
+      ctaUrl: $("#mCtaUrl").value.trim(),
+      preheader: $("#mBody").value.replace(/\*\*/g, "").trim().slice(0, 120),
+    };
+  }
+
+  $("#subsFilter").addEventListener("input", renderSubs);
+  $("#btnReloadSubs").addEventListener("click", function () { loadNewsletter(true); });
+
+  $("#btnExport").addEventListener("click", function () {
+    var rows = [["email", "name", "status", "source", "subscribed"]].concat(
+      subs.map(function (x) { return [x.email, x.name || "", x.status, x.source || "", x.created_at]; })
+    );
+    var csv = rows.map(function (r) {
+      return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(",");
+    }).join("\n");
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "subscribers.csv";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  $("#btnPreview").addEventListener("click", function () {
+    api("/api/cms?resource=newsletter&action=preview", { method: "POST", body: draft() })
+      .then(function (d) {
+        $("#mailPreview").hidden = false;
+        $("#previewFrame").srcdoc = d.html;
+      })
+      .catch(function (e) { toast(e.message, true); });
+  });
+  $("#previewClose").addEventListener("click", function () { $("#mailPreview").hidden = true; });
+  $("#mailPreview").addEventListener("click", function (e) {
+    if (e.target === $("#mailPreview")) $("#mailPreview").hidden = true;
+  });
+
+  $("#btnTest").addEventListener("click", function () {
+    var to = prompt("Send a test copy to which address?", mailCfg.replyTo || "");
+    if (!to) return;
+    var d = draft();
+    d.testTo = to;
+    $("#btnTest").disabled = true;
+    api("/api/cms?resource=newsletter&action=send", { method: "POST", body: d })
+      .then(function () { toast("Test sent to " + to); })
+      .catch(function (e) { toast(e.message, true); })
+      .then(function () { $("#btnTest").disabled = false; });
+  });
+
+  $("#btnSend").addEventListener("click", function () {
+    if (sending) return;
+    var d = draft();
+    var n = activeSubs().length;
+    if (!d.subject) return toast("Give the email a subject line first.", true);
+    if (!d.body.trim()) return toast("The email has no text in it.", true);
+    if (!n) return toast("Nobody is subscribed yet.", true);
+    if (!confirm("Send “" + d.subject + "” to " + n + (n === 1 ? " person" : " people") +
+                 "?\n\nThis cannot be taken back.")) return;
+
+    sending = true;
+    $("#btnSend").disabled = true;
+    var state = $("#sendState");
+    state.hidden = false;
+    state.style.color = "";
+
+    var totalSent = 0;
+    var campaignId = 0;
+
+    function chunk(offset) {
+      state.textContent = "Sending… " + totalSent + " of " + n + " so far.";
+      var payload = {};
+      for (var k in d) payload[k] = d[k];
+      payload.offset = offset;
+      payload.campaignId = campaignId;
+      return api("/api/cms?resource=newsletter&action=send", { method: "POST", body: payload })
+        .then(function (r) {
+          campaignId = r.campaignId || campaignId;
+          totalSent += r.sent || 0;
+          if (r.error) throw new Error(r.error);
+          if (!r.done) return chunk(r.nextOffset);
+        });
+    }
+
+    chunk(0)
+      .then(function () {
+        state.textContent = "Sent to " + totalSent + (totalSent === 1 ? " person." : " people.");
+        toast("Newsletter sent");
+        loadNewsletter(true);
+      })
+      .catch(function (e) {
+        state.style.color = "var(--c-danger, #e5484d)";
+        state.textContent = "Stopped after " + totalSent + " — " + e.message;
+      })
+      .then(function () { sending = false; $("#btnSend").disabled = false; });
+  });
 
   function loadMedia() {
     return api("/api/cms?resource=media").then(function (d) { media = d.media || []; });

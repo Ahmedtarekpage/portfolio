@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/unsubscribe",
+      "destination": "/api/cms?resource=newsletter&action=unsubscribe"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },
