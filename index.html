@@ -23,6 +23,19 @@
 <meta name="author" content="Ahmed Tarek Mourssi">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 
+<!-- Search-console ownership. Google and Bing each hand you a token when you
+     add the site; paste it into the matching tag below and uncomment it. The
+     usual one-click route — verify through Google Analytics — does not work
+     here, because analytics only load on the journey pages, behind their
+     consent banner, and never on this one.
+<meta name="google-site-verification" content="PASTE_GOOGLE_TOKEN_HERE">
+<meta name="msvalidate.01" content="PASTE_BING_TOKEN_HERE">
+-->
+
+<!-- Bing, Yandex, Seznam and Naver are told about changes directly, rather
+     than waited on: /82748c3e565e6e50dd1f0f83b3b40772.txt proves this site owns the key that
+     signs those submissions. Deleting it silently breaks them. -->
+
 <!-- What a shared link looks like anywhere it is pasted. Without these a link
      to this site is a bare URL in Slack, WhatsApp, LinkedIn and X. -->
 <meta property="og:type" content="website">
@@ -109,6 +122,33 @@
       ],
       "worksFor": {
         "@id": "https://ahmedtarek.tech/#practice"
+      },
+      "givenName": "Ahmed",
+      "additionalName": "Tarek",
+      "familyName": "Mourssi",
+      "nationality": {
+        "@type": "Country",
+        "name": "Egypt"
+      },
+      "homeLocation": {
+        "@type": "Place",
+        "name": "Dubai, United Arab Emirates"
+      },
+      "mainEntityOfPage": {
+        "@id": "https://ahmedtarek.tech/#website"
+      },
+      "award": [
+        "RoboCup champion",
+        "Top 3% of engineers on Upwork"
+      ],
+      "hasOccupation": {
+        "@type": "Occupation",
+        "name": "AI Product Manager",
+        "occupationLocation": {
+          "@type": "City",
+          "name": "Dubai"
+        },
+        "skills": "AI product management, EdTech product development, product discovery and roadmapping, learning platform design, curriculum design, Python engineering"
       }
     },
     {
@@ -217,12 +257,24 @@
       "inLanguage": "en",
       "publisher": {
         "@id": "https://ahmedtarek.tech/#ahmed"
-      }
+      },
+      "alternateName": [
+        "Ahmed Tarek Mourssi",
+        "ahmedtarek.tech"
+      ]
     },
     {
       "@type": "FAQPage",
       "@id": "https://ahmedtarek.tech/#faq",
       "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Who is Ahmed Tarek Mourssi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "I am Ahmed Tarek Mourssi — an AI product manager, software engineer and educator based in Dubai, UAE, and the founder of ashrhly.com. I have taught 3,000+ students across four countries, led AI and EdTech products end to end for companies and governments, and I write and teach under one idea: tracks, not courses. Most people just call me Ahmed Tarek."
+          }
+        },
         {
           "@type": "Question",
           "name": "Can I hire you as a product manager?",
@@ -269,6 +321,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "A free thirty-minute consultation. You tell me where your learners or your users get stuck, and I tell you honestly whether I am the right person for it. If I am not, I will say so."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What have you actually shipped?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A confidential Saudi government platform built around Matterport 3D capture; a national AI and Python programme delivered with Udacity; EdTech platforms reaching 10,000+ users across six countries; and ashrhly.com, my own AI tutor, from concept to launch. Before product I was a Python engineer in the top 3% on Upwork, and a RoboCup champion at 16."
           }
         }
       ]
@@ -975,25 +1035,25 @@
         </div>
         <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 38px; line-height: 1.15; letter-spacing: -0.01em; margin: 0; max-width: 720px;">Take something useful with you.</h2>
       </div>
-    <p style="font-size: 13px; color: var(--color-neutral-500); margin: -18px 0 0 0;">Draft placeholders — link the real files when they are ready.</p>
+    <p style="font-size: 13px; color: var(--color-neutral-500); margin: -18px 0 0 0;">Not on a download page yet — ask me and I will send them over.</p>
     <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
       <a href="#contact" style="display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-700); border-top: 2px solid var(--color-accent); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; color: inherit;" style-hover="transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent-700);">
         <i class="ph ph-file-text" style="color: var(--color-accent); font-size: 26px;"></i>
         <div style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; color: var(--color-text);">The AI PM roadmap (PDF)</div>
         <div style="font-size: 14px; line-height: 1.7; color: var(--color-neutral-400);">The order I would learn product management and AI in today — one page, no fluff.</div>
-        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Get the PDF →</span>
+        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Ask me for it →</span>
       </a>
       <a href="#contact" style="display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-700); border-top: 2px solid var(--color-accent); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; color: inherit;" style-hover="transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent-700);">
         <i class="ph ph-check-square" style="color: var(--color-accent); font-size: 26px;"></i>
         <div style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; color: var(--color-text);">Track-builder checklist</div>
         <div style="font-size: 14px; line-height: 1.7; color: var(--color-neutral-400);">Turn any pile of courses into a sequenced track with a clear finish line.</div>
-        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Download →</span>
+        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Ask me for it →</span>
       </a>
       <a href="#contact" style="display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-700); border-top: 2px solid var(--color-accent); transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; color: inherit;" style-hover="transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent-700);">
         <i class="ph ph-sparkle" style="color: var(--color-accent); font-size: 26px;"></i>
         <div style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; color: var(--color-text);">Prompt pack for learners</div>
         <div style="font-size: 14px; line-height: 1.7; color: var(--color-neutral-400);">The prompts I give students to study faster with AI without skipping the thinking.</div>
-        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Get the pack →</span>
+        <span style="font-size: 14px; color: var(--color-accent-300); margin-top: auto;">Ask me for it →</span>
       </a>
     </div>
   </div>
@@ -1012,6 +1072,10 @@
         <h2 style="font-family: var(--font-heading); font-weight: 500; font-size: 38px; line-height: 1.15; letter-spacing: -0.01em; margin: 0; max-width: 720px;">The questions I actually get.</h2>
       </div>
     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-800);">
+        <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; line-height: 1.35; color: var(--color-text); margin: 0;">Who is Ahmed Tarek Mourssi?</h3>
+        <p style="font-size: 14px; line-height: 1.75; color: var(--color-neutral-400); margin: 0;">I am Ahmed Tarek Mourssi — an AI product manager, software engineer and educator based in Dubai, UAE, and the founder of ashrhly.com. I have taught 3,000+ students across four countries, led AI and EdTech products end to end for companies and governments, and I write and teach under one idea: tracks, not courses. Most people just call me Ahmed Tarek.</p>
+      </div>
       <div style="display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-800);">
         <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; line-height: 1.35; color: var(--color-text); margin: 0;">Can I hire you as a product manager?</h3>
         <p style="font-size: 14px; line-height: 1.75; color: var(--color-neutral-400); margin: 0;">Yes — that is the day job. I take AI, EdTech and SaaS products from discovery to launch: the roadmap, the specs, the delivery, and the numbers afterwards. That has included a confidential Saudi government platform built around Matterport 3D capture, a national AI and Python programme with Udacity, and EdTech platforms reaching 10,000+ users across six countries. I am based in Dubai and work with teams anywhere.</p>
@@ -1036,6 +1100,10 @@
         <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; line-height: 1.35; color: var(--color-text); margin: 0;">How do we start?</h3>
         <p style="font-size: 14px; line-height: 1.75; color: var(--color-neutral-400); margin: 0;">A free thirty-minute consultation. You tell me where your learners or your users get stuck, and I tell you honestly whether I am the right person for it. If I am not, I will say so.</p>
         <a href="https://tidycal.com/ahmedtarek/vip-booking" data-book style="font-size: 14px; color: var(--color-accent-300); margin-top: 4px;">Book a free consultation →</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: var(--radius-md, 8px); background: #ffffff; border: 1px solid var(--color-neutral-800);">
+        <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: 18px; line-height: 1.35; color: var(--color-text); margin: 0;">What have you actually shipped?</h3>
+        <p style="font-size: 14px; line-height: 1.75; color: var(--color-neutral-400); margin: 0;">A confidential Saudi government platform built around Matterport 3D capture; a national AI and Python programme delivered with Udacity; EdTech platforms reaching 10,000+ users across six countries; and ashrhly.com, my own AI tutor, from concept to launch. Before product I was a Python engineer in the top 3% on Upwork, and a RoboCup champion at 16.</p>
       </div>
     </div>
   </div>
@@ -1093,7 +1161,7 @@
   <div style="border-top: 1px solid var(--color-neutral-800);">
     <div style="max-width: 1120px; margin: 0 auto; padding: 28px 40px 32px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
       <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-        <span style="font-size: 12.5px; color: var(--color-neutral-500);">© Ahmed Tarek 2026 · ahmedtarek.tech · Dubai, working globally</span>
+        <span style="font-size: 12.5px; color: var(--color-neutral-500);">© Ahmed Tarek Mourssi 2026 · ahmedtarek.tech · Dubai, working globally</span>
         <span style="font-size: 12.5px; color: var(--color-neutral-500);">Website design idea by Eiad Tarek</span>
         <div style="display: flex; justify-content: center; gap: 16px; font-size: 13px; flex-wrap: wrap; white-space: nowrap;">
           <a href="mailto:se.ahmedtprofile@gmail.com" style="color: var(--color-neutral-400);">se.ahmedtprofile@gmail.com</a>
