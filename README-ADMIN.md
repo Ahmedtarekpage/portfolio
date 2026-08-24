@@ -145,17 +145,35 @@ real email — the same code that sends it — so nothing is a surprise.
 
 ### Switching sending on
 
-Nothing is sent until two environment variables exist in the Vercel project
-(Settings → Environment Variables), after which the project needs a redeploy:
+Two providers are understood, and whichever key is present is the one used.
+Set the variables in the Vercel project (Settings → Environment Variables),
+then redeploy.
+
+**Brevo — the one that can be sending today.** It verifies a single sender
+address by emailing you a link, so no DNS record has to exist first. Free tier
+is 300 emails a day.
+
+| Variable | Value |
+| --- | --- |
+| `BREVO_API_KEY` | `xkeysib-…` from app.brevo.com → SMTP & API → API keys |
+| `NEWSLETTER_FROM` | `Ahmed Tarek <the address you verified>` |
+
+**Resend — better once the domain is set up.** Needs `ahmedtarek.tech`
+verified with DNS records before it will send from an address on it. Free tier
+is 3,000 a month.
 
 | Variable | Value |
 | --- | --- |
 | `RESEND_API_KEY` | `re_…` from resend.com/api-keys |
 | `NEWSLETTER_FROM` | `Ahmed Tarek <newsletter@ahmedtarek.tech>` |
 
-The from-address has to sit on a domain verified in Resend, or Resend refuses
-the send. Until the key is there the tab says so plainly and everything else —
-collecting subscribers, writing, previewing — still works.
+If both keys are set, Brevo wins. `NEWSLETTER_REPLY_TO` overrides the
+reply-to address, which otherwise goes to the Gmail account.
+
+Whichever is chosen, `NEWSLETTER_FROM` has to be an address that provider has
+accepted, or it refuses the send and the tab shows the refusal verbatim. Until
+a key is there everything else — collecting subscribers, writing, previewing —
+still works.
 
 A send goes out in chunks of 60: the browser asks for one chunk, the function
 sends it and says where it got to, and the loop repeats. That is what keeps a

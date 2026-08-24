@@ -389,12 +389,17 @@
       renderCampaigns();
       var st = $("#mailState");
       if (mailCfg.configured) {
-        st.textContent = "Sent from " + mailCfg.from + ".";
+        st.innerHTML = "Sending from <strong>" + esc(mailCfg.from) + "</strong> through " +
+          esc(mailCfg.provider === "brevo" ? "Brevo" : "Resend") +
+          ". Send yourself a test first — it proves the address is accepted.";
         st.style.color = "";
       } else {
-        st.textContent = "Sending is not switched on yet. Add RESEND_API_KEY and NEWSLETTER_FROM " +
-          "to the project's environment variables in Vercel and redeploy — until then you can still " +
-          "collect subscribers and write and preview an email.";
+        st.innerHTML =
+          "Sending is not switched on yet — you can still collect subscribers and write and preview. " +
+          '<a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener">Get a free Brevo key</a>' +
+          ", verify your sending address there, and the three things below go into Vercel \u2192 Settings " +
+          "\u2192 Environment Variables:<br />" +
+          "<code>BREVO_API_KEY</code> \u00b7 <code>NEWSLETTER_FROM</code> \u00b7 redeploy.";
         st.style.color = "var(--c-danger, #e5484d)";
       }
     }).catch(function (e) { $("#subsCount").textContent = e.message; });

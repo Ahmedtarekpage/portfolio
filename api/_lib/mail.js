@@ -1,14 +1,19 @@
 // The newsletter: what an email looks like, and how it leaves the building.
 //
-// Sending goes through Resend, which needs two things set in the Vercel
-// project (Settings -> Environment Variables):
+// Two providers are understood, and whichever key is present is the one used.
+// Brevo is first because it is the one that can be sending today: it verifies
+// a single sender address by emailing you a link, so no DNS record has to
+// exist before the first email goes out. Resend is better long-term but wants
+// the whole domain verified first.
 //
-//   RESEND_API_KEY    re_...            from resend.com/api-keys
+//   BREVO_API_KEY     xkeysib-...   brevo.com -> SMTP & API -> API keys
+//   RESEND_API_KEY    re_...        resend.com/api-keys
 //   NEWSLETTER_FROM   Ahmed Tarek <newsletter@ahmedtarek.tech>
 //
-// The from-address has to be on a domain verified in Resend, otherwise Resend
-// refuses the send. Without the key nothing is sent and the dashboard says so
-// in plain words rather than failing silently.
+// NEWSLETTER_FROM has to be an address the provider has accepted — a verified
+// single sender for Brevo, an address on a verified domain for Resend — or the
+// provider refuses the send. Without any key nothing is sent and the dashboard
+// says so in plain words rather than failing silently.
 
 const ACCENT = "#7263c9";
 const ACCENT_DARK = "#5e50b5";
@@ -17,11 +22,23 @@ const MUTED = "#5c5e70";
 const LINE = "#e4e5ee";
 const TINT = "#efedfb";
 
+/** "Ahmed Tarek <a@b.com>" -> { name, email }; a bare address works too. */
+export function parseFrom(value) {
+  const m = /^\s*(.*?)\s*<\s*([^>]+?)\s*>\s*$/.exec(String(value || ""));
+  if (m) return { name: m[1].replace(/^"|"$/g, "") || "Ahmed Tarek", email: m[2] };
+  return { name: "Ahmed Tarek", email: String(value || "").trim() };
+}
+
 export function mailConfig() {
   const from = process.env.NEWSLETTER_FROM || "Ahmed Tarek <newsletter@ahmedtarek.tech>";
+  const provider = process.env.BREVO_API_KEY ? "brevo"
+    : process.env.RESEND_API_KEY ? "resend"
+    : null;
   return {
-    configured: !!process.env.RESEND_API_KEY,
+    configured: !!provider,
+    provider,
     from,
+    fromEmail: parseFrom(from).email,
     replyTo: process.env.NEWSLETTER_REPLY_TO || "se.ahmedtprofile@gmail.com",
   };
 }
@@ -140,33 +157,77 @@ export function renderText({ heading, body, ctaLabel, ctaUrl, unsubUrl }) {
   return lines.join("\n");
 }
 
-/**
- * Hand a batch to Resend. Up to 100 messages per call is Resend's limit, so
- * the caller chunks; each message carries its own html and unsubscribe header.
- * Returns { sent, failed, error } and never throws for a rejected send —
- * a campaign half-delivered still needs to report what it managed.
- */
-export async function sendBatch(messages) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return { sent: 0, failed: messages.length, error: "RESEND_API_KEY is not set" };
-  if (!messages.length) return { sent: 0, failed: 0 };
+/* Providers differ in the one thing that matters here: whether a single
+   request can carry a different body per recipient. Resend's batch endpoint
+   can, so sixty emails are one call — which also keeps clear of its two
+   requests a second. Brevo cannot vary the unsubscribe header per message
+   version, so each recipient is its own request, run a few at a time. */
 
+async function post(url, headers, payload) {
   let r;
   try {
-    r = await fetch("https://api.resend.com/emails/batch", {
+    r = await fetch(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify(messages),
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(payload),
     });
   } catch (e) {
-    return { sent: 0, failed: messages.length, error: `Could not reach Resend: ${e.message}` };
+    return { ok: false, error: `Could not reach the email service: ${e.message}` };
   }
-
   const text = await r.text();
-  if (!r.ok) {
-    let msg = text.slice(0, 300);
-    try { msg = JSON.parse(text).message || msg; } catch { /* keep the raw body */ }
-    return { sent: 0, failed: messages.length, error: `Resend refused the send (${r.status}): ${msg}` };
+  if (r.ok) return { ok: true };
+  let msg = text.slice(0, 300);
+  try {
+    const j = JSON.parse(text);
+    msg = j.message || j.error || msg;
+  } catch { /* keep the raw body */ }
+  return { ok: false, error: `The email service refused the send (${r.status}): ${msg}` };
+}
+
+/** Run tasks a few at a time — enough to be quick, not enough to be rate-limited. */
+async function pool(items, limit, fn) {
+  const out = [];
+  for (let i = 0; i < items.length; i += limit) {
+    out.push(...await Promise.all(items.slice(i, i + limit).map(fn)));
   }
-  return { sent: messages.length, failed: 0 };
+  return out;
+}
+
+async function sendResend(key, messages) {
+  const r = await post("https://api.resend.com/emails/batch", { Authorization: `Bearer ${key}` }, messages);
+  return r.ok
+    ? { sent: messages.length, failed: 0 }
+    : { sent: 0, failed: messages.length, error: r.error };
+}
+
+async function sendBrevo(key, messages) {
+  const results = await pool(messages, 8, (m) => {
+    const sender = parseFrom(m.from);
+    return post("https://api.brevo.com/v3/smtp/email", { "api-key": key }, {
+      sender,
+      replyTo: { email: m.reply_to || sender.email },
+      to: m.to.map((email) => ({ email })),
+      subject: m.subject,
+      htmlContent: m.html,
+      textContent: m.text,
+      headers: m.headers,
+    });
+  });
+  const sent = results.filter((x) => x.ok).length;
+  const bad = results.find((x) => !x.ok);
+  return { sent, failed: results.length - sent, error: bad ? bad.error : undefined };
+}
+
+/**
+ * Hand a chunk of already-rendered messages to whichever provider is
+ * configured. Returns { sent, failed, error } and never throws for a rejected
+ * send — a campaign half-delivered still needs to report what it managed.
+ */
+export async function sendBatch(messages) {
+  if (!messages.length) return { sent: 0, failed: 0 };
+  const brevo = process.env.BREVO_API_KEY;
+  const resend = process.env.RESEND_API_KEY;
+  if (brevo) return sendBrevo(brevo, messages);
+  if (resend) return sendResend(resend, messages);
+  return { sent: 0, failed: messages.length, error: "No email service is configured." };
 }
