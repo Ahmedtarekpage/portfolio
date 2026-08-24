@@ -210,7 +210,7 @@
     }
     state.clientId = id;
     show("view-loading");
-    return api("/api/client?id=" + id).then(function (data) {
+    return api("/api/clients?id=" + id).then(function (data) {
       state.detail = data;
       renderClient(data);
       show("view-client");

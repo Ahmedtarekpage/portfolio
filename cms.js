@@ -2,7 +2,7 @@
    cms.js — makes every piece of the public pages addressable.
 
    It walks the rendered DOM, gives each editable thing a stable key,
-   and swaps in whatever /api/content holds for that key. Nothing is
+   and swaps in whatever /api/cms holds for that key. Nothing is
    marked up by hand: the pages stay plain HTML and this layer finds
    the content in them.
 
@@ -29,7 +29,7 @@
 (function () {
   "use strict";
 
-  var API = "/api/content";
+  var API = "/api/cms";
   var PAGE = /\/(full|product|educator|journey)/.test(location.pathname) ? "journey" : "home";
 
   // Anything that opens a new box on the page. An element is one editable
@@ -238,7 +238,7 @@
 
   function resolve(value) {
     // Media ids picked in the dashboard resolve to the media endpoint.
-    return /^media:\d+$/.test(value) ? "/api/media?id=" + value.slice(6) : value;
+    return /^media:\d+$/.test(value) ? "/api/cms?resource=media&id=" + value.slice(6) : value;
   }
 
   /* Writing a value that is already in place would still register as a DOM

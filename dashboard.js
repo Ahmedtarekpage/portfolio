@@ -99,7 +99,7 @@
   /* ---------- content ---------- */
 
   function loadSaved() {
-    return api("/api/content?index=1").then(function (d) {
+    return api("/api/cms?index=1").then(function (d) {
       saved = {};
       (d.items || []).forEach(function (r) { saved[r.key] = { kind: r.kind, value: r.value }; });
     });
@@ -194,7 +194,7 @@
       '<span class="fld__where">' + esc(it.label.slice(0, 46)) + "</span></div>";
 
     if (it.kind === "src") {
-      var url = /^media:\d+$/.test(v) ? "/api/media?id=" + v.slice(6) : v;
+      var url = /^media:\d+$/.test(v) ? "/api/cms?resource=media&id=" + v.slice(6) : v;
       var isVid = /\.(mp4|webm)(\?|$)/i.test(url) || /video/.test(url);
       var thumb = !url
         ? '<div class="fld__thumb fld__thumb--empty">empty</div>'
@@ -279,7 +279,7 @@
       return { key: k, kind: it.kind, value: value, page: it.page, section: it.section, label: it.label };
     });
     $("#btnSave").disabled = true;
-    api("/api/content", { method: "PUT", body: { items: payload } })
+    api("/api/cms", { method: "PUT", body: { items: payload } })
       .then(function () {
         edits = {};
         return loadSaved();
@@ -316,11 +316,11 @@
   /* ---------- media ---------- */
 
   function loadMedia() {
-    return api("/api/media").then(function (d) { media = d.media || []; });
+    return api("/api/cms?resource=media").then(function (d) { media = d.media || []; });
   }
 
   function mediaCardHTML(m, pick) {
-    var url = "/api/media?id=" + m.id;
+    var url = "/api/cms?resource=media&id=" + m.id;
     var isImg = /^image\//.test(m.mime);
     return '<div class="media-card" data-id="' + m.id + '">' +
       (isImg
@@ -350,7 +350,7 @@
     Array.prototype.forEach.call(g.querySelectorAll("[data-del]"), function (b) {
       b.addEventListener("click", function () {
         if (!confirm("Delete this file? Anything still pointing at it will break.")) return;
-        api("/api/media?id=" + b.getAttribute("data-del"), { method: "DELETE" })
+        api("/api/cms?resource=media&id=" + b.getAttribute("data-del"), { method: "DELETE" })
           .then(loadMedia).then(renderMedia).then(function () { toast("Deleted"); })
           .catch(function (e) { toast(e.message, true); });
       });
@@ -369,7 +369,7 @@
   function upload(file, errEl) {
     errEl.hidden = true;
     return readAsDataUrl(file)
-      .then(function (dataUrl) { return api("/api/media", { method: "POST", body: { name: file.name, dataUrl: dataUrl } }); })
+      .then(function (dataUrl) { return api("/api/cms?resource=media", { method: "POST", body: { name: file.name, dataUrl: dataUrl } }); })
       .then(function (d) { return loadMedia().then(function () { return d.media; }); })
       .catch(function (e) { errEl.textContent = e.message; errEl.hidden = false; throw e; });
   }

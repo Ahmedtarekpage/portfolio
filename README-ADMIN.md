@@ -44,7 +44,7 @@ HTML.
 
 **Media.** The *Media library* tab takes images and short clips up to **3 MB**
 (Vercel caps a function request body at ~4.5 MB and base64 adds a third). They are
-stored in `site_media` and served from `/api/media?id=N`. For real video, upload to
+stored in `site_media` and served from `/api/cms?resource=media&id=N`. For real video, upload to
 YouTube and paste the link into the relevant field instead. A picked file is stored
 as `media:<id>` and resolved at render time.
 
@@ -56,7 +56,7 @@ as `media:<id>` and resolved at render time.
   fields with an empty value; fill them from the media library.
 - A page-structure change in `index.html` or `main.js` can orphan overrides that
   pointed at the old content. They stay in the database, harmless, and the page
-  falls back to source. Clear them with `DELETE /api/content?all=1`.
+  falls back to source. Clear them with `DELETE /api/cms?all=1`.
 
 ## One-time setup (≈5 minutes)
 
@@ -107,6 +107,20 @@ vercel dev            # http://localhost:3000/admin
   **expired hours** (the red/amber drop in the graph).
 - If a session can't be covered by any active package, the uncovered time shows up
   as **Unpaid hours** on the client page.
+
+## The twelve-function ceiling
+
+Vercel's Hobby plan allows **12 Serverless Functions per deployment**, and this
+project sits exactly on the line — `ls api/*.js | wc -l` must not exceed 12. Going
+over does not fail the build; the build completes and the *deployment* is never
+published, so the live site silently keeps serving the previous commit and every
+new route 404s. That is what it looks like when it happens.
+
+It has bitten twice: once when a Health tab added two endpoints (fixed by folding
+them into one `health.js`), and again when the content dashboard did. Content and
+media therefore share `api/cms.js`, and the single-client detail route lives inside
+`api/clients.js` as `GET ?id=N` rather than in its own file. Adding a new endpoint
+means merging it into an existing one.
 
 ## Files
 

@@ -1,5 +1,6 @@
 // Clients collection.
 //   GET    /api/clients          -> all clients with balance summaries
+//   GET    /api/clients?id=N     -> one client: profile + packages + sessions + timeline
 //   POST   /api/clients          -> create { name, phone, email, nationality, transaction_type, notes }
 //   PATCH  /api/clients?id=N     -> update any of the above fields
 //   DELETE /api/clients?id=N     -> delete client (cascades to packages/sessions)
@@ -13,6 +14,22 @@ import { computeClient } from "./_lib/hours.js";
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  // One client in full. This used to be its own function, but the Hobby plan
+  // allows twelve per deployment and the content dashboard needed a slot.
+  if (req.method === "GET" && req.query.id) {
+    const id = Number(req.query.id);
+    if (!id) return json(res, 400, { error: "id is required" });
+    const [client] = await sql`SELECT * FROM clients WHERE id = ${id}`;
+    if (!client) return json(res, 404, { error: "Client not found" });
+    const packages = await sql`SELECT id, client_id, hours, amount_paid, currency, purchased_at, expires_at, note,
+        (proof IS NOT NULL) AS has_proof
+      FROM hour_packages WHERE client_id = ${id} ORDER BY purchased_at DESC, id DESC`;
+    const sessions = await sql`SELECT id, client_id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf
+      FROM client_sessions WHERE client_id = ${id} ORDER BY session_date DESC, id DESC`;
+    const { timeline, totals } = computeClient(packages, sessions);
+    return json(res, 200, { client, packages, sessions, timeline, totals });
+  }
 
   if (req.method === "GET") {
     const clients = await sql`SELECT * FROM clients ORDER BY created_at DESC`;
