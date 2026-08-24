@@ -131,6 +131,27 @@ change `SITE_CONFIG.BOOKING_URL` in journey.html and the `fallback` in cms.js's
 `SITEWIDE` list to match — otherwise the dashboard will show the old one until
 you save over it.
 
+## The video hub — /dashboard → Videos
+
+The four videos on the home page (the big one and the three in the list) each
+carry a `data-yt` attribute. The dashboard's **Videos** group, near the top of
+the Content tab, is a box per video: paste a YouTube link and save.
+
+Any shape of link works — `youtube.com/watch?v=…`, `youtu.be/…`, `/shorts/…`,
+or the bare eleven-character id.
+
+On the site, clicking any of the four plays it in the big frame, and the
+heading beside it changes to that video's own title. The pictures and titles
+are whatever the page ships with; nothing about them has to be re-entered.
+
+A video with no link yet behaves the way it always did: the click goes to the
+YouTube channel. So the section is never half-broken while it is being filled
+in.
+
+The keys are hand-given (`data-cms-key="video-main"`, `video-1`…) rather than
+hashed from content, because a field that starts out empty hashes the same as
+every other empty field.
+
 ## Newsletter — /dashboard → Newsletter
 
 The **Subscribe to The Track** box on the home page writes to

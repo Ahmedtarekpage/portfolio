@@ -11,8 +11,9 @@
 <link rel="apple-touch-icon" href="logo/favicon-180.png">
 <meta name="theme-color" content="#ffffff">
 <script src="./support.js"></script>
-<script src="./cms.js?v=4" defer></script>
+<script src="./cms.js?v=5" defer></script>
 <script src="./subscribe.js?v=1" defer></script>
+<script src="./videos.js?v=1" defer></script>
 </head>
 <body>
 <x-dc>
@@ -360,12 +361,12 @@
     </div>
     <div data-reveal="1" style="display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 32px; align-items: start;">
       <div data-reveal="2" style="display: flex; flex-direction: column; gap: 14px;">
-        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: block; position: relative; border-radius: 12px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;" style-hover="opacity: 0.94;">
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-main" data-yt-label="Main video (the big one)" data-video-main style="display: block; position: relative; border-radius: 12px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;" style-hover="opacity: 0.94;">
           <image-slot id="yt-feature" shape="rect" src="assets/thumb-track.png" placeholder="Featured video thumbnail"></image-slot>
           <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(255,0,0,0.92); display: flex; align-items: center; justify-content: center;"><i class="ph ph-play" style="font-size: 26px; color: #ffffff;"></i></span>
           
         </a>
-        <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: 22px; line-height: 1.3; margin: 0;">Stop collecting courses — here's what to do instead</h3>
+        <h3 data-video-title style="font-family: var(--font-heading); font-weight: 500; font-size: 22px; line-height: 1.3; margin: 0;">Stop collecting courses — here's what to do instead</h3>
         <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
           <span style="display: inline-flex; align-items: center; gap: 10px;">
             <span style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--color-neutral-800); display: block;"><img src="assets/hero-photo-white.png" alt="" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; display: block;"></span>
@@ -379,35 +380,35 @@
           <span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-500); font-weight: 500;">Video list</span>
           <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="font-size: 13px;">Channel →</a>
         </div>
-        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-1" data-yt-label="Video list — 1" data-video-item style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
           <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
             <image-slot id="rec-1837" shape="rect" src="assets/thumb-build.png" placeholder="Thumbnail"></image-slot>
             
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">How I use AI to build an EdTech product from scratch</div>
+            <div data-video-item-title style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">How I use AI to build an EdTech product from scratch</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-500);">Ahmed Tarek</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</div>
           </div>
         </a>
-        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-2" data-yt-label="Video list — 2" data-video-item style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
           <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
             <image-slot id="rec-1522" shape="rect" src="assets/thumb-roadmap.png" placeholder="Thumbnail"></image-slot>
             
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">The AI Product Manager roadmap — where to start</div>
+            <div data-video-item-title style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">The AI Product Manager roadmap — where to start</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-500);">Ahmed Tarek</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</div>
           </div>
         </a>
-        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
+        <a href="https://www.youtube.com/@ahmedtarekai" target="_blank" rel="noopener" data-yt="" data-cms-key="video-3" data-yt-label="Video list — 3" data-video-item style="display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 12px; color: inherit; align-items: start;" style-hover="opacity: 0.88;">
           <div style="position: relative; border-radius: 10px; overflow: hidden; background: var(--color-neutral-800); aspect-ratio: 16 / 9;">
             <image-slot id="rec-0941" shape="rect" src="assets/thumb-track.png" placeholder="Thumbnail"></image-slot>
             
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">Tracks, not courses — the system I teach</div>
+            <div data-video-item-title style="font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--color-text);">Tracks, not courses — the system I teach</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-500);">Ahmed Tarek</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-500);">Coming soon</div>
           </div>

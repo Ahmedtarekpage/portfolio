@@ -110,8 +110,12 @@
   var seen, claimed;
 
   function keyFor(el, kind, orig) {
+    // A hand-given key survives an edit that changes the content it would
+    // otherwise be hashed from — which matters most for a field that starts
+    // out empty, where the hash is the same for every one of them.
+    var fixed = el.getAttribute("data-cms-key");
     var t = tplId(el);
-    var base = t ? "t" + t : "h" + hash(norm(orig));
+    var base = fixed ? "k" + fixed : t ? "t" + t : "h" + hash(norm(orig));
     var k = PAGE + ":" + base + "#" + kind;
     seen[k] = (seen[k] || 0) + 1;
     if (seen[k] > 1) k += ":" + seen[k];
@@ -179,9 +183,10 @@
 
   function add(el, kind, currentValue) {
     var orig = original(el, kind, currentValue);
-    // An empty picture slot is the one thing worth listing precisely because
-    // it has no content yet — that is how a photo gets added at all.
-    if (!norm(orig) && kind !== "src") return;
+    var video = el.hasAttribute("data-yt");
+    // An empty picture or video slot is the one thing worth listing precisely
+    // because it has no content yet — that is how one gets filled at all.
+    if (!norm(orig) && kind !== "src" && !video) return;
     var key = keyFor(el, kind, orig);
     (nodes[key] || (nodes[key] = [])).push(el);
     el.setAttribute("data-cms-" + kind, key);
@@ -190,9 +195,15 @@
       kind: kind,
       page: PAGE,
       section: sectionOf(el),
-      label: kind === "src"
-        ? pictureLabel(el, orig)
-        : (norm(el.textContent).slice(0, 90) || norm(orig).slice(0, 90)),
+      label: video
+        ? (el.getAttribute("data-yt-label") || "Video")
+        : kind === "src"
+          ? pictureLabel(el, orig)
+          : (norm(el.textContent).slice(0, 90) || norm(orig).slice(0, 90)),
+      video: video || undefined,
+      hint: video
+        ? "Paste the YouTube link for this video. Clicking it on the site plays it in the big player."
+        : undefined,
       original: orig,
     });
   }

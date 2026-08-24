@@ -163,7 +163,7 @@
      sentences and pictures are what someone actually opens this to change,
      so the rest starts out folded away. */
   function isMinor(it) {
-    if (it.pinned) return false;
+    if (it.pinned || it.video) return false;
     if (it.kind === "src") return false;
     if (it.kind === "href") return true;
     return String(it.original || "").trim().length < 25;
@@ -183,8 +183,9 @@
     // Pictures first — they are the hardest thing to find otherwise, and the
     // empty slots are invisible on the page itself.
     var pinned = pool.filter(function (it) { return it.pinned; });
-    var pics = pool.filter(function (it) { return !it.pinned && it.kind === "src"; });
-    var rest = pool.filter(function (it) { return !it.pinned && it.kind !== "src"; });
+    var vids = pool.filter(function (it) { return !it.pinned && it.video; });
+    var pics = pool.filter(function (it) { return !it.pinned && !it.video && it.kind === "src"; });
+    var rest = pool.filter(function (it) { return !it.pinned && !it.video && it.kind !== "src"; });
 
     var order = [], bySection = {};
     rest.forEach(function (it) {
@@ -197,12 +198,18 @@
       html += groupHTML("Your links", pinned, true,
         "Set once here, and every button on the site that uses it follows.");
     }
+    if (vids.length) {
+      html += groupHTML("Videos", vids, true,
+        "Paste a YouTube link for each one. On the site, clicking any of them plays it in the big player \u2014 " +
+        "the pictures and titles stay as they are.");
+    }
     if (pics.length) {
       html += groupHTML("Photos on this page", pics, true,
         "Every picture here, including empty slots waiting for one.");
     }
     order.forEach(function (sec, i) {
-      html += groupHTML(sectionName(sec), bySection[sec], (!pics.length && i === 0) || !!q);
+      html += groupHTML(sectionName(sec), bySection[sec],
+        (!pics.length && !vids.length && !pinned.length && i === 0) || !!q);
     });
     $("#groups").innerHTML = html || '<p class="muted">Nothing matches that.</p>';
 
@@ -260,9 +267,10 @@
 
     if (it.kind === "href") {
       return '<div class="' + cls + '"><div class="fld__label">' +
-        (it.pinned ? "" : "Link \u2014 ") + esc(it.label || "link") + undo + "</div>" +
+        (it.pinned || it.video ? "" : "Link \u2014 ") + esc(it.label || "link") + undo + "</div>" +
         (it.hint ? '<p class="fld__hint">' + esc(it.hint) + "</p>" : "") +
-        '<input type="text" data-in="' + esc(it.key) + '" value="' + esc(v) + '" placeholder="https://\u2026" />' +
+        '<input type="text" data-in="' + esc(it.key) + '" value="' + esc(v) + '" placeholder="' +
+        (it.video ? "https://www.youtube.com/watch?v=\u2026" : "https://\u2026") + '" />' +
         "</div>";
     }
 
