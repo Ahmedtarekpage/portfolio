@@ -323,7 +323,19 @@ What is in place:
   the client share links.
 - **`sitemap.xml`** — the four public URLs, each self-canonical.
 - **Per-page metadata** — title, description, canonical, Open Graph and Twitter
-  cards on every public page. `logo/og-card.jpg` is the 1200×630 preview.
+  cards on every public page. `logo/link-preview.jpg` is the 1200×630 card a
+  pasted link shows. **Give it a new filename when you change it** — `/logo` is
+  served `immutable` for a year, so replacing the file in place leaves every
+  scraper and CDN holding the old one.
+- **IndexNow** — `<key>.txt` at the repository root proves this site owns the
+  key that signs URL submissions to Bing, Yandex, Seznam and Naver. Delete it
+  and those submissions start failing silently. Google retired its equivalent
+  ping endpoint in 2023; there it is Search Console or nothing, and the two
+  verification tags sit commented in `index.html` waiting for tokens.
+- **One person, many spellings** — the `Person` node carries the Arabic name
+  and the transliterations people actually type as `alternateName`, and the
+  page states the full name in both scripts where a reader can see it. Schema
+  alone will not rank a page for a name that appears nowhere on it.
 - **`journey.html` serves three URLs**, so it cannot ship three `<head>`s.
   `applyViewMeta()` in `js/site/journey.js` rewrites the title, description,
   canonical and preview tags per view. Google renders JavaScript and sees them;
