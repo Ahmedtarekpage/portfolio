@@ -655,7 +655,7 @@
     var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Daily completion across the quarter" });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": opts.ariaLabel || "Daily completion across the quarter" });
 
     [0, 25, 50, 75, 100].forEach(function (v) {
       svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
@@ -667,60 +667,58 @@
     var avgEl = svgEl("line", { x1: M.l, x2: W - M.r, y1: y(avg), y2: y(avg), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" });
     svg.appendChild(avgEl);
     var avgLbl = svgEl("text", { x: W - M.r, y: y(avg) - 4, "text-anchor": "end", fill: faint, "font-size": 10 });
-    avgLbl.textContent = "Avg " + Math.round(avg) + "%";
+    avgLbl.textContent = (opts.avgLabel || "Avg") + " " + Math.round(avg) + "%";
     svg.appendChild(avgLbl);
 
-    // the from-to slice picked in the focus filter below the chart: shaded band,
-    // plus that slice's own average so it reads against the quarter's dashed avg
-    var focus = opts.focus && opts.focus.from && opts.focus.to ? opts.focus : null;
-    var focusColor = opts.focusColor || "#f5a524";
-    var focusFrom = null, focusTo = null;
-    if (focus) {
-      var f0 = Math.max(new Date(String(focus.from).slice(0, 10) + "T00:00:00Z").getTime(), start);
-      var f1 = Math.min(new Date(String(focus.to).slice(0, 10) + "T00:00:00Z").getTime(), end);
-      if (f1 >= f0 && (f0 > start || f1 < end)) {
-        focusFrom = f0; focusTo = f1;
-        // a single-day range would be a zero-width rect, so give it a hairline
-        var bx0 = x(f0), bx1 = Math.max(x(f1), x(f0) + 2);
-        svg.appendChild(svgEl("rect", {
-          x: bx0, y: M.t, width: bx1 - bx0, height: H - M.t - M.b,
-          fill: focusColor, "fill-opacity": 0.12
-        }));
-        [bx0, bx1].forEach(function (bx) {
-          svg.appendChild(svgEl("line", { x1: bx, x2: bx, y1: M.t, y2: H - M.b, stroke: focusColor, "stroke-opacity": 0.5, "stroke-width": 1 }));
-        });
-        if (focus.avg != null) {
-          var fy = y(Number(focus.avg) || 0);
-          svg.appendChild(svgEl("line", { x1: bx0, x2: bx1, y1: fy, y2: fy, stroke: focusColor, "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
-          var fLbl = svgEl("text", { x: bx0 + 3, y: fy - 4, fill: focusColor, "font-size": 10, "font-weight": 600 });
-          fLbl.textContent = Math.round(focus.avg) + "%";
-          svg.appendChild(fLbl);
-        }
-      }
+    // The caller crops `days` to whatever range is focused below the chart and
+    // passes that range's own average here. It's drawn against the quarter's
+    // faint line above, so a zoomed-in week is never read without its context.
+    if (opts.focus && opts.focus.avg != null) {
+      var focusColor = opts.focusColor || "#f5a524";
+      var fy = y(Number(opts.focus.avg) || 0);
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: fy, y2: fy, stroke: focusColor, "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+      var fLbl = svgEl("text", { x: M.l + 3, y: fy - 4, fill: focusColor, "font-size": 10, "font-weight": 600 });
+      fLbl.textContent = (opts.focus.label ? opts.focus.label + " " : "") + Math.round(opts.focus.avg) + "%";
+      svg.appendChild(fLbl);
     }
 
     var color = opts.color || "#60a5fa";
-    var d = "M " + x(pts[0].t) + " " + y(pts[0].pct);
-    for (var i = 1; i < pts.length; i++) d += " L " + x(pts[i].t) + " " + y(pts[i].pct);
-    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round" });
+    var d = "", drawing = false;
+    pts.forEach(function (p) {
+      if (!p.total) { drawing = false; return; } // untracked — break the line, don't dive to 0
+      d += (drawing ? " L " : " M ") + x(p.t) + " " + y(p.pct);
+      drawing = true;
+    });
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" });
     svg.appendChild(lineEl);
 
     if (todayT >= start && todayT <= end) {
       svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
     }
 
-    [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
-      var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
-      xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-      svg.appendChild(xl);
-    });
+    if (pts.length <= 10) {
+      // zoomed in far enough to name each day rather than just the two ends
+      pts.forEach(function (p, i) {
+        var xl = svgEl("text", {
+          x: x(p.t), y: H - 6, fill: faint, "font-size": 9,
+          "text-anchor": i === 0 ? "start" : (i === pts.length - 1 ? "end" : "middle"),
+        });
+        xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+        svg.appendChild(xl);
+      });
+    } else {
+      [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
+        var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
+        xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+        svg.appendChild(xl);
+      });
+    }
 
     var markers = [];
     pts.forEach(function (p) {
       if (!p.total) return; // no tasks logged that day — line still passes through 0, just no dot
       var cx = x(p.t), cy = y(p.pct);
-      var inFocus = focusFrom != null && p.t >= focusFrom && p.t <= focusTo;
-      var m = svgEl("circle", { cx: cx, cy: cy, r: inFocus ? 4.6 : 3.5, fill: color, stroke: surface, "stroke-width": 1.5 });
+      var m = svgEl("circle", { cx: cx, cy: cy, r: pts.length <= 10 ? 4.6 : 3.5, fill: color, stroke: surface, "stroke-width": 1.5 });
       svg.appendChild(m);
       markers.push({ p: p, cx: cx, cy: cy, el: m });
     });
@@ -777,7 +775,7 @@
     var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduceMotion && opts.animate !== false) {
       try {
-        var len = lineEl.getTotalLength();
+        var len = d ? lineEl.getTotalLength() : 0;
         lineEl.style.strokeDasharray = len;
         lineEl.style.strokeDashoffset = len;
         avgEl.style.opacity = 0;

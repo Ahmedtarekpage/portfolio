@@ -175,6 +175,18 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   100% { transform: scale(1); }
 }
 
+/* ---------- Days: what the graph is currently showing ---------- */
+.days-chart-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 6px;
+}
+.days-chart-head__range {
+  font: 600 0.76rem "Roboto Mono", monospace; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.days-chart-head__range b { color: #f5a524; font-weight: 700; }
+:root[data-theme="light"] .days-chart-head__range b { color: #a86a10; }
+
 /* ---------- Days: focus a week (or any from-to range) under the quarter chart ---------- */
 /* The chart above stays the whole quarter; this reads one slice of it. */
 .focus-range { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--glass-brd); }

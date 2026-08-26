@@ -2342,9 +2342,24 @@
                      : Math.abs(delta) + " points " + (delta > 0 ? "above" : "below") + " the quarter's " + data.avg + "%.")
       : "No tasks logged between " + fmtDate(f.from) + " and " + fmtDate(f.to) + ".";
 
-    window.renderDaysChart($("#daysChart"), $("#daysChartTip"), data.days, {
+    // picking a week zooms the graph to that week — the quarter's average still
+    // rides along as a faint line, so the slice never reads without its context
+    var slice = data.days.filter(function (dd) { return dd.date >= f.from && dd.date <= f.to; });
+    var zoomed = slice.length > 0 && slice.length < data.days.length;
+
+    $("#daysChartRange").innerHTML = zoomed
+      ? "Showing <b>" + esc(fmtDate(f.from)) + " → " + esc(fmtDate(f.to)) + "</b> · " + plural(slice.length, "day")
+      : "Showing the whole quarter · " + plural(data.days.length, "day");
+    $("#btnDaysChartAll").hidden = !zoomed;
+
+    window.renderDaysChart($("#daysChart"), $("#daysChartTip"), zoomed ? slice : data.days, {
       avg: data.avg,
-      focus: { from: f.from, to: f.to, avg: s.tracked ? s.avg : null },
+      avgLabel: zoomed ? "Quarter" : "Avg",
+      // unzoomed, the range average would sit exactly on the quarter's line
+      focus: zoomed ? { avg: s.tracked ? s.avg : null, label: "This range" } : null,
+      ariaLabel: zoomed
+        ? "Daily completion from " + fmtDate(f.from) + " to " + fmtDate(f.to)
+        : "Daily completion across the quarter",
       animate: opts.animateChart !== false,
     });
   }
@@ -2370,6 +2385,10 @@
     var chip = ev.target.closest(".chip[data-focus-preset]");
     if (!chip) return;
     var p = focusPreset(chip.dataset.focusPreset);
+    if (p) setDaysFocus(p.from, p.to);
+  });
+  $("#btnDaysChartAll").addEventListener("click", function () {
+    var p = focusPreset("all");
     if (p) setDaysFocus(p.from, p.to);
   });
   $("#btnFocusPrevWeek").addEventListener("click", function () { shiftFocusWeek(-1); });

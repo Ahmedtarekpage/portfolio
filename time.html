@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=6" />
-  <link rel="stylesheet" href="css/tools/time.css?v=32" />
+  <link rel="stylesheet" href="css/tools/time.css?v=33" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -383,6 +383,11 @@
           </div>
         </div>
 
+        <!-- the graph follows the focus filter below it, so it has to say what it's showing -->
+        <div class="days-chart-head">
+          <span class="days-chart-head__range" id="daysChartRange"></span>
+          <button type="button" class="chip" id="btnDaysChartAll" hidden>↩ Whole quarter</button>
+        </div>
         <div class="chart-tip-wrap">
           <div class="chart" id="daysChart" style="min-height:190px"></div>
           <div id="daysChartTip" class="tooltip" hidden></div>
@@ -534,7 +539,7 @@
     </div>
   </div>
 
-  <script src="js/tools/chart.js?v=13"></script>
-  <script src="js/tools/time.js?v=43"></script>
+  <script src="js/tools/chart.js?v=14"></script>
+  <script src="js/tools/time.js?v=44"></script>
 </body>
 </html>
