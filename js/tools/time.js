@@ -2319,17 +2319,11 @@
     });
 
     var s = focusStats(f.from, f.to);
-    var delta = s.avg - data.avg;
 
     $("#focusAvgValue").textContent = s.avg + "%";
     $("#focusAvgSub").textContent = s.tracked + " of " + plural(s.spanned, "day") + " tracked";
     $("#focusTasksValue").textContent = s.done + "/" + s.planned;
     $("#focusTasksSub").textContent = "across " + plural(s.tracked, "tracked day");
-
-    var deltaEl = $("#focusDeltaValue");
-    deltaEl.className = "tile__value" + (s.tracked && delta ? (delta > 0 ? " focus-range__delta--up" : " focus-range__delta--down") : "");
-    deltaEl.textContent = s.tracked ? (delta > 0 ? "+" : "") + delta + " pts" : "—";
-    $("#focusDeltaSub").textContent = "quarter avg " + data.avg + "%";
 
     $("#focusBestValue").textContent = s.best ? s.best.pct + "%" : "—";
     $("#focusBestSub").textContent = s.best
@@ -2337,9 +2331,7 @@
       : "no days tracked in this range";
 
     $("#focusRangeNote").textContent = s.tracked
-      ? fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "% — " +
-        (delta === 0 ? "exactly the quarter's pace."
-                     : Math.abs(delta) + " points " + (delta > 0 ? "above" : "below") + " the quarter's " + data.avg + "%.")
+      ? fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "%, against " + data.avg + "% for the quarter."
       : "No tasks logged between " + fmtDate(f.from) + " and " + fmtDate(f.to) + ".";
 
     // picking a week zooms the graph to that week — the quarter's average still

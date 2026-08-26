@@ -217,10 +217,6 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .focus-range .iconbtn[disabled], .focus-range .chip[disabled] { opacity: 0.3; cursor: default; }
 .focus-range .iconbtn[disabled]:hover { background: none; color: inherit; }
 .focus-range .chip[disabled]:hover { border-color: var(--glass-brd); color: var(--muted); }
-.focus-range__delta--up { color: #4ec99a; }
-.focus-range__delta--down { color: #ff9aa7; }
-:root[data-theme="light"] .focus-range__delta--up { color: #146c47; }
-:root[data-theme="light"] .focus-range__delta--down { color: #c23a4d; }
 @media (max-width: 640px) {
   .focus-range__dates { margin-left: 0; }
   .focus-range__week { min-width: 0; flex: 1; }
