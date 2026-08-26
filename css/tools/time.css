@@ -175,6 +175,46 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   100% { transform: scale(1); }
 }
 
+/* ---------- Days: focus a week (or any from-to range) under the quarter chart ---------- */
+/* The chart above stays the whole quarter; this reads one slice of it. */
+.focus-range { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--glass-brd); }
+.focus-range__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.focus-range__title { margin: 0; }
+.focus-range__weeknav { display: inline-flex; align-items: center; gap: 4px; }
+.focus-range__week {
+  font: 600 0.78rem "Roboto Mono", monospace; color: var(--muted);
+  min-width: 190px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.focus-range__controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.focus-range__dates { display: inline-flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+.focus-range__dates label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 0.68rem "Roboto Mono", monospace; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--faint);
+}
+.focus-range__dates input[type="date"] {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 5px 8px; font: 400 0.8rem "Inter", sans-serif; outline: none;
+}
+.focus-range__dates input[type="date"]:focus { border-color: var(--blue); }
+.focus-range__tiles { margin-bottom: 8px; }
+.focus-range__note { font-size: 0.8rem; margin: 0; }
+.focus-range .iconbtn[disabled], .focus-range .chip[disabled] { opacity: 0.3; cursor: default; }
+.focus-range .iconbtn[disabled]:hover { background: none; color: inherit; }
+.focus-range .chip[disabled]:hover { border-color: var(--glass-brd); color: var(--muted); }
+.focus-range__delta--up { color: #4ec99a; }
+.focus-range__delta--down { color: #ff9aa7; }
+:root[data-theme="light"] .focus-range__delta--up { color: #146c47; }
+:root[data-theme="light"] .focus-range__delta--down { color: #c23a4d; }
+@media (max-width: 640px) {
+  .focus-range__dates { margin-left: 0; }
+  .focus-range__week { min-width: 0; flex: 1; }
+  .focus-range__weeknav { width: 100%; }
+}
+
 /* ---------- Days: photo gallery, one tile per day in the selected quarter ---------- */
 /* weeks start Saturday — 7 fixed columns so each row is exactly one calendar week */
 .day-gallery-wrap { overflow-x: auto; margin-top: 16px; }

@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=6" />
-  <link rel="stylesheet" href="css/tools/time.css?v=31" />
+  <link rel="stylesheet" href="css/tools/time.css?v=32" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -388,6 +388,56 @@
           <div id="daysChartTip" class="tooltip" hidden></div>
         </div>
 
+        <!-- Focus: the graph above always shows the whole quarter and its average.
+             This narrows the same days down to one week (or any from-to range) and
+             reads that stretch's own average, without losing the quarter line. -->
+        <section class="focus-range" id="focusRange" hidden>
+          <div class="focus-range__head">
+            <div class="goals__label focus-range__title">🔍 Focus a range</div>
+            <div class="focus-range__weeknav">
+              <button type="button" class="iconbtn" id="btnFocusPrevWeek" aria-label="Previous week" title="Previous week">←</button>
+              <span class="focus-range__week" id="focusWeekLabel">—</span>
+              <button type="button" class="iconbtn" id="btnFocusNextWeek" aria-label="Next week" title="Next week">→</button>
+            </div>
+          </div>
+
+          <div class="focus-range__controls">
+            <button type="button" class="chip" data-focus-preset="this-week">This week</button>
+            <button type="button" class="chip" data-focus-preset="last-week">Last week</button>
+            <button type="button" class="chip" data-focus-preset="last-4-weeks">Last 4 weeks</button>
+            <button type="button" class="chip" data-focus-preset="all">Whole quarter</button>
+            <span class="focus-range__dates">
+              <label>From <input type="date" id="focusFrom" /></label>
+              <label>To <input type="date" id="focusTo" /></label>
+            </span>
+          </div>
+
+          <div class="tiles focus-range__tiles">
+            <div class="tile tile--accent">
+              <div class="tile__label">Range average</div>
+              <div class="tile__value" id="focusAvgValue">0%</div>
+              <div class="tile__sub" id="focusAvgSub">0 days tracked</div>
+            </div>
+            <div class="tile">
+              <div class="tile__label">Tasks done</div>
+              <div class="tile__value" id="focusTasksValue">0/0</div>
+              <div class="tile__sub" id="focusTasksSub">across 0 days</div>
+            </div>
+            <div class="tile">
+              <div class="tile__label">Vs quarter avg</div>
+              <div class="tile__value" id="focusDeltaValue">—</div>
+              <div class="tile__sub" id="focusDeltaSub">quarter avg 0%</div>
+            </div>
+            <div class="tile">
+              <div class="tile__label">Best day</div>
+              <div class="tile__value" id="focusBestValue">—</div>
+              <div class="tile__sub" id="focusBestSub">no days tracked yet</div>
+            </div>
+          </div>
+
+          <p class="focus-range__note muted" id="focusRangeNote"></p>
+        </section>
+
         <p class="muted center" id="dayGalleryHint" style="margin-top:16px">Tap a day's percentage to open its to-do list.</p>
         <div class="day-gallery-wrap">
           <div class="day-gallery__weekdays">
@@ -484,7 +534,7 @@
     </div>
   </div>
 
-  <script src="js/tools/chart.js?v=12"></script>
-  <script src="js/tools/time.js?v=42"></script>
+  <script src="js/tools/chart.js?v=13"></script>
+  <script src="js/tools/time.js?v=43"></script>
 </body>
 </html>

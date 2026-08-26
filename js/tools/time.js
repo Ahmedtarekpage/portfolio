@@ -11,6 +11,8 @@
     quarterDetail: null, // { quarter, categories }
     editingQuarterId: null,
     editingTaskId: null,
+    daysData: null,  // { quarterId, from, to, days: [{date,pct,done,total}], avg } for the Days tab
+    daysFocus: null, // { quarterId, from, to, preset } — the week/range focused under the days chart
     goalsView: (function () {
       try { return localStorage.getItem("time-goals-view") || "category"; } catch (e) { return "category"; }
     })(), // 'category' (grouped cards, always fully shown) or 'flat' (one drag-orderable list, goals can be hidden)
@@ -2092,6 +2094,8 @@
       $("#daysQuarterLabel").textContent = "";
       $("#daysAvgValue").textContent = "0%";
       $("#daysAvgSub").textContent = "0 days tracked";
+      state.daysData = null;
+      $("#focusRange").hidden = true;
       return Promise.resolve();
     }
     $("#noDaysQuarter").hidden = true;
@@ -2207,8 +2211,177 @@
     var avg = countedDays ? Math.round(sumPct / countedDays) : 0;
     $("#daysAvgValue").textContent = avg + "%";
     $("#daysAvgSub").textContent = countedDays + " of " + totalDays + " days tracked";
-    window.renderDaysChart($("#daysChart"), $("#daysChartTip"), chartDays, { avg: avg });
+
+    // the focus panel below owns the chart from here on — it draws the quarter
+    // line plus whichever week/range is currently focused
+    var quarter = state.quarterDetail && state.quarterDetail.quarter;
+    state.daysData = { quarterId: quarter ? quarter.id : null, from: from, to: to, days: chartDays, avg: avg };
+    renderDaysFocus({ animateChart: animate });
   }
+
+  /* ---------------- days: focus one week (or any from–to range) of the quarter ----------------
+     The chart above always shows the whole quarter and its average. This narrows the
+     same already-loaded days down to a slice and reports that slice's own average —
+     no extra request, and the quarter line stays on screen for comparison. */
+
+  // weeks start Saturday here, same as the day-tile grid
+  function weekStart(iso) {
+    var dow = new Date(iso + "T00:00:00Z").getUTCDay(); // 0 = Sun … 6 = Sat
+    return addDays(iso, -((dow + 1) % 7));
+  }
+
+  function clampToQuarter(iso) {
+    var d = state.daysData;
+    if (!d) return iso;
+    if (iso < d.from) return d.from;
+    if (iso > d.to) return d.to;
+    return iso;
+  }
+
+  function focusPreset(key) {
+    var d = state.daysData;
+    if (!d) return null;
+    if (key === "all") return { from: d.from, to: d.to };
+    // anchor on today, or on the nearest end of the quarter if today is outside it
+    var thisWeek = weekStart(clampToQuarter(todayISO()));
+    var starts = { "this-week": thisWeek, "last-week": addDays(thisWeek, -7), "last-4-weeks": addDays(thisWeek, -21) };
+    if (!starts[key]) return null;
+    var end = key === "last-4-weeks" ? addDays(thisWeek, 6) : addDays(starts[key], 6);
+    return { from: clampToQuarter(starts[key]), to: clampToQuarter(end) };
+  }
+
+  // light up a preset chip when the range happens to match it, however it was set
+  function matchingPreset(from, to) {
+    var keys = ["this-week", "last-week", "last-4-weeks", "all"];
+    for (var i = 0; i < keys.length; i++) {
+      var p = focusPreset(keys[i]);
+      if (p && p.from === from && p.to === to) return keys[i];
+    }
+    return null;
+  }
+
+  function focusStats(from, to) {
+    var days = (state.daysData && state.daysData.days) || [];
+    var sum = 0, tracked = 0, spanned = 0, done = 0, planned = 0, best = null, worst = null;
+    days.forEach(function (d) {
+      if (d.date < from || d.date > to) return;
+      spanned++;
+      if (!d.total) return; // a day with no tasks isn't a 0% day, it's an untracked one
+      tracked++;
+      sum += d.pct;
+      done += d.done;
+      planned += d.total;
+      if (!best || d.pct > best.pct) best = d;
+      if (!worst || d.pct < worst.pct) worst = d;
+    });
+    return {
+      avg: tracked ? Math.round(sum / tracked) : 0,
+      tracked: tracked, spanned: spanned, done: done, planned: planned, best: best, worst: worst,
+    };
+  }
+
+  function plural(n, word) { return n + " " + word + (n === 1 ? "" : "s"); }
+
+  function renderDaysFocus(opts) {
+    opts = opts || {};
+    var data = state.daysData;
+    if (!data) { $("#focusRange").hidden = true; return; }
+    $("#focusRange").hidden = false;
+
+    // switching quarters drops whatever week was focused in the old one
+    if (state.daysFocus && state.daysFocus.quarterId !== data.quarterId) state.daysFocus = null;
+    var today = todayISO();
+    var todayInQuarter = today >= data.from && today <= data.to;
+    if (!state.daysFocus) {
+      var def = focusPreset(todayInQuarter ? "this-week" : "all");
+      state.daysFocus = { quarterId: data.quarterId, from: def.from, to: def.to, preset: matchingPreset(def.from, def.to) };
+    }
+    var f = state.daysFocus;
+    f.from = clampToQuarter(f.from);
+    f.to = clampToQuarter(f.to);
+    if (f.to < f.from) f.to = f.from;
+
+    ["#focusFrom", "#focusTo"].forEach(function (sel) {
+      var el = $(sel);
+      el.min = data.from;
+      el.max = data.to;
+      el.value = sel === "#focusFrom" ? f.from : f.to;
+    });
+
+    $("#focusWeekLabel").textContent = fmtDayMonth(f.from) + " → " + fmtDayMonth(f.to);
+    $("#btnFocusPrevWeek").disabled = f.from <= data.from;
+    $("#btnFocusNextWeek").disabled = f.to >= data.to;
+    document.querySelectorAll("#focusRange .chip").forEach(function (c) {
+      c.classList.toggle("chip--on", c.dataset.focusPreset === f.preset);
+      // "this week" and friends are anchored on today — meaningless for a quarter
+      // that hasn't started or is already over; the arrows still browse any week
+      c.disabled = !todayInQuarter && c.dataset.focusPreset !== "all";
+    });
+
+    var s = focusStats(f.from, f.to);
+    var delta = s.avg - data.avg;
+
+    $("#focusAvgValue").textContent = s.avg + "%";
+    $("#focusAvgSub").textContent = s.tracked + " of " + plural(s.spanned, "day") + " tracked";
+    $("#focusTasksValue").textContent = s.done + "/" + s.planned;
+    $("#focusTasksSub").textContent = "across " + plural(s.tracked, "tracked day");
+
+    var deltaEl = $("#focusDeltaValue");
+    deltaEl.className = "tile__value" + (s.tracked && delta ? (delta > 0 ? " focus-range__delta--up" : " focus-range__delta--down") : "");
+    deltaEl.textContent = s.tracked ? (delta > 0 ? "+" : "") + delta + " pts" : "—";
+    $("#focusDeltaSub").textContent = "quarter avg " + data.avg + "%";
+
+    $("#focusBestValue").textContent = s.best ? s.best.pct + "%" : "—";
+    $("#focusBestSub").textContent = s.best
+      ? fmtDate(s.best.date) + (s.worst && s.worst.date !== s.best.date ? " · worst " + s.worst.pct + "% " + fmtDayMonth(s.worst.date) : "")
+      : "no days tracked in this range";
+
+    $("#focusRangeNote").textContent = s.tracked
+      ? fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "% — " +
+        (delta === 0 ? "exactly the quarter's pace."
+                     : Math.abs(delta) + " points " + (delta > 0 ? "above" : "below") + " the quarter's " + data.avg + "%.")
+      : "No tasks logged between " + fmtDate(f.from) + " and " + fmtDate(f.to) + ".";
+
+    window.renderDaysChart($("#daysChart"), $("#daysChartTip"), data.days, {
+      avg: data.avg,
+      focus: { from: f.from, to: f.to, avg: s.tracked ? s.avg : null },
+      animate: opts.animateChart !== false,
+    });
+  }
+
+  function setDaysFocus(from, to) {
+    if (!state.daysData) return;
+    state.daysFocus = {
+      quarterId: state.daysData.quarterId,
+      from: from, to: to, preset: matchingPreset(from, to),
+    };
+    renderDaysFocus({ animateChart: false }); // a filter tweak shouldn't replay the draw-in
+  }
+
+  // step to the adjacent Saturday–Friday week; the buttons are disabled at the
+  // quarter's edges, so the shifted week can never fall outside it
+  function shiftFocusWeek(dir) {
+    if (!state.daysData || !state.daysFocus) return;
+    var s = addDays(weekStart(state.daysFocus.from), dir * 7);
+    setDaysFocus(clampToQuarter(s), clampToQuarter(addDays(s, 6)));
+  }
+
+  $("#focusRange").addEventListener("click", function (ev) {
+    var chip = ev.target.closest(".chip[data-focus-preset]");
+    if (!chip) return;
+    var p = focusPreset(chip.dataset.focusPreset);
+    if (p) setDaysFocus(p.from, p.to);
+  });
+  $("#btnFocusPrevWeek").addEventListener("click", function () { shiftFocusWeek(-1); });
+  $("#btnFocusNextWeek").addEventListener("click", function () { shiftFocusWeek(1); });
+  ["#focusFrom", "#focusTo"].forEach(function (sel) {
+    $(sel).addEventListener("change", function () {
+      var from = $("#focusFrom").value, to = $("#focusTo").value;
+      if (!from || !to) return;
+      if (to < from) { if (sel === "#focusFrom") to = from; else from = to; }
+      setDaysFocus(clampToQuarter(from), clampToQuarter(to));
+    });
+  });
 
   // tapping a day tile's percentage jumps to the Today tab loaded on that date
   function openDayDetail(date) {
@@ -2288,7 +2461,12 @@
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      if (state.quarterDetail && !$("#view-app").hidden) renderQuarter(state.quarterDetail);
+      if ($("#view-app").hidden) return;
+      if (state.quarterDetail) renderQuarter(state.quarterDetail);
+      // the days chart is sized off box.clientWidth, so it needs the same nudge
+      if (state.daysData && !document.querySelector('.tabpanel[data-tabpanel="days"]').hidden) {
+        renderDaysFocus({ animateChart: false });
+      }
     }, 150);
   });
 

@@ -670,6 +670,35 @@
     avgLbl.textContent = "Avg " + Math.round(avg) + "%";
     svg.appendChild(avgLbl);
 
+    // the from-to slice picked in the focus filter below the chart: shaded band,
+    // plus that slice's own average so it reads against the quarter's dashed avg
+    var focus = opts.focus && opts.focus.from && opts.focus.to ? opts.focus : null;
+    var focusColor = opts.focusColor || "#f5a524";
+    var focusFrom = null, focusTo = null;
+    if (focus) {
+      var f0 = Math.max(new Date(String(focus.from).slice(0, 10) + "T00:00:00Z").getTime(), start);
+      var f1 = Math.min(new Date(String(focus.to).slice(0, 10) + "T00:00:00Z").getTime(), end);
+      if (f1 >= f0 && (f0 > start || f1 < end)) {
+        focusFrom = f0; focusTo = f1;
+        // a single-day range would be a zero-width rect, so give it a hairline
+        var bx0 = x(f0), bx1 = Math.max(x(f1), x(f0) + 2);
+        svg.appendChild(svgEl("rect", {
+          x: bx0, y: M.t, width: bx1 - bx0, height: H - M.t - M.b,
+          fill: focusColor, "fill-opacity": 0.12
+        }));
+        [bx0, bx1].forEach(function (bx) {
+          svg.appendChild(svgEl("line", { x1: bx, x2: bx, y1: M.t, y2: H - M.b, stroke: focusColor, "stroke-opacity": 0.5, "stroke-width": 1 }));
+        });
+        if (focus.avg != null) {
+          var fy = y(Number(focus.avg) || 0);
+          svg.appendChild(svgEl("line", { x1: bx0, x2: bx1, y1: fy, y2: fy, stroke: focusColor, "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+          var fLbl = svgEl("text", { x: bx0 + 3, y: fy - 4, fill: focusColor, "font-size": 10, "font-weight": 600 });
+          fLbl.textContent = Math.round(focus.avg) + "%";
+          svg.appendChild(fLbl);
+        }
+      }
+    }
+
     var color = opts.color || "#60a5fa";
     var d = "M " + x(pts[0].t) + " " + y(pts[0].pct);
     for (var i = 1; i < pts.length; i++) d += " L " + x(pts[i].t) + " " + y(pts[i].pct);
@@ -690,7 +719,8 @@
     pts.forEach(function (p) {
       if (!p.total) return; // no tasks logged that day — line still passes through 0, just no dot
       var cx = x(p.t), cy = y(p.pct);
-      var m = svgEl("circle", { cx: cx, cy: cy, r: 3.5, fill: color, stroke: surface, "stroke-width": 1.5 });
+      var inFocus = focusFrom != null && p.t >= focusFrom && p.t <= focusTo;
+      var m = svgEl("circle", { cx: cx, cy: cy, r: inFocus ? 4.6 : 3.5, fill: color, stroke: surface, "stroke-width": 1.5 });
       svg.appendChild(m);
       markers.push({ p: p, cx: cx, cy: cy, el: m });
     });
@@ -745,7 +775,7 @@
     box.appendChild(svg);
 
     var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!reduceMotion) {
+    if (!reduceMotion && opts.animate !== false) {
       try {
         var len = lineEl.getTotalLength();
         lineEl.style.strokeDasharray = len;
