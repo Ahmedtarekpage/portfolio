@@ -984,9 +984,14 @@
     function finish(ev) {
       if (!state || (ev && ev.pointerId !== state.pointerId)) return;
       state.el.classList.remove(opts.draggingClass);
-      var ids = Array.prototype.slice.call(opts.listEl.children).map(function (el) { return Number(el.dataset.id); });
+      // a list can hold things that aren't rows (a note above the cards, the
+      // "add" form below them) — those have no id and must not enter the order
+      var ids = Array.prototype.slice.call(opts.listEl.children)
+        .filter(function (el) { return el.matches(opts.rowSelector); })
+        .map(function (el) { return Number(el.dataset.id); });
       state = null;
-      api(opts.apiUrl, { method: "PATCH", body: { ids: ids } }).catch(opts.onError);
+      if (opts.onReorder) opts.onReorder(ids);
+      else api(opts.apiUrl, { method: "PATCH", body: { ids: ids } }).catch(opts.onError);
     }
     opts.listEl.addEventListener("pointerup", finish);
     opts.listEl.addEventListener("pointercancel", finish);
@@ -1501,7 +1506,7 @@
     var pct = goalPct(g);
     return '<div class="goal-row" data-id="' + g.id + '">' +
       '<div class="goal-row__top">' +
-        (opts.draggable ? '<span class="goal-row__handle" title="Drag to reorder">⠿</span>' : '') +
+        (opts.draggable || opts.handle ? '<span class="goal-row__handle" title="Drag to reorder">⠿</span>' : '') +
         (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         '<span class="goal-row__pct">' + pct + '%</span>' +
@@ -1748,6 +1753,51 @@
     }
   }
 
+  // Rewrites the global goal order so that this category's goals sit in `ids`
+  // order while every goal keeps the slot it already held. Everything outside
+  // the category — and the flat "All goals" view — is left untouched.
+  function reorderGoalsWithinCategory(category, ids) {
+    var data = state.quarterDetail;
+    if (!data) return;
+    var all = data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, [])
+      .slice().sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); });
+
+    var byId = {};
+    all.forEach(function (g) { byId[g.id] = g; });
+    var queue = ids.slice();
+    var globalIds = all.map(function (g) {
+      return Number(g.category_id) === Number(category.id) ? queue.shift() : g.id;
+    });
+
+    // keep the in-memory copy in step, or the next renderQuarter (a theme
+    // switch, a resize) would redraw the order the user just moved away from
+    globalIds.forEach(function (id, i) { if (byId[id]) byId[id].position = i; });
+    category.goals = ids.map(function (id) { return byId[id]; }).filter(Boolean);
+
+    api("/api/goals?reorder=1", { method: "PATCH", body: { ids: globalIds } })
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  }
+
+  function reorderCategories(ids) {
+    var data = state.quarterDetail;
+    if (!data) return;
+    var byId = {};
+    data.categories.forEach(function (c) { byId[c.id] = c; });
+    data.categories = ids.map(function (id) { return byId[id]; }).filter(Boolean);
+    data.categories.forEach(function (c, i) { c.position = i; });
+    api("/api/quarters?reorder_categories=1", { method: "PATCH", body: { ids: ids } })
+      .then(function () { renderAnalytics(data); }) // the rollups list categories in order too
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  }
+
+  makeReorderable({
+    listEl: $("#categoryCards"),
+    rowSelector: ".category-card",
+    handleSelector: ".category-card__handle",
+    draggingClass: "category-card--dragging",
+    onReorder: reorderCategories,
+  });
+
   function renderQuarter(data) {
     $("#quarterActions").hidden = !data;
     $("#quarterDetailName").textContent = data ? data.quarter.name : "";
@@ -1784,8 +1834,11 @@
       var card = document.createElement("div");
       card.className = "category-card";
       card.dataset.catId = c.id;
+      card.dataset.id = c.id; // makeReorderable reads data-id
       card.innerHTML =
-        '<div class="category-card__head"><span class="category-card__name">' + esc(c.name) + '</span>' +
+        '<div class="category-card__head">' +
+          '<span class="category-card__handle" title="Drag to reorder categories">⠿</span>' +
+          '<span class="category-card__name">' + esc(c.name) + '</span>' +
         (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
         '</div>' +
         (hasHours ?
@@ -1800,7 +1853,9 @@
         '<div class="goals">' +
           '<div class="goals__label">Goals</div>' +
           (catPct != null ? overallBarHtml(catPct, "Overall", c.id) : '') +
-          (c.goals || []).map(function (g) { return goalRowHtml(g); }).join("") +
+          '<div class="goals__list">' +
+            (c.goals || []).map(function (g) { return goalRowHtml(g, { handle: true }); }).join("") +
+          '</div>' +
           '<form class="goal-add-form">' +
             '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
             '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
@@ -1819,6 +1874,19 @@
         if (row) wireGoalRow(row, g, c);
       });
       wireGoalAddForm(card, c);
+
+      // Goals inside one category. `position` is a single counter shared by every
+      // goal in the quarter, so sending just this category's ids would renumber
+      // them 0..n and collide with the other categories. Instead the category's
+      // goals are permuted within the global slots they already occupy, which
+      // leaves the "All goals" list exactly as it was.
+      makeReorderable({
+        listEl: card.querySelector(".goals__list"),
+        rowSelector: ".goal-row",
+        handleSelector: ".goal-row__handle",
+        draggingClass: "goal-row--dragging",
+        onReorder: function (ids) { reorderGoalsWithinCategory(c, ids); },
+      });
     });
 
     // flat "all goals" view — every goal across every category, in one global
@@ -1830,7 +1898,7 @@
     flatGoals.forEach(function (g) {
       var cat = catById[g.category_id];
       var wrap = document.createElement("div");
-      wrap.innerHTML = goalRowHtml(g, { categoryName: cat ? cat.name : "", draggable: true });
+      wrap.innerHTML = goalRowHtml(g, { categoryName: cat ? cat.name : "", draggable: true, handle: true });
       var row = wrap.firstChild;
       row.hidden = !!g.hidden;
       flatBox.appendChild(row);

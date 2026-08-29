@@ -3,6 +3,7 @@
 //   GET    /api/quarters?id=N     -> quarter + categories (each with computed progress)
 //   POST   /api/quarters          -> { name, start_date, end_date, anti_perfectionist?, categories: [{name, weekly_hours}, ...] }
 //   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, anti_perfectionist?, categories?: [{id?, name, weekly_hours}, ...] }
+//   PATCH  /api/quarters?reorder_categories=1 -> { ids: [id, ...] }: persist new drag order
 //   DELETE /api/quarters?id=N     -> delete quarter (cascades categories; tasks keep their row, category_id -> NULL)
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
@@ -19,16 +20,17 @@ async function saveCategories(sql, quarterId, categories) {
   const existingIds = new Set(existing.map((r) => r.id));
   const keepIds = new Set();
 
-  for (const c of wanted) {
+  for (let i = 0; i < wanted.length; i++) {
+    const c = wanted[i];
     const weeklyHours = c.weekly_hours != null && c.weekly_hours !== "" && Number(c.weekly_hours) > 0
       ? Number(c.weekly_hours) : null;
     if (c.id && existingIds.has(Number(c.id))) {
       keepIds.add(Number(c.id));
-      await sql`UPDATE quarter_categories SET name = ${String(c.name).trim()}, weekly_hours = ${weeklyHours}
-        WHERE id = ${Number(c.id)}`;
+      await sql`UPDATE quarter_categories SET name = ${String(c.name).trim()}, weekly_hours = ${weeklyHours},
+        position = ${i} WHERE id = ${Number(c.id)}`;
     } else {
-      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours)
-        VALUES (${quarterId}, ${String(c.name).trim()}, ${weeklyHours}) RETURNING id`;
+      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours, position)
+        VALUES (${quarterId}, ${String(c.name).trim()}, ${weeklyHours}, ${i}) RETURNING id`;
       keepIds.add(row.id);
     }
   }
@@ -41,6 +43,16 @@ export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
 
+  if (req.method === "PATCH" && req.query.reorder_categories) {
+    const b = req.body || {};
+    const ids = Array.isArray(b.ids) ? b.ids.map(Number).filter((n) => n > 0) : [];
+    if (!ids.length) return json(res, 400, { error: "ids is required" });
+    for (let i = 0; i < ids.length; i++) {
+      await sql`UPDATE quarter_categories SET position = ${i} WHERE id = ${ids[i]}`;
+    }
+    return json(res, 200, { ok: true });
+  }
+
   if (req.method === "GET" && !req.query.id) {
     const quarters = await sql`SELECT * FROM quarters ORDER BY start_date DESC`;
     return json(res, 200, { quarters });
@@ -52,7 +64,7 @@ export default withErrors(async (req, res) => {
     const [quarter] = await sql`SELECT * FROM quarters WHERE id = ${id}`;
     if (!quarter) return json(res, 404, { error: "Quarter not found" });
 
-    const categories = await sql`SELECT * FROM quarter_categories WHERE quarter_id = ${id} ORDER BY created_at`;
+    const categories = await sql`SELECT * FROM quarter_categories WHERE quarter_id = ${id} ORDER BY position NULLS LAST, created_at`;
     const categoryIds = categories.map((c) => c.id);
     const tasks = categoryIds.length
       ? await sql`SELECT category_id, task_date, done, actual_hours FROM tasks WHERE category_id = ANY(${categoryIds})`

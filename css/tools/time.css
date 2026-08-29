@@ -519,8 +519,16 @@
 .category-cards .category-card:nth-child(2) { animation-delay: 0.07s; }
 .category-cards .category-card:nth-child(3) { animation-delay: 0.14s; }
 .category-cards .category-card:nth-child(n+4) { animation-delay: 0.2s; }
-.category-card__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.category-card__name { font: 600 1rem var(--font-ui); }
+.category-card__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.category-card__name { font: 600 1rem var(--font-ui); margin-right: auto; }
+.category-card__handle {
+  flex: none; cursor: grab; color: var(--faint); font-size: 1rem; line-height: 1;
+  padding: 2px; touch-action: none; transition: color var(--t-fast) ease;
+}
+.category-card__handle:hover { color: var(--blue); }
+.category-card__handle:active { cursor: grabbing; }
+/* the hover lift would fight the drag, so it is suppressed while one is in flight */
+.category-card--dragging { opacity: 0.4; border-color: var(--blue); transform: none !important; }
 .category-card__stats {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px; margin: 10px 0 12px; font-size: 0.82rem; color: var(--muted);
@@ -743,7 +751,9 @@
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 12px 14px;
   animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
-.goals-flat-list .goal-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
+.goal-row--dragging { opacity: 0.35; }
+.goals-flat-list .goal-row--dragging { border-color: var(--blue); }
+.goals__list .goal-row--dragging { background: rgba(var(--accent-rgb), 0.06); }
 .goal-row__handle {
   flex: none; cursor: grab; color: var(--faint); font-size: 0.95rem; padding: 2px 2px; touch-action: none; line-height: 1;
 }
@@ -782,5 +792,6 @@
   .task-row__check { width: 26px; height: 26px; }
   .task-row__check:checked::after { left: 8px; top: 3px; }
   .goal-row__step { width: 30px; height: 30px; font-size: 1.05rem; }
-  .task-row__handle, .goal-row__handle, .idea-row__handle { padding: 8px 6px; font-size: 1.1rem; }
+  .task-row__handle, .goal-row__handle, .idea-row__handle,
+  .category-card__handle { padding: 8px 6px; font-size: 1.1rem; }
 }

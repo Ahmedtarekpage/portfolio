@@ -80,6 +80,17 @@ async function migrate(sql) {
   )`;
   // categories can now be goals-only (no hour target) — e.g. "Cashflow milestones"
   await sql`ALTER TABLE quarter_categories ALTER COLUMN weekly_hours DROP NOT NULL`;
+  // categories are drag-orderable. Left nullable so the backfill below can tell
+  // "never ordered" from "deliberately first" — a NOT NULL DEFAULT 0 would make
+  // every row look unset on the next boot and re-backfill an order the user set.
+  await sql`ALTER TABLE quarter_categories ADD COLUMN IF NOT EXISTS position INTEGER`;
+  await sql`
+    UPDATE quarter_categories c SET position = s.rn
+    FROM (
+      SELECT id, (ROW_NUMBER() OVER (PARTITION BY quarter_id ORDER BY created_at) - 1) AS rn
+      FROM quarter_categories
+    ) s
+    WHERE c.id = s.id AND c.position IS NULL`;
   await sql`CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     task_date DATE NOT NULL,
