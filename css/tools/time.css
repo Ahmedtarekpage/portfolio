@@ -1,87 +1,19 @@
-/* Time-tracking page — extends app.css with day/task/quarter-specific bits.
+/* Time-tracking page — day/task/quarter-specific bits on top of app.css.
 
-   The palette, type and motion are ahmedtarek.tech's own design system rather
-   than the admin panel's: the light theme takes the values the site sets on
-   itself (white ground, #7263c9 blurple accent, Inter at 500), and the dark
-   theme takes the same system's dark ground from _ds/nocturne (#161826 /
-   #232532, accent #9184d9). Both live here, not in app.css, because app.css is
-   shared with /admin, /dashboard and /share and those keep the blue. */
+   The palette, type and motion all come from app.css now, which carries
+   ahmedtarek.tech's design system for every signed-in tool. What stays here is
+   only what /time alone has: the mascot, the day grid, the pomodoro, the
+   quarter cards, and the semantic warn/danger tones on a light ground. */
 
-/* ---------- theme variables: ahmedtarek.tech's design system ---------- */
-/* Dark — the nocturne bundle's own :root, mapped onto app.css's token names. */
-:root {
-  --bg: #161826;              /* --color-bg */
-  --bg-2: #232532;            /* --color-surface */
-  --ink: #e9e9ed;             /* --color-text */
-  --muted: #b2b6ca;           /* --color-neutral-400 */
-  --faint: #75798c;           /* --color-neutral-600 */
-  --blue: #9184d9;            /* --color-accent */
-  --blue-2: #b5abfc;          /* --color-accent-400 */
-  --accent-rgb: 145, 132, 217;
-  --accent-2-rgb: 167, 161, 219;
-  --grad: linear-gradient(110deg, #b5abfc 0%, #9184d9 55%, #796cbf 100%);
-  --glass: #232532;
-  --glass-brd: rgba(233, 233, 237, 0.16); /* --color-divider */
-  --btn-ink: #191a24;
-  --chart-grid: rgba(233, 233, 237, 0.09);
-  --chart-marker: rgba(233, 233, 237, 0.26);
-  --chart-line: #9184d9;
-  --chart-focus: #d9a441;
-  --shadow-card: 0 0 0 1px rgba(233, 233, 237, 0.05), 0 16px 40px rgba(0, 0, 0, 0.5);
-  --font-ui: "Inter", system-ui, sans-serif;
-  --kicker-track: 0.16em;
-}
-/* Light — the values index.html sets on itself, verbatim. */
-:root[data-theme="light"] {
-  --bg: #ffffff;
-  --bg-2: #f4f4f9;            /* --color-neutral-900 */
-  --ink: #17181f;             /* --color-text */
-  --muted: #5c5e70;           /* --color-neutral-400 */
-  /* the site's neutral-600 (#a2a4b5) is a border/disabled tone; here --faint
-     carries chart axis labels and kickers, so it steps toward neutral-500
-     for 4.75:1 on white rather than 2.47:1 */
-  --faint: #6f7285;
-  --blue: #7263c9;            /* --color-accent */
-  --blue-2: #5e50b5;          /* --color-accent-400 */
-  --accent-rgb: 114, 99, 201;
-  --accent-2-rgb: 139, 127, 214;
-  --grad: linear-gradient(110deg, #8b7fd6 0%, #7263c9 55%, #5e50b5 100%);
-  --glass: #ffffff;
-  --glass-brd: #c9cad8;       /* --color-neutral-700, the site's card border */
-  --btn-ink: #ffffff;
-  --chart-grid: rgba(23, 24, 31, 0.08);
-  --chart-marker: rgba(23, 24, 31, 0.22);
-  --chart-line: #7263c9;
-  --chart-focus: #b8791f;
-  --shadow-card: 0 1px 3px rgba(23, 24, 31, 0.08); /* --shadow-sm */
-}
-
-/* smooth cross-fade whenever the theme is switched (disabled site-wide for
-   prefers-reduced-motion via app.css's global override). .tile and .btn
-   already get transform transitions from app.css / further below in this
-   file — merged there instead of overridden here. */
-body, .card, .badge, input, select, .toast, .task-row__icon {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-}
-.tile { transition: transform 0.2s, border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease; }
-
-:root[data-theme="light"] body {
-  background: var(--bg);
-}
-:root[data-theme="light"] input[type="date"],
-:root[data-theme="light"] input,
-:root[data-theme="light"] select {
-  color-scheme: light;
-}
+/* light-theme semantics — the shared tokens cover ground and accent, but these
+   status colours need a darker reading against white than their dark-mode twins */
 :root[data-theme="light"] .badge--warn { color: #92600a; background: rgba(217, 119, 6, 0.12); border-color: rgba(217, 119, 6, 0.35); }
 :root[data-theme="light"] .badge--danger { color: #a3283a; background: rgba(226, 88, 106, 0.12); border-color: rgba(226, 88, 106, 0.35); }
 :root[data-theme="light"] .badge--good { color: #146c47; background: rgba(31, 168, 118, 0.14); border-color: rgba(31, 168, 118, 0.4); }
 :root[data-theme="light"] .tile--warn .tile__value { color: #a2680a; }
 :root[data-theme="light"] .tile--danger .tile__value { color: #c23a4d; }
-:root[data-theme="light"] .toast { background: #ffffff; color: var(--ink); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16); }
 :root[data-theme="light"] .toast--error { border-color: rgba(226, 88, 106, 0.4); color: #a3283a; }
 :root[data-theme="light"] .error { color: #a3283a; }
-:root[data-theme="light"] .tooltip { background: #ffffff; color: var(--ink); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16); }
 
 .chart-tip-wrap { position: relative; }
 
@@ -391,14 +323,6 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .btn--primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -8px rgba(var(--accent-rgb), 0.55); }
 .btn--ghost:hover { background: rgba(var(--accent-rgb), 0.08); }
 
-.theme-toggle { font-size: 1rem; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-@keyframes themeSpin {
-  from { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.2); }
-  to { transform: rotate(360deg) scale(1); }
-}
-.theme-toggle--spin { animation: themeSpin 0.5s ease; }
-
 /* ---------- tab bar: Today / Quarter / Analytics ---------- */
 .tabbar {
   display: flex; gap: 6px; margin: 4px 0 16px; border-bottom: 1px solid var(--glass-brd);
@@ -604,7 +528,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .category-card__stats b { display: block; font-size: 1.05rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .badge--good { color: #6ee7b0; background: rgba(31, 168, 118, 0.16); border: 1px solid rgba(31, 168, 118, 0.45); }
-.badge--muted { color: var(--muted); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-brd); }
+.badge--muted { color: var(--muted); background: var(--wash); border: 1px solid var(--glass-brd); }
 
 /* ---------- quarters gallery: one card per quarter, tap to open ---------- */
 .quarter-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
@@ -860,76 +784,3 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   .goal-row__step { width: 30px; height: 30px; font-size: 1.05rem; }
   .task-row__handle, .goal-row__handle, .idea-row__handle { padding: 8px 6px; font-size: 1.1rem; }
 }
-
-
-
-/* ================================================================
-   ahmedtarek.tech parity — overriding app.css
-   app.css is shared with /admin, /dashboard and /share, so its blue,
-   its Manrope/Roboto Mono type and its 800 weights stay put there.
-   Everything the site does differently is re-stated here instead,
-   where only /time can see it.
-   ================================================================ */
-
-/* the site's ground is flat, not a radial wash */
-body { background: var(--bg); font-family: var(--font-ui); }
-::selection { background: rgba(var(--accent-rgb), 0.22); }
-
-/* Headings: Inter at 500-600 with a touch of negative tracking. The site
-   never sets a heading in uppercase, and never above 500-600 weight. */
-h1, h2 {
-  font-family: var(--font-ui); font-weight: 600;
-  letter-spacing: -0.01em; text-transform: none;
-}
-
-/* Buttons and chips read as sentence-case pills on the site, not as
-   uppercase monospace keys. */
-.btn {
-  font: 500 0.85rem var(--font-ui);
-  text-transform: none; letter-spacing: 0;
-  border-radius: 999px; padding: 11px 20px;
-}
-.btn--sm { padding: 8px 15px; font-size: 0.8rem; }
-.btn--primary { background: var(--blue); color: var(--btn-ink); }
-.chip {
-  font: 500 0.78rem var(--font-ui);
-  text-transform: none; letter-spacing: 0;
-  border-radius: 999px; padding: 6px 15px;
-}
-.chip--on { background: rgba(var(--accent-rgb), 0.14); border-color: var(--blue); color: var(--blue); }
-.badge { font-family: var(--font-ui); font-weight: 500; border-radius: 999px; padding: 3px 10px; }
-
-/* Micro-labels take the site's kicker: small, wide-tracked, neutral-500. */
-.tile .tile__label,
-.table th {
-  font-family: var(--font-ui); font-weight: 500;
-  letter-spacing: var(--kicker-track);
-}
-.tile .tile__value,
-.avatar--initial { font-family: var(--font-ui); font-weight: 600; }
-
-/* Radii follow the system: 14 for cards, 8 for fields. */
-.card { border-radius: 14px; }
-.chart-detail { background: rgba(var(--accent-rgb), 0.05); border-radius: 14px; }
-input, select, textarea { border-radius: 8px; }
-
-.tooltip { background: var(--glass); color: var(--ink); border-radius: 12px; box-shadow: var(--shadow-card); }
-
-/* the remaining app.css blues */
-tr.rowlink:hover td { background: rgba(var(--accent-rgb), 0.06); }
-.iconbtn--edit:hover { color: var(--blue); background: rgba(var(--accent-rgb), 0.12); }
-.tile:hover { border-color: rgba(var(--accent-rgb), 0.35); }
-.toast { background: var(--glass); color: var(--ink); border-radius: 14px; box-shadow: var(--shadow-card); }
-
-/* Motion: the site's own fade-up — 30px over 0.8s on a plain ease — for the
-   page's arrival. The smaller in-place entrances (task rows, day tiles) keep
-   their shorter rise; at 30px a list of them would heave rather than settle. */
-@keyframes siteFadeUp {
-  0% { opacity: 0; transform: translateY(30px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-.view .card, .tiles .tile, .topbar { animation: siteFadeUp 0.8s ease both; }
-.view .card:nth-of-type(2), .tiles .tile:nth-child(2) { animation-delay: 0.09s; }
-.view .card:nth-of-type(3), .tiles .tile:nth-child(3) { animation-delay: 0.18s; }
-.tiles .tile:nth-child(4) { animation-delay: 0.27s; }
-.tiles .tile:nth-child(5) { animation-delay: 0.36s; }

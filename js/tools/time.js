@@ -126,34 +126,17 @@
     return out;
   }
 
-  /* ---------------- theme (light/dark, persisted; set pre-paint in <head>) ---------------- */
+  /* ---------------- theme ----------------
+     The toggle itself lives in js/tools/theme.js, shared with /admin and
+     /dashboard. All this page adds is a redraw: the charts read their colours
+     from CSS custom properties at render time, so they need re-rendering
+     after the switch or they keep the old theme's palette. */
 
-  function currentTheme() {
-    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
-  }
-
-  function applyTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    var btn = $("#btnTheme");
-    if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#161826");
-    try { localStorage.setItem("time-theme", theme); } catch (e) {}
-  }
-
-  applyTheme(currentTheme()); // sync the toggle icon to whatever the pre-paint script already set
-
-  $("#btnTheme").addEventListener("click", function () {
-    var btn = this;
-    applyTheme(currentTheme() === "light" ? "dark" : "light");
-    // reduceMotion is assigned further down but hoisted, and this only runs on a later click
-    if (!reduceMotion) {
-      btn.classList.remove("theme-toggle--spin");
-      void btn.offsetWidth; // restart the animation on repeat clicks
-      btn.classList.add("theme-toggle--spin");
-    }
-    // charts read CSS custom properties at render time — redraw with the new theme's colors
+  window.Theme.onChange(function () {
     if (state.quarterDetail) renderQuarter(state.quarterDetail);
+    if (state.daysData && !document.querySelector('.tabpanel[data-tabpanel="days"]').hidden) {
+      renderDaysFocus({ animateChart: false, tiles: false });
+    }
   });
 
   /* ---------------- tabs: Today / Quarter / Analytics ---------------- */

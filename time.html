@@ -19,10 +19,12 @@
   <link rel="apple-touch-icon" href="/logo/favicon-180.png">
   <meta name="theme-color" content="#161826" />
   <script>
-    // set the theme before CSS applies, so there's no flash of the wrong theme
+    // set the theme before CSS applies, so there's no flash of the wrong theme.
+    // One key across /admin, /dashboard and /time; "time-theme" is the key this
+    // used to live under, read once so an existing choice carries over.
     (function () {
       try {
-        var saved = localStorage.getItem("time-theme");
+        var saved = localStorage.getItem("tools-theme") || localStorage.getItem("time-theme");
         var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
         document.documentElement.setAttribute("data-theme", theme);
       } catch (e) {}
@@ -31,8 +33,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=6" />
-  <link rel="stylesheet" href="css/tools/time.css?v=36" />
+  <link rel="stylesheet" href="css/tools/app.css?v=7" />
+  <link rel="stylesheet" href="css/tools/time.css?v=37" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -534,7 +536,8 @@
     </div>
   </div>
 
+  <script src="js/tools/theme.js?v=1"></script>
   <script src="js/tools/chart.js?v=15"></script>
-  <script src="js/tools/time.js?v=47"></script>
+  <script src="js/tools/time.js?v=48"></script>
 </body>
 </html>
