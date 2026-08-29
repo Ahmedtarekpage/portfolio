@@ -82,6 +82,25 @@
     return d.toISOString().slice(0, 10);
   }
 
+  /* ---------------- remembered choices (per device, same "time-" keys as the theme/tab) ----------------
+     Only view preferences live here — which quarter was open, which range was
+     focused. Nothing that belongs to the data itself. */
+
+  function remember(key, value) {
+    try {
+      if (value == null) localStorage.removeItem("time-" + key);
+      else localStorage.setItem("time-" + key, typeof value === "string" ? value : JSON.stringify(value));
+    } catch (e) {}
+  }
+  function recall(key, fallback) {
+    try { var raw = localStorage.getItem("time-" + key); return raw == null ? fallback : raw; }
+    catch (e) { return fallback; }
+  }
+  function recallJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem("time-" + key)) || fallback; }
+    catch (e) { return fallback; }
+  }
+
   var toastTimer, toastHideTimer;
   function toast(msg, isError) {
     var t = $("#toast");
@@ -161,7 +180,7 @@
     showTab(btn.dataset.tab);
     if (btn.dataset.tab === "days") loadDaysGallery();
     if (btn.dataset.tab === "ideas") loadIdeas();
-    if (btn.dataset.tab === "quarter") showQuarterGallery();
+    if (btn.dataset.tab === "quarter") restoreQuarterView();
   });
 
   /* ---------------- live countdown to the selected quarter's start/end ---------------- */
@@ -757,7 +776,7 @@
         var activeTab = document.querySelector("#tabbar .tab--active");
         if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
         if (activeTab && activeTab.dataset.tab === "ideas") loadIdeas();
-        if (activeTab && activeTab.dataset.tab === "quarter") showQuarterGallery();
+        if (activeTab && activeTab.dataset.tab === "quarter") restoreQuarterView();
         loadGamification();
       })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
@@ -1383,10 +1402,14 @@
         updateCountdown();
         return;
       }
+      // the one you last opened wins over the one today happens to fall in
       var today = todayISO();
-      var pick = state.quarters.filter(function (q) { return q.start_date <= today && today <= q.end_date; })[0]
+      var saved = parseInt(recall("quarter-id", ""), 10);
+      var pick = (!isNaN(saved) && state.quarters.filter(function (q) { return q.id === saved; })[0])
+        || state.quarters.filter(function (q) { return q.start_date <= today && today <= q.end_date; })[0]
         || state.quarters[0];
       state.selectedQuarterId = pick.id;
+      remember("quarter-id", String(pick.id));
       return loadQuarterDetail(pick.id);
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -1410,6 +1433,7 @@
       card.addEventListener("click", function () {
         var id = Number(card.dataset.id);
         state.selectedQuarterId = id;
+        remember("quarter-id", String(id));
         loadQuarterDetail(id).then(function () { showQuarterDetailView(); });
       });
     });
@@ -1418,12 +1442,20 @@
   function showQuarterGallery() {
     $("#quarterGalleryView").hidden = false;
     $("#quarterDetailView").hidden = true;
+    remember("quarter-view", "gallery");
     renderQuarterGallery();
   }
 
   function showQuarterDetailView() {
     $("#quarterGalleryView").hidden = true;
     $("#quarterDetailView").hidden = false;
+    remember("quarter-view", "detail");
+  }
+
+  // opening the tab lands where you left it — the gallery, or the quarter you opened
+  function restoreQuarterView() {
+    if (recall("quarter-view", "gallery") === "detail" && state.quarterDetail) showQuarterDetailView();
+    else showQuarterGallery();
   }
 
   $("#btnBackToQuarters").addEventListener("click", showQuarterGallery);
@@ -2014,7 +2046,7 @@
     var q = state.quarterDetail.quarter;
     if (!confirm('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).')) return;
     api("/api/quarters?id=" + q.id, { method: "DELETE" })
-      .then(function () { playDeleteSound(); toast("Quarter deleted"); return loadQuarters(); })
+      .then(function () { playDeleteSound(); toast("Quarter deleted"); remember("quarter-id", null); return loadQuarters(); })
       .then(function () { showQuarterGallery(); return loadDay(state.currentDate); })
       .catch(function (e) { toast(e.message, true); });
   });
@@ -2113,17 +2145,45 @@
 
   function renderDaysGallery(from, to, stats, photos, opts) {
     opts = opts || {};
-    var animate = opts.animate !== false;
     var statsByDate = {};
     (stats || []).forEach(function (s) { statsByDate[s.date] = s; });
     var photosByDate = {};
     (photos || []).forEach(function (p) { photosByDate[p.task_date] = p.photo_data; });
 
+    // one walk of the whole quarter, for the chart and the quarter average. The
+    // focus range only ever narrows what's drawn from this — it never re-fetches.
+    var sumPct = 0, countedDays = 0, totalDays = 0, chartDays = [];
+    var walk = from;
+    while (walk <= to) {
+      totalDays++;
+      var st = statsByDate[walk];
+      var p = st && st.total ? Math.round((st.done / st.total) * 100) : null;
+      if (p != null) { sumPct += p; countedDays++; }
+      chartDays.push({ date: walk, pct: p || 0, done: st ? st.done : 0, total: st ? st.total : 0 });
+      walk = addDays(walk, 1);
+    }
+
+    var avg = countedDays ? Math.round(sumPct / countedDays) : 0;
+    $("#daysAvgValue").textContent = avg + "%";
+    $("#daysAvgSub").textContent = countedDays + " of " + totalDays + " days tracked";
+
+    var quarter = state.quarterDetail && state.quarterDetail.quarter;
+    state.daysData = {
+      quarterId: quarter ? quarter.id : null,
+      from: from, to: to, days: chartDays, avg: avg,
+      statsByDate: statsByDate, photosByDate: photosByDate,
+    };
+    renderDaysFocus({ animateChart: opts.animate !== false, animateTiles: opts.animate !== false });
+  }
+
+  // The photo grid for one date range — the focus filter decides which range, so
+  // picking a week narrows the photos to that week too, not just the graph.
+  function renderDayTiles(from, to, animate) {
+    var statsByDate = state.daysData.statsByDate;
+    var photosByDate = state.daysData.photosByDate;
     var box = $("#dayGallery");
     box.innerHTML = "";
     var today = todayISO();
-    var sumPct = 0, countedDays = 0, totalDays = 0;
-    var chartDays = [];
 
     // weeks start Saturday: pad the grid with blank cells so day `from`
     // lands in its real weekday column and every row is one calendar week
@@ -2136,11 +2196,8 @@
 
     var d = from;
     while (d <= to) {
-      totalDays++;
       var s = statsByDate[d];
       var pct = s && s.total ? Math.round((s.done / s.total) * 100) : null;
-      if (pct != null) { sumPct += pct; countedDays++; }
-      chartDays.push({ date: d, pct: pct || 0, done: s ? s.done : 0, total: s ? s.total : 0 });
       var photo = photosByDate[d];
 
       var tile = document.createElement("div");
@@ -2207,16 +2264,6 @@
       box.appendChild(tile);
       d = addDays(d, 1);
     }
-
-    var avg = countedDays ? Math.round(sumPct / countedDays) : 0;
-    $("#daysAvgValue").textContent = avg + "%";
-    $("#daysAvgSub").textContent = countedDays + " of " + totalDays + " days tracked";
-
-    // the focus panel below owns the chart from here on — it draws the quarter
-    // line plus whichever week/range is currently focused
-    var quarter = state.quarterDetail && state.quarterDetail.quarter;
-    state.daysData = { quarterId: quarter ? quarter.id : null, from: from, to: to, days: chartDays, avg: avg };
-    renderDaysFocus({ animateChart: animate });
   }
 
   /* ---------------- days: focus one week (or any from–to range) of the quarter ----------------
@@ -2260,6 +2307,24 @@
     return null;
   }
 
+  // A preset is re-evaluated against today rather than restored as fixed dates —
+  // "this week" should still mean this week when the page is opened next week.
+  // A hand-picked range has no preset, so its exact dates come back instead.
+  function savedFocus(quarterId) {
+    var raw = recallJSON("days-focus", null);
+    if (!raw || raw.quarterId !== quarterId) return null;
+    if (raw.preset) {
+      // a today-anchored preset stops meaning anything once the quarter no longer
+      // contains today — fall through to the default rather than restore a stub
+      var today = todayISO();
+      if (raw.preset !== "all" && (today < state.daysData.from || today > state.daysData.to)) return null;
+      var p = focusPreset(raw.preset);
+      return p ? { quarterId: quarterId, from: p.from, to: p.to, preset: raw.preset } : null;
+    }
+    if (!raw.from || !raw.to) return null;
+    return { quarterId: quarterId, from: raw.from, to: raw.to, preset: null };
+  }
+
   function focusStats(from, to) {
     var days = (state.daysData && state.daysData.days) || [];
     var sum = 0, tracked = 0, spanned = 0, done = 0, planned = 0, best = null, worst = null;
@@ -2292,14 +2357,15 @@
     if (state.daysFocus && state.daysFocus.quarterId !== data.quarterId) state.daysFocus = null;
     var today = todayISO();
     var todayInQuarter = today >= data.from && today <= data.to;
-    if (!state.daysFocus) {
+    if (!state.daysFocus) state.daysFocus = savedFocus(data.quarterId) || (function () {
       var def = focusPreset(todayInQuarter ? "this-week" : "all");
-      state.daysFocus = { quarterId: data.quarterId, from: def.from, to: def.to, preset: matchingPreset(def.from, def.to) };
-    }
+      return { quarterId: data.quarterId, from: def.from, to: def.to, preset: matchingPreset(def.from, def.to) };
+    })();
     var f = state.daysFocus;
     f.from = clampToQuarter(f.from);
     f.to = clampToQuarter(f.to);
     if (f.to < f.from) f.to = f.from;
+    remember("days-focus", f);
 
     ["#focusFrom", "#focusTo"].forEach(function (sel) {
       var el = $(sel);
@@ -2344,6 +2410,13 @@
       : "Showing the whole quarter · " + plural(data.days.length, "day");
     $("#btnDaysChartAll").hidden = !zoomed;
 
+    if (opts.tiles !== false) {
+      renderDayTiles(f.from, f.to, opts.animateTiles !== false);
+      $("#dayGalleryHint").textContent = zoomed
+        ? "Showing " + plural(slice.length, "day") + " — tap a day's percentage to open its to-do list."
+        : "Tap a day's percentage to open its to-do list.";
+    }
+
     window.renderDaysChart($("#daysChart"), $("#daysChartTip"), zoomed ? slice : data.days, {
       avg: data.avg,
       avgLabel: zoomed ? "Quarter" : "Avg",
@@ -2362,7 +2435,8 @@
       quarterId: state.daysData.quarterId,
       from: from, to: to, preset: matchingPreset(from, to),
     };
-    renderDaysFocus({ animateChart: false }); // a filter tweak shouldn't replay the draw-in
+    // the line shouldn't replay its draw-in, but a fresh set of tiles should enter
+    renderDaysFocus({ animateChart: false, animateTiles: true });
   }
 
   // step to the adjacent Saturday–Friday week; the buttons are disabled at the
@@ -2476,7 +2550,7 @@
       if (state.quarterDetail) renderQuarter(state.quarterDetail);
       // the days chart is sized off box.clientWidth, so it needs the same nudge
       if (state.daysData && !document.querySelector('.tabpanel[data-tabpanel="days"]').hidden) {
-        renderDaysFocus({ animateChart: false });
+        renderDaysFocus({ animateChart: false, tiles: false });
       }
     }, 150);
   });
