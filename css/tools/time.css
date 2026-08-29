@@ -264,6 +264,32 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .day-tile__remove:hover { background: rgba(226, 88, 106, 0.85); }
 
+/* On a phone the 7-column week grid only fits by scrolling sideways, which is a
+   poor way to look at photographs — half a week sits off-screen and the tiles are
+   too narrow for "30 Aug" and a percentage to share a line. Below 640px the grid
+   takes as many columns as actually fit and the Sat–Fri header goes with it: the
+   week structure lives in the focus filter above now, not in column positions. */
+@media (max-width: 640px) {
+  .day-gallery-wrap { overflow-x: visible; margin-top: 12px; }
+  .day-gallery__weekdays { display: none; }
+  /* 88px lands on three columns from 360px up, four from 480 — the photo stays
+     the biggest thing in the tile at every step */
+  .day-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 8px; min-width: 0;
+  }
+  /* the blanks only existed to line day one up under its weekday */
+  .day-tile--placeholder { display: none; }
+  .day-tile { border-radius: 14px; }
+  .day-tile__meta { padding: 6px 7px; font-size: 0.7rem; gap: 5px; white-space: nowrap; }
+  /* a 20px circle is under the 44px touch target a thumb actually needs */
+  .day-tile__remove {
+    top: 6px; right: 6px; width: 26px; height: 26px; font-size: 0.8rem;
+    background: rgba(0, 0, 0, 0.62);
+  }
+  .day-tile__photo { font-size: 1.7rem; }
+}
+
 /* ---------- day-tile photo action menu (tap the photo: view / replace / go to day) ---------- */
 .photo-menu {
   position: fixed; inset: 0; z-index: 600;
