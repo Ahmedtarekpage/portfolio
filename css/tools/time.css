@@ -1,25 +1,59 @@
-/* Time-tracking page — extends app.css with day/task/quarter-specific bits,
-   plus a light/dark theme system and a modern "refresh" pass (glass cards,
-   soft shadows, smoother hovers). Everything here is scoped to /time only —
-   app.css and /admin are never touched. */
+/* Time-tracking page — extends app.css with day/task/quarter-specific bits.
 
-/* ---------- theme variables ---------- */
+   The palette, type and motion are ahmedtarek.tech's own design system rather
+   than the admin panel's: the light theme takes the values the site sets on
+   itself (white ground, #7263c9 blurple accent, Inter at 500), and the dark
+   theme takes the same system's dark ground from _ds/nocturne (#161826 /
+   #232532, accent #9184d9). Both live here, not in app.css, because app.css is
+   shared with /admin, /dashboard and /share and those keep the blue. */
+
+/* ---------- theme variables: ahmedtarek.tech's design system ---------- */
+/* Dark — the nocturne bundle's own :root, mapped onto app.css's token names. */
 :root {
-  --chart-grid: rgba(255, 255, 255, 0.06);
-  --chart-marker: rgba(255, 255, 255, 0.18);
-  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.18), 0 20px 44px -26px rgba(0, 0, 0, 0.6);
+  --bg: #161826;              /* --color-bg */
+  --bg-2: #232532;            /* --color-surface */
+  --ink: #e9e9ed;             /* --color-text */
+  --muted: #b2b6ca;           /* --color-neutral-400 */
+  --faint: #75798c;           /* --color-neutral-600 */
+  --blue: #9184d9;            /* --color-accent */
+  --blue-2: #b5abfc;          /* --color-accent-400 */
+  --accent-rgb: 145, 132, 217;
+  --accent-2-rgb: 167, 161, 219;
+  --grad: linear-gradient(110deg, #b5abfc 0%, #9184d9 55%, #796cbf 100%);
+  --glass: #232532;
+  --glass-brd: rgba(233, 233, 237, 0.16); /* --color-divider */
+  --btn-ink: #191a24;
+  --chart-grid: rgba(233, 233, 237, 0.09);
+  --chart-marker: rgba(233, 233, 237, 0.26);
+  --chart-line: #9184d9;
+  --chart-focus: #d9a441;
+  --shadow-card: 0 0 0 1px rgba(233, 233, 237, 0.05), 0 16px 40px rgba(0, 0, 0, 0.5);
+  --font-ui: "Inter", system-ui, sans-serif;
+  --kicker-track: 0.16em;
 }
+/* Light — the values index.html sets on itself, verbatim. */
 :root[data-theme="light"] {
   --bg: #ffffff;
-  --bg-2: #f4f5f8;
-  --ink: #0a0a0a;
-  --muted: rgba(10, 10, 10, 0.62);
-  --faint: rgba(10, 10, 10, 0.42);
+  --bg-2: #f4f4f9;            /* --color-neutral-900 */
+  --ink: #17181f;             /* --color-text */
+  --muted: #5c5e70;           /* --color-neutral-400 */
+  /* the site's neutral-600 (#a2a4b5) is a border/disabled tone; here --faint
+     carries chart axis labels and kickers, so it steps toward neutral-500
+     for 4.75:1 on white rather than 2.47:1 */
+  --faint: #6f7285;
+  --blue: #7263c9;            /* --color-accent */
+  --blue-2: #5e50b5;          /* --color-accent-400 */
+  --accent-rgb: 114, 99, 201;
+  --accent-2-rgb: 139, 127, 214;
+  --grad: linear-gradient(110deg, #8b7fd6 0%, #7263c9 55%, #5e50b5 100%);
   --glass: #ffffff;
-  --glass-brd: rgba(10, 10, 10, 0.12);
-  --chart-grid: rgba(10, 10, 10, 0.08);
-  --chart-marker: rgba(10, 10, 10, 0.22);
-  --shadow-card: 0 1px 1px rgba(10, 10, 10, 0.03), 0 20px 44px -28px rgba(10, 10, 10, 0.14);
+  --glass-brd: #c9cad8;       /* --color-neutral-700, the site's card border */
+  --btn-ink: #ffffff;
+  --chart-grid: rgba(23, 24, 31, 0.08);
+  --chart-marker: rgba(23, 24, 31, 0.22);
+  --chart-line: #7263c9;
+  --chart-focus: #b8791f;
+  --shadow-card: 0 1px 3px rgba(23, 24, 31, 0.08); /* --shadow-sm */
 }
 
 /* smooth cross-fade whenever the theme is switched (disabled site-wide for
@@ -57,7 +91,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .section-collapse > summary {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer;
   list-style: none; padding: 8px 2px; border-bottom: 1px solid var(--glass-brd);
-  font: 600 0.95rem "Manrope", sans-serif; color: var(--ink); transition: color 0.2s ease;
+  font: 600 0.95rem var(--font-ui); color: var(--ink); transition: color 0.2s ease;
 }
 .section-collapse > summary::-webkit-details-marker { display: none; }
 .section-collapse > summary::after {
@@ -71,14 +105,14 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 /* ---------- mascot: a little cartoon buddy that reacts to today's progress ---------- */
 .mascot {
   display: flex; align-items: center; gap: 14px; margin: 14px 0 4px;
-  background: linear-gradient(135deg, rgba(51, 170, 255, 0.1), rgba(167, 139, 250, 0.06));
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-2-rgb), 0.06));
   border: 1px solid var(--glass-brd); border-radius: 16px; padding: 12px 16px;
 }
 .mascot__char {
   width: 64px; height: 64px; flex: none; border-radius: 50%; position: relative;
-  background: linear-gradient(160deg, #60a5fa, #a78bfa);
+  background: linear-gradient(160deg, var(--blue-2), var(--blue));
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 20px -8px rgba(51, 170, 255, 0.55);
+  box-shadow: 0 8px 20px -8px rgba(var(--accent-rgb), 0.55);
   animation: mascotFloat 3s ease-in-out infinite;
 }
 @keyframes mascotFloat {
@@ -128,7 +162,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 /* ---------- gamification: 5-month commitment cycle + badge chips ---------- */
 .gamify {
   display: flex; flex-direction: column; gap: 12px; margin: 12px 0 4px;
-  background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(51, 170, 255, 0.06));
+  background: linear-gradient(135deg, rgba(var(--accent-2-rgb), 0.1), rgba(var(--accent-rgb), 0.06));
   border: 1px solid var(--glass-brd); border-radius: 16px; padding: 14px 16px;
   animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -136,8 +170,8 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .gamify__level-badge {
   flex: none; width: 38px; height: 38px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(160deg, #a78bfa, #60a5fa); color: #fff;
-  font: 700 1.05rem "Manrope", sans-serif; box-shadow: 0 6px 16px -6px rgba(51, 170, 255, 0.6);
+  background: linear-gradient(160deg, var(--blue), var(--blue-2)); color: #fff;
+  font: 600 1.05rem var(--font-ui); box-shadow: 0 6px 16px -6px rgba(var(--accent-rgb), 0.6);
 }
 .gamify__level-badge--pop { animation: gamifyLevelPop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
 @keyframes gamifyLevelPop {
@@ -165,8 +199,8 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   filter: grayscale(1); opacity: 0.35; transition: filter 0.25s ease, opacity 0.25s ease, transform 0.15s ease;
 }
 .badge-chip--unlocked {
-  filter: none; opacity: 1; border-color: rgba(167, 139, 250, 0.4);
-  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25);
+  filter: none; opacity: 1; border-color: rgba(var(--accent-2-rgb), 0.4);
+  box-shadow: 0 0 0 1px rgba(var(--accent-2-rgb), 0.25);
 }
 .badge-chip--pop { animation: badgeChipPop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
 @keyframes badgeChipPop {
@@ -181,11 +215,10 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   gap: 10px; flex-wrap: wrap; margin-bottom: 6px;
 }
 .days-chart-head__range {
-  font: 600 0.76rem "Roboto Mono", monospace; color: var(--muted);
+  font: 600 0.76rem var(--font-ui); color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.days-chart-head__range b { color: #f5a524; font-weight: 700; }
-:root[data-theme="light"] .days-chart-head__range b { color: #a86a10; }
+.days-chart-head__range b { color: var(--chart-focus); font-weight: 600; }
 
 /* ---------- Days: focus a week (or any from-to range) under the quarter chart ---------- */
 /* The chart above stays the whole quarter; this reads one slice of it. */
@@ -197,14 +230,14 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .focus-range__title { margin: 0; }
 .focus-range__weeknav { display: inline-flex; align-items: center; gap: 4px; }
 .focus-range__week {
-  font: 600 0.78rem "Roboto Mono", monospace; color: var(--muted);
+  font: 600 0.78rem var(--font-ui); color: var(--muted);
   min-width: 190px; text-align: center; font-variant-numeric: tabular-nums;
 }
 .focus-range__controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
 .focus-range__dates { display: inline-flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-left: auto; }
 .focus-range__dates label {
   display: inline-flex; align-items: center; gap: 6px;
-  font: 500 0.68rem "Roboto Mono", monospace; text-transform: uppercase;
+  font: 500 0.68rem var(--font-ui); text-transform: uppercase;
   letter-spacing: 0.07em; color: var(--faint);
 }
 .focus-range__dates input[type="date"] {
@@ -231,7 +264,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   min-width: 490px; margin-bottom: 6px;
 }
 .day-gallery__weekdays span {
-  text-align: center; font-family: "Roboto Mono", monospace; font-size: 0.68rem;
+  text-align: center; font-family: var(--font-ui); font-size: 0.68rem;
   text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint);
 }
 .day-gallery { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; min-width: 490px; }
@@ -246,7 +279,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .day-tile__photo {
   display: flex; align-items: center; justify-content: center;
   width: 100%; aspect-ratio: 1 / 1; cursor: pointer;
-  background-size: cover; background-position: center; background-color: rgba(51, 170, 255, 0.06);
+  background-size: cover; background-position: center; background-color: rgba(var(--accent-rgb), 0.06);
   color: var(--faint); font-size: 1.5rem; transition: filter 0.15s ease;
 }
 .day-tile__photo:hover { filter: brightness(0.85); }
@@ -255,7 +288,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .day-tile__fill { height: 100%; background: var(--grad); transition: width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1); }
 .day-tile__fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
 .day-tile__meta { display: flex; justify-content: space-between; align-items: center; padding: 5px 7px; font-size: 0.68rem; color: var(--muted); cursor: pointer; transition: background 0.15s ease; }
-.day-tile__meta:hover { background: rgba(51, 170, 255, 0.1); }
+.day-tile__meta:hover { background: rgba(var(--accent-rgb), 0.1); }
 .day-tile__meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .day-tile__remove {
   position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
@@ -314,7 +347,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   .photo-menu__sheet { margin: 0; }
 }
 .photo-menu__title {
-  font-family: "Roboto Mono", monospace; font-size: 0.72rem; text-transform: uppercase;
+  font-family: var(--font-ui); font-size: 0.72rem; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--faint); padding: 10px 12px 6px;
 }
 .photo-menu__btn {
@@ -323,7 +356,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   font: 500 0.94rem "Inter", sans-serif; color: var(--ink);
   transition: background-color 0.15s ease;
 }
-.photo-menu__btn:hover { background: rgba(51, 170, 255, 0.1); }
+.photo-menu__btn:hover { background: rgba(var(--accent-rgb), 0.1); }
 .photo-menu__btn--cancel { color: var(--muted); border-top: 1px solid var(--glass-brd); border-radius: 0 0 8px 8px; margin-top: 4px; }
 .photo-menu__btn--cancel:hover { background: var(--bg); color: var(--ink); }
 
@@ -347,7 +380,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   color: #fff; font-size: 1.1rem; cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
-.photo-view__close:hover { background: rgba(0, 153, 255, 0.3); border-color: var(--blue); }
+.photo-view__close:hover { background: rgba(var(--accent-rgb), 0.3); border-color: var(--blue); }
 
 /* ---------- modern refresh: flat cards, no glass blur ---------- */
 .card {
@@ -355,8 +388,8 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 
 .btn { transition: filter 0.15s, transform 0.1s, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.2s ease; }
-.btn--primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -8px rgba(0, 153, 255, 0.55); }
-.btn--ghost:hover { background: rgba(51, 170, 255, 0.08); }
+.btn--primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -8px rgba(var(--accent-rgb), 0.55); }
+.btn--ghost:hover { background: rgba(var(--accent-rgb), 0.08); }
 
 .theme-toggle { font-size: 1rem; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes themeSpin {
@@ -377,7 +410,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   display: inline-flex; align-items: center; gap: 5px;
   flex: none; white-space: nowrap;
   padding: 9px 4px; margin-bottom: -1px; border-bottom: 2px solid transparent;
-  color: var(--muted); font: 600 0.8rem "Roboto Mono", monospace; text-transform: uppercase; letter-spacing: .3px; transition: color 0.2s ease, border-color 0.2s ease;
+  color: var(--muted); font: 600 0.8rem var(--font-ui); text-transform: uppercase; letter-spacing: .3px; transition: color 0.2s ease, border-color 0.2s ease;
 }
 .tab:hover { color: var(--ink); }
 .tab--active { color: var(--ink); border-bottom-color: var(--blue); }
@@ -389,7 +422,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 400;
     margin: 0; gap: 0; overflow-x: visible;
     border-bottom: none; border-top: 1px solid var(--glass-brd);
-    background: rgba(19, 24, 34, 0.92);
+    background: rgba(35, 37, 50, 0.92);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     padding: 4px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom, 0)) max(4px, env(safe-area-inset-left));
   }
@@ -417,7 +450,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .countdown-row .countdown { flex: 1 1 260px; margin: 0; }
 .countdown {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  background: linear-gradient(135deg, rgba(51, 170, 255, 0.12), rgba(167, 139, 250, 0.08));
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-2-rgb), 0.08));
   border: 1px solid var(--glass-brd); border-radius: 16px; padding: 14px 16px; margin: 4px 0 14px;
   animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -425,7 +458,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .countdown__spent { font-size: 0.76rem; color: var(--blue-2); font-weight: 600; margin-left: 4px; font-variant-numeric: tabular-nums; }
 .countdown__year-input {
   width: 4.2em; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
-  color: var(--ink); text-transform: none; letter-spacing: normal; font: 700 0.82rem "Manrope", sans-serif;
+  color: var(--ink); text-transform: none; letter-spacing: normal; font: 600 0.82rem var(--font-ui);
   padding: 1px 4px; text-align: center; -moz-appearance: textfield;
 }
 .countdown__year-input:focus { border-color: var(--blue-2); outline: none; }
@@ -436,8 +469,8 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 10px; padding: 6px 4px 5px;
 }
 .countdown__value {
-  font: 700 1.4rem "Manrope", sans-serif; font-variant-numeric: tabular-nums;
-  background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent;
+  font: 600 1.4rem var(--font-ui); font-variant-numeric: tabular-nums;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
   transition: transform 0.2s ease;
 }
 .countdown__unit--tick .countdown__value { animation: cdPulse 0.4s ease; }
@@ -486,7 +519,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 /* entrance animation only on a real day switch (opts.animate) — NOT on every
    re-render after checking a task, or the whole list visibly "flashes" back in */
 .task-row--enter { animation: fadeUp 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-.task-row:hover { border-color: rgba(51, 170, 255, 0.25); }
+.task-row:hover { border-color: rgba(var(--accent-rgb), 0.25); }
 .task-row--done { opacity: 0.6; }
 .task-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
 .task-row__handle {
@@ -496,7 +529,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .task-row__handle:active { cursor: grabbing; }
 .task-row__icon {
   flex: none; width: 30px; height: 30px; border-radius: 9px;
-  background: rgba(51, 170, 255, 0.1); display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(var(--accent-rgb), 0.1); display: inline-flex; align-items: center; justify-content: center;
   font-size: 1.05rem;
 }
 .task-row--done .task-row__title { text-decoration: line-through; transition: text-decoration-color 0.2s ease; }
@@ -557,13 +590,13 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.3s ease;
   margin-top: 0; /* .category-cards' flex `gap` already spaces cards out */
 }
-.category-card:hover { border-color: rgba(51, 170, 255, 0.3); transform: translateY(-2px); }
+.category-card:hover { border-color: rgba(var(--accent-rgb), 0.3); transform: translateY(-2px); }
 .category-cards .category-card:nth-child(1) { animation-delay: 0s; }
 .category-cards .category-card:nth-child(2) { animation-delay: 0.07s; }
 .category-cards .category-card:nth-child(3) { animation-delay: 0.14s; }
 .category-cards .category-card:nth-child(n+4) { animation-delay: 0.2s; }
 .category-card__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.category-card__name { font: 600 1rem "Manrope", sans-serif; }
+.category-card__name { font: 600 1rem var(--font-ui); }
 .category-card__stats {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px; margin: 10px 0 12px; font-size: 0.82rem; color: var(--muted);
@@ -580,9 +613,9 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   padding: 14px 16px; cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.3s ease, box-shadow 0.2s ease;
 }
-.quarter-card:hover { border-color: rgba(51, 170, 255, 0.4); transform: translateY(-2px); box-shadow: 0 14px 34px -22px rgba(51, 170, 255, 0.35); }
+.quarter-card:hover { border-color: rgba(var(--accent-rgb), 0.4); transform: translateY(-2px); box-shadow: 0 14px 34px -22px rgba(var(--accent-rgb), 0.35); }
 .quarter-card__top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.quarter-card__name { font: 700 1rem "Manrope", sans-serif; }
+.quarter-card__name { font: 600 1rem var(--font-ui); }
 .quarter-card__dates { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
 
 /* ---------- goals: concrete numeric milestones within a category ---------- */
@@ -623,7 +656,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .goal-row__step:hover { border-color: var(--blue-2); color: var(--blue-2); }
 .goal-row__step:active { transform: scale(0.88); }
 .iconbtn--copy:hover { color: #1fa876; background: rgba(31, 168, 118, 0.12); }
-.iconbtn--hide:hover { color: var(--blue-2); background: rgba(51, 170, 255, 0.12); }
+.iconbtn--hide:hover { color: var(--blue-2); background: rgba(var(--accent-rgb), 0.12); }
 
 .goal-add-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .goal-add-form input {
@@ -683,7 +716,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 .milestone-row--done { opacity: 0.5; }
 .milestone-row--done .milestone-row__amount { text-decoration: line-through; }
 .milestone-row--next {
-  border-color: var(--blue-2); background: rgba(51, 170, 255, 0.08);
+  border-color: var(--blue-2); background: rgba(var(--accent-rgb), 0.08);
   box-shadow: 0 0 0 1px var(--blue-2);
 }
 .milestone-row--next .milestone-row__date { color: var(--blue-2); font-weight: 600; }
@@ -716,15 +749,15 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 12px; padding: 10px 14px;
 }
 .pomodoro-status__info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 100px; }
-.pomodoro-status__phase { font: 600 0.7rem "Manrope", sans-serif; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.pomodoro-status__phase { font: 600 0.7rem var(--font-ui); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
 .pomodoro-status__focus { font-size: 0.88rem; }
-.pomodoro-status__time { font: 700 1.15rem "Manrope", sans-serif; font-variant-numeric: tabular-nums; color: var(--blue-2); }
+.pomodoro-status__time { font: 600 1.15rem var(--font-ui); font-variant-numeric: tabular-nums; color: var(--blue-2); }
 
 .pomodoro__settings { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 0.78rem; color: var(--muted); margin-top: 12px; }
 .pomodoro__settings input {
   width: 3.2em; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
   color: var(--ink); text-align: center; padding: 2px 4px; margin-left: 5px;
-  font: 600 0.8rem "Manrope", sans-serif; -moz-appearance: textfield;
+  font: 600 0.8rem var(--font-ui); -moz-appearance: textfield;
 }
 .pomodoro__settings input:focus { border-color: var(--blue-2); outline: none; }
 
@@ -749,11 +782,11 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 4px 0;
   animation: pomodoroContentIn 0.24s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-.pomodoro-overlay .pomodoro__phase { font: 600 0.95rem "Manrope", sans-serif; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.pomodoro-overlay .pomodoro__phase { font: 600 0.95rem var(--font-ui); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
 .pomodoro-overlay .pomodoro__focus { font-size: 1.15rem; color: var(--ink); max-width: 70vw; }
 .pomodoro-overlay .pomodoro__time {
-  font: 700 6rem "Manrope", sans-serif; font-variant-numeric: tabular-nums; line-height: 1;
-  background: linear-gradient(120deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent;
+  font: 600 6rem var(--font-ui); font-variant-numeric: tabular-nums; line-height: 1;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .pomodoro-overlay--break .pomodoro__time { background: linear-gradient(120deg, #34d399, #22d3ee); -webkit-background-clip: text; background-clip: text; }
 .pomodoro-overlay--running .pomodoro__time { animation: cdPulse 1s ease infinite; }
@@ -772,7 +805,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .goals-view-toggle__btn {
   border: none; background: transparent; color: var(--muted); cursor: pointer;
-  font: 600 0.82rem "Manrope", sans-serif; padding: 6px 14px; border-radius: 7px;
+  font: 600 0.82rem var(--font-ui); padding: 6px 14px; border-radius: 7px;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 .goals-view-toggle__btn:hover { color: var(--ink); }
@@ -792,7 +825,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
 }
 .goal-row__handle:active { cursor: grabbing; }
 .goal-row__cat-tag {
-  font-size: 0.7rem; font-weight: 600; color: var(--blue-2); background: rgba(51, 170, 255, 0.12);
+  font-size: 0.7rem; font-weight: 600; color: var(--blue-2); background: rgba(var(--accent-rgb), 0.12);
   border-radius: 6px; padding: 2px 7px; flex: none;
 }
 
@@ -805,7 +838,7 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   transition: opacity 0.3s ease, transform 0.15s ease, border-color 0.3s ease, background-color 0.3s ease;
 }
 .idea-row--enter { animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-.idea-row:hover { border-color: rgba(51, 170, 255, 0.25); }
+.idea-row:hover { border-color: rgba(var(--accent-rgb), 0.25); }
 .idea-row--dragging { opacity: 0.35; border-color: var(--blue-2); }
 .idea-row__handle {
   flex: none; cursor: grab; color: var(--faint); font-size: 0.95rem;
@@ -828,3 +861,75 @@ body, .card, .badge, input, select, .toast, .task-row__icon {
   .task-row__handle, .goal-row__handle, .idea-row__handle { padding: 8px 6px; font-size: 1.1rem; }
 }
 
+
+
+/* ================================================================
+   ahmedtarek.tech parity — overriding app.css
+   app.css is shared with /admin, /dashboard and /share, so its blue,
+   its Manrope/Roboto Mono type and its 800 weights stay put there.
+   Everything the site does differently is re-stated here instead,
+   where only /time can see it.
+   ================================================================ */
+
+/* the site's ground is flat, not a radial wash */
+body { background: var(--bg); font-family: var(--font-ui); }
+::selection { background: rgba(var(--accent-rgb), 0.22); }
+
+/* Headings: Inter at 500-600 with a touch of negative tracking. The site
+   never sets a heading in uppercase, and never above 500-600 weight. */
+h1, h2 {
+  font-family: var(--font-ui); font-weight: 600;
+  letter-spacing: -0.01em; text-transform: none;
+}
+
+/* Buttons and chips read as sentence-case pills on the site, not as
+   uppercase monospace keys. */
+.btn {
+  font: 500 0.85rem var(--font-ui);
+  text-transform: none; letter-spacing: 0;
+  border-radius: 999px; padding: 11px 20px;
+}
+.btn--sm { padding: 8px 15px; font-size: 0.8rem; }
+.btn--primary { background: var(--blue); color: var(--btn-ink); }
+.chip {
+  font: 500 0.78rem var(--font-ui);
+  text-transform: none; letter-spacing: 0;
+  border-radius: 999px; padding: 6px 15px;
+}
+.chip--on { background: rgba(var(--accent-rgb), 0.14); border-color: var(--blue); color: var(--blue); }
+.badge { font-family: var(--font-ui); font-weight: 500; border-radius: 999px; padding: 3px 10px; }
+
+/* Micro-labels take the site's kicker: small, wide-tracked, neutral-500. */
+.tile .tile__label,
+.table th {
+  font-family: var(--font-ui); font-weight: 500;
+  letter-spacing: var(--kicker-track);
+}
+.tile .tile__value,
+.avatar--initial { font-family: var(--font-ui); font-weight: 600; }
+
+/* Radii follow the system: 14 for cards, 8 for fields. */
+.card { border-radius: 14px; }
+.chart-detail { background: rgba(var(--accent-rgb), 0.05); border-radius: 14px; }
+input, select, textarea { border-radius: 8px; }
+
+.tooltip { background: var(--glass); color: var(--ink); border-radius: 12px; box-shadow: var(--shadow-card); }
+
+/* the remaining app.css blues */
+tr.rowlink:hover td { background: rgba(var(--accent-rgb), 0.06); }
+.iconbtn--edit:hover { color: var(--blue); background: rgba(var(--accent-rgb), 0.12); }
+.tile:hover { border-color: rgba(var(--accent-rgb), 0.35); }
+.toast { background: var(--glass); color: var(--ink); border-radius: 14px; box-shadow: var(--shadow-card); }
+
+/* Motion: the site's own fade-up — 30px over 0.8s on a plain ease — for the
+   page's arrival. The smaller in-place entrances (task rows, day tiles) keep
+   their shorter rise; at 30px a list of them would heave rather than settle. */
+@keyframes siteFadeUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.view .card, .tiles .tile, .topbar { animation: siteFadeUp 0.8s ease both; }
+.view .card:nth-of-type(2), .tiles .tile:nth-child(2) { animation-delay: 0.09s; }
+.view .card:nth-of-type(3), .tiles .tile:nth-child(3) { animation-delay: 0.18s; }
+.tiles .tile:nth-child(4) { animation-delay: 0.27s; }
+.tiles .tile:nth-child(5) { animation-delay: 0.36s; }

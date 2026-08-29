@@ -327,6 +327,7 @@
     var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
     var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
     var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || COLORS.line;
     var start = new Date(String(opts.start).slice(0, 10) + "T00:00:00Z").getTime();
     var end = new Date(String(opts.end).slice(0, 10) + "T00:00:00Z").getTime();
     if (end <= start) end = start + DAY;
@@ -363,7 +364,7 @@
     svg.appendChild(expectedEl);
 
     // actual cumulative: stepped line, held flat from the last log up to today
-    var color = opts.color || COLORS.line;
+    var color = opts.color || lineColor;
     var d = "M " + x(actualPts[0].t) + " " + y(actualPts[0].v);
     for (var i = 1; i < actualPts.length; i++) {
       d += " L " + x(actualPts[i].t) + " " + y(actualPts[i - 1].v);
@@ -496,6 +497,9 @@
     var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
     var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
     var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
+    // a page that defines --chart-line gets its own accent; one that doesn't
+    // (/admin, /dashboard, /share) keeps the blue this chart has always drawn
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
 
     var dayStart = new Date(String(opts.date).slice(0, 10) + "T00:00:00");
     var start = dayStart.getTime();
@@ -526,7 +530,7 @@
     });
     svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(100), y2: y(100), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" }));
 
-    var color = opts.color || "#60a5fa";
+    var color = opts.color || lineColor;
     var d = stepPath(actualPts.map(function (p) { return [x(p.t), y(p.pct)]; }));
     var lastT = actualPts[actualPts.length - 1].t;
     var extendTo = showNow ? Math.min(Math.max(nowT, lastT), end) : lastT;
@@ -639,6 +643,10 @@
     var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
     var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
     var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
+    // a page that defines --chart-line gets its own accent; one that doesn't
+    // (/admin, /dashboard, /share) keeps the blue this chart has always drawn
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
+    var focusDefault = (cs.getPropertyValue("--chart-focus") || "").trim() || "#f5a524";
 
     var pts = (days || []).map(function (d) {
       return { t: new Date(String(d.date).slice(0, 10) + "T00:00:00Z").getTime(), pct: Number(d.pct) || 0, done: d.done, total: d.total, date: d.date };
@@ -674,7 +682,7 @@
     // passes that range's own average here. It's drawn against the quarter's
     // faint line above, so a zoomed-in week is never read without its context.
     if (opts.focus && opts.focus.avg != null) {
-      var focusColor = opts.focusColor || "#f5a524";
+      var focusColor = opts.focusColor || focusDefault;
       var fy = y(Number(opts.focus.avg) || 0);
       svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: fy, y2: fy, stroke: focusColor, "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
       var fLbl = svgEl("text", { x: M.l + 3, y: fy - 4, fill: focusColor, "font-size": 10, "font-weight": 600 });
@@ -682,7 +690,7 @@
       svg.appendChild(fLbl);
     }
 
-    var color = opts.color || "#60a5fa";
+    var color = opts.color || lineColor;
     var d = "", drawing = false;
     pts.forEach(function (p) {
       if (!p.total) { drawing = false; return; } // untracked — break the line, don't dive to 0

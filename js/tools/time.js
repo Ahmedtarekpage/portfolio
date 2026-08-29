@@ -137,7 +137,7 @@
     var btn = $("#btnTheme");
     if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#eef1f7" : "#0b0e14");
+    if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#161826");
     try { localStorage.setItem("time-theme", theme); } catch (e) {}
   }
 
@@ -1480,7 +1480,10 @@
   var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
   var PACE_DONUT_COLOR = { ahead: "#1fa876", "on-track": "#60a5fa", behind: "#e2586a", "not-started": "#5f6b7d" };
-  var CATEGORY_PALETTE = ["#60a5fa", "#34d399", "#f59e0b", "#a78bfa", "#f472b6", "#22d3ee", "#fb923c", "#94a3b8"];
+  // Categorical palette led by the site's blurple accent. Every hue sits at a
+  // similar mid lightness so the same swatch reads on the white ground and on
+  // the dark one, without a per-theme second palette.
+  var CATEGORY_PALETTE = ["#8477d4", "#3aa682", "#c98a2b", "#4f93d1", "#c4649b", "#3fadaf", "#d1704f", "#8b8fa3"];
   var GOAL_STATUS_LABEL = { done: "Completed", "in-progress": "In progress", "not-started": "Not started" };
   var GOAL_STATUS_COLOR = { done: "#1fa876", "in-progress": "#60a5fa", "not-started": "#5f6b7d" };
 
