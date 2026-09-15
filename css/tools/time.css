@@ -549,6 +549,18 @@
 .quarter-card__top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .quarter-card__name { font: 600 1rem var(--font-ui); }
 .quarter-card__dates { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+.quarter-card__avg { margin-top: 10px; }
+.quarter-card__bar { height: 6px; border-radius: 99px; background: var(--glass-brd); overflow: hidden; }
+.quarter-card__fill {
+  height: 100%; border-radius: 99px; background: var(--grad);
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.quarter-card__fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
+.quarter-card__avg-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 5px;
+}
+.quarter-card__avg-row b { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.quarter-card__avg-row span { font-size: 0.75rem; color: var(--faint); }
 
 /* ---------- goals: concrete numeric milestones within a category ---------- */
 .goals { margin-top: 14px; border-top: 1px solid var(--glass-brd); padding-top: 12px; }

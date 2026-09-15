@@ -806,4 +806,153 @@
     }
   };
 
+
+  /* Completion across quarters — the Days chart's language, one point per
+     quarter instead of one per day.
+
+     Quarters are categorical, not continuous: they differ in length and can sit
+     months apart, so plotting them on a real time axis would stretch the gaps
+     and say something about elapsed time the chart doesn't mean. Points are
+     evenly spaced and labelled by name instead.
+
+     quarters: [{ id, name, avg, tracked, days, isCurrent }] oldest first
+     opts.avg — the average across all of them, drawn as the dashed baseline */
+  window.renderQuartersChart = function (box, tip, quarters, opts) {
+    opts = opts || {};
+    box.innerHTML = "";
+    var cs = getComputedStyle(document.documentElement);
+    var faint = (cs.getPropertyValue("--faint") || "#5f6b7d").trim() || "#5f6b7d";
+    var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
+    var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
+    var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
+
+    var pts = (quarters || []).filter(function (q) { return q && q.tracked; });
+    if (!pts.length) {
+      box.innerHTML = '<p class="muted center" style="margin:0">No tracked days in any quarter yet.</p>';
+      return;
+    }
+
+    var avg = Number(opts.avg) || 0;
+    var W = Math.max(box.clientWidth || 600, 260), H = 190;
+    var M = { l: 34, r: 12, t: 14, b: 26 };
+    // one point sits in the middle rather than pinned to the left margin
+    var x = function (i) {
+      if (pts.length === 1) return M.l + (W - M.l - M.r) / 2;
+      return M.l + (i / (pts.length - 1)) * (W - M.l - M.r);
+    };
+    var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
+
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
+      "aria-label": opts.ariaLabel || "Average completion for each quarter" });
+
+    [0, 25, 50, 75, 100].forEach(function (v) {
+      svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
+      var lbl = svgEl("text", { x: M.l - 6, y: y(v) + 4, "text-anchor": "end", fill: faint, "font-size": 10 });
+      lbl.textContent = v + "%";
+      svg.appendChild(lbl);
+    });
+
+    var avgEl = svgEl("line", { x1: M.l, x2: W - M.r, y1: y(avg), y2: y(avg), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" });
+    svg.appendChild(avgEl);
+    var avgLbl = svgEl("text", { x: W - M.r, y: y(avg) - 4, "text-anchor": "end", fill: faint, "font-size": 10 });
+    avgLbl.textContent = "All quarters " + Math.round(avg) + "%";
+    svg.appendChild(avgLbl);
+
+    var d = "";
+    pts.forEach(function (q, i) { d += (i ? " L " : "M ") + x(i) + " " + y(q.avg); });
+    var lineEl = svgEl("path", { d: d, fill: "none", stroke: lineColor, "stroke-width": 2.5,
+      "stroke-linejoin": "round", "stroke-linecap": "round" });
+    svg.appendChild(lineEl);
+
+    // names under every point while they still fit; past that, the ends only —
+    // overlapping labels are worse than no labels
+    var showEvery = pts.length <= 8 ? 1 : Math.ceil(pts.length / 6);
+    pts.forEach(function (q, i) {
+      var isEnd = i === 0 || i === pts.length - 1;
+      if (!isEnd && i % showEvery !== 0) return;
+      var xl = svgEl("text", {
+        x: x(i), y: H - 8, fill: faint, "font-size": 9.5,
+        "text-anchor": pts.length === 1 ? "middle" : (i === 0 ? "start" : (i === pts.length - 1 ? "end" : "middle")),
+      });
+      xl.textContent = String(q.name || "").slice(0, 10);
+      svg.appendChild(xl);
+    });
+
+    var markers = [];
+    pts.forEach(function (q, i) {
+      var cx = x(i), cy = y(q.avg);
+      // the quarter you're in gets a ring, the way today gets a rule on the Days chart
+      if (q.isCurrent) {
+        svg.appendChild(svgEl("line", { x1: cx, x2: cx, y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
+      }
+      var m = svgEl("circle", { cx: cx, cy: cy, r: q.isCurrent ? 5.2 : 4.4, fill: lineColor, stroke: surface, "stroke-width": 1.5 });
+      svg.appendChild(m);
+      markers.push({ el: m, cx: cx, cy: cy });
+    });
+
+    if (tip) {
+      var ring = svgEl("circle", { r: 8, fill: "none", stroke: lineColor, "stroke-width": 1.5, visibility: "hidden" });
+      svg.appendChild(ring);
+      var overlay = svgEl("rect", { x: M.l, y: M.t, width: W - M.l - M.r, height: H - M.t - M.b, fill: "transparent" });
+      overlay.style.touchAction = "pan-y";
+      overlay.style.cursor = "pointer";
+      svg.appendChild(overlay);
+
+      var nearest = function (ev) {
+        var rect = svg.getBoundingClientRect();
+        var px = ((ev.clientX - rect.left) / rect.width) * W;
+        var best = null, bestD = Infinity;
+        pts.forEach(function (q, i) {
+          var dd = Math.abs(x(i) - px);
+          if (dd < bestD) { bestD = dd; best = { q: q, cx: x(i), cy: y(q.avg) }; }
+        });
+        return best;
+      };
+      var show = function (best) {
+        ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
+        ring.setAttribute("visibility", "visible");
+        tip.innerHTML = '<div class="muted">' + esc(best.q.name) + '</div>' +
+          '<div>Average: <b>' + Math.round(best.q.avg) + '%</b></div>' +
+          '<div class="muted">' + best.q.tracked + ' of ' + best.q.days + ' days tracked</div>';
+        tip.hidden = false;
+        var bx = box.getBoundingClientRect();
+        var left = (best.cx / W) * bx.width + 12;
+        if (left + 190 > bx.width) left = left - 214;
+        tip.style.left = Math.max(left, 4) + "px";
+        tip.style.top = Math.max((best.cy / H) * bx.height - 40, 0) + "px";
+      };
+      var hide = function () { ring.setAttribute("visibility", "hidden"); tip.hidden = true; };
+      overlay.addEventListener("pointermove", function (ev) { var b = nearest(ev); if (b) show(b); });
+      overlay.addEventListener("pointerdown", function (ev) { var b = nearest(ev); if (b) show(b); });
+      overlay.addEventListener("pointerleave", hide);
+    }
+
+    box.appendChild(svg);
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion && opts.animate !== false) {
+      try {
+        var len = d ? lineEl.getTotalLength() : 0;
+        lineEl.style.strokeDasharray = len;
+        lineEl.style.strokeDashoffset = len;
+        avgEl.style.opacity = 0;
+        lineEl.getBoundingClientRect();
+        lineEl.style.transition = "stroke-dashoffset 0.8s ease";
+        lineEl.style.strokeDashoffset = 0;
+        avgEl.style.transition = "opacity 0.5s ease 0.3s";
+        avgEl.style.opacity = 1;
+      } catch (e) { /* SVG not measurable — skip animation */ }
+      markers.forEach(function (m, i) {
+        m.el.style.opacity = 0;
+        m.el.style.transform = "scale(0.4)";
+        m.el.style.transformOrigin = m.cx + "px " + m.cy + "px";
+        setTimeout(function () {
+          m.el.style.transition = "opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+          m.el.style.opacity = 1;
+          m.el.style.transform = "scale(1)";
+        }, 300 + i * 45);
+      });
+    }
+  };
 })();

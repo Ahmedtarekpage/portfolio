@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=7" />
-  <link rel="stylesheet" href="css/tools/time.css?v=38" />
+  <link rel="stylesheet" href="css/tools/time.css?v=39" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -339,6 +339,31 @@
 
         <p id="noQuarters" class="muted center" hidden>No quarters yet — create one above.</p>
 
+        <!-- the Days tab's graph, one point per quarter instead of one per day -->
+        <div id="quartersSummary" hidden>
+          <div class="tiles">
+            <div class="tile tile--accent">
+              <div class="tile__label">Average across quarters</div>
+              <div class="tile__value" id="quartersAvgValue">0%</div>
+              <div class="tile__sub" id="quartersAvgSub">0 quarters tracked</div>
+            </div>
+            <div class="tile">
+              <div class="tile__label">Best quarter</div>
+              <div class="tile__value" id="quartersBestValue">—</div>
+              <div class="tile__sub" id="quartersBestSub">—</div>
+            </div>
+            <div class="tile">
+              <div class="tile__label">Days tracked</div>
+              <div class="tile__value" id="quartersDaysValue">0</div>
+              <div class="tile__sub" id="quartersDaysSub">across every quarter</div>
+            </div>
+          </div>
+          <div class="chart-tip-wrap">
+            <div class="chart" id="quartersChart" style="min-height:190px"></div>
+            <div id="quartersChartTip" class="tooltip" hidden></div>
+          </div>
+        </div>
+
         <div class="quarter-gallery" id="quarterGallery"></div>
       </div>
 
@@ -537,7 +562,7 @@
   </div>
 
   <script src="js/tools/theme.js?v=1"></script>
-  <script src="js/tools/chart.js?v=15"></script>
-  <script src="js/tools/time.js?v=49"></script>
+  <script src="js/tools/chart.js?v=16"></script>
+  <script src="js/tools/time.js?v=50"></script>
 </body>
 </html>

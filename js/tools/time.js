@@ -12,6 +12,7 @@
     editingQuarterId: null,
     editingTaskId: null,
     daysData: null,  // { quarterId, from, to, days: [{date,pct,done,total}], avg } for the Days tab
+    quarterStats: null, // { byId: {id: {avg,tracked,days}}, avg, tracked } for the Quarters gallery
     daysFocus: null, // { quarterId, from, to, preset } — the week/range focused under the days chart
     goalsView: (function () {
       try { return localStorage.getItem("time-goals-view") || "category"; } catch (e) { return "category"; }
@@ -134,6 +135,7 @@
 
   window.Theme.onChange(function () {
     if (state.quarterDetail) renderQuarter(state.quarterDetail);
+    if (state.quarterStats && !$("#quarterGalleryView").hidden) renderQuartersSummary();
     if (state.daysData && !document.querySelector('.tabpanel[data-tabpanel="days"]').hidden) {
       renderDaysFocus({ animateChart: false, tiles: false });
     }
@@ -1404,6 +1406,89 @@
 
   /* ---------------- quarters gallery: pick one card to open its detail view ---------------- */
 
+  /* Every quarter's average, on the same rule the Days tab uses: a day counts
+     only if it has tasks, and the quarter's figure is the mean of those days'
+     percentages. One request covers the whole span rather than one per quarter —
+     /api/tasks?stats=1 only returns days that have tasks, so the reply is small
+     however many years the quarters cover. */
+  function loadQuarterStats() {
+    var qs = state.quarters || [];
+    if (!qs.length) {
+      state.quarterStats = null;
+      $("#quartersSummary").hidden = true;
+      return Promise.resolve();
+    }
+    var from = qs.reduce(function (m, q) { var d = String(q.start_date).slice(0, 10); return d < m ? d : m; }, "9999-12-31");
+    var to = qs.reduce(function (m, q) { var d = String(q.end_date).slice(0, 10); return d > m ? d : m; }, "0000-01-01");
+
+    return api("/api/tasks?stats=1&from=" + from + "&to=" + to).then(function (r) {
+      var stats = r.stats || [];
+      var byId = {};
+      qs.forEach(function (q) {
+        var qf = String(q.start_date).slice(0, 10), qt = String(q.end_date).slice(0, 10);
+        var sum = 0, tracked = 0;
+        stats.forEach(function (st) {
+          var d = String(st.date).slice(0, 10);
+          if (d < qf || d > qt || !st.total) return;
+          sum += Math.round((st.done / st.total) * 100);
+          tracked++;
+        });
+        byId[q.id] = {
+          avg: tracked ? Math.round(sum / tracked) : 0,
+          tracked: tracked,
+          days: daysBetween(qf, qt),
+        };
+      });
+      // the headline is the mean of the quarters that have anything in them, so
+      // an untouched future quarter can't drag the number toward zero
+      var withData = qs.filter(function (q) { return byId[q.id].tracked; });
+      state.quarterStats = {
+        byId: byId,
+        avg: withData.length
+          ? Math.round(withData.reduce(function (a, q) { return a + byId[q.id].avg; }, 0) / withData.length)
+          : 0,
+        counted: withData.length,
+        trackedDays: qs.reduce(function (a, q) { return a + byId[q.id].tracked; }, 0),
+      };
+      renderQuarterGallery();
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function daysBetween(from, to) {
+    return Math.round((new Date(to + "T00:00:00Z") - new Date(from + "T00:00:00Z")) / 86400000) + 1;
+  }
+
+  function renderQuartersSummary() {
+    var st = state.quarterStats;
+    var box = $("#quartersSummary");
+    if (!st || !state.quarters.length) { box.hidden = true; return; }
+    box.hidden = false;
+
+    $("#quartersAvgValue").textContent = st.avg + "%";
+    $("#quartersAvgSub").textContent = plural(st.counted, "quarter") + " with tracked days";
+    $("#quartersDaysValue").textContent = st.trackedDays;
+    $("#quartersDaysSub").textContent = "across " + plural(state.quarters.length, "quarter");
+
+    var best = null;
+    state.quarters.forEach(function (q) {
+      var s = st.byId[q.id];
+      if (s && s.tracked && (!best || s.avg > best.s.avg)) best = { q: q, s: s };
+    });
+    $("#quartersBestValue").textContent = best ? best.s.avg + "%" : "—";
+    $("#quartersBestSub").textContent = best ? best.q.name : "no tracked days yet";
+
+    // oldest first — a trend line that ran newest-to-oldest would read backwards
+    var today = todayISO();
+    var points = state.quarters.slice().reverse().map(function (q) {
+      var s = st.byId[q.id] || { avg: 0, tracked: 0, days: 0 };
+      return {
+        id: q.id, name: q.name, avg: s.avg, tracked: s.tracked, days: s.days,
+        isCurrent: q.start_date <= today && today <= q.end_date,
+      };
+    });
+    window.renderQuartersChart($("#quartersChart"), $("#quartersChartTip"), points, { avg: st.avg });
+  }
+
   function renderQuarterGallery() {
     $("#noQuarters").hidden = state.quarters.length > 0;
     var today = todayISO();
@@ -1412,9 +1497,20 @@
       var badge = today < q.start_date ? '<span class="badge badge--muted">Upcoming</span>'
         : today > q.end_date ? '<span class="badge badge--muted">Past</span>'
         : '<span class="badge badge--good">Current</span>';
+      var s = state.quarterStats && state.quarterStats.byId[q.id];
       return '<div class="quarter-card" data-id="' + q.id + '">' +
         '<div class="quarter-card__top"><span class="quarter-card__name">' + esc(q.name) + '</span>' + badge + '</div>' +
         '<div class="quarter-card__dates">' + fmtDate(q.start_date) + ' – ' + fmtDate(q.end_date) + '</div>' +
+        (s ?
+          '<div class="quarter-card__avg">' +
+            '<div class="quarter-card__bar"><div class="quarter-card__fill' + (s.avg >= 100 ? ' quarter-card__fill--done' : '') +
+              '" style="width:' + s.avg + '%"></div></div>' +
+            '<div class="quarter-card__avg-row">' +
+              '<b>' + s.avg + '%</b>' +
+              '<span>' + (s.tracked ? s.tracked + ' of ' + s.days + ' days' : 'nothing logged yet') + '</span>' +
+            '</div>' +
+          '</div>'
+          : '') +
       '</div>';
     }).join("");
     box.querySelectorAll(".quarter-card").forEach(function (card) {
@@ -1425,13 +1521,15 @@
         loadQuarterDetail(id).then(function () { showQuarterDetailView(); });
       });
     });
+    renderQuartersSummary();
   }
 
   function showQuarterGallery() {
     $("#quarterGalleryView").hidden = false;
     $("#quarterDetailView").hidden = true;
     remember("quarter-view", "gallery");
-    renderQuarterGallery();
+    renderQuarterGallery(); // paint from what's cached, then refresh in the background
+    loadQuarterStats();
   }
 
   function showQuarterDetailView() {
@@ -2606,6 +2704,7 @@
       if (state.daysData && !document.querySelector('.tabpanel[data-tabpanel="days"]').hidden) {
         renderDaysFocus({ animateChart: false, tiles: false });
       }
+      if (state.quarterStats && !$("#quarterGalleryView").hidden) renderQuartersSummary();
     }, 150);
   });
 
