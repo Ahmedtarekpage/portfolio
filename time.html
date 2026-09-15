@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=7" />
-  <link rel="stylesheet" href="css/tools/time.css?v=39" />
+  <link rel="stylesheet" href="css/tools/time.css?v=40" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -398,7 +398,12 @@
       <div class="card">
         <div class="card__head">
           <h2>Days</h2>
-          <span class="muted" id="daysQuarterLabel"></span>
+          <!-- the Days tab follows the selected quarter; this changes it without
+               a detour through the Quarter tab -->
+          <div class="days-quarter">
+            <select id="daysQuarterPicker" aria-label="Which quarter to show"></select>
+            <span class="muted" id="daysQuarterLabel"></span>
+          </div>
         </div>
         <p id="noDaysQuarter" class="muted center" hidden>Create a quarter first (in the Quarter tab) to see its days here.</p>
 
@@ -563,6 +568,6 @@
 
   <script src="js/tools/theme.js?v=1"></script>
   <script src="js/tools/chart.js?v=16"></script>
-  <script src="js/tools/time.js?v=50"></script>
+  <script src="js/tools/time.js?v=51"></script>
 </body>
 </html>

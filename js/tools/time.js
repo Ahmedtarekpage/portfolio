@@ -2276,6 +2276,7 @@
       $("#dayGallery").innerHTML = "";
       $("#noDaysQuarter").hidden = false;
       $("#daysQuarterLabel").textContent = "";
+      $("#daysQuarterPicker").hidden = true;
       $("#daysAvgValue").textContent = "0%";
       $("#daysAvgSub").textContent = "0 days tracked";
       state.daysData = null;
@@ -2283,7 +2284,13 @@
       return Promise.resolve();
     }
     $("#noDaysQuarter").hidden = true;
-    $("#daysQuarterLabel").textContent = quarter.name + " (" + fmtDate(quarter.start_date) + "–" + fmtDate(quarter.end_date) + ")";
+    var picker = $("#daysQuarterPicker");
+    picker.hidden = state.quarters.length < 2; // nothing to switch to
+    picker.innerHTML = state.quarters.map(function (q) {
+      return '<option value="' + q.id + '"' + (q.id === quarter.id ? " selected" : "") + ">" + esc(q.name) + "</option>";
+    }).join("");
+    $("#daysQuarterLabel").textContent = (picker.hidden ? quarter.name + " · " : "") +
+      fmtDate(quarter.start_date) + " – " + fmtDate(quarter.end_date);
 
     var from = String(quarter.start_date).slice(0, 10);
     var to = String(quarter.end_date).slice(0, 10);
@@ -2294,6 +2301,16 @@
       renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
+
+  $("#daysQuarterPicker").addEventListener("change", function () {
+    var id = Number(this.value);
+    if (!id || id === state.selectedQuarterId) return;
+    state.selectedQuarterId = id;
+    remember("quarter-id", String(id));
+    loadQuarterDetail(id)
+      .then(function () { return loadDaysGallery(); })
+      .catch(function (e) { toast(e.message, true); });
+  });
 
   function renderDaysGallery(from, to, stats, photos, opts) {
     opts = opts || {};

@@ -141,6 +141,17 @@
   100% { transform: scale(1); }
 }
 
+/* ---------- Days: which quarter is on screen ---------- */
+.days-quarter { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.days-quarter select {
+  background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 6px 10px; font: 500 0.85rem var(--font-ui);
+  outline: none; cursor: pointer;
+  transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.days-quarter select:hover { border-color: var(--blue); }
+.days-quarter #daysQuarterLabel { font-size: 0.82rem; }
+
 /* ---------- Days: what the graph is currently showing ---------- */
 .days-chart-head {
   display: flex; align-items: center; justify-content: space-between;
