@@ -11,6 +11,8 @@
     quarterDetail: null, // { quarter, categories }
     editingQuarterId: null,
     editingTaskId: null,
+    selectingTasks: false, // Today tab's select mode, for deleting several tasks at once
+    selectedTaskIds: {},   // id -> true while selecting
     daysData: null,  // { quarterId, from, to, days: [{date,pct,done,total}], avg } for the Days tab
     quarterStats: null, // { byId: {id: {avg,tracked,days}}, avg, tracked } for the Quarters gallery
     daysFocus: null, // { quarterId, from, to, preset } — the week/range focused under the days chart
@@ -777,6 +779,7 @@
   function loadDay(date, opts) {
     opts = opts || {};
     if (date !== state.currentDate && state.editingTaskId) stopEditTask();
+    if (date !== state.currentDate && state.selectingTasks) exitTaskSelect();
     state.currentDate = date;
     $("#dayPicker").value = date;
     return api("/api/tasks?date=" + date).then(function (data) {
@@ -907,7 +910,9 @@
       var meta = [];
       if (t.category_name) meta.push(esc(t.category_name));
       if (t.planned_hours != null) meta.push(fmtH(t.planned_hours) + " planned");
+      if (state.selectedTaskIds[t.id]) row.classList.add("task-row--selected");
       row.innerHTML =
+        '<span class="task-row__select" aria-hidden="true"></span>' +
         '<span class="task-row__handle" title="Drag to reorder">⠿</span>' +
         '<input type="checkbox" class="task-row__check" ' + (t.done ? "checked" : "") + ' aria-label="Mark done" />' +
         '<span class="task-row__icon">' + esc(t.icon || "📝") + '</span>' +
@@ -933,6 +938,10 @@
             .catch(function (e) { toast(e.message, true); });
         });
       }
+      row.addEventListener("click", function () {
+        if (!state.selectingTasks) return;
+        toggleTaskSelected(t.id, row);
+      });
       row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditTask(t); });
       row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
         if (!confirm('Delete task "' + t.title + '"?')) return;
@@ -942,7 +951,96 @@
       });
       list.appendChild(row);
     });
+
+    // a selection can only hold tasks that are still on screen
+    var present = {};
+    tasks.forEach(function (t) { present[t.id] = true; });
+    Object.keys(state.selectedTaskIds).forEach(function (id) {
+      if (!present[id]) delete state.selectedTaskIds[id];
+    });
+    state.visibleTaskIds = tasks.map(function (t) { return t.id; });
+    $("#taskSelect").hidden = total === 0;
+    if (!total && state.selectingTasks) exitTaskSelect();
+    else syncTaskSelectBar();
   }
+
+  /* ---------------- select several tasks, delete them together ---------------- */
+
+  function selectedTaskCount() { return Object.keys(state.selectedTaskIds).length; }
+
+  function syncTaskSelectBar() {
+    var n = selectedTaskCount();
+    var all = (state.visibleTaskIds || []).length;
+    $("#taskSelectCount").textContent = n + " selected";
+    $("#btnDeleteSelected").disabled = n === 0;
+    $("#btnDeleteSelected").textContent = n ? "Delete " + n : "Delete";
+    $("#btnSelectAll").textContent = n && n === all ? "Select none" : "Select all";
+  }
+
+  function enterTaskSelect() {
+    if (state.editingTaskId) stopEditTask(); // an edit form open on a task being deleted would save into nothing
+    state.selectingTasks = true;
+    state.selectedTaskIds = {};
+    $("#taskList").classList.add("task-list--selecting");
+    $("#taskSelect").classList.add("task-select--active");
+    $("#btnSelectTasks").hidden = true;
+    $("#taskSelectBar").hidden = false;
+    syncTaskSelectBar();
+  }
+
+  function exitTaskSelect() {
+    state.selectingTasks = false;
+    state.selectedTaskIds = {};
+    $("#taskList").classList.remove("task-list--selecting");
+    $("#taskSelect").classList.remove("task-select--active");
+    document.querySelectorAll("#taskList .task-row--selected").forEach(function (r) { r.classList.remove("task-row--selected"); });
+    $("#btnSelectTasks").hidden = false;
+    $("#taskSelectBar").hidden = true;
+  }
+
+  function toggleTaskSelected(id, row) {
+    if (state.selectedTaskIds[id]) delete state.selectedTaskIds[id];
+    else state.selectedTaskIds[id] = true;
+    row.classList.toggle("task-row--selected", !!state.selectedTaskIds[id]);
+    syncTaskSelectBar();
+  }
+
+  $("#btnSelectTasks").addEventListener("click", enterTaskSelect);
+  $("#btnCancelSelect").addEventListener("click", exitTaskSelect);
+
+  $("#btnSelectAll").addEventListener("click", function () {
+    var ids = state.visibleTaskIds || [];
+    var everything = selectedTaskCount() === ids.length && ids.length > 0;
+    state.selectedTaskIds = {};
+    if (!everything) ids.forEach(function (id) { state.selectedTaskIds[id] = true; });
+    document.querySelectorAll("#taskList .task-row").forEach(function (r) {
+      r.classList.toggle("task-row--selected", !!state.selectedTaskIds[r.dataset.id]);
+    });
+    syncTaskSelectBar();
+  });
+
+  $("#btnDeleteSelected").addEventListener("click", function () {
+    var ids = Object.keys(state.selectedTaskIds);
+    if (!ids.length) return;
+    if (!confirm("Delete " + ids.length + " task" + (ids.length === 1 ? "" : "s") + "? This can't be undone.")) return;
+    var btn = this;
+    busy(btn, true);
+    api("/api/tasks?ids=" + ids.join(","), { method: "DELETE" })
+      .then(function (r) {
+        playDeleteSound();
+        var n = r.count != null ? r.count : ids.length;
+        toast("Deleted " + n + " task" + (n === 1 ? "" : "s"));
+        exitTaskSelect();
+        return afterTaskChange();
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); syncTaskSelectBar(); });
+  });
+
+  // Escape backs out of select mode, the way it closes anything else modal
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && state.selectingTasks) exitTaskSelect();
+  });
 
   // a task's done/actual-hours change can move the daily % and a category's
   // quarterly progress, so refresh the day, the 14-day strip, and the chart together

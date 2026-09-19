@@ -489,6 +489,46 @@
   border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .task-row__check:active { transform: scale(0.82); }
+/* ---------- select mode: pick several tasks, delete them together ----------
+   The select mark is a rounded square on purpose. The done mark is a circle, and
+   the two must never be mistaken for each other — one is a record of the day,
+   the other is a list of things about to be deleted. */
+.task-select { display: flex; justify-content: flex-end; margin-top: 12px; }
+.task-select--active { position: sticky; top: 8px; z-index: 5; }
+.task-select__bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;
+  padding: 8px 10px; border-radius: 14px;
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: var(--glass); box-shadow: var(--shadow-pop);
+  animation: fadeUp 0.25s var(--ease) both;
+}
+.task-select__count {
+  margin-right: auto; font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.task-row__select {
+  display: none; flex: none; position: relative;
+  width: 22px; height: 22px; border-radius: 7px;
+  border: 2px solid var(--glass-brd); background: var(--bg);
+  transition: background-color var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) var(--ease);
+}
+.task-row--selected .task-row__select { background: var(--blue); border-color: var(--blue); transform: scale(1.06); }
+.task-row--selected .task-row__select::after {
+  content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px;
+  border: solid var(--btn-ink); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+/* in select mode the whole row is the tap target, and everything that would
+   do something else on tap — done, drag, edit, delete, hours — steps aside */
+.task-list--selecting .task-row { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.task-list--selecting .task-row__select { display: inline-block; }
+.task-list--selecting .task-row__handle,
+.task-list--selecting .task-row__check,
+.task-list--selecting .task-row__actual,
+.task-list--selecting .task-row .iconbtn { display: none; }
+.task-list--selecting .task-row:active { transform: scale(0.99); }
+.task-row--selected { border-color: var(--blue); background: rgba(var(--accent-rgb), 0.08); }
+/* a done task is dimmed, but once selected it must read clearly as selected */
+.task-list--selecting .task-row--done.task-row--selected { opacity: 0.85; }
+
 .task-row__body { flex: 1; min-width: 0; }
 .task-row__title { font-size: 0.94rem; }
 .task-row__meta { font-size: 0.76rem; color: var(--faint); margin-top: 2px; }

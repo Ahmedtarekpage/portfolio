@@ -7,6 +7,7 @@
 //   PATCH  /api/tasks?reorder=1              -> { ids: [id, ...] }: persist new drag order for those tasks
 //   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, actual_hours?, icon? }
 //   DELETE /api/tasks?date=YYYY-MM-DD        -> delete every task on that day
+//   DELETE /api/tasks?ids=1,2,3              -> delete a hand-picked set in one go -> { count }
 //   DELETE /api/tasks?id=N
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
@@ -85,6 +86,15 @@ export default withErrors(async (req, res) => {
       await sql`UPDATE tasks SET position = ${i} WHERE id = ${ids[i]}`;
     }
     return json(res, 200, { ok: true });
+  }
+
+  if (req.method === "DELETE" && req.query.ids) {
+    // one statement, so a selection is deleted whole or not at all — deleting
+    // them one request at a time could stop halfway and leave half a selection
+    const ids = String(req.query.ids).split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (!ids.length) return json(res, 400, { error: "ids must be a comma-separated list of task ids" });
+    const rows = await sql`DELETE FROM tasks WHERE id = ANY(${ids}) RETURNING id`;
+    return json(res, 200, { ok: true, count: rows.length });
   }
 
   if (req.method === "DELETE" && req.query.date) {

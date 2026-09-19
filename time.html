@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=7" />
-  <link rel="stylesheet" href="css/tools/time.css?v=40" />
+  <link rel="stylesheet" href="css/tools/time.css?v=41" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -285,6 +285,17 @@
         <details class="section-collapse" open>
           <summary>✅ To-do list</summary>
           <div class="section-collapse__body">
+            <!-- Select mode: each row's checkbox already means "done", so picking
+                 tasks to delete is its own mode rather than a second checkbox -->
+            <div class="task-select" id="taskSelect" hidden>
+              <button type="button" id="btnSelectTasks" class="btn btn--ghost btn--sm">Select</button>
+              <div class="task-select__bar" id="taskSelectBar" hidden>
+                <button type="button" id="btnSelectAll" class="btn btn--ghost btn--sm">Select all</button>
+                <span class="task-select__count" id="taskSelectCount" aria-live="polite">0 selected</span>
+                <button type="button" id="btnDeleteSelected" class="btn btn--danger btn--sm" disabled>Delete</button>
+                <button type="button" id="btnCancelSelect" class="btn btn--ghost btn--sm">Done</button>
+              </div>
+            </div>
             <div class="task-list" id="taskList"></div>
             <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
 
@@ -568,6 +579,6 @@
 
   <script src="js/tools/theme.js?v=1"></script>
   <script src="js/tools/chart.js?v=16"></script>
-  <script src="js/tools/time.js?v=51"></script>
+  <script src="js/tools/time.js?v=52"></script>
 </body>
 </html>
