@@ -150,6 +150,25 @@ async function migrate(sql) {
   // everything) — stored server-side so it's the same on every device, not
   // just the browser that clicked "hide"
   await sql`ALTER TABLE goals ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT false`;
+  // A goal row only holds its value now; this holds what it was on each day,
+  // so the Days graph can draw goals reached over time beside execution. One
+  // row per goal per day — a day's last change wins.
+  await sql`CREATE TABLE IF NOT EXISTS goal_log (
+    goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+    day DATE NOT NULL,
+    current NUMERIC NOT NULL,
+    target NUMERIC NOT NULL,
+    PRIMARY KEY (goal_id, day)
+  )`;
+  // A goal with no history gets one reading: its value as of now. Nothing
+  // earlier is invented — before this, how far along a goal was on a given
+  // day was never recorded, so the line starts here rather than guessing.
+  // Idempotent: only goals without any log row are touched.
+  await sql`
+    INSERT INTO goal_log (goal_id, day, current, target)
+    SELECT g.id, CURRENT_DATE, g.current, g.target FROM goals g
+    WHERE NOT EXISTS (SELECT 1 FROM goal_log l WHERE l.goal_id = g.id)
+    ON CONFLICT DO NOTHING`;
   // one optional uploaded thumbnail per day, for the Days gallery tab —
   // stored as a data: URL (client resizes/compresses before upload)
   await sql`CREATE TABLE IF NOT EXISTS day_photos (

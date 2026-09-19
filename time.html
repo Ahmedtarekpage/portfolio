@@ -33,8 +33,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=7" />
-  <link rel="stylesheet" href="css/tools/time.css?v=41" />
+  <link rel="stylesheet" href="css/tools/app.css?v=8" />
+  <link rel="stylesheet" href="css/tools/time.css?v=42" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -354,9 +354,14 @@
         <div id="quartersSummary" hidden>
           <div class="tiles">
             <div class="tile tile--accent">
-              <div class="tile__label">Average across quarters</div>
+              <div class="tile__label">Execution</div>
               <div class="tile__value" id="quartersAvgValue">0%</div>
-              <div class="tile__sub" id="quartersAvgSub">0 quarters tracked</div>
+              <div class="tile__sub" id="quartersAvgSub">daily tasks done</div>
+            </div>
+            <div class="tile tile--goals">
+              <div class="tile__label">Goals reached</div>
+              <div class="tile__value" id="quartersGoalsValue">—</div>
+              <div class="tile__sub" id="quartersGoalsSub">of goals reached</div>
             </div>
             <div class="tile">
               <div class="tile__label">Best quarter</div>
@@ -420,9 +425,14 @@
 
         <div class="tiles">
           <div class="tile tile--accent">
-            <div class="tile__label">Average completion</div>
+            <div class="tile__label">Execution</div>
             <div class="tile__value" id="daysAvgValue">0%</div>
             <div class="tile__sub" id="daysAvgSub">0 days tracked</div>
+          </div>
+          <div class="tile tile--goals">
+            <div class="tile__label">Goals reached</div>
+            <div class="tile__value" id="daysGoalsValue">—</div>
+            <div class="tile__sub" id="daysGoalsSub">of this quarter's goals</div>
           </div>
         </div>
 
@@ -578,7 +588,7 @@
   </div>
 
   <script src="js/tools/theme.js?v=1"></script>
-  <script src="js/tools/chart.js?v=16"></script>
-  <script src="js/tools/time.js?v=52"></script>
+  <script src="js/tools/chart.js?v=17"></script>
+  <script src="js/tools/time.js?v=53"></script>
 </body>
 </html>

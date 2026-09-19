@@ -608,10 +608,19 @@
 }
 .quarter-card__fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
 .quarter-card__avg-row {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 5px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px;
 }
-.quarter-card__avg-row b { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
-.quarter-card__avg-row span { font-size: 0.75rem; color: var(--faint); }
+.quarter-card__avg-row b { font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.quarter-card__avg-row span { font-size: 0.75rem; color: var(--muted); }
+.quarter-card__measure + .quarter-card__measure { margin-top: 8px; }
+/* the two measures wear the graph's two colours, so a card reads as the chart does */
+.quarter-card__measure--goals .quarter-card__fill { background: var(--chart-goals); }
+.quarter-card__measure--goals .quarter-card__fill--done { background: linear-gradient(110deg, #1fa876, #34d399); }
+.quarter-card__measure--goals b { color: var(--chart-goals); }
+.quarter-card__foot { font-size: 0.72rem; color: var(--faint); margin-top: 7px; }
+
+/* a goals tile takes the goals line's colour, the way the execution tile takes the accent */
+.tile--goals .tile__value { color: var(--chart-goals); }
 
 /* ---------- goals: concrete numeric milestones within a category ---------- */
 .goals { margin-top: 14px; border-top: 1px solid var(--glass-brd); padding-top: 12px; }

@@ -39,6 +39,20 @@
     return el;
   }
 
+  // a row of "── label" keys drawn inside the SVG, so the chart's coordinates
+  // (and the tooltip placement that relies on them) stay untouched
+  function drawLegend(svg, items, x0, y0, ink) {
+    var xpos = x0;
+    items.forEach(function (it) {
+      svg.appendChild(svgEl("line", { x1: xpos, x2: xpos + 14, y1: y0, y2: y0, stroke: it.color,
+        "stroke-width": 2.5, "stroke-linecap": "round" }));
+      var t = svgEl("text", { x: xpos + 19, y: y0 + 3.5, fill: ink, "font-size": 10 });
+      t.textContent = it.label;
+      svg.appendChild(t);
+      xpos += 19 + it.label.length * 5.6 + 16;
+    });
+  }
+
   // "digital"/PWM-style step path through [x, y] points — holds flat at the
   // previous value, then jumps vertically. Used by the Today tab's
   // completion-pace graph, where each point is a discrete task completion,
@@ -647,19 +661,29 @@
     // (/admin, /dashboard, /share) keeps the blue this chart has always drawn
     var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
     var focusDefault = (cs.getPropertyValue("--chart-focus") || "").trim() || "#f5a524";
+    var goalsColor = (cs.getPropertyValue("--chart-goals") || "").trim() || "#3aa682";
 
     var pts = (days || []).map(function (d) {
       return { t: new Date(String(d.date).slice(0, 10) + "T00:00:00Z").getTime(), pct: Number(d.pct) || 0, done: d.done, total: d.total, date: d.date };
     });
     if (!pts.length) { box.innerHTML = '<p class="muted center" style="margin:0">No days yet.</p>'; return; }
 
+    // goals reached on each day, looked up by date so a cropped range lines up
+    // without the caller slicing a second array in step with the first
+    var goalsBy = opts.goalsByDate || null;
+    pts.forEach(function (p) {
+      var g = goalsBy ? goalsBy[String(p.date).slice(0, 10)] : null;
+      p.goals = g == null ? null : Number(g);
+    });
+    var hasGoals = pts.some(function (p) { return p.goals != null; });
+
     var start = pts[0].t, end = pts[pts.length - 1].t;
     if (end <= start) end = start + DAY;
     var avg = Number(opts.avg) || 0;
     var todayT = new Date(todayISO() + "T00:00:00Z").getTime();
 
-    var W = Math.max(box.clientWidth || 600, 260), H = 190;
-    var M = { l: 34, r: 12, t: 14, b: 24 };
+    var W = Math.max(box.clientWidth || 600, 260), H = hasGoals ? 204 : 190;
+    var M = { l: 34, r: 12, t: hasGoals ? 28 : 14, b: 24 };
     var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
 
@@ -691,6 +715,28 @@
     }
 
     var color = opts.color || lineColor;
+
+    var goalsEl = null, goalDots = [];
+    if (hasGoals) {
+      drawLegend(svg, [{ color: color, label: "Execution" }, { color: goalsColor, label: "Goals reached" }], M.l, 11, faint);
+      var gd = "", gDrawing = false;
+      pts.forEach(function (p) {
+        if (p.goals == null) { gDrawing = false; return; }
+        gd += (gDrawing ? " L " : " M ") + x(p.t) + " " + y(p.goals);
+        gDrawing = true;
+      });
+      goalsEl = svgEl("path", { d: gd, fill: "none", stroke: goalsColor, "stroke-width": 2.2,
+        "stroke-linejoin": "round", "stroke-linecap": "round" });
+      svg.appendChild(goalsEl);
+      // a history of one day is a point, not a line — without a dot it draws nothing
+      var known = pts.filter(function (p) { return p.goals != null; });
+      (known.length <= 10 ? known : [known[known.length - 1]]).forEach(function (p) {
+        var dot = svgEl("circle", { cx: x(p.t), cy: y(p.goals), r: 3.4, fill: goalsColor, stroke: surface, "stroke-width": 1.5 });
+        svg.appendChild(dot);
+        goalDots.push(dot);
+      });
+    }
+
     var d = "", drawing = false;
     pts.forEach(function (p) {
       if (!p.total) { drawing = false; return; } // untracked — break the line, don't dive to 0
@@ -759,8 +805,13 @@
         ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
         ring.setAttribute("visibility", "visible");
         var dateLabel = fmtDate(best.p.date);
-        var detail = best.p.total ? ("Progress: <b>" + Math.round(best.p.pct) + "%</b> (" + best.p.done + "/" + best.p.total + ")") : "No tasks logged";
-        tip.innerHTML = '<div class="muted">' + dateLabel + '</div><div>' + detail + '</div>';
+        var detail = best.p.total
+          ? ((hasGoals ? "Execution" : "Progress") + ": <b>" + Math.round(best.p.pct) + "%</b> (" + best.p.done + "/" + best.p.total + ")")
+          : "No tasks logged";
+        var goalsLine = hasGoals
+          ? '<div>Goals reached: <b>' + (best.p.goals != null ? Math.round(best.p.goals) + "%" : "—") + '</b></div>'
+          : "";
+        tip.innerHTML = '<div class="muted">' + dateLabel + '</div><div>' + detail + '</div>' + goalsLine;
         tip.hidden = false;
         var bx = box.getBoundingClientRect();
         var left = (best.cx / W) * bx.width + 12;
@@ -792,6 +843,14 @@
         lineEl.style.strokeDashoffset = 0;
         avgEl.style.transition = "opacity 0.5s ease 0.3s";
         avgEl.style.opacity = 1;
+        if (goalsEl && goalsEl.getAttribute("d")) {
+          var glen = goalsEl.getTotalLength();
+          goalsEl.style.strokeDasharray = glen;
+          goalsEl.style.strokeDashoffset = glen;
+          goalsEl.getBoundingClientRect();
+          goalsEl.style.transition = "stroke-dashoffset 0.9s ease 0.15s";
+          goalsEl.style.strokeDashoffset = 0;
+        }
       } catch (e) { /* SVG not measurable — skip animation */ }
       markers.forEach(function (m, i) {
         m.el.style.opacity = 0;
@@ -815,8 +874,10 @@
      and say something about elapsed time the chart doesn't mean. Points are
      evenly spaced and labelled by name instead.
 
-     quarters: [{ id, name, avg, tracked, days, isCurrent }] oldest first
-     opts.avg — the average across all of them, drawn as the dashed baseline */
+     quarters: [{ id, name, avg, tracked, days, goals, isCurrent }] oldest first
+       avg   — execution: mean of the tracked days' task completion
+       goals — goals reached: the quarter's goals, target-weighted, or null if it has none
+     opts.avg — execution across all of them, drawn as the dashed baseline */
   window.renderQuartersChart = function (box, tip, quarters, opts) {
     opts = opts || {};
     box.innerHTML = "";
@@ -826,16 +887,19 @@
     var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
     var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
     var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
+    var goalsColor = (cs.getPropertyValue("--chart-goals") || "").trim() || "#3aa682";
 
-    var pts = (quarters || []).filter(function (q) { return q && q.tracked; });
+    // a quarter earns a place on the axis if either line has something to say
+    var pts = (quarters || []).filter(function (q) { return q && (q.tracked || q.goals != null); });
     if (!pts.length) {
-      box.innerHTML = '<p class="muted center" style="margin:0">No tracked days in any quarter yet.</p>';
+      box.innerHTML = '<p class="muted center" style="margin:0">Nothing tracked in any quarter yet.</p>';
       return;
     }
+    var hasGoals = pts.some(function (q) { return q.goals != null; });
 
     var avg = Number(opts.avg) || 0;
-    var W = Math.max(box.clientWidth || 600, 260), H = 190;
-    var M = { l: 34, r: 12, t: 14, b: 26 };
+    var W = Math.max(box.clientWidth || 600, 260), H = hasGoals ? 204 : 190;
+    var M = { l: 34, r: 12, t: hasGoals ? 28 : 14, b: 26 };
     // one point sits in the middle rather than pinned to the left margin
     var x = function (i) {
       if (pts.length === 1) return M.l + (W - M.l - M.r) / 2;
@@ -856,11 +920,34 @@
     var avgEl = svgEl("line", { x1: M.l, x2: W - M.r, y1: y(avg), y2: y(avg), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" });
     svg.appendChild(avgEl);
     var avgLbl = svgEl("text", { x: W - M.r, y: y(avg) - 4, "text-anchor": "end", fill: faint, "font-size": 10 });
-    avgLbl.textContent = "All quarters " + Math.round(avg) + "%";
+    avgLbl.textContent = (hasGoals ? "Execution avg " : "All quarters ") + Math.round(avg) + "%";
     svg.appendChild(avgLbl);
 
-    var d = "";
-    pts.forEach(function (q, i) { d += (i ? " L " : "M ") + x(i) + " " + y(q.avg); });
+    var goalsEl = null;
+    if (hasGoals) {
+      drawLegend(svg, [{ color: lineColor, label: "Execution" }, { color: goalsColor, label: "Goals reached" }], M.l, 11, faint);
+      var gd = "", gDrawing = false;
+      pts.forEach(function (q, i) {
+        if (q.goals == null) { gDrawing = false; return; }
+        gd += (gDrawing ? " L " : " M ") + x(i) + " " + y(q.goals);
+        gDrawing = true;
+      });
+      goalsEl = svgEl("path", { d: gd, fill: "none", stroke: goalsColor, "stroke-width": 2.2,
+        "stroke-linejoin": "round", "stroke-linecap": "round" });
+      svg.appendChild(goalsEl);
+      pts.forEach(function (q, i) {
+        if (q.goals == null) return;
+        svg.appendChild(svgEl("circle", { cx: x(i), cy: y(q.goals), r: 3.8, fill: goalsColor, stroke: surface, "stroke-width": 1.5 }));
+      });
+    }
+
+    // a quarter with goals but no tracked days is a gap in this line, not a zero
+    var d = "", drawing = false;
+    pts.forEach(function (q, i) {
+      if (!q.tracked) { drawing = false; return; }
+      d += (drawing ? " L " : " M ") + x(i) + " " + y(q.avg);
+      drawing = true;
+    });
     var lineEl = svgEl("path", { d: d, fill: "none", stroke: lineColor, "stroke-width": 2.5,
       "stroke-linejoin": "round", "stroke-linecap": "round" });
     svg.appendChild(lineEl);
@@ -886,6 +973,7 @@
       if (q.isCurrent) {
         svg.appendChild(svgEl("line", { x1: cx, x2: cx, y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
       }
+      if (!q.tracked) return;
       var m = svgEl("circle", { cx: cx, cy: cy, r: q.isCurrent ? 5.2 : 4.4, fill: lineColor, stroke: surface, "stroke-width": 1.5 });
       svg.appendChild(m);
       markers.push({ el: m, cx: cx, cy: cy });
@@ -905,7 +993,8 @@
         var best = null, bestD = Infinity;
         pts.forEach(function (q, i) {
           var dd = Math.abs(x(i) - px);
-          if (dd < bestD) { bestD = dd; best = { q: q, cx: x(i), cy: y(q.avg) }; }
+          var cy = q.tracked ? y(q.avg) : y(q.goals || 0);
+          if (dd < bestD) { bestD = dd; best = { q: q, cx: x(i), cy: cy }; }
         });
         return best;
       };
@@ -913,7 +1002,8 @@
         ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
         ring.setAttribute("visibility", "visible");
         tip.innerHTML = '<div class="muted">' + esc(best.q.name) + '</div>' +
-          '<div>Average: <b>' + Math.round(best.q.avg) + '%</b></div>' +
+          '<div>Execution: <b>' + (best.q.tracked ? Math.round(best.q.avg) + "%" : "—") + '</b></div>' +
+          (hasGoals ? '<div>Goals reached: <b>' + (best.q.goals != null ? Math.round(best.q.goals) + "%" : "—") + '</b></div>' : '') +
           '<div class="muted">' + best.q.tracked + ' of ' + best.q.days + ' days tracked</div>';
         tip.hidden = false;
         var bx = box.getBoundingClientRect();
@@ -942,6 +1032,14 @@
         lineEl.style.strokeDashoffset = 0;
         avgEl.style.transition = "opacity 0.5s ease 0.3s";
         avgEl.style.opacity = 1;
+        if (goalsEl && goalsEl.getAttribute("d")) {
+          var glen = goalsEl.getTotalLength();
+          goalsEl.style.strokeDasharray = glen;
+          goalsEl.style.strokeDashoffset = glen;
+          goalsEl.getBoundingClientRect();
+          goalsEl.style.transition = "stroke-dashoffset 0.9s ease 0.15s";
+          goalsEl.style.strokeDashoffset = 0;
+        }
       } catch (e) { /* SVG not measurable — skip animation */ }
       markers.forEach(function (m, i) {
         m.el.style.opacity = 0;

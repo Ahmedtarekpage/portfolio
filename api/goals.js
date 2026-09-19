@@ -7,9 +7,25 @@
 //   PATCH  /api/goals?id=N            -> { title?, target?, current?, unit?, hidden? }
 //   PATCH  /api/goals?reorder=1       -> { ids: [id, ...] }: persist new drag order
 //   PATCH  /api/goals?unhide_all=1    -> { category_ids: [id, ...] }: clear hidden on every goal in these categories
+//   GET    /api/goals?by_quarter=1   -> { goals: [{id, current, target, quarter_id}] } every goal, for per-quarter goal %
+//   GET    /api/goals?history=1&quarter_id=N -> { log: [{goal_id, day, current, target}] } day-by-day values
 //   DELETE /api/goals?id=N
+// POST and PATCH accept an optional log_date (YYYY-MM-DD, the client's local
+// day) so a change made after midnight in Dubai isn't filed under yesterday UTC.
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
+
+function isDate(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
+}
+
+// record a goal's value for a day; later changes the same day overwrite it
+async function logGoal(sql, goal, logDate) {
+  const day = isDate(logDate) ? logDate : null;
+  await sql`INSERT INTO goal_log (goal_id, day, current, target)
+    VALUES (${goal.id}, COALESCE(${day}::date, CURRENT_DATE), ${goal.current}, ${goal.target})
+    ON CONFLICT (goal_id, day) DO UPDATE SET current = EXCLUDED.current, target = EXCLUDED.target`;
+}
 
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
@@ -20,6 +36,24 @@ export default withErrors(async (req, res) => {
         COUNT(*) FILTER (WHERE current >= target)::int AS "completedGoals"
       FROM goals`;
     return json(res, 200, row);
+  }
+
+  if (req.method === "GET" && req.query.by_quarter) {
+    const goals = await sql`SELECT g.id, g.current, g.target, c.quarter_id
+      FROM goals g JOIN quarter_categories c ON c.id = g.category_id`;
+    return json(res, 200, { goals });
+  }
+
+  if (req.method === "GET" && req.query.history) {
+    const quarterId = Number(req.query.quarter_id);
+    if (!quarterId) return json(res, 400, { error: "quarter_id is required" });
+    const log = await sql`SELECT l.goal_id, l.day::text AS day, l.current, l.target
+      FROM goal_log l
+      JOIN goals g ON g.id = l.goal_id
+      JOIN quarter_categories c ON c.id = g.category_id
+      WHERE c.quarter_id = ${quarterId}
+      ORDER BY l.day, l.goal_id`;
+    return json(res, 200, { log });
   }
 
   if (req.method === "GET") {
@@ -41,6 +75,7 @@ export default withErrors(async (req, res) => {
       VALUES (${categoryId}, ${String(b.title).trim()}, ${target}, ${b.unit ? String(b.unit).trim() : null},
         (SELECT COALESCE(MAX(position), -1) + 1 FROM goals))
       RETURNING *`;
+    await logGoal(sql, goal, b.log_date);
     return json(res, 201, { goal });
   }
 
@@ -82,6 +117,10 @@ export default withErrors(async (req, res) => {
         unit = ${unit},
         hidden = ${hidden}
       WHERE id = ${id} RETURNING *`;
+    // only a change in progress is history; renaming or hiding a goal isn't
+    if (Number(goal.current) !== Number(existing.current) || Number(goal.target) !== Number(existing.target)) {
+      await logGoal(sql, goal, b.log_date);
+    }
     return json(res, 200, { goal });
   }
 

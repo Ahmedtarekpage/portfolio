@@ -1519,8 +1519,16 @@
     var from = qs.reduce(function (m, q) { var d = String(q.start_date).slice(0, 10); return d < m ? d : m; }, "9999-12-31");
     var to = qs.reduce(function (m, q) { var d = String(q.end_date).slice(0, 10); return d > m ? d : m; }, "0000-01-01");
 
-    return api("/api/tasks?stats=1&from=" + from + "&to=" + to).then(function (r) {
-      var stats = r.stats || [];
+    return Promise.all([
+      api("/api/tasks?stats=1&from=" + from + "&to=" + to),
+      api("/api/goals?by_quarter=1"),
+    ]).then(function (results) {
+      var stats = results[0].stats || [];
+      var goalsByQuarter = {};
+      (results[1].goals || []).forEach(function (g) {
+        (goalsByQuarter[g.quarter_id] = goalsByQuarter[g.quarter_id] || []).push(g);
+      });
+      var today = todayISO();
       var byId = {};
       qs.forEach(function (q) {
         var qf = String(q.start_date).slice(0, 10), qt = String(q.end_date).slice(0, 10);
@@ -1535,16 +1543,25 @@
           avg: tracked ? Math.round(sum / tracked) : 0,
           tracked: tracked,
           days: daysBetween(qf, qt),
+          // Goals reached, the same target-weighted sum the bar inside a quarter
+          // shows, so the two can never disagree. A quarter that hasn't started
+          // gets none: its goals at 0% aren't a result yet.
+          goals: qf <= today ? combinedGoalsPct(goalsByQuarter[q.id]) : null,
         };
       });
       // the headline is the mean of the quarters that have anything in them, so
       // an untouched future quarter can't drag the number toward zero
       var withData = qs.filter(function (q) { return byId[q.id].tracked; });
+      var withGoals = qs.filter(function (q) { return byId[q.id].goals != null; });
       state.quarterStats = {
         byId: byId,
         avg: withData.length
           ? Math.round(withData.reduce(function (a, q) { return a + byId[q.id].avg; }, 0) / withData.length)
           : 0,
+        goalsAvg: withGoals.length
+          ? Math.round(withGoals.reduce(function (a, q) { return a + byId[q.id].goals; }, 0) / withGoals.length)
+          : null,
+        goalsCounted: withGoals.length,
         counted: withData.length,
         trackedDays: qs.reduce(function (a, q) { return a + byId[q.id].tracked; }, 0),
       };
@@ -1563,7 +1580,11 @@
     box.hidden = false;
 
     $("#quartersAvgValue").textContent = st.avg + "%";
-    $("#quartersAvgSub").textContent = plural(st.counted, "quarter") + " with tracked days";
+    $("#quartersAvgSub").textContent = "daily tasks done · " + plural(st.counted, "quarter");
+    $("#quartersGoalsValue").textContent = st.goalsAvg == null ? "—" : st.goalsAvg + "%";
+    $("#quartersGoalsSub").textContent = st.goalsAvg == null
+      ? "no goals set yet"
+      : "of goals reached · " + plural(st.goalsCounted, "quarter");
     $("#quartersDaysValue").textContent = st.trackedDays;
     $("#quartersDaysSub").textContent = "across " + plural(state.quarters.length, "quarter");
 
@@ -1581,10 +1602,19 @@
       var s = st.byId[q.id] || { avg: 0, tracked: 0, days: 0 };
       return {
         id: q.id, name: q.name, avg: s.avg, tracked: s.tracked, days: s.days,
+        goals: s.goals == null ? null : s.goals,
         isCurrent: q.start_date <= today && today <= q.end_date,
       };
     });
     window.renderQuartersChart($("#quartersChart"), $("#quartersChartTip"), points, { avg: st.avg });
+  }
+
+  function quarterMeasureHtml(label, pct, kind) {
+    return '<div class="quarter-card__measure quarter-card__measure--' + kind + '">' +
+      '<div class="quarter-card__avg-row"><span>' + label + '</span><b>' + (pct == null ? "—" : pct + "%") + '</b></div>' +
+      '<div class="quarter-card__bar"><div class="quarter-card__fill' + (pct != null && pct >= 100 ? ' quarter-card__fill--done' : '') +
+        '" style="width:' + (pct || 0) + '%"></div></div>' +
+    '</div>';
   }
 
   function renderQuarterGallery() {
@@ -1601,11 +1631,10 @@
         '<div class="quarter-card__dates">' + fmtDate(q.start_date) + ' – ' + fmtDate(q.end_date) + '</div>' +
         (s ?
           '<div class="quarter-card__avg">' +
-            '<div class="quarter-card__bar"><div class="quarter-card__fill' + (s.avg >= 100 ? ' quarter-card__fill--done' : '') +
-              '" style="width:' + s.avg + '%"></div></div>' +
-            '<div class="quarter-card__avg-row">' +
-              '<b>' + s.avg + '%</b>' +
-              '<span>' + (s.tracked ? s.tracked + ' of ' + s.days + ' days' : 'nothing logged yet') + '</span>' +
+            quarterMeasureHtml("Execution", s.tracked ? s.avg : null, "exec") +
+            quarterMeasureHtml("Goals", s.goals, "goals") +
+            '<div class="quarter-card__foot">' +
+              (s.tracked ? s.tracked + ' of ' + s.days + ' days tracked' : 'nothing logged yet') +
             '</div>' +
           '</div>'
           : '') +
@@ -1792,7 +1821,7 @@
     var nowDone = target > 0 && v >= target;
     if (!wasDone && nowDone) { playSuccessSound(); if (!reduceMotion) burstConfetti(14); }
     else playStepSound();
-    api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v } })
+    api("/api/goals?id=" + goal.id, { method: "PATCH", body: { current: v, log_date: todayISO() } })
       .then(function () { loadGamification(); })
       .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
@@ -1822,7 +1851,7 @@
       var v = ev.target.value === "" ? 0 : Number(ev.target.value);
       var wasDone = goalPct(g) >= 100;
       var nowDone = Number(g.target) > 0 && v >= Number(g.target);
-      api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v } })
+      api("/api/goals?id=" + g.id, { method: "PATCH", body: { current: v, log_date: todayISO() } })
         .then(function () {
           if (!wasDone && nowDone) { playSuccessSound(); if (!reduceMotion) burstConfetti(14); }
           loadGamification();
@@ -1862,6 +1891,7 @@
         title: form.elements.title.value.trim(),
         target: Number(form.elements.target.value),
         unit: form.elements.unit.value.trim() || null,
+        log_date: todayISO(), // a new or re-targeted goal is history too
       };
       if (!editingId) body.category_id = category.id;
       busy(btn, true);
@@ -2377,6 +2407,7 @@
       $("#daysQuarterPicker").hidden = true;
       $("#daysAvgValue").textContent = "0%";
       $("#daysAvgSub").textContent = "0 days tracked";
+      $("#daysGoalsValue").textContent = "—";
       state.daysData = null;
       $("#focusRange").hidden = true;
       return Promise.resolve();
@@ -2395,7 +2426,10 @@
     return Promise.all([
       api("/api/tasks?stats=1&from=" + from + "&to=" + to),
       api("/api/day-photos?from=" + from + "&to=" + to),
+      api("/api/goals?history=1&quarter_id=" + quarter.id),
     ]).then(function (results) {
+      opts = opts || {};
+      opts.goalsByDate = goalsSeries(results[2].log || [], from, to);
       renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -2409,6 +2443,31 @@
       .then(function () { return loadDaysGallery(); })
       .catch(function (e) { toast(e.message, true); });
   });
+
+  /* Goals reached on each day of a quarter, from the goal log.
+
+     Each goal holds its last logged value until it changes (a goal set to 40
+     on Monday is still 40 on Wednesday if nobody touched it). A day's figure is
+     the same target-weighted sum the quarter's goals bar uses, over the goals
+     known by then. Days before the first reading have no value — the line
+     starts where the record does, it isn't extended backwards — and nothing is
+     drawn past today, where there is nothing to carry forward into yet. */
+  function goalsSeries(log, from, to) {
+    var today = todayISO();
+    var latest = {}, byDate = {}, i = 0;
+    for (var d = from; d <= to && d <= today; d = addDays(d, 1)) {
+      while (i < log.length && String(log[i].day).slice(0, 10) <= d) {
+        latest[log[i].goal_id] = log[i];
+        i++;
+      }
+      var ids = Object.keys(latest);
+      if (!ids.length) continue;
+      var cur = 0, tgt = 0;
+      ids.forEach(function (id) { cur += Number(latest[id].current) || 0; tgt += Number(latest[id].target) || 0; });
+      byDate[d] = tgt > 0 ? Math.min(100, Math.round((cur / tgt) * 100)) : 0;
+    }
+    return byDate;
+  }
 
   function renderDaysGallery(from, to, stats, photos, opts) {
     opts = opts || {};
@@ -2439,7 +2498,18 @@
       quarterId: quarter ? quarter.id : null,
       from: from, to: to, days: chartDays, avg: avg,
       statsByDate: statsByDate, photosByDate: photosByDate,
+      goalsByDate: opts.goalsByDate || {},
     };
+
+    // the goals tile reads the live goals, not the log, so it always matches the
+    // bar inside the quarter even on a day the log hasn't caught up with
+    var allGoals = (state.quarterDetail && state.quarterDetail.categories || [])
+      .reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
+    var goalsNow = combinedGoalsPct(allGoals);
+    $("#daysGoalsValue").textContent = goalsNow == null ? "—" : goalsNow + "%";
+    $("#daysGoalsSub").textContent = goalsNow == null
+      ? "no goals in this quarter"
+      : "of " + plural(allGoals.length, "goal") + ", target-weighted";
     renderDaysFocus({ animateChart: opts.animate !== false, animateTiles: opts.animate !== false });
   }
 
@@ -2686,6 +2756,7 @@
 
     window.renderDaysChart($("#daysChart"), $("#daysChartTip"), zoomed ? slice : data.days, {
       avg: data.avg,
+      goalsByDate: data.goalsByDate,
       avgLabel: zoomed ? "Quarter" : "Avg",
       // unzoomed, the range average would sit exactly on the quarter's line
       focus: zoomed ? { avg: s.tracked ? s.avg : null, label: "This range" } : null,
