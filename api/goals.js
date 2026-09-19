@@ -8,7 +8,7 @@
 //   PATCH  /api/goals?reorder=1       -> { ids: [id, ...] }: persist new drag order
 //   PATCH  /api/goals?unhide_all=1    -> { category_ids: [id, ...] }: clear hidden on every goal in these categories
 //   GET    /api/goals?by_quarter=1   -> { goals: [{id, current, target, quarter_id}] } every goal, for per-quarter goal %
-//   GET    /api/goals?history=1&quarter_id=N -> { log: [{goal_id, day, current, target}] } day-by-day values
+//   GET    /api/goals?history=1&quarter_id=N -> { log: [{goal_id, day, current, target, estimated}] } day-by-day values
 //   DELETE /api/goals?id=N
 // POST and PATCH accept an optional log_date (YYYY-MM-DD, the client's local
 // day) so a change made after midnight in Dubai isn't filed under yesterday UTC.
@@ -47,7 +47,7 @@ export default withErrors(async (req, res) => {
   if (req.method === "GET" && req.query.history) {
     const quarterId = Number(req.query.quarter_id);
     if (!quarterId) return json(res, 400, { error: "quarter_id is required" });
-    const log = await sql`SELECT l.goal_id, l.day::text AS day, l.current, l.target
+    const log = await sql`SELECT l.goal_id, l.day::text AS day, l.current, l.target, l.estimated
       FROM goal_log l
       JOIN goals g ON g.id = l.goal_id
       JOIN quarter_categories c ON c.id = g.category_id

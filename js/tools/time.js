@@ -2429,7 +2429,9 @@
       api("/api/goals?history=1&quarter_id=" + quarter.id),
     ]).then(function (results) {
       opts = opts || {};
-      opts.goalsByDate = goalsSeries(results[2].log || [], from, to);
+      var series = goalsSeries(results[2].log || [], from, to);
+      opts.goalsByDate = series.values;
+      opts.goalsEstimatedByDate = series.estimated;
       renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -2454,7 +2456,7 @@
      drawn past today, where there is nothing to carry forward into yet. */
   function goalsSeries(log, from, to) {
     var today = todayISO();
-    var latest = {}, byDate = {}, i = 0;
+    var latest = {}, byDate = {}, estimated = {}, i = 0;
     for (var d = from; d <= to && d <= today; d = addDays(d, 1)) {
       while (i < log.length && String(log[i].day).slice(0, 10) <= d) {
         latest[log[i].goal_id] = log[i];
@@ -2462,11 +2464,17 @@
       }
       var ids = Object.keys(latest);
       if (!ids.length) continue;
-      var cur = 0, tgt = 0;
-      ids.forEach(function (id) { cur += Number(latest[id].current) || 0; tgt += Number(latest[id].target) || 0; });
+      var cur = 0, tgt = 0, est = false;
+      ids.forEach(function (id) {
+        cur += Number(latest[id].current) || 0;
+        tgt += Number(latest[id].target) || 0;
+        if (latest[id].estimated) est = true;
+      });
       byDate[d] = tgt > 0 ? Math.min(100, Math.round((cur / tgt) * 100)) : 0;
+      // a day resting on even one backfilled reading is an estimate, not a record
+      if (est) estimated[d] = true;
     }
-    return byDate;
+    return { values: byDate, estimated: estimated };
   }
 
   function renderDaysGallery(from, to, stats, photos, opts) {
@@ -2499,6 +2507,7 @@
       from: from, to: to, days: chartDays, avg: avg,
       statsByDate: statsByDate, photosByDate: photosByDate,
       goalsByDate: opts.goalsByDate || {},
+      goalsEstimatedByDate: opts.goalsEstimatedByDate || {},
     };
 
     // the goals tile reads the live goals, not the log, so it always matches the
@@ -2757,6 +2766,7 @@
     window.renderDaysChart($("#daysChart"), $("#daysChartTip"), zoomed ? slice : data.days, {
       avg: data.avg,
       goalsByDate: data.goalsByDate,
+      goalsEstimatedByDate: data.goalsEstimatedByDate,
       avgLabel: zoomed ? "Quarter" : "Avg",
       // unzoomed, the range average would sit exactly on the quarter's line
       focus: zoomed ? { avg: s.tracked ? s.avg : null, label: "This range" } : null,

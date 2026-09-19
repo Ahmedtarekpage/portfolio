@@ -1,5 +1,6 @@
 // Neon Postgres client + lazy schema creation (runs once per lambda instance).
 import { neon } from "@neondatabase/serverless";
+import { backfillGoalHistory } from "./goal-backfill.js";
 
 let _sql = null;
 let _ready = null;
@@ -160,6 +161,8 @@ async function migrate(sql) {
     target NUMERIC NOT NULL,
     PRIMARY KEY (goal_id, day)
   )`;
+  // rows the backfill spread across the past, as opposed to ones really recorded
+  await sql`ALTER TABLE goal_log ADD COLUMN IF NOT EXISTS estimated BOOLEAN NOT NULL DEFAULT false`;
   // A goal with no history gets one reading: its value as of now. Nothing
   // earlier is invented — before this, how far along a goal was on a given
   // day was never recorded, so the line starts here rather than guessing.
@@ -238,6 +241,8 @@ async function migrate(sql) {
     position INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // last, so it sees the goal_log seed readings it has to arrive at
+  await backfillGoalHistory(sql);
 }
 
 /** Returns the sql tag, guaranteed to have the schema in place. */

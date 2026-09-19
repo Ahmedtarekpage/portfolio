@@ -44,8 +44,9 @@
   function drawLegend(svg, items, x0, y0, ink) {
     var xpos = x0;
     items.forEach(function (it) {
-      svg.appendChild(svgEl("line", { x1: xpos, x2: xpos + 14, y1: y0, y2: y0, stroke: it.color,
-        "stroke-width": 2.5, "stroke-linecap": "round" }));
+      var sw = { x1: xpos, x2: xpos + 14, y1: y0, y2: y0, stroke: it.color, "stroke-width": 2.5, "stroke-linecap": "round" };
+      if (it.dash) { sw["stroke-dasharray"] = it.dash; sw["stroke-linecap"] = "butt"; }
+      svg.appendChild(svgEl("line", sw));
       var t = svgEl("text", { x: xpos + 19, y: y0 + 3.5, fill: ink, "font-size": 10 });
       t.textContent = it.label;
       svg.appendChild(t);
@@ -671,11 +672,15 @@
     // goals reached on each day, looked up by date so a cropped range lines up
     // without the caller slicing a second array in step with the first
     var goalsBy = opts.goalsByDate || null;
+    var goalsEst = opts.goalsEstimatedByDate || {};
     pts.forEach(function (p) {
-      var g = goalsBy ? goalsBy[String(p.date).slice(0, 10)] : null;
+      var key = String(p.date).slice(0, 10);
+      var g = goalsBy ? goalsBy[key] : null;
       p.goals = g == null ? null : Number(g);
+      p.goalsEstimated = p.goals != null && !!goalsEst[key];
     });
     var hasGoals = pts.some(function (p) { return p.goals != null; });
+    var hasEstimated = pts.some(function (p) { return p.goalsEstimated; });
 
     var start = pts[0].t, end = pts[pts.length - 1].t;
     if (end <= start) end = start + DAY;
@@ -717,19 +722,34 @@
     var color = opts.color || lineColor;
 
     var goalsEl = null, goalDots = [];
+    var goalsEstEl = null;
     if (hasGoals) {
-      drawLegend(svg, [{ color: color, label: "Execution" }, { color: goalsColor, label: "Goals reached" }], M.l, 11, faint);
-      var gd = "", gDrawing = false;
+      var legend = [{ color: color, label: "Execution" }, { color: goalsColor, label: "Goals reached" }];
+      if (hasEstimated) legend.push({ color: goalsColor, label: "estimated", dash: "3 3" });
+      drawLegend(svg, legend, M.l, 11, faint);
+      // a segment is solid only when both of its ends were recorded — one that
+      // starts from an estimate has an estimated slope, even if it lands on a record
+      var gd = "", ged = "", prev = null, prevEst = false;
       pts.forEach(function (p) {
-        if (p.goals == null) { gDrawing = false; return; }
-        gd += (gDrawing ? " L " : " M ") + x(p.t) + " " + y(p.goals);
-        gDrawing = true;
+        if (p.goals == null) { prev = null; return; }
+        var here = x(p.t) + " " + y(p.goals);
+        if (prev) {
+          var seg = " M " + prev + " L " + here;
+          if (p.goalsEstimated || prevEst) ged += seg; else gd += seg;
+        } else if (!p.goalsEstimated) {
+          gd += " M " + here; // a lone recorded point still starts a path
+        }
+        prev = here;
+        prevEst = p.goalsEstimated;
       });
+      goalsEstEl = svgEl("path", { d: ged, fill: "none", stroke: goalsColor, "stroke-width": 2,
+        "stroke-dasharray": "4 4", "stroke-opacity": 0.75, "stroke-linejoin": "round" });
+      svg.appendChild(goalsEstEl);
       goalsEl = svgEl("path", { d: gd, fill: "none", stroke: goalsColor, "stroke-width": 2.2,
         "stroke-linejoin": "round", "stroke-linecap": "round" });
       svg.appendChild(goalsEl);
       // a history of one day is a point, not a line — without a dot it draws nothing
-      var known = pts.filter(function (p) { return p.goals != null; });
+      var known = pts.filter(function (p) { return p.goals != null && !p.goalsEstimated; });
       (known.length <= 10 ? known : [known[known.length - 1]]).forEach(function (p) {
         var dot = svgEl("circle", { cx: x(p.t), cy: y(p.goals), r: 3.4, fill: goalsColor, stroke: surface, "stroke-width": 1.5 });
         svg.appendChild(dot);
@@ -809,7 +829,8 @@
           ? ((hasGoals ? "Execution" : "Progress") + ": <b>" + Math.round(best.p.pct) + "%</b> (" + best.p.done + "/" + best.p.total + ")")
           : "No tasks logged";
         var goalsLine = hasGoals
-          ? '<div>Goals reached: <b>' + (best.p.goals != null ? Math.round(best.p.goals) + "%" : "—") + '</b></div>'
+          ? '<div>Goals reached: <b>' + (best.p.goals != null ? Math.round(best.p.goals) + "%" : "—") + '</b>' +
+            (best.p.goalsEstimated ? ' <span class="muted">(estimated)</span>' : '') + '</div>'
           : "";
         tip.innerHTML = '<div class="muted">' + dateLabel + '</div><div>' + detail + '</div>' + goalsLine;
         tip.hidden = false;
@@ -843,6 +864,13 @@
         lineEl.style.strokeDashoffset = 0;
         avgEl.style.transition = "opacity 0.5s ease 0.3s";
         avgEl.style.opacity = 1;
+        if (goalsEstEl && goalsEstEl.getAttribute("d")) {
+          // a dashed line can't be drawn in by its dasharray, so it fades in instead
+          goalsEstEl.style.opacity = 0;
+          goalsEstEl.getBoundingClientRect();
+          goalsEstEl.style.transition = "opacity 0.6s ease 0.2s";
+          goalsEstEl.style.opacity = 1;
+        }
         if (goalsEl && goalsEl.getAttribute("d")) {
           var glen = goalsEl.getTotalLength();
           goalsEl.style.strokeDasharray = glen;
