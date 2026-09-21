@@ -2026,6 +2026,7 @@
 
   function renderQuarter(data) {
     $("#quarterActions").hidden = !data;
+    $("#btnCopyCategories").hidden = !data || !data.categories.length;
     $("#quarterDetailName").textContent = data ? data.quarter.name : "";
     $("#quarterDetailDates").textContent = data ? (fmtDate(data.quarter.start_date) + " – " + fmtDate(data.quarter.end_date)) : "";
     renderAnalytics(data);
@@ -2066,6 +2067,7 @@
           '<span class="category-card__handle" title="Drag to reorder categories">⠿</span>' +
           '<span class="category-card__name">' + esc(c.name) + '</span>' +
         (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
+          '<button type="button" class="iconbtn iconbtn--edit category-card__copy" title="Copy to another quarter" aria-label="Copy ' + esc(c.name) + ' to another quarter">⧉</button>' +
         '</div>' +
         (hasHours ?
           '<div class="category-card__stats">' +
@@ -2100,6 +2102,7 @@
         if (row) wireGoalRow(row, g, c);
       });
       wireGoalAddForm(card, c);
+      card.querySelector(".category-card__copy").addEventListener("click", function () { openCopyDialog([c.id]); });
 
       // Goals inside one category. `position` is a single counter shared by every
       // goal in the quarter, so sending just this category's ids would renumber
@@ -2329,6 +2332,92 @@
       .then(function () { playDeleteSound(); toast("Quarter deleted"); remember("quarter-id", null); return loadQuarters(); })
       .then(function () { showQuarterGallery(); return loadDay(state.currentDate); })
       .catch(function (e) { toast(e.message, true); });
+  });
+
+  /* ---------------- copy categories (with goals) to another quarter ---------------- */
+
+  function copyTargetDefault(current, others) {
+    var saved = Number(recall("copy-target"));
+    var pick = others.filter(function (q) { return q.id === saved; })[0];
+    if (pick) return pick.id;
+    // otherwise the quarter that comes right after this one — the usual case is
+    // carrying this quarter's plan into the next — else the newest other one
+    var start = String(current.start_date).slice(0, 10);
+    var later = others.filter(function (q) { return String(q.start_date).slice(0, 10) > start; })
+      .sort(function (a, b) { return String(a.start_date) < String(b.start_date) ? -1 : 1; });
+    return (later[0] || others[0]).id;
+  }
+
+  function syncCopyToggle() {
+    var boxes = $("#copyCategoryList").querySelectorAll("input");
+    var checked = $("#copyCategoryList").querySelectorAll("input:checked").length;
+    $("#copyToggleAll").textContent = checked === boxes.length ? "Select none" : "Select all";
+    $("#btnCopySubmit").disabled = !checked;
+    $("#btnCopySubmit").textContent = checked ? "Copy " + checked + " categor" + (checked === 1 ? "y" : "ies") : "Copy";
+  }
+
+  function openCopyDialog(onlyIds) {
+    var data = state.quarterDetail;
+    if (!data || !data.categories.length) return;
+    var others = (state.quarters || []).filter(function (q) { return q.id !== data.quarter.id; });
+    if (!others.length) { toast("Create another quarter first, then copy into it."); return; }
+
+    var select = $("#copyTarget");
+    select.innerHTML = others.map(function (q) {
+      return '<option value="' + q.id + '">' + esc(q.name) + " · " + fmtDate(q.start_date) + " – " + fmtDate(q.end_date) + "</option>";
+    }).join("");
+    select.value = String(copyTargetDefault(data.quarter, others));
+
+    $("#copyCategoryList").innerHTML = data.categories.map(function (c) {
+      var n = (c.goals || []).length;
+      var on = !onlyIds || onlyIds.indexOf(c.id) !== -1;
+      return '<label class="copy-dialog__item">' +
+        '<input type="checkbox" value="' + c.id + '"' + (on ? " checked" : "") + ' />' +
+        '<span class="copy-dialog__name">' + esc(c.name) + '</span>' +
+        '<span class="muted">' + (n ? n + " goal" + (n === 1 ? "" : "s") : "no goals") + '</span>' +
+      '</label>';
+    }).join("");
+    $("#copyForm").elements.keep_progress.checked = false;
+    syncCopyToggle();
+    $("#copyDialog").showModal();
+  }
+
+  $("#btnCopyCategories").addEventListener("click", function () { openCopyDialog(null); });
+  $("#copyCategoryList").addEventListener("change", syncCopyToggle);
+  $("#copyToggleAll").addEventListener("click", function () {
+    var boxes = $("#copyCategoryList").querySelectorAll("input");
+    var all = $("#copyCategoryList").querySelectorAll("input:checked").length === boxes.length;
+    boxes.forEach(function (b) { b.checked = !all; });
+    syncCopyToggle();
+  });
+  $("#btnCopyCancel").addEventListener("click", function () { $("#copyDialog").close(); });
+  // a click on the backdrop (outside the form) closes it too
+  $("#copyDialog").addEventListener("click", function (ev) { if (ev.target === this) this.close(); });
+
+  $("#copyForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var ids = Array.prototype.map.call($("#copyCategoryList").querySelectorAll("input:checked"), function (b) { return Number(b.value); });
+    if (!ids.length) return;
+    var toId = Number($("#copyTarget").value);
+    var target = (state.quarters || []).filter(function (q) { return q.id === toId; })[0];
+    var btn = $("#btnCopySubmit");
+    busy(btn, true);
+    api("/api/quarters?copy_categories=1", {
+      method: "POST",
+      body: { to_quarter_id: toId, category_ids: ids, keep_progress: this.elements.keep_progress.checked, log_date: todayISO() },
+    }).then(function (r) {
+      remember("copy-target", toId);
+      $("#copyDialog").close();
+      playAddSound();
+      var parts = [];
+      if (r.categories_added) parts.push(r.categories_added + " categor" + (r.categories_added === 1 ? "y" : "ies"));
+      if (r.goals_added) parts.push(r.goals_added + " goal" + (r.goals_added === 1 ? "" : "s"));
+      var msg = parts.length ? "Copied " + parts.join(" and ") : "Nothing new to copy";
+      if (r.categories_merged) msg += " — " + r.categories_merged + " already there, merged";
+      toast(msg + (target ? " into " + target.name : ""));
+      return loadDay(state.currentDate); // the task form's category list may now include them
+    }).catch(function (e) { toast(e.message, true); })
+      .then(function () { busy(btn, false); syncCopyToggle(); });
   });
 
   $("#quarterForm").addEventListener("submit", function (ev) {

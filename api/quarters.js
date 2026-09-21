@@ -4,6 +4,8 @@
 //   POST   /api/quarters          -> { name, start_date, end_date, anti_perfectionist?, categories: [{name, weekly_hours}, ...] }
 //   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, anti_perfectionist?, categories?: [{id?, name, weekly_hours}, ...] }
 //   PATCH  /api/quarters?reorder_categories=1 -> { ids: [id, ...] }: persist new drag order
+//   POST   /api/quarters?copy_categories=1 -> { to_quarter_id, category_ids, keep_progress?, log_date? }
+//          copy categories and their goals into another quarter -> { categories_added, categories_merged, goals_added }
 //   DELETE /api/quarters?id=N     -> delete quarter (cascades categories; tasks keep their row, category_id -> NULL)
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
@@ -39,9 +41,67 @@ async function saveCategories(sql, quarterId, categories) {
   }
 }
 
+// Copy categories, with their goals, into another quarter — for carrying a
+// quarter's plan into the next one. A category whose name already exists there
+// is merged into it rather than duplicated, and a goal whose title that
+// category already has is skipped, so copying twice doesn't double anything.
+// Goals start again from 0 unless keep_progress; each gets a first goal_log
+// reading, as a goal added by hand does. Daily tasks aren't copied: they belong
+// to the day they were done, not to the plan.
+async function copyCategories(sql, toId, ids, keepProgress, logDate) {
+  const sources = await sql`SELECT * FROM quarter_categories
+    WHERE id = ANY(${ids}) AND quarter_id <> ${toId}
+    ORDER BY position NULLS LAST, created_at`;
+  const existing = await sql`SELECT id, name, position FROM quarter_categories WHERE quarter_id = ${toId}`;
+  const byName = new Map(existing.map((c) => [c.name.trim().toLowerCase(), c.id]));
+  let nextPos = existing.reduce((m, c) => Math.max(m, c.position ?? -1), -1) + 1;
+  const out = { categories_added: 0, categories_merged: 0, goals_added: 0 };
+
+  for (const src of sources) {
+    const key = src.name.trim().toLowerCase();
+    let catId = byName.get(key);
+    if (catId) {
+      out.categories_merged++;
+    } else {
+      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours, position)
+        VALUES (${toId}, ${src.name}, ${src.weekly_hours}, ${nextPos++}) RETURNING id`;
+      catId = row.id;
+      byName.set(key, catId);
+      out.categories_added++;
+    }
+    const have = await sql`SELECT title FROM goals WHERE category_id = ${catId}`;
+    const titles = new Set(have.map((g) => g.title.trim().toLowerCase()));
+    const goals = await sql`SELECT * FROM goals WHERE category_id = ${src.id} ORDER BY position, created_at`;
+    for (const g of goals) {
+      if (titles.has(g.title.trim().toLowerCase())) continue;
+      titles.add(g.title.trim().toLowerCase());
+      const [goal] = await sql`INSERT INTO goals (category_id, title, target, current, unit, position)
+        VALUES (${catId}, ${g.title}, ${g.target}, ${keepProgress ? g.current : 0}, ${g.unit},
+          (SELECT COALESCE(MAX(position), -1) + 1 FROM goals))
+        RETURNING id, current, target`;
+      await sql`INSERT INTO goal_log (goal_id, day, current, target)
+        VALUES (${goal.id}, COALESCE(${logDate}::date, CURRENT_DATE), ${goal.current}, ${goal.target})
+        ON CONFLICT (goal_id, day) DO NOTHING`;
+      out.goals_added++;
+    }
+  }
+  return out;
+}
+
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  if (req.method === "POST" && req.query.copy_categories) {
+    const b = req.body || {};
+    const toId = Number(b.to_quarter_id);
+    const ids = Array.isArray(b.category_ids) ? b.category_ids.map(Number).filter((n) => n > 0) : [];
+    if (!toId) return json(res, 400, { error: "to_quarter_id is required" });
+    if (!ids.length) return json(res, 400, { error: "Pick at least one category" });
+    const [target] = await sql`SELECT id FROM quarters WHERE id = ${toId}`;
+    if (!target) return json(res, 404, { error: "Quarter not found" });
+    return json(res, 200, await copyCategories(sql, toId, ids, !!b.keep_progress, isDate(b.log_date) ? b.log_date : null));
+  }
 
   if (req.method === "PATCH" && req.query.reorder_categories) {
     const b = req.body || {};

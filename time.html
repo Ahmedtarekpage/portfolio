@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=8" />
-  <link rel="stylesheet" href="css/tools/time.css?v=42" />
+  <link rel="stylesheet" href="css/tools/time.css?v=43" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -388,6 +388,7 @@
         <div class="card__head">
           <button type="button" class="btn btn--ghost btn--sm" id="btnBackToQuarters">← All quarters</button>
           <div class="topbar__actions" id="quarterActions" hidden>
+            <button id="btnCopyCategories" class="btn btn--ghost btn--sm">Copy to quarter</button>
             <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
             <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
           </div>
@@ -403,6 +404,27 @@
         </div>
 
         <div id="categoryCards" class="category-cards"></div>
+
+        <dialog id="copyDialog" class="copy-dialog" aria-labelledby="copyDialogTitle">
+          <form method="dialog" id="copyForm" class="form">
+            <h3 id="copyDialogTitle">Copy categories</h3>
+            <p class="muted copy-dialog__note">Copies each category with its goals. Daily tasks stay on the days they were done.</p>
+            <label>To quarter<select name="to" id="copyTarget"></select></label>
+            <div class="copy-dialog__head">
+              <span class="goals__label">Categories</span>
+              <button type="button" class="linklike" id="copyToggleAll">Select none</button>
+            </div>
+            <div class="copy-dialog__list" id="copyCategoryList"></div>
+            <label class="checkline">
+              <input type="checkbox" name="keep_progress" />
+              Keep goals' current progress (off: they start again from 0)
+            </label>
+            <div class="copy-dialog__actions">
+              <button type="button" class="btn btn--ghost" id="btnCopyCancel">Cancel</button>
+              <button type="submit" class="btn btn--primary" id="btnCopySubmit">Copy</button>
+            </div>
+          </form>
+        </dialog>
         <p class="muted" id="goalsHiddenBanner" hidden><span class="goals-hidden-count">0</span> goal(s) hidden — <a href="#" id="btnShowHiddenGoals">show all</a></p>
         <div id="goalsFlatList" class="goals-flat-list" hidden></div>
         <p id="noGoalsFlat" class="muted center" hidden>No goals yet — add some from the category view above.</p>
@@ -589,6 +611,6 @@
 
   <script src="js/tools/theme.js?v=1"></script>
   <script src="js/tools/chart.js?v=18"></script>
-  <script src="js/tools/time.js?v=54"></script>
+  <script src="js/tools/time.js?v=55"></script>
 </body>
 </html>
