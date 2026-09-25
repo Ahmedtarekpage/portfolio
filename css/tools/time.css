@@ -906,3 +906,15 @@
 @media (prefers-reduced-motion: reduce) {
   .copy-dialog[open], .copy-dialog[open]::backdrop { animation: none; }
 }
+
+/* "All quarters" on the Days tab: one heading per quarter's run of weeks */
+.day-gallery__head {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 0 2px;
+  font: 500 0.72rem var(--font-ui);
+  text-transform: uppercase; letter-spacing: var(--kicker-track);
+  color: var(--faint);
+}
+.day-gallery__head::after { content: ""; flex: 1; height: 1px; background: var(--glass-brd); }
+.day-gallery__head:first-child { margin-top: 0; }

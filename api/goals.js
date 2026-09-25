@@ -9,6 +9,7 @@
 //   PATCH  /api/goals?unhide_all=1    -> { category_ids: [id, ...] }: clear hidden on every goal in these categories
 //   GET    /api/goals?by_quarter=1   -> { goals: [{id, current, target, quarter_id}] } every goal, for per-quarter goal %
 //   GET    /api/goals?history=1&quarter_id=N -> { log: [{goal_id, day, current, target, estimated}] } day-by-day values
+//   GET    /api/goals?history=1&all=1 -> the same, for every quarter at once, each row carrying its quarter_id
 //   DELETE /api/goals?id=N
 // POST and PATCH accept an optional log_date (YYYY-MM-DD, the client's local
 // day) so a change made after midnight in Dubai isn't filed under yesterday UTC.
@@ -42,6 +43,18 @@ export default withErrors(async (req, res) => {
     const goals = await sql`SELECT g.id, g.current, g.target, c.quarter_id
       FROM goals g JOIN quarter_categories c ON c.id = g.category_id`;
     return json(res, 200, { goals });
+  }
+
+  if (req.method === "GET" && req.query.history && req.query.all) {
+    // the Days tab's "All quarters" view: one pass over every goal's history.
+    // quarter_id rides along so the client can keep each quarter's goals to
+    // their own quarter rather than summing goals that never overlapped.
+    const log = await sql`SELECT l.goal_id, l.day::text AS day, l.current, l.target, l.estimated, c.quarter_id
+      FROM goal_log l
+      JOIN goals g ON g.id = l.goal_id
+      JOIN quarter_categories c ON c.id = g.category_id
+      ORDER BY l.day, l.goal_id`;
+    return json(res, 200, { log });
   }
 
   if (req.method === "GET" && req.query.history) {

@@ -770,6 +770,18 @@
       svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1, "stroke-dasharray": "2 4" }));
     }
 
+    // vertical rules where one stretch ends and the next begins — the Days tab's
+    // "All quarters" view uses them to show where each quarter starts
+    (opts.dividers || []).forEach(function (dv) {
+      var t = new Date(String(dv.date).slice(0, 10) + "T00:00:00Z").getTime();
+      if (t < start || t > end) return;
+      svg.appendChild(svgEl("line", { x1: x(t), x2: x(t), y1: M.t, y2: H - M.b, stroke: markerColor, "stroke-width": 1 }));
+      if (!dv.label) return;
+      var dl = svgEl("text", { x: x(t) + 3, y: M.t + 9, fill: faint, "font-size": 9 });
+      dl.textContent = dv.label;
+      svg.appendChild(dl);
+    });
+
     if (pts.length <= 10) {
       // zoomed in far enough to name each day rather than just the two ends
       pts.forEach(function (p, i) {
@@ -788,9 +800,12 @@
       });
     }
 
+    // past a few months of days, a dot per day merges into a bead chain that
+    // hides the line itself — the tooltip still finds every day without them
+    var showDots = pts.length <= 120;
     var markers = [];
     pts.forEach(function (p) {
-      if (!p.total) return; // no tasks logged that day — line still passes through 0, just no dot
+      if (!p.total || !showDots) return; // no tasks logged that day — line still passes through 0, just no dot
       var cx = x(p.t), cy = y(p.pct);
       var m = svgEl("circle", { cx: cx, cy: cy, r: pts.length <= 10 ? 4.6 : 3.5, fill: color, stroke: surface, "stroke-width": 1.5 });
       svg.appendChild(m);

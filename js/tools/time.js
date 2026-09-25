@@ -16,6 +16,10 @@
     daysData: null,  // { quarterId, from, to, days: [{date,pct,done,total}], avg } for the Days tab
     quarterStats: null, // { byId: {id: {avg,tracked,days}}, avg, tracked } for the Quarters gallery
     daysFocus: null, // { quarterId, from, to, preset } — the week/range focused under the days chart
+    // "all": the Days tab spans every quarter at once instead of one of them
+    daysScope: (function () {
+      try { return localStorage.getItem("time-days-scope") === "all" ? "all" : null; } catch (e) { return null; }
+    })(),
     goalsView: (function () {
       try { return localStorage.getItem("time-goals-view") || "category"; } catch (e) { return "category"; }
     })(), // 'category' (grouped cards, always fully shown) or 'flat' (one drag-orderable list, goals can be hidden)
@@ -2487,9 +2491,37 @@
     });
   }
 
+  // the whole tracked span: the earliest quarter's first day to the latest one's last
+  function allQuartersSpan() {
+    var qs = state.quarters || [];
+    return {
+      from: qs.reduce(function (m, q) { var d = String(q.start_date).slice(0, 10); return d < m ? d : m; }, "9999-12-31"),
+      to: qs.reduce(function (m, q) { var d = String(q.end_date).slice(0, 10); return d > m ? d : m; }, "0000-01-01"),
+    };
+  }
+
+  // Goals across every quarter, each quarter's goals kept inside their own
+  // quarter. Summing them all together would have Q3's targets weighing on a
+  // day in Q2, when those goals didn't exist yet.
+  function goalsSeriesAllQuarters(log) {
+    var byQuarter = {};
+    (log || []).forEach(function (r) { (byQuarter[r.quarter_id] = byQuarter[r.quarter_id] || []).push(r); });
+    var values = {}, estimated = {};
+    (state.quarters || []).forEach(function (q) {
+      var rows = byQuarter[q.id];
+      if (!rows) return;
+      var series = goalsSeries(rows, String(q.start_date).slice(0, 10), String(q.end_date).slice(0, 10));
+      Object.keys(series.values).forEach(function (d) { values[d] = series.values[d]; });
+      Object.keys(series.estimated).forEach(function (d) { estimated[d] = true; });
+    });
+    return { values: values, estimated: estimated };
+  }
+
   function loadDaysGallery(opts) {
+    var quarters = state.quarters || [];
+    var all = state.daysScope === "all" && quarters.length > 0;
     var quarter = state.quarterDetail && state.quarterDetail.quarter;
-    if (!quarter) {
+    if (!all && !quarter) {
       $("#dayGallery").innerHTML = "";
       $("#noDaysQuarter").hidden = false;
       $("#daysQuarterLabel").textContent = "";
@@ -2503,31 +2535,46 @@
     }
     $("#noDaysQuarter").hidden = true;
     var picker = $("#daysQuarterPicker");
-    picker.hidden = state.quarters.length < 2; // nothing to switch to
-    picker.innerHTML = state.quarters.map(function (q) {
-      return '<option value="' + q.id + '"' + (q.id === quarter.id ? " selected" : "") + ">" + esc(q.name) + "</option>";
-    }).join("");
-    $("#daysQuarterLabel").textContent = (picker.hidden ? quarter.name + " · " : "") +
-      fmtDate(quarter.start_date) + " – " + fmtDate(quarter.end_date);
+    picker.hidden = quarters.length < 2; // nothing to switch to
+    picker.innerHTML = (quarters.length > 1 ? '<option value="all">All quarters</option>' : "") +
+      quarters.map(function (q) { return '<option value="' + q.id + '">' + esc(q.name) + "</option>"; }).join("");
+    picker.value = all ? "all" : String(quarter.id);
 
-    var from = String(quarter.start_date).slice(0, 10);
-    var to = String(quarter.end_date).slice(0, 10);
+    var span = all ? allQuartersSpan() : { from: String(quarter.start_date).slice(0, 10), to: String(quarter.end_date).slice(0, 10) };
+    var from = span.from, to = span.to;
+    $("#daysQuarterLabel").textContent = (all ? plural(quarters.length, "quarter") + " · " : picker.hidden ? quarter.name + " · " : "") +
+      fmtDate(from) + " – " + fmtDate(to);
+
     return Promise.all([
       api("/api/tasks?stats=1&from=" + from + "&to=" + to),
       api("/api/day-photos?from=" + from + "&to=" + to),
-      api("/api/goals?history=1&quarter_id=" + quarter.id),
+      api(all ? "/api/goals?history=1&all=1" : "/api/goals?history=1&quarter_id=" + quarter.id),
+      all ? api("/api/goals?by_quarter=1") : Promise.resolve(null),
     ]).then(function (results) {
       opts = opts || {};
-      var series = goalsSeries(results[2].log || [], from, to);
+      var log = results[2].log || [];
+      var series = all ? goalsSeriesAllQuarters(log) : goalsSeries(log, from, to);
       opts.goalsByDate = series.values;
       opts.goalsEstimatedByDate = series.estimated;
+      opts.all = all;
+      opts.goalsByQuarter = results[3] ? results[3].goals || [] : null;
       renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
 
   $("#daysQuarterPicker").addEventListener("change", function () {
+    if (this.value === "all") {
+      state.daysScope = "all";
+      remember("days-scope", "all");
+      loadDaysGallery();
+      return;
+    }
     var id = Number(this.value);
-    if (!id || id === state.selectedQuarterId) return;
+    if (!id) return;
+    var wasAll = state.daysScope === "all";
+    state.daysScope = null;
+    remember("days-scope", null);
+    if (id === state.selectedQuarterId) { if (wasAll) loadDaysGallery(); return; }
     state.selectedQuarterId = id;
     remember("quarter-id", String(id));
     loadQuarterDetail(id)
@@ -2592,32 +2639,91 @@
 
     var quarter = state.quarterDetail && state.quarterDetail.quarter;
     state.daysData = {
-      quarterId: quarter ? quarter.id : null,
+      quarterId: opts.all ? "all" : quarter ? quarter.id : null,
       from: from, to: to, days: chartDays, avg: avg,
       statsByDate: statsByDate, photosByDate: photosByDate,
       goalsByDate: opts.goalsByDate || {},
       goalsEstimatedByDate: opts.goalsEstimatedByDate || {},
     };
 
-    // the goals tile reads the live goals, not the log, so it always matches the
-    // bar inside the quarter even on a day the log hasn't caught up with
-    var allGoals = (state.quarterDetail && state.quarterDetail.categories || [])
-      .reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
-    var goalsNow = combinedGoalsPct(allGoals);
-    $("#daysGoalsValue").textContent = goalsNow == null ? "—" : goalsNow + "%";
-    $("#daysGoalsSub").textContent = goalsNow == null
-      ? "no goals in this quarter"
-      : "of " + plural(allGoals.length, "goal") + ", target-weighted";
+    if (opts.all) {
+      // across quarters, each quarter's own goals figure counts once — one
+      // quarter with far more goals shouldn't speak for all the others
+      var byQuarter = {};
+      (opts.goalsByQuarter || []).forEach(function (g) { (byQuarter[g.quarter_id] = byQuarter[g.quarter_id] || []).push(g); });
+      var pcts = Object.keys(byQuarter).map(function (id) { return combinedGoalsPct(byQuarter[id]); })
+        .filter(function (v) { return v != null; });
+      var mean = pcts.length ? Math.round(pcts.reduce(function (a2, b) { return a2 + b; }, 0) / pcts.length) : null;
+      $("#daysGoalsValue").textContent = mean == null ? "—" : mean + "%";
+      $("#daysGoalsSub").textContent = mean == null
+        ? "no goals yet"
+        : "averaged over " + plural(pcts.length, "quarter");
+    } else {
+      // the goals tile reads the live goals, not the log, so it always matches the
+      // bar inside the quarter even on a day the log hasn't caught up with
+      var allGoals = (state.quarterDetail && state.quarterDetail.categories || [])
+        .reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
+      var goalsNow = combinedGoalsPct(allGoals);
+      $("#daysGoalsValue").textContent = goalsNow == null ? "—" : goalsNow + "%";
+      $("#daysGoalsSub").textContent = goalsNow == null
+        ? "no goals in this quarter"
+        : "of " + plural(allGoals.length, "goal") + ", target-weighted";
+    }
     renderDaysFocus({ animateChart: opts.animate !== false, animateTiles: opts.animate !== false });
   }
 
   // The photo grid for one date range — the focus filter decides which range, so
   // picking a week narrows the photos to that week too, not just the graph.
+  // In "All quarters" the grid is broken into one run of weeks per quarter,
+  // each under its own heading — a year of tiles in one unbroken run is
+  // impossible to place. Days that fall between two quarters get a run of
+  // their own, and only if anything was logged or photographed in them.
+  function daySegments(from, to) {
+    var data = state.daysData;
+    if (!data || data.quarterId !== "all") return [{ label: null, from: from, to: to }];
+    var hasData = function (a, b) {
+      for (var d = a; d <= b; d = addDays(d, 1)) {
+        var st = data.statsByDate[d];
+        if ((st && st.total) || data.photosByDate[d]) return true;
+      }
+      return false;
+    };
+    var qs = (state.quarters || []).slice().sort(function (x, y) {
+      return String(x.start_date) < String(y.start_date) ? -1 : 1;
+    });
+    var segs = [], cursor = from;
+    qs.forEach(function (q) {
+      var qf = String(q.start_date).slice(0, 10), qt = String(q.end_date).slice(0, 10);
+      if (qf < cursor) qf = cursor;
+      if (qt > to) qt = to;
+      if (qt < qf) return;
+      if (qf > cursor && hasData(cursor, addDays(qf, -1))) {
+        segs.push({ label: "Between quarters", from: cursor, to: addDays(qf, -1) });
+      }
+      segs.push({ label: q.name + " · " + fmtDate(qf) + " – " + fmtDate(qt), from: qf, to: qt });
+      cursor = addDays(qt, 1);
+    });
+    if (cursor <= to && hasData(cursor, to)) segs.push({ label: "Between quarters", from: cursor, to: to });
+    return segs.length ? segs : [{ label: null, from: from, to: to }];
+  }
+
   function renderDayTiles(from, to, animate) {
-    var statsByDate = state.daysData.statsByDate;
-    var photosByDate = state.daysData.photosByDate;
     var box = $("#dayGallery");
     box.innerHTML = "";
+    daySegments(from, to).forEach(function (seg) {
+      if (seg.label) {
+        var head = document.createElement("div");
+        head.className = "day-gallery__head";
+        head.textContent = seg.label;
+        box.appendChild(head);
+      }
+      renderTileRun(box, seg.from, seg.to, animate);
+    });
+  }
+
+  function renderTileRun(box, from, to, animate) {
+    var statsByDate = state.daysData.statsByDate;
+    var photosByDate = state.daysData.photosByDate;
     var today = todayISO();
 
     // weeks start Saturday: pad the grid with blank cells so day `from`
@@ -2790,10 +2896,12 @@
 
     // switching quarters drops whatever week was focused in the old one
     if (state.daysFocus && state.daysFocus.quarterId !== data.quarterId) state.daysFocus = null;
+    var spanAll = data.quarterId === "all";
     var today = todayISO();
     var todayInQuarter = today >= data.from && today <= data.to;
+    // asking for every quarter means wanting to see all of it, not this week of it
     if (!state.daysFocus) state.daysFocus = savedFocus(data.quarterId) || (function () {
-      var def = focusPreset(todayInQuarter ? "this-week" : "all");
+      var def = focusPreset(!spanAll && todayInQuarter ? "this-week" : "all");
       return { quarterId: data.quarterId, from: def.from, to: def.to, preset: matchingPreset(def.from, def.to) };
     })();
     var f = state.daysFocus;
@@ -2812,6 +2920,9 @@
     $("#focusWeekLabel").textContent = fmtDayMonth(f.from) + " → " + fmtDayMonth(f.to);
     $("#btnFocusPrevWeek").disabled = f.from <= data.from;
     $("#btnFocusNextWeek").disabled = f.to >= data.to;
+    // the "all" chip covers the whole quarter, or everything, depending on scope
+    $('#focusRange .chip[data-focus-preset="all"]').textContent = spanAll ? "Every quarter" : "Whole quarter";
+    $("#btnDaysChartAll").textContent = spanAll ? "↩ Every quarter" : "↩ Whole quarter";
     document.querySelectorAll("#focusRange .chip").forEach(function (c) {
       c.classList.toggle("chip--on", c.dataset.focusPreset === f.preset);
       // "this week" and friends are anchored on today — meaningless for a quarter
@@ -2832,7 +2943,8 @@
       : "no days tracked in this range";
 
     $("#focusRangeNote").textContent = s.tracked
-      ? fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "%, against " + data.avg + "% for the quarter."
+      ? fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "%, against " + data.avg + "% " +
+        (spanAll ? "across every quarter." : "for the quarter.")
       : "No tasks logged between " + fmtDate(f.from) + " and " + fmtDate(f.to) + ".";
 
     // picking a week zooms the graph to that week — the quarter's average still
@@ -2842,7 +2954,7 @@
 
     $("#daysChartRange").innerHTML = zoomed
       ? "Showing <b>" + esc(fmtDate(f.from)) + " → " + esc(fmtDate(f.to)) + "</b> · " + plural(slice.length, "day")
-      : "Showing the whole quarter · " + plural(data.days.length, "day");
+      : (spanAll ? "Showing every quarter · " : "Showing the whole quarter · ") + plural(data.days.length, "day");
     $("#btnDaysChartAll").hidden = !zoomed;
 
     if (opts.tiles !== false) {
@@ -2856,12 +2968,16 @@
       avg: data.avg,
       goalsByDate: data.goalsByDate,
       goalsEstimatedByDate: data.goalsEstimatedByDate,
-      avgLabel: zoomed ? "Quarter" : "Avg",
+      avgLabel: zoomed ? (spanAll ? "All time" : "Quarter") : "Avg",
+      // where each quarter begins, so a year-long line can be read quarter by quarter
+      dividers: spanAll ? (state.quarters || []).map(function (q) {
+        return { date: String(q.start_date).slice(0, 10), label: q.name };
+      }) : null,
       // unzoomed, the range average would sit exactly on the quarter's line
       focus: zoomed ? { avg: s.tracked ? s.avg : null, label: "This range" } : null,
       ariaLabel: zoomed
         ? "Daily completion from " + fmtDate(f.from) + " to " + fmtDate(f.to)
-        : "Daily completion across the quarter",
+        : (spanAll ? "Daily completion across every quarter" : "Daily completion across the quarter"),
       animate: opts.animateChart !== false,
     });
   }
