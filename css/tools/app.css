@@ -315,7 +315,24 @@ tr.rowlink:hover td { background: rgba(var(--accent-rgb), 0.07); }
   border-radius: 50%; overflow: hidden; flex: none;
   background: var(--bg);
 }
-.avatar img { width: 100%; height: 100%; display: block; }
+.avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
+/* the client page's avatar is the upload button: click it to set or replace the photo */
+.avatar-upload {
+  position: relative; flex: none; display: inline-flex;
+  background: none; border: none; padding: 0; border-radius: 50%; cursor: pointer;
+}
+.avatar-upload__badge {
+  position: absolute; right: -4px; bottom: -4px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass); border: 1px solid var(--glass-brd);
+  font-size: 0.75rem; line-height: 1; box-shadow: var(--shadow-card);
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) ease;
+}
+.avatar-upload:hover .avatar-upload__badge { transform: scale(1.12); border-color: var(--blue); }
+.avatar-upload[disabled] { cursor: wait; opacity: 0.6; }
+.avatar-remove { margin-top: 2px; font-size: 0.8rem; color: var(--muted); }
+.avatar-remove:hover { color: var(--c-danger); }
 .avatar--lg { width: 68px; height: 68px; animation: avatarPop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) both, floaty 6s ease-in-out 1.2s infinite; }
 .avatar--sm { width: 30px; height: 30px; }
 .avatar--initial {

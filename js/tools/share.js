@@ -85,7 +85,9 @@
   function render(data) {
     current = data;
     var av = $("#cAvatar");
-    if (data.gender === "male" || data.gender === "female") {
+    if (data.photo) {
+      av.innerHTML = '<img src="' + esc(data.photo) + '" alt="" />';
+    } else if (data.gender === "male" || data.gender === "female") {
       av.innerHTML = '<img src="/assets/avatar-' + data.gender + '.svg" alt="" />';
     } else {
       av.classList.add("avatar--initial");

@@ -48,6 +48,9 @@ async function migrate(sql) {
   // read-only share links for clients
   await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS share_token TEXT`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS clients_share_token_idx ON clients (share_token)`;
+  // optional client photo, shown in place of the gender avatar — a small
+  // square data: URL (the browser crops/compresses before upload)
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS photo TEXT`;
   // payment-proof attachment (screenshot or PDF) on purchases
   await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof BYTEA`;
   await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof_name TEXT`;

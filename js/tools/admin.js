@@ -84,8 +84,35 @@
     return out;
   }
 
+  // centre-crop to a square and JPEG-compress client-side, so what reaches the
+  // API is a few tens of KB however large the original was
+  function squarePhoto(file, size, quality) {
+    return new Promise(function (resolve, reject) {
+      if (!/^image\//.test(file.type)) { reject(new Error("That file is not an image")); return; }
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var side = Math.min(img.width, img.height);
+        var out = Math.min(size, side);
+        var canvas = document.createElement("canvas");
+        canvas.width = out; canvas.height = out;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff"; // JPEG has no alpha — a transparent PNG would otherwise turn black
+        ctx.fillRect(0, 0, out, out);
+        ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, out, out);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("Could not read that image")); };
+      img.src = url;
+    });
+  }
+
   function avatarHtml(client, extraClass) {
     var cls = "avatar " + (extraClass || "");
+    if (client.photo) {
+      return '<span class="' + cls + '"><img src="' + esc(client.photo) + '" alt="" /></span>';
+    }
     if (client.gender === "male" || client.gender === "female") {
       return '<span class="' + cls + '"><img src="/assets/avatar-' + client.gender + '.svg" alt="" /></span>';
     }
@@ -191,8 +218,14 @@
     ev.preventDefault();
     var form = this;
     var btn = form.querySelector("button[type=submit]");
+    var b = formData(form);
+    var file = form.elements.photo.files[0];
     busy(btn, true);
-    api("/api/clients", { method: "POST", body: formData(form) })
+    (file ? squarePhoto(file, 320, 0.82) : Promise.resolve(null))
+      .then(function (photo) {
+        if (photo) b.photo = photo;
+        return api("/api/clients", { method: "POST", body: b });
+      })
       .then(function () { form.reset(); $("#addClientBox").open = false; toast("Client added ✓"); return loadClients(); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
@@ -222,6 +255,9 @@
     var c = data.client, t = data.totals;
     $("#btnRevokeShare").hidden = !c.share_token;
     $("#cAvatar").outerHTML = avatarHtml(c, "avatar--lg").replace('class="', 'id="cAvatar" class="');
+    $("#btnPhoto").title = c.photo ? "Change photo" : "Upload a photo";
+    $("#btnPhoto").setAttribute("aria-label", $("#btnPhoto").title);
+    $("#btnRemovePhoto").hidden = !c.photo;
     $("#cName").textContent = c.name;
     $("#cMeta").textContent = [c.phone, c.email, c.nationality, c.transaction_type, c.notes]
       .filter(Boolean).join("  ·  ") || "No contact details yet";
@@ -359,6 +395,33 @@
         $("#btnRevokeShare").hidden = true;
         toast("Share link disabled");
       })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  });
+
+  $("#btnPhoto").addEventListener("click", function () { $("#photoInput").click(); });
+
+  $("#photoInput").addEventListener("change", function () {
+    var input = this;
+    var file = input.files[0];
+    if (!file) return;
+    var btn = $("#btnPhoto");
+    busy(btn, true);
+    squarePhoto(file, 320, 0.82)
+      .then(function (photo) {
+        return api("/api/clients?id=" + state.clientId, { method: "PATCH", body: { photo: photo } });
+      })
+      .then(function () { toast("Photo saved ✓"); return openClient(state.clientId); })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); input.value = ""; });
+  });
+
+  $("#btnRemovePhoto").addEventListener("click", function () {
+    if (!confirm("Remove this client's photo?")) return;
+    var btn = this;
+    busy(btn, true);
+    api("/api/clients?id=" + state.clientId, { method: "PATCH", body: { photo: "" } })
+      .then(function () { toast("Photo removed"); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });

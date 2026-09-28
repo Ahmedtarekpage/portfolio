@@ -15,6 +15,11 @@ and Neon Postgres.
   enforced in the database. On the iPhone it's Face ID; when you open `/admin` on a
   laptop, the browser shows a QR code you scan with the iPhone (built into passkeys).
 - **Clients** — name, phone, email, nationality, transaction type (Direct / PayPal / …), notes.
+- **Client photos** — click the avatar on a client's page to upload or replace a photo
+  (or pick one while adding the client). The browser crops it to a 320px square JPEG
+  before sending, so it is stored in `clients.photo` as a small data: URL and needs no
+  endpoint of its own. Without a photo the gender avatar, then the initial, is shown.
+  The photo also appears on that client's read-only share page.
 - **Hour packages** — e.g. client pays for 30 hours on 1 Jan; they expire after 1 month
   (configurable 1–24 months per purchase).
 - **Sessions** — date, duration, topic, and an optional meeting-minutes **PDF** (stored in

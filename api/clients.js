@@ -1,8 +1,8 @@
 // Clients collection.
 //   GET    /api/clients          -> all clients with balance summaries
 //   GET    /api/clients?id=N     -> one client: profile + packages + sessions + timeline
-//   POST   /api/clients          -> create { name, phone, email, nationality, transaction_type, notes }
-//   PATCH  /api/clients?id=N     -> update any of the above fields
+//   POST   /api/clients          -> create { name, phone, email, nationality, transaction_type, notes, photo? }
+//   PATCH  /api/clients?id=N     -> update any of the above fields; photo: "" removes the photo
 //   DELETE /api/clients?id=N     -> delete client (cascades to packages/sessions)
 //   POST   /api/clients?id=N&share=create -> mint (or return existing) read-only share token
 //   POST   /api/clients?id=N&share=revoke -> disable the share link
@@ -10,6 +10,16 @@ import crypto from "node:crypto";
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
+
+const MAX_PHOTO_CHARS = 400_000; // ~300KB decoded — the browser sends a 320px square, far below this
+
+// undefined = not sent (leave as is), null = remove, string = the new photo, false = rejected
+function readPhoto(b) {
+  if (b.photo === undefined) return undefined;
+  if (b.photo === null || b.photo === "") return null;
+  if (typeof b.photo !== "string" || b.photo.length > MAX_PHOTO_CHARS) return false;
+  return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(b.photo) ? b.photo : false;
+}
 
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
@@ -73,9 +83,11 @@ export default withErrors(async (req, res) => {
     const b = req.body || {};
     if (!b.name || !String(b.name).trim()) return json(res, 400, { error: "Name is required" });
     const gender = ["male", "female"].includes(b.gender) ? b.gender : null;
-    const [client] = await sql`INSERT INTO clients (name, phone, email, nationality, transaction_type, notes, gender)
+    const photo = readPhoto(b);
+    if (photo === false) return json(res, 400, { error: "Photo must be a JPEG, PNG or WebP image" });
+    const [client] = await sql`INSERT INTO clients (name, phone, email, nationality, transaction_type, notes, gender, photo)
       VALUES (${String(b.name).trim()}, ${b.phone || null}, ${b.email || null},
-              ${b.nationality || null}, ${b.transaction_type || null}, ${b.notes || null}, ${gender})
+              ${b.nationality || null}, ${b.transaction_type || null}, ${b.notes || null}, ${gender}, ${photo || null})
       RETURNING *`;
     return json(res, 201, { client });
   }
@@ -85,7 +97,10 @@ export default withErrors(async (req, res) => {
 
   if (req.method === "PATCH") {
     const b = req.body || {};
+    const photo = readPhoto(b);
+    if (photo === false) return json(res, 400, { error: "Photo must be a JPEG, PNG or WebP image" });
     const [client] = await sql`UPDATE clients SET
+        photo = CASE WHEN ${photo !== undefined}::boolean THEN ${photo ?? null}::text ELSE photo END,
         name = COALESCE(${b.name ?? null}, name),
         phone = COALESCE(${b.phone ?? null}, phone),
         email = COALESCE(${b.email ?? null}, email),
