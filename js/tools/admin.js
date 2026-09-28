@@ -114,7 +114,7 @@
       return '<span class="' + cls + '"><img src="' + esc(client.photo) + '" alt="" /></span>';
     }
     if (client.gender === "male" || client.gender === "female") {
-      return '<span class="' + cls + '"><img src="/assets/avatar-' + client.gender + '.svg" alt="" /></span>';
+      return '<span class="' + cls + '"><img src="/assets/avatar-' + client.gender + '.svg?v=2" alt="" /></span>';
     }
     var initial = String(client.name || "?").trim().charAt(0).toUpperCase();
     return '<span class="' + cls + ' avatar--initial">' + esc(initial) + "</span>";

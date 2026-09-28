@@ -88,7 +88,7 @@
     if (data.photo) {
       av.innerHTML = '<img src="' + esc(data.photo) + '" alt="" />';
     } else if (data.gender === "male" || data.gender === "female") {
-      av.innerHTML = '<img src="/assets/avatar-' + data.gender + '.svg" alt="" />';
+      av.innerHTML = '<img src="/assets/avatar-' + data.gender + '.svg?v=2" alt="" />';
     } else {
       av.classList.add("avatar--initial");
       av.textContent = String(data.name || "?").trim().charAt(0).toUpperCase();
