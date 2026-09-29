@@ -219,7 +219,8 @@
                     is a button carrying data-act="open"
      opts.hero      the large, leading version
      opts.actions   extra HTML for the card's foot (edit/delete buttons)
-     opts.reminders show which reminder emails have gone out */
+     opts.reminders show which reminder emails have gone out
+     opts.seriesOf  function (m) -> { n, total } when m is one of a repeating series */
   function cardHtml(m, now, opts) {
     var tz = opts.tz;
     var start = new Date(m.starts_at);
@@ -240,7 +241,10 @@
     html += '<div class="meet__body">';
     html += '<div class="meet__top"><span class="pill pill--' + tone + '">' +
       (st === "live" ? '<i class="pill__dot"></i>' : "") + esc(label) + "</span>" +
-      '<span class="meet__rel">' + esc(relative(m, now)) + "</span></div>";
+      '<span class="meet__rel">' + esc(relative(m, now)) + "</span>";
+    var ser = opts.seriesOf ? opts.seriesOf(m) : null;
+    if (ser) html += '<span class="meet__series" title="Part of a repeating series">↻ ' + Number(ser.n) + " of " + Number(ser.total) + "</span>";
+    html += "</div>";
 
     if (opts.who) {
       html += '<button type="button" class="meet__who" data-act="open" title="Open ' + esc(opts.who.name) + '">' +

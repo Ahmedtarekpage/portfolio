@@ -5,8 +5,10 @@
 // in. Every screen converts the instant to whoever is looking: the admin sees
 // their own zone, the client's share page uses the browser's, and the client's
 // emails — where there is no browser to ask — use the zone it was arranged in.
+import crypto from "node:crypto";
 import { json } from "./util.js";
 import { mailConfig, renderEmail, renderText, sendBatch } from "./mail.js";
+import { computeClient } from "./hours.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -177,6 +179,7 @@ export function shape(m, { admin = false } = {}) {
     link: m.link || null,
     platform: platform(m.link),
     topic: m.topic || null,
+    series_id: m.series_id || null,
   };
   if (admin) {
     out.remind_day_at = iso(m.remind_day_at);
@@ -223,6 +226,154 @@ function readMeeting(b) {
   };
 }
 
+/* ---------------- repeating meetings ----------------
+   "Every Tuesday until the credit runs out." A series is worked out once, when
+   it is made, and stored as ordinary meetings that share a series_id — so each
+   one can still be moved or cancelled on its own afterwards. */
+
+const MAX_SERIES = 60;
+const HORIZON_DAYS = 730;
+
+/** Returns null (does not repeat), { error }, or the clean repeat rule. */
+function readRepeat(b) {
+  const r = b.repeat;
+  if (!r || typeof r !== "object") return null;
+  const interval = Number(r.interval) === 2 ? 2 : 1;
+  const days = [...new Set((Array.isArray(r.days) ? r.days : [])
+    .map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))];
+  const until = ["credit", "count", "date"].includes(r.until) ? r.until : "credit";
+  let count = null;
+  let untilDate = null;
+  if (until === "count") {
+    count = Math.round(Number(r.count));
+    if (!(count >= 1 && count <= MAX_SERIES)) return { error: `The number of sessions has to be between 1 and ${MAX_SERIES}.` };
+  }
+  if (until === "date") {
+    untilDate = String(r.until_date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(untilDate)) return { error: "Pick the date the series ends on." };
+  }
+  return { interval, days, until, count, untilDate };
+}
+
+/**
+ * The dates a rule lands on, from the first date forward. The time on the wall
+ * stays the same each week in the meeting's own zone, so a 6 PM session is
+ * still at 6 PM after the clocks change. Weeks are counted in sevens from the
+ * first date, which is what "every 2 weeks" means to whoever picked that date.
+ */
+function seriesDates(local, tz, rule) {
+  const [d0, time] = String(local).split("T");
+  const first = new Date(`${d0}T00:00:00Z`);
+  const days = rule.days.length ? rule.days : [first.getUTCDay()];
+  const limit = rule.until === "count" ? rule.count : MAX_SERIES;
+  const out = [];
+  for (let i = 0; i <= HORIZON_DAYS && out.length < limit; i++) {
+    const day = new Date(first.getTime() + i * DAY_MS);
+    const date = day.toISOString().slice(0, 10);
+    if (rule.until === "date" && date > rule.untilDate) break;
+    if (Math.floor(i / 7) % rule.interval !== 0) continue;
+    if (!days.includes(day.getUTCDay())) continue;
+    const start = zonedToUtc(`${date}T${time}`, tz);
+    if (start) out.push({ date, starts_at: start.toISOString() });
+  }
+  return out;
+}
+
+const shortDay = (date) => new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC", weekday: "short", day: "numeric", month: "short",
+}).format(new Date(`${date}T00:00:00Z`));
+
+const hoursWord = (h) => `${Number.isInteger(h) ? h : h.toFixed(2).replace(/0$/, "")}h`;
+
+/**
+ * Which of these dates the client's credit would actually cover. It is the
+ * same replay the balance graph uses — real sessions, then the meetings
+ * already booked, each taking from the package that expires soonest — run
+ * once per new date. A new date is covered only if adding it leaves nothing
+ * else short: a series must not take hours that a meeting already in the
+ * diary was counting on, even when the new date comes first.
+ */
+async function creditFor(sql, clientId, candidates, hours) {
+  const packages = await sql`SELECT id, hours, purchased_at, expires_at FROM hour_packages WHERE client_id = ${clientId}`;
+  const sessions = await sql`SELECT id, session_date, hours FROM client_sessions WHERE client_id = ${clientId}`;
+  const booked = await sql`SELECT id, starts_at, duration_min, timezone FROM meetings
+    WHERE client_id = ${clientId} AND starts_at > now()`;
+  const dateIn = (instant, tz) => {
+    const p = parts(new Date(instant), isZone(tz) ? tz : "UTC");
+    return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+  };
+  const taken = [
+    ...sessions.map((s) => ({ id: `s${s.id}`, session_date: s.session_date, hours: s.hours })),
+    ...booked.map((m) => ({ id: `m${m.id}`, session_date: dateIn(m.starts_at, m.timezone), hours: m.duration_min / 60 })),
+  ];
+  const replay = (list) => {
+    const { timeline } = computeClient(packages, list);
+    return {
+      short: timeline.reduce((sum, e) => sum + (e.kind === "session" ? e.uncovered || 0 : 0), 0),
+      expiries: timeline.filter((e) => e.kind === "expiry").map((e) => ({ date: e.date, hours: -e.delta })),
+    };
+  };
+
+  let before = replay(taken);
+  const covered = [];
+  let expiries = before.expiries;
+  for (let i = 0; i < candidates.length; i++) {
+    taken.push({ id: `c${i}`, session_date: candidates[i].date, hours });
+    const after = replay(taken);
+    const ok = after.short <= before.short + 1e-9;
+    // the hours lost to expiry by the time the first uncovered date comes round
+    if (!ok && covered.every(Boolean)) expiries = after.expiries;
+    covered.push(ok);
+    before = after;
+  }
+  return { covered, expiries };
+}
+
+/** Works a rule out into meetings. Returns { error } or { occurrences, note, stopped }. */
+async function planSeries(sql, clientId, b, m, rule) {
+  const hours = m.duration / 60;
+  let dates = seriesDates(b.local, m.tz, rule);
+  if (!dates.length) {
+    return { error: rule.until === "date" ? "The end date is before the first session." : "That rule does not land on any date." };
+  }
+  const credit = await creditFor(sql, clientId, dates, hours);
+  let stopped = rule.until;
+  let note;
+
+  if (rule.until === "credit") {
+    const firstShort = credit.covered.indexOf(false);
+    if (firstShort === 0) {
+      return {
+        error: `There is no credit for a ${hoursWord(hours)} session on ${shortDay(dates[0].date)}. ` +
+               "Add hours first, or end the series after a number of sessions instead.",
+      };
+    }
+    if (firstShort === -1) {
+      stopped = "limit";
+      note = `Credit covers all ${dates.length} of these — a series stops at ${MAX_SERIES} sessions.`;
+    } else {
+      const kept = dates.slice(0, firstShort);
+      const next = dates[firstShort];
+      const lost = credit.expiries.filter((e) => e.date >= kept[kept.length - 1].date && e.date < next.date);
+      const why = lost.length
+        ? `${hoursWord(lost.reduce((s, e) => s + e.hours, 0))} would expire on ${shortDay(lost[0].date)}, before it`
+        : "the hours are used up";
+      note = `Credit covers ${kept.length} session${kept.length === 1 ? "" : "s"}. ` +
+             `The one after, on ${shortDay(next.date)}, is not covered: ${why}.`;
+      dates = kept;
+    }
+    return { occurrences: dates.map((d) => ({ ...d, covered: true })), note, stopped };
+  }
+
+  const short = credit.covered.filter((ok) => !ok).length;
+  if (dates.length === MAX_SERIES && rule.until === "date") stopped = "limit";
+  note = short
+    ? `${short} of these ${dates.length} ${short === 1 ? "is" : "are"} beyond the current credit.`
+    : `Credit covers all ${dates.length}.`;
+  if (stopped === "limit") note += ` A series stops at ${MAX_SERIES} sessions.`;
+  return { occurrences: dates.map((d, i) => ({ ...d, covered: credit.covered[i] })), note, stopped };
+}
+
 export async function handleMeetings(req, res, sql) {
   if (req.method === "GET") {
     const clientId = Number(req.query.client_id);
@@ -238,6 +389,28 @@ export async function handleMeetings(req, res, sql) {
     if (m.error) return json(res, 400, { error: m.error });
     const [client] = await sql`SELECT id FROM clients WHERE id = ${clientId}`;
     if (!client) return json(res, 404, { error: "Client not found" });
+
+    const rule = readRepeat(b);
+    // A preview that cannot be made is an answer, not a failure: the form asks
+    // on every keystroke, and "there is no credit for that" is what it shows.
+    const refuse = (error) => (b.preview ? json(res, 200, { preview: true, error }) : json(res, 400, { error }));
+    if (rule && rule.error) return refuse(rule.error);
+    if (rule) {
+      const plan = await planSeries(sql, clientId, b, m, rule);
+      if (plan.error) return refuse(plan.error);
+      const series = { count: plan.occurrences.length, note: plan.note, stopped: plan.stopped };
+      // a dry run: what the rule would make, without making it
+      if (b.preview) return json(res, 200, { preview: true, occurrences: plan.occurrences, series });
+      const seriesId = crypto.randomBytes(9).toString("base64url");
+      const rows = await sql`INSERT INTO meetings (client_id, starts_at, duration_min, timezone, link, topic, series_id)
+        SELECT ${clientId}, t::timestamptz, ${m.duration}, ${m.tz}, ${m.link}, ${m.topic}, ${seriesId}
+        FROM unnest(${plan.occurrences.map((o) => o.starts_at)}::text[]) AS t
+        RETURNING *`;
+      await sql`UPDATE clients SET timezone = ${m.tz} WHERE id = ${clientId}`;
+      const meetings = rows.map((r) => shape(r, { admin: true })).sort((x, y) => x.starts_at.localeCompare(y.starts_at));
+      return json(res, 201, { meetings, series });
+    }
+
     const [row] = await sql`INSERT INTO meetings (client_id, starts_at, duration_min, timezone, link, topic)
       VALUES (${clientId}, ${m.startsAt}::timestamptz, ${m.duration}, ${m.tz}, ${m.link}, ${m.topic})
       RETURNING *`;
@@ -268,8 +441,18 @@ export async function handleMeetings(req, res, sql) {
   }
 
   if (req.method === "DELETE") {
+    // scope=following: this one and every later one in the same series
+    if (req.query.scope === "following") {
+      const [m] = await sql`SELECT series_id, starts_at FROM meetings WHERE id = ${id}`;
+      if (m && m.series_id) {
+        const gone = await sql`DELETE FROM meetings
+          WHERE series_id = ${m.series_id} AND starts_at >= ${new Date(m.starts_at).toISOString()}::timestamptz
+          RETURNING id`;
+        return json(res, 200, { ok: true, deleted: gone.map((r) => r.id) });
+      }
+    }
     await sql`DELETE FROM meetings WHERE id = ${id}`;
-    return json(res, 200, { ok: true });
+    return json(res, 200, { ok: true, deleted: [id] });
   }
 
   return json(res, 405, { error: "Method not allowed" });

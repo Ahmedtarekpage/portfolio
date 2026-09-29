@@ -8,8 +8,10 @@
 //   GET    /api/sessions?resource=meetings               -> everything still to come, all clients
 //   GET    /api/sessions?resource=meetings&client_id=N   -> one client's meetings, newest first
 //   POST   /api/sessions?resource=meetings               -> { client_id, local: "YYYY-MM-DDTHH:MM", timezone, duration_min, link?, topic? }
+//                                                           + repeat: { days: [0-6], interval: 1|2, until: "credit"|"count"|"date", count?, until_date? }
+//                                                           + preview: true to see what a repeat rule would make without making it
 //   PATCH  /api/sessions?resource=meetings&id=N          -> the same fields; a new time re-arms the reminders
-//   DELETE /api/sessions?resource=meetings&id=N
+//   DELETE /api/sessions?resource=meetings&id=N          -> &scope=following takes the rest of its series with it
 //   GET    /api/sessions?resource=settings               -> { timezone, default_link, notify_email, ... }
 //   PUT    /api/sessions?resource=settings               -> any of those
 import { db } from "./_lib/db.js";

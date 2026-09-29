@@ -154,6 +154,24 @@ is assumed:
 meeting at 1 AM Dubai time is *tomorrow* for you and still *today* for someone
 in London.
 
+**Repeating.** *Repeat → Every week* (or every 2 weeks) turns one meeting into a
+series: pick the days — the day of the chosen date to begin with — and when it
+ends. *Until the credit runs out* is the default, and means exactly what the
+balance graph would say: sessions already recorded come first, then the meetings
+already in the diary, then the new ones, each taking hours from the package that
+expires soonest. The series stops at the first date the credit would not cover,
+whether the hours are used up or would have expired by then, and the form says
+which. It can also end after a number of sessions or on a date, in which case
+the ones beyond the credit are made anyway and marked *no credit*. The form
+shows the exact list before anything is saved.
+
+A series is worked out once and stored as ordinary meetings sharing a
+`series_id`, so any one of them can be moved or deleted on its own; deleting one
+asks whether to take the ones after it too. Buying more hours later does not
+lengthen a series already made — schedule another from where it ended. The time
+on the wall is held from week to week in the meeting's own zone, so 6 PM is
+still 6 PM after the clocks change. A series stops at 60 sessions.
+
 **Your zone** is the 🌍 button in the admin's top bar. *Automatic* takes it from
 the device you are on, so it follows you when you travel; or pick any zone and
 it stays put. The same panel holds your usual meeting link, which every new

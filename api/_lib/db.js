@@ -70,6 +70,9 @@ async function migrate(sql) {
     remind_2h_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // meetings made together as one repeating series share this, so "this one
+  // and the ones after it" can be deleted in one go
+  await sql`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS series_id TEXT`;
   await sql`CREATE INDEX IF NOT EXISTS meetings_client_idx ON meetings (client_id)`;
   await sql`CREATE INDEX IF NOT EXISTS meetings_starts_idx ON meetings (starts_at)`;
   // the admin's own preferences: time zone, default meeting link, reminder address

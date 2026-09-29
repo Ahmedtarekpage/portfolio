@@ -6,6 +6,7 @@
   var state = {
     clientId: null, detail: null, editingSessionId: null, chartFrom: null, chartTo: null,
     clients: [], agenda: [], settings: null, editingMeetingId: null,
+    daysTouched: false, seriesPlan: null, seriesSeq: 0,
   };
   var Meet = window.Meet;
 
@@ -535,9 +536,19 @@
       .sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
     var past = all.filter(function (m) { return Meet.status(m, now) === "past"; })
       .sort(function (a, b) { return new Date(b.starts_at) - new Date(a.starts_at); });
+    // where each meeting stands in its repeating series: "2 of 5"
+    var seriesPos = {};
+    var bySeries = {};
+    all.forEach(function (m) { if (m.series_id) (bySeries[m.series_id] = bySeries[m.series_id] || []).push(m); });
+    Object.keys(bySeries).forEach(function (k) {
+      var list = bySeries[k].sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+      if (list.length < 2) return;
+      list.forEach(function (m, i) { seriesPos[m.id] = { n: i + 1, total: list.length }; });
+    });
     var opts = {
       tz: myZone(),
       otherName: firstName(data.client.name),
+      seriesOf: function (m) { return seriesPos[m.id] || null; },
       copy: true,
       reminders: !!(state.settings && state.settings.reminders_enabled),
       noLinkText: "No link yet",
@@ -568,8 +579,10 @@
     var now = new Date();
     var mine = myZone();
     var line = function (zone) {
-      return Meet.dayLabel(start, now, zone) + ", " + Meet.fmt(start, zone, { day: "numeric", month: "short" }) +
-        " at " + Meet.fmtTime(start, zone) + " (" + Meet.zoneLabel(zone, start) + ")";
+      var label = Meet.dayLabel(start, now, zone);
+      // further out the label is already the date; nearer, "Tomorrow" wants one beside it
+      var day = /\d/.test(label) ? label : label + ", " + Meet.fmt(start, zone, { day: "numeric", month: "short" });
+      return day + " at " + Meet.fmtTime(start, zone) + " (" + Meet.zoneLabel(zone, start) + ")";
     };
     var html = "<b>For you:</b> " + esc(line(mine));
     if (tz !== mine) html += "<br /><b>For " + esc(firstName(state.detail.client.name) || "the client") + ":</b> " + esc(line(tz));
@@ -601,6 +614,11 @@
       form.elements.date.value = Meet.localFields(new Date(), tz).date;
       form.elements.link.value = s.default_link || "";
     }
+    // a repeat rule makes new meetings; editing changes the one that was clicked
+    form.querySelectorAll(".repeat-only").forEach(function (el) { el.classList.toggle("is-off", !!m); });
+    state.daysTouched = false;
+    state.seriesPlan = null;
+    syncRepeatFields();
     $("#btnMeetingSubmit").textContent = m ? "Update meeting" : "Schedule meeting";
     form.hidden = false;
     $("#btnNewMeeting").hidden = true;
@@ -624,29 +642,204 @@
     $("#meetingForm").elements[k].addEventListener("change", showMeetingPreview);
   });
 
+  /* ---------------- repeating: every Tuesday until the credit runs out ---------------- */
+
+  var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  function chosenDays() {
+    return Array.prototype.filter.call($("#dayChips").children, function (c) {
+      return c.getAttribute("aria-pressed") === "true";
+    }).map(function (c) { return Number(c.getAttribute("data-day")); });
+  }
+
+  function setDays(days) {
+    Array.prototype.forEach.call($("#dayChips").children, function (c) {
+      var on = days.indexOf(Number(c.getAttribute("data-day"))) !== -1;
+      c.setAttribute("aria-pressed", on ? "true" : "false");
+      c.classList.toggle("chip--on", on);
+    });
+  }
+
+  /* null when the meeting does not repeat, else the rule as the API takes it */
+  function repeatRule() {
+    var f = $("#meetingForm").elements;
+    if (state.editingMeetingId || f.repeat.value === "none") return null;
+    var rule = { interval: Number(f.repeat.value), days: chosenDays(), until: f.until.value };
+    if (rule.until === "count") rule.count = Number(f.count.value);
+    if (rule.until === "date") rule.until_date = f.until_date.value;
+    return rule;
+  }
+
+  function meetingBody() {
+    var f = $("#meetingForm").elements;
+    return {
+      client_id: state.clientId,
+      local: f.date.value + "T" + f.time.value,
+      timezone: f.timezone.value,
+      duration_min: Number(f.duration_min.value),
+      link: f.link.value.trim(),
+      topic: f.topic.value.trim(),
+    };
+  }
+
+  function syncRepeatFields() {
+    var f = $("#meetingForm").elements;
+    var repeating = !state.editingMeetingId && f.repeat.value !== "none";
+    $("#untilField").hidden = !repeating;
+    $("#daysField").hidden = !repeating;
+    $("#countField").hidden = !(repeating && f.until.value === "count");
+    $("#untilDateField").hidden = !(repeating && f.until.value === "date");
+    // until someone picks days by hand, the day follows the date
+    if (repeating && !state.daysTouched && f.date.value) {
+      setDays([new Date(f.date.value + "T00:00:00Z").getUTCDay()]);
+    }
+    if (!repeating) {
+      state.seriesPlan = null;
+      $("#seriesPreview").hidden = true;
+      $("#btnMeetingSubmit").textContent = state.editingMeetingId ? "Update meeting" : "Schedule meeting";
+      $("#btnMeetingSubmit").disabled = false;
+      return;
+    }
+    planSeries();
+  }
+
+  function renderSeries(plan, error) {
+    var box = $("#seriesPreview");
+    var btn = $("#btnMeetingSubmit");
+    box.hidden = false;
+    if (error) {
+      box.className = "span2 series series--error";
+      box.textContent = error;
+      btn.textContent = "Schedule meetings";
+      btn.disabled = true;
+      return;
+    }
+    var tz = myZone();
+    var rule = repeatRule() || { days: [], interval: 1 };
+    var days = rule.days.slice().sort(function (a, b) { return ((a + 6) % 7) - ((b + 6) % 7); })
+      .map(function (d) { return DAY_NAMES[d]; });
+    var every = (rule.interval === 2 ? "every 2 weeks on " : "every ") + days.join(" and ");
+    var list = plan.occurrences;
+    var first = new Date(list[0].starts_at), last = new Date(list[list.length - 1].starts_at);
+    var span = list.length > 1
+      ? Meet.fmt(first, tz, { day: "numeric", month: "short" }) + " to " + Meet.fmt(last, tz, { day: "numeric", month: "short", year: "numeric" })
+      : Meet.fmt(first, tz, { day: "numeric", month: "short", year: "numeric" });
+    box.className = "span2 series";
+    box.innerHTML =
+      '<div class="series__head"><b>' + list.length + " session" + (list.length === 1 ? "" : "s") + "</b>" +
+      '<span class="muted">' + esc(every + " · " + span) + "</span></div>" +
+      '<ol class="series__list">' + list.map(function (o) {
+        var d = new Date(o.starts_at);
+        return "<li>" + esc(Meet.fmt(d, tz, { weekday: "short", day: "numeric", month: "short" })) +
+          '<span class="muted">' + esc(Meet.fmtTime(d, tz)) + "</span>" +
+          (o.covered ? "" : '<span class="badge badge--warn">no credit</span>') + "</li>";
+      }).join("") + "</ol>" +
+      '<p class="series__note">' + esc(plan.series.note || "") + "</p>";
+    btn.textContent = "Schedule " + list.length + " meeting" + (list.length === 1 ? "" : "s");
+    btn.disabled = false;
+  }
+
+  /* Asks the server what the rule would make — it owns the credit arithmetic,
+     so the list shown is exactly the list that will be saved. */
+  var seriesTimer;
+  function planSeries() {
+    var rule = repeatRule();
+    var f = $("#meetingForm").elements;
+    clearTimeout(seriesTimer);
+    if (!rule) return;
+    var seq = ++state.seriesSeq;
+    if (!f.date.value || !f.time.value) {
+      state.seriesPlan = null;
+      $("#seriesPreview").hidden = true;
+      return;
+    }
+    if (!rule.days.length) return renderSeries(null, "Pick at least one day of the week.");
+    if (rule.until === "date" && !rule.until_date) return renderSeries(null, "Pick the last date of the series.");
+    seriesTimer = setTimeout(function () {
+      var body = meetingBody();
+      body.repeat = rule;
+      body.preview = true;
+      api("/api/sessions?resource=meetings", { method: "POST", body: body })
+        .then(function (plan) {
+          if (seq !== state.seriesSeq) return; // an older answer, overtaken
+          state.seriesPlan = plan.error ? null : plan;
+          renderSeries(plan, plan.error);
+        })
+        .catch(function (e) {
+          if (seq !== state.seriesSeq) return;
+          state.seriesPlan = null;
+          renderSeries(null, e.message);
+        });
+    }, 250);
+  }
+
+  $("#dayChips").addEventListener("click", function (ev) {
+    var chip = ev.target.closest(".chip");
+    if (!chip) return;
+    var on = chip.getAttribute("aria-pressed") !== "true";
+    chip.setAttribute("aria-pressed", on ? "true" : "false");
+    chip.classList.toggle("chip--on", on);
+    state.daysTouched = true;
+    planSeries();
+  });
+
+  ["repeat", "until", "date"].forEach(function (k) {
+    $("#meetingForm").elements[k].addEventListener("change", syncRepeatFields);
+  });
+  ["time", "timezone", "duration_min", "count", "until_date"].forEach(function (k) {
+    $("#meetingForm").elements[k].addEventListener("input", planSeries);
+    $("#meetingForm").elements[k].addEventListener("change", planSeries);
+  });
+
+  /* A question with more than two answers, which confirm() cannot ask.
+     Resolves to the chosen button's value, or null if it was dismissed. */
+  function ask(title, text, buttons) {
+    return new Promise(function (resolve) {
+      var dlg = $("#askDialog");
+      $("#askTitle").textContent = title;
+      $("#askText").textContent = text;
+      $("#askActions").innerHTML = buttons.map(function (b) {
+        return '<button type="button" class="btn ' + (b.cls || "btn--ghost") + '" value="' + esc(b.value) + '">' + esc(b.label) + "</button>";
+      }).join("");
+      var done = function (v) {
+        dlg.removeEventListener("click", onClick);
+        dlg.removeEventListener("close", onClose);
+        if (dlg.open) dlg.close();
+        resolve(v);
+      };
+      var onClick = function (ev) {
+        var b = ev.target.closest("button[value]");
+        if (b) done(b.value === "cancel" ? null : b.value);
+        else if (ev.target === dlg) done(null); // a click on the backdrop
+      };
+      var onClose = function () { done(null); };
+      dlg.addEventListener("click", onClick);
+      dlg.addEventListener("close", onClose);
+      dlg.showModal();
+    });
+  }
+
   $("#meetingForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
     var form = this;
     var btn = $("#btnMeetingSubmit");
     var editingId = state.editingMeetingId;
-    var body = {
-      client_id: state.clientId,
-      local: form.elements.date.value + "T" + form.elements.time.value,
-      timezone: form.elements.timezone.value,
-      duration_min: Number(form.elements.duration_min.value),
-      link: form.elements.link.value.trim(),
-      topic: form.elements.topic.value.trim(),
-    };
+    var body = meetingBody();
+    var rule = repeatRule();
+    if (rule) body.repeat = rule;
     busy(btn, true);
     (editingId
       ? api("/api/sessions?resource=meetings&id=" + editingId, { method: "PATCH", body: body })
       : api("/api/sessions?resource=meetings", { method: "POST", body: body }))
       .then(function (r) {
-        var list = state.detail.meetings.filter(function (m) { return m.id !== r.meeting.id; });
-        list.push(r.meeting);
-        state.detail.meetings = list;
-        state.detail.client.timezone = r.meeting.timezone;
-        toast(editingId ? "Meeting updated ✓" : "Meeting scheduled ✓");
+        var made = r.meetings || [r.meeting];
+        var ids = made.map(function (m) { return m.id; });
+        state.detail.meetings = state.detail.meetings
+          .filter(function (m) { return ids.indexOf(m.id) === -1; })
+          .concat(made);
+        state.detail.client.timezone = made[0].timezone;
+        toast(editingId ? "Meeting updated ✓"
+          : made.length > 1 ? made.length + " meetings scheduled ✓" : "Meeting scheduled ✓");
         closeMeetingForm();
       })
       .catch(function (e) { toast(e.message, true); })
@@ -678,15 +871,28 @@
       return;
     }
     if (act === "delete") {
-      if (!confirm("Delete this meeting? The client will no longer see it.")) return;
-      api("/api/sessions?resource=meetings&id=" + m.id, { method: "DELETE" })
-        .then(function () {
-          state.detail.meetings = state.detail.meetings.filter(function (x) { return x.id !== m.id; });
-          if (state.editingMeetingId === m.id) closeMeetingForm();
-          else renderMeetings();
-          toast("Meeting deleted");
-        })
-        .catch(function (e) { toast(e.message, true); });
+      // the ones after this in the same series, if it is part of one
+      var rest = m.series_id ? state.detail.meetings.filter(function (x) {
+        return x.series_id === m.series_id && new Date(x.starts_at) > new Date(m.starts_at);
+      }) : [];
+      var choice = rest.length
+        ? ask("Delete this meeting?", "It is part of a repeating series. The client will no longer see what you delete.", [
+            { value: "one", label: "Only this one", cls: "btn--danger" },
+            { value: "following", label: "This and the " + rest.length + " after it", cls: "btn--danger" },
+            { value: "cancel", label: "Keep them" },
+          ])
+        : Promise.resolve(confirm("Delete this meeting? The client will no longer see it.") ? "one" : null);
+      choice.then(function (scope) {
+        if (!scope) return;
+        return api("/api/sessions?resource=meetings&id=" + m.id + (scope === "following" ? "&scope=following" : ""), { method: "DELETE" })
+          .then(function (r) {
+            var gone = r.deleted || [m.id];
+            state.detail.meetings = state.detail.meetings.filter(function (x) { return gone.indexOf(x.id) === -1; });
+            if (gone.indexOf(state.editingMeetingId) !== -1) closeMeetingForm();
+            else renderMeetings();
+            toast(gone.length > 1 ? gone.length + " meetings deleted" : "Meeting deleted");
+          });
+      }).catch(function (e) { toast(e.message, true); });
     }
   });
 

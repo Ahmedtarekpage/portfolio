@@ -583,6 +583,55 @@ button.meet__who:hover strong { color: var(--blue-2); }
   border-radius: 10px; padding: 10px 12px;
 }
 .meet-preview b { color: var(--ink); font-weight: 600; }
+
+/* ---------- a repeating series, before it is made ---------- */
+.is-off { display: none !important; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field__label { font-size: 0.82rem; color: var(--muted); }
+.daychips { display: flex; flex-wrap: wrap; gap: 6px; }
+.daychips .chip { min-width: 52px; padding: 8px 12px; }
+.meet__series { font-size: 0.74rem; color: var(--faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.series {
+  border: 1px solid var(--glass-brd); border-radius: 12px; padding: 12px 14px;
+  background: var(--wash); font-size: 0.86rem;
+}
+.series--error { color: var(--c-expiry); background: rgba(201, 138, 43, 0.1); border-color: rgba(201, 138, 43, 0.35); }
+.series__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.series__head b { font-weight: 600; font-size: 0.95rem; }
+.series__list {
+  list-style: none; margin: 10px 0 0; padding: 0; max-height: 232px; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 16px;
+  counter-reset: occ;
+}
+.series__list li {
+  counter-increment: occ; display: flex; align-items: center; gap: 8px; padding: 3px 0;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.series__list li::before {
+  content: counter(occ); flex: none; width: 20px; height: 20px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.68rem; color: var(--muted); background: var(--wash-strong);
+}
+.series__list .badge { margin-left: 0; }
+.series__note { margin-top: 10px; color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+.series__note:empty { display: none; }
+
+/* ---------- a question with more than two answers ---------- */
+.dialog {
+  margin: auto; width: min(440px, calc(100vw - 32px)); padding: 22px;
+  color: var(--ink); background: var(--glass); border: 1px solid var(--glass-brd);
+  border-radius: 16px; box-shadow: var(--shadow-pop);
+  opacity: 0; transform: scale(0.96);
+  transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out),
+              overlay 0.18s allow-discrete, display 0.18s allow-discrete;
+}
+.dialog[open] { opacity: 1; transform: none; }
+@starting-style {
+  .dialog[open] { opacity: 0; transform: scale(0.96); }
+}
+.dialog::backdrop { background: rgba(10, 11, 18, 0.55); }
+.dialog p { margin-top: 6px; font-size: 0.9rem; line-height: 1.55; }
+.dialog__actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
 .meet-preview__warn { color: var(--c-expiry); }
 
 /* ---------- the client list, as cards ---------- */

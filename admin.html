@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=10" />
+  <link rel="stylesheet" href="css/tools/app.css?v=11" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -230,11 +230,44 @@
               <option value="180">3 hours</option>
             </select>
           </label>
+          <label class="repeat-only">Repeat
+            <select name="repeat">
+              <option value="none">Does not repeat</option>
+              <option value="1">Every week</option>
+              <option value="2">Every 2 weeks</option>
+            </select>
+          </label>
+          <label class="repeat-only" id="untilField" hidden>Until
+            <select name="until">
+              <option value="credit">The credit runs out</option>
+              <option value="count">A number of sessions</option>
+              <option value="date">A date</option>
+            </select>
+          </label>
+          <div class="span2 field repeat-only" id="daysField" hidden>
+            <span class="field__label" id="daysLabel">On these days</span>
+            <div class="daychips" id="dayChips" role="group" aria-labelledby="daysLabel">
+              <button type="button" class="chip" data-day="1" aria-pressed="false">Mon</button>
+              <button type="button" class="chip" data-day="2" aria-pressed="false">Tue</button>
+              <button type="button" class="chip" data-day="3" aria-pressed="false">Wed</button>
+              <button type="button" class="chip" data-day="4" aria-pressed="false">Thu</button>
+              <button type="button" class="chip" data-day="5" aria-pressed="false">Fri</button>
+              <button type="button" class="chip" data-day="6" aria-pressed="false">Sat</button>
+              <button type="button" class="chip" data-day="0" aria-pressed="false">Sun</button>
+            </div>
+          </div>
+          <label class="repeat-only" id="countField" hidden>How many sessions
+            <input name="count" type="number" min="1" max="60" step="1" value="4" />
+          </label>
+          <label class="repeat-only" id="untilDateField" hidden>Last date
+            <input name="until_date" type="date" />
+          </label>
           <label class="span2">Meeting link (Zoom, Google Meet…)
             <input name="link" type="url" placeholder="https://…" />
           </label>
           <label class="span2">Topic<input name="topic" placeholder="What is the session about?" maxlength="300" /></label>
           <p class="span2 meet-preview" id="meetingPreview" hidden></p>
+          <div class="span2 series" id="seriesPreview" hidden aria-live="polite"></div>
           <div class="span2 form__actions">
             <button type="submit" class="btn btn--primary" id="btnMeetingSubmit">Schedule meeting</button>
             <button type="button" class="btn btn--ghost" id="btnCancelMeeting">Cancel</button>
@@ -316,12 +349,18 @@
       </div>
     </section>
 
+    <dialog id="askDialog" class="dialog" aria-labelledby="askTitle">
+      <h2 id="askTitle"></h2>
+      <p id="askText" class="muted"></p>
+      <div class="dialog__actions" id="askActions"></div>
+    </dialog>
+
     <p id="toast" class="toast" hidden></p>
   </div>
 
   <script src="js/tools/chart.js?v=19"></script>
   <script src="js/tools/theme.js?v=1"></script>
-  <script src="js/tools/meetings.js?v=1"></script>
-  <script src="js/tools/admin.js?v=6"></script>
+  <script src="js/tools/meetings.js?v=2"></script>
+  <script src="js/tools/admin.js?v=7"></script>
 </body>
 </html>
