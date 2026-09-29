@@ -2,8 +2,19 @@
 //   POST   /api/sessions       -> { client_id, session_date, hours, topic?, pdf_base64?, pdf_name? }
 //   PATCH  /api/sessions?id=N  -> { session_date?, hours?, topic?, pdf_base64?, pdf_name? } (PDF replaces the old one)
 //   DELETE /api/sessions?id=N
+//
+// Scheduled meetings and the admin's settings live here too — the Hobby plan's
+// twelve functions are all taken, so they are a resource of this one:
+//   GET    /api/sessions?resource=meetings               -> everything still to come, all clients
+//   GET    /api/sessions?resource=meetings&client_id=N   -> one client's meetings, newest first
+//   POST   /api/sessions?resource=meetings               -> { client_id, local: "YYYY-MM-DDTHH:MM", timezone, duration_min, link?, topic? }
+//   PATCH  /api/sessions?resource=meetings&id=N          -> the same fields; a new time re-arms the reminders
+//   DELETE /api/sessions?resource=meetings&id=N
+//   GET    /api/sessions?resource=settings               -> { timezone, default_link, notify_email, ... }
+//   PUT    /api/sessions?resource=settings               -> any of those
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
+import { handleMeetings, handleSettings } from "./_lib/meetings.js";
 
 const MAX_PDF_BYTES = 3 * 1024 * 1024; // keep well under Vercel's 4.5MB request limit
 
@@ -19,6 +30,9 @@ function parsePdf(b) {
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  if (req.query.resource === "meetings") return handleMeetings(req, res, sql);
+  if (req.query.resource === "settings") return handleSettings(req, res, sql);
 
   if (req.method === "POST") {
     const b = req.body || {};

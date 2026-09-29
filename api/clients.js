@@ -1,6 +1,6 @@
 // Clients collection.
-//   GET    /api/clients          -> all clients with balance summaries
-//   GET    /api/clients?id=N     -> one client: profile + packages + sessions + timeline
+//   GET    /api/clients          -> all clients with balance summaries, plus every meeting still to come
+//   GET    /api/clients?id=N     -> one client: profile + packages + sessions + timeline + meetings
 //   POST   /api/clients          -> create { name, phone, email, nationality, transaction_type, notes, photo? }
 //   PATCH  /api/clients?id=N     -> update any of the above fields; photo: "" removes the photo
 //   DELETE /api/clients?id=N     -> delete client (cascades to packages/sessions)
@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
+import { clientMeetings, upcomingMeetings, getSettings } from "./_lib/meetings.js";
 
 const MAX_PHOTO_CHARS = 400_000; // ~300KB decoded — the browser sends a 320px square, far below this
 
@@ -38,7 +39,9 @@ export default withErrors(async (req, res) => {
     const sessions = await sql`SELECT id, client_id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf
       FROM client_sessions WHERE client_id = ${id} ORDER BY session_date DESC, id DESC`;
     const { timeline, totals } = computeClient(packages, sessions);
-    return json(res, 200, { client, packages, sessions, timeline, totals });
+    const meetings = await clientMeetings(sql, id, { admin: true });
+    const settings = await getSettings(sql);
+    return json(res, 200, { client, packages, sessions, timeline, totals, meetings, settings });
   }
 
   if (req.method === "GET") {
@@ -59,7 +62,9 @@ export default withErrors(async (req, res) => {
       const { totals } = computeClient(pkgMap.get(c.id) || [], sesMap.get(c.id) || []);
       return { ...c, totals };
     });
-    return json(res, 200, { clients: list });
+    const meetings = await upcomingMeetings(sql);
+    const settings = await getSettings(sql);
+    return json(res, 200, { clients: list, meetings, settings });
   }
 
   if (req.method === "POST" && req.query.share) {

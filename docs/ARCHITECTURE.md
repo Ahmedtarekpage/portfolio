@@ -24,6 +24,9 @@ and Neon Postgres.
   (configurable 1–24 months per purchase).
 - **Sessions** — date, duration, topic, and an optional meeting-minutes **PDF** (stored in
   the database, max 3 MB).
+- **Meetings** — schedule a client's next session: date, time, the time zone that
+  time is in, duration, a Zoom or Google Meet link, a topic. See
+  [Meetings and reminders](#meetings-and-reminders).
 - **Balance graph** — per client: goes **up** on purchase, **down** per session, and
   **drops** when a package expires. Upcoming expiries are drawn dashed after the
   "today" line. Sessions always consume from the package that expires soonest.
@@ -129,6 +132,62 @@ vercel dev            # http://localhost:3000/admin
   **expired hours** (the red/amber drop in the graph).
 - If a session can't be covered by any active package, the uncovered time shows up
   as **Unpaid hours** on the client page.
+
+## Meetings and reminders
+
+A session record says what happened and uses hours. A **meeting** says what is
+coming, and uses nothing until it is recorded — a past meeting has a *Record as
+session* button that fills the session form from it.
+
+**One instant, printed for whoever is looking.** A meeting is stored as a moment
+in time (`meetings.starts_at`) plus the zone it was arranged in. Nobody's clock
+is assumed:
+
+| Who is looking | Zone the time is printed in |
+|---|---|
+| You, in `/admin` | your zone — see below — with the client's time underneath |
+| The client, on their share page | their browser's, wherever they are |
+| The client, in a reminder email | the zone the meeting was arranged in |
+| You, in your copy of the reminder | your zone, with the client's time alongside |
+
+"Today", "Tomorrow" and "Yesterday" follow the reader's own calendar, so a
+meeting at 1 AM Dubai time is *tomorrow* for you and still *today* for someone
+in London.
+
+**Your zone** is the 🌍 button in the admin's top bar. *Automatic* takes it from
+the device you are on, so it follows you when you travel; or pick any zone and
+it stays put. The same panel holds your usual meeting link, which every new
+meeting starts with, and the address your own copy of each reminder goes to.
+
+**Reminder emails are switched off.** Everything below is built and tested but
+does nothing until two things are done: set `MEETING_REMINDERS=on` in the Vercel
+project's environment variables (and redeploy), and copy
+[docs/meeting-reminders.yml](meeting-reminders.yml) to
+`.github/workflows/meeting-reminders.yml`. Until then no meeting sends anything
+to anyone, and the admin shows nothing about email.
+
+**Reminders** go out a day before and two hours before, to the client (if they
+have an email address) and to you. They are sent by whichever email service the
+newsletter uses — `BREVO_API_KEY` or `RESEND_API_KEY`, with `NEWSLETTER_FROM` —
+and until one of those is set nothing is sent; the settings panel says which it
+is. Moving a meeting to a new time re-arms both reminders. Changing only its
+link or topic does not. A meeting made less than a day ahead gets its first
+reminder at the next run, worded for the day it is actually on.
+
+**What sends them.** Vercel's Hobby plan runs a cron job once a day at most, so
+the clock is a GitHub Action, [meeting-reminders.yml](meeting-reminders.yml),
+which calls `POST /api/share?cron=reminders` every ten minutes. That endpoint
+needs no login, takes no input and returns nothing about anyone. Each reminder
+is claimed in the database before it is sent, so however often it is called the
+same emails go out once; a claim is handed back if the send fails, and the next
+run tries again. Two things to know about GitHub's scheduler: it can start a
+run late, so "2 hours before" may arrive a few minutes inside that; and it
+switches a schedule off after 60 days without a commit — *Actions → Meeting
+reminders → Run workflow* turns it back on.
+
+Meetings and settings are not functions of their own (see the twelve-function
+ceiling below): they are `?resource=meetings` and `?resource=settings` on
+`api/sessions.js`, with the logic in `api/_lib/meetings.js`.
 
 ## The booking calendar link
 
@@ -299,6 +358,9 @@ means merging it into an existing one.
 | `api/clients.js`, `api/client.js` | clients CRUD + per-client detail & timeline |
 | `api/packages.js`, `api/sessions.js`, `api/pdf.js` | purchases, session records, PDF download |
 | `api/_lib/hours.js` | the balance/expiry engine (single source of truth) |
+| `api/_lib/meetings.js` | scheduled meetings, time zones, settings, reminder emails |
+| `js/tools/meetings.js` | the meeting card and time-zone helpers, shared by `/admin` and the share page |
+| `docs/meeting-reminders.yml` | the ten-minute clock that sends reminders — not installed; see above |
 | `api/_lib/db.js`, `api/_lib/util.js` | Neon client + schema, cookies/sessions |
 
 ## Security notes

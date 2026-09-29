@@ -3,7 +3,11 @@
   "use strict";
 
   var $ = function (sel) { return document.querySelector(sel); };
-  var state = { clientId: null, detail: null, editingSessionId: null, chartFrom: null, chartTo: null };
+  var state = {
+    clientId: null, detail: null, editingSessionId: null, chartFrom: null, chartTo: null,
+    clients: [], agenda: [], settings: null, editingMeetingId: null,
+  };
+  var Meet = window.Meet;
 
   function readFileB64(file) {
     return new Promise(function (resolve, reject) {
@@ -185,34 +189,180 @@
 
   /* ---------------- client list ---------------- */
 
+  /* The zone every time on this screen is printed in: the one chosen in
+     settings, or wherever this device says it is. */
+  function myZone() {
+    var s = state.settings;
+    if (s && s.timezone && s.timezone !== "auto" && Meet.isZone(s.timezone)) return s.timezone;
+    return Meet.deviceZone();
+  }
+
+  function useSettings(settings) {
+    state.settings = settings;
+    $("#zoneNow").textContent = Meet.zoneLabel(myZone());
+    // "Automatic" only means something to the reminder emails if the server
+    // knows where this device is, so tell it when that changes.
+    var here = Meet.deviceZone();
+    if (settings && settings.detected_timezone !== here) {
+      settings.detected_timezone = here;
+      api("/api/sessions?resource=settings", { method: "PUT", body: { detected_timezone: here } }).catch(function () {});
+    }
+  }
+
+  function firstName(name) {
+    return String(name || "").trim().split(/\s+/)[0] || "";
+  }
+
+  function nextMeetingFor(clientId) {
+    return state.agenda.filter(function (m) { return m.client_id === clientId; })[0] || null;
+  }
+
+  function clientCardHtml(c) {
+    var t = c.totals || {};
+    var chips = "";
+    var next = nextMeetingFor(c.id);
+    if (next) {
+      var now = new Date();
+      var live = Meet.status(next, now) === "live";
+      var d = Meet.dayDiff(new Date(next.starts_at), now, myZone());
+      var tone = live ? "live" : d === 0 ? "today" : d === 1 ? "tomorrow" : "later";
+      chips += '<span class="pill pill--' + tone + '">' + (live ? '<i class="pill__dot"></i>Now' :
+        esc(Meet.dayLabel(new Date(next.starts_at), now, myZone()) + " " + Meet.fmtTime(new Date(next.starts_at), myZone()))) + "</span>";
+    }
+    if (t.nextExpiry && t.nextExpiry.hours > 0) {
+      var days = Math.round((new Date(t.nextExpiry.date) - new Date(todayISO())) / 86400000);
+      if (days <= 7) chips += '<span class="badge badge--warn">' + fmtH(t.nextExpiry.hours) + " expire in " + days + "d</span>";
+    }
+    if (t.overdraft > 0) chips += '<span class="badge badge--danger">unpaid ' + fmtH(t.overdraft) + "</span>";
+
+    return '<button type="button" class="client-card" data-id="' + Number(c.id) + '">' +
+      '<span class="client-card__head">' + avatarHtml(c, "avatar--md") +
+        '<span class="client-card__id"><strong>' + esc(c.name) + "</strong>" +
+        '<span class="muted">' + esc([c.phone, c.email].filter(Boolean)[0] || c.nationality || "No contact details") + "</span></span>" +
+        '<span class="client-card__hours' + (Number(t.available) > 0 ? "" : " client-card__hours--none") + '"><b>' + fmtH(t.available) + "</b><span>left</span></span>" +
+      "</span>" +
+      '<span class="client-card__foot">' +
+        (chips || '<span class="muted">' + (t.nextExpiry ? "Expires " + fmtDate(t.nextExpiry.date) : "No meeting scheduled") + "</span>") +
+        (c.transaction_type ? '<span class="client-card__type">' + esc(c.transaction_type) + "</span>" : "") +
+      "</span></button>";
+  }
+
+  // `animate` is for the first drawing of a list only; see .stagger in app.css
+  function renderClientGrid(animate) {
+    var q = $("#clientSearch").value.trim().toLowerCase();
+    $("#clientGrid").classList.toggle("stagger", animate === true);
+    var shown = state.clients.filter(function (c) {
+      if (!q) return true;
+      return [c.name, c.phone, c.email, c.nationality].join(" ").toLowerCase().indexOf(q) !== -1;
+    });
+    $("#clientGrid").innerHTML = shown.map(clientCardHtml).join("");
+    $("#clientCount").textContent = state.clients.length ? String(state.clients.length) : "";
+    $("#clientsEmpty").hidden = state.clients.length > 0;
+    $("#clientsNoMatch").hidden = !(state.clients.length > 0 && shown.length === 0);
+    $("#clientSearch").hidden = state.clients.length < 2;
+  }
+
+  function renderAgenda(animate) {
+    var now = new Date();
+    var byId = {};
+    $("#agendaList").classList.toggle("stagger", animate === true);
+    state.clients.forEach(function (c) { byId[c.id] = c; });
+    var list = state.agenda.slice(0, 6);
+    $("#agenda").hidden = list.length === 0;
+    $("#agendaZone").textContent = "Times in " + Meet.zoneLabel(myZone());
+    $("#agendaList").innerHTML = list.map(function (m) {
+      var c = byId[m.client_id] || { name: m.client_name, photo: m.client_photo, gender: m.client_gender };
+      return Meet.cardHtml(m, now, {
+        tz: myZone(),
+        otherTz: m.timezone,
+        otherName: firstName(c.name),
+        who: { name: c.name, avatarHtml: avatarHtml(c, "avatar--sm") },
+        noLinkText: "No link yet",
+      });
+    }).join("");
+  }
+
+  $("#agendaList").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-act=open]");
+    if (!btn) return;
+    var id = Number(btn.closest(".meet").getAttribute("data-id"));
+    var m = state.agenda.filter(function (x) { return x.id === id; })[0];
+    if (m) openClient(m.client_id);
+  });
+
+  $("#clientGrid").addEventListener("click", function (ev) {
+    var card = ev.target.closest(".client-card");
+    if (card) openClient(Number(card.getAttribute("data-id")));
+  });
+
+  $("#clientSearch").addEventListener("input", function () { renderClientGrid(); });
+
   function loadClients() {
     show("view-loading");
     return api("/api/clients").then(function (data) {
-      var tbody = $("#clientsTable tbody");
-      tbody.innerHTML = "";
-      $("#clientsEmpty").hidden = data.clients.length > 0;
-      data.clients.forEach(function (c) {
-        var t = c.totals || {};
-        var badge = "";
-        if (t.nextExpiry && t.nextExpiry.hours > 0) {
-          var days = Math.round((new Date(t.nextExpiry.date) - new Date(todayISO())) / 86400000);
-          if (days <= 7) badge = '<span class="badge badge--warn">' + fmtH(t.nextExpiry.hours) + " expire in " + days + "d</span>";
-        }
-        if (t.overdraft > 0) badge += '<span class="badge badge--danger">unpaid ' + fmtH(t.overdraft) + "</span>";
-        var tr = document.createElement("tr");
-        tr.className = "rowlink";
-        tr.innerHTML =
-          '<td><span class="namecell">' + avatarHtml(c, "avatar--sm") + "<strong>" + esc(c.name) + "</strong></span>" + badge + "</td>" +
-          "<td class=\"muted\">" + esc([c.phone, c.email].filter(Boolean).join(" · ") || "—") + "</td>" +
-          "<td class=\"muted\">" + esc(c.transaction_type || "—") + "</td>" +
-          "<td class=\"num\"><strong>" + fmtH(t.available) + "</strong></td>" +
-          "<td class=\"muted\">" + (t.nextExpiry ? fmtDate(t.nextExpiry.date) : "—") + "</td>";
-        tr.addEventListener("click", function () { openClient(c.id); });
-        tbody.appendChild(tr);
-      });
+      state.clients = data.clients;
+      state.agenda = data.meetings || [];
+      useSettings(data.settings);
+      renderAgenda(true);
+      renderClientGrid(true);
       show("view-list");
     }).catch(function (e) { toast(e.message, true); show("view-list"); });
   }
+
+  /* ---------------- settings: my time zone, usual link, reminder address ---------------- */
+
+  function openSettings(open) {
+    var card = $("#settingsCard");
+    card.hidden = !open;
+    $("#btnZone").setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) return;
+    var s = state.settings || {};
+    var form = $("#settingsForm");
+    var here = Meet.deviceZone();
+    Meet.fillZoneSelect(form.elements.timezone, s.timezone || "auto", [here], {
+      value: "auto",
+      label: "Automatic, from this device's location (" + Meet.city(here) + ", " + Meet.offsetLabel(here) + ")",
+    });
+    form.elements.default_link.value = s.default_link || "";
+    form.elements.notify_email.value = s.notify_email || "";
+    form.elements.notify_email.placeholder = s.notify_email_effective || "";
+    // nothing about email is shown while reminder emails are switched off
+    $("#notifyField").hidden = !s.reminders_enabled;
+    var note = $("#mailStatus");
+    note.hidden = !s.reminders_enabled;
+    note.className = "span2 form__note " + (s.mail_configured ? "form__note--ok" : "form__note--warn");
+    note.textContent = s.mail_configured
+      ? "Reminder emails are on: you and the client each get one a day before and one 2 hours before."
+      : "Reminder emails are not being sent yet. No email service key is set on the server (BREVO_API_KEY or RESEND_API_KEY in Vercel). Meetings still show on the client's page.";
+  }
+
+  $("#btnZone").addEventListener("click", function () { openSettings($("#settingsCard").hidden); });
+  $("#btnCloseSettings").addEventListener("click", function () { openSettings(false); });
+
+  $("#settingsForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = this;
+    var btn = form.querySelector("button[type=submit]");
+    busy(btn, true);
+    api("/api/sessions?resource=settings", {
+      method: "PUT",
+      body: {
+        timezone: form.elements.timezone.value,
+        default_link: form.elements.default_link.value.trim(),
+        notify_email: form.elements.notify_email.value.trim(),
+        detected_timezone: Meet.deviceZone(),
+      },
+    })
+      .then(function (r) {
+        useSettings(r.settings);
+        renderAgenda();
+        renderClientGrid();
+        openSettings(false);
+        toast("Settings saved ✓");
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  });
 
   $("#addClientForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -245,7 +395,9 @@
     show("view-loading");
     return api("/api/clients?id=" + id).then(function (data) {
       state.detail = data;
+      if (data.settings) useSettings(data.settings);
       renderClient(data);
+      renderMeetings(true);
       show("view-client");
       renderChart(data.timeline);
     }).catch(function (e) { toast(e.message, true); loadClients(); });
@@ -262,6 +414,9 @@
     $("#cMeta").textContent = [c.phone, c.email, c.nationality, c.transaction_type, c.notes]
       .filter(Boolean).join("  ·  ") || "No contact details yet";
     $("#editClientForm").hidden = true;
+    state.editingMeetingId = null;
+    $("#meetingForm").hidden = true;
+    $("#btnNewMeeting").hidden = false;
 
     var tiles = [
       { label: "Available now", value: fmtH(t.available), cls: "tile--accent", sub: t.nextExpiry ? fmtH(t.nextExpiry.hours) + " expire " + fmtDate(t.nextExpiry.date) : "" },
@@ -367,6 +522,180 @@
   }
 
   $("#btnCancelEdit").addEventListener("click", stopEditSession);
+
+  /* ---------------- meetings: what is scheduled, as opposed to what happened ---------------- */
+
+  function renderMeetings(animate) {
+    var data = state.detail;
+    if (!data) return;
+    $("#meetingsUpcoming").classList.toggle("stagger", animate === true);
+    var now = new Date();
+    var all = data.meetings || [];
+    var ahead = all.filter(function (m) { return Meet.status(m, now) !== "past"; })
+      .sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+    var past = all.filter(function (m) { return Meet.status(m, now) === "past"; })
+      .sort(function (a, b) { return new Date(b.starts_at) - new Date(a.starts_at); });
+    var opts = {
+      tz: myZone(),
+      otherName: firstName(data.client.name),
+      copy: true,
+      reminders: !!(state.settings && state.settings.reminders_enabled),
+      noLinkText: "No link yet",
+      actions: function (m, st) {
+        return (st === "past" ? '<button type="button" class="btn btn--ghost btn--sm" data-act="record">Record as session</button>' : "") +
+          '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="Edit meeting" aria-label="Edit meeting">✎</button>' +
+          '<button type="button" class="iconbtn iconbtn--del" data-act="delete" title="Delete meeting" aria-label="Delete meeting">✕</button>';
+      },
+    };
+    var card = function (m) { opts.otherTz = m.timezone; return Meet.cardHtml(m, now, opts); };
+    $("#meetingsUpcoming").innerHTML = ahead.map(card).join("");
+    $("#meetingsPast").innerHTML = past.map(card).join("");
+    $("#meetingsEmpty").hidden = ahead.length > 0 || !$("#meetingForm").hidden;
+    $("#meetingsPastBox").hidden = past.length === 0;
+    $("#meetingsPastSummary").textContent = "Earlier meetings (" + past.length + ")";
+  }
+
+  function meetingById(id) {
+    return ((state.detail && state.detail.meetings) || []).filter(function (m) { return m.id === id; })[0];
+  }
+
+  function showMeetingPreview() {
+    var form = $("#meetingForm");
+    var box = $("#meetingPreview");
+    var tz = form.elements.timezone.value;
+    var start = Meet.zonedToUtc(form.elements.date.value + "T" + form.elements.time.value, tz);
+    if (!start) { box.hidden = true; return; }
+    var now = new Date();
+    var mine = myZone();
+    var line = function (zone) {
+      return Meet.dayLabel(start, now, zone) + ", " + Meet.fmt(start, zone, { day: "numeric", month: "short" }) +
+        " at " + Meet.fmtTime(start, zone) + " (" + Meet.zoneLabel(zone, start) + ")";
+    };
+    var html = "<b>For you:</b> " + esc(line(mine));
+    if (tz !== mine) html += "<br /><b>For " + esc(firstName(state.detail.client.name) || "the client") + ":</b> " + esc(line(tz));
+    if (start < now) html += '<br /><span class="meet-preview__warn">That time has already passed.</span>';
+    box.innerHTML = html;
+    box.hidden = false;
+  }
+
+  function openMeetingForm(m) {
+    var form = $("#meetingForm");
+    var client = state.detail.client;
+    var s = state.settings || {};
+    state.editingMeetingId = m ? m.id : null;
+    form.reset();
+    var tz = m ? m.timezone : (client.timezone || myZone());
+    Meet.fillZoneSelect(form.elements.timezone, tz, [client.timezone, myZone(), Meet.deviceZone()]);
+    if (m) {
+      var f = Meet.localFields(new Date(m.starts_at), m.timezone);
+      form.elements.date.value = f.date;
+      form.elements.time.value = f.time;
+      form.elements.duration_min.value = String(m.duration_min);
+      if (form.elements.duration_min.value !== String(m.duration_min)) {
+        form.elements.duration_min.insertAdjacentHTML("beforeend", '<option value="' + Number(m.duration_min) + '">' + Number(m.duration_min) + " minutes</option>");
+        form.elements.duration_min.value = String(m.duration_min);
+      }
+      form.elements.link.value = m.link || "";
+      form.elements.topic.value = m.topic || "";
+    } else {
+      form.elements.date.value = Meet.localFields(new Date(), tz).date;
+      form.elements.link.value = s.default_link || "";
+    }
+    $("#btnMeetingSubmit").textContent = m ? "Update meeting" : "Schedule meeting";
+    form.hidden = false;
+    $("#btnNewMeeting").hidden = true;
+    $("#meetingsEmpty").hidden = true;
+    showMeetingPreview();
+    if (m) form.scrollIntoView({ behavior: "smooth", block: "center" });
+    else form.elements.time.focus();
+  }
+
+  function closeMeetingForm() {
+    state.editingMeetingId = null;
+    $("#meetingForm").hidden = true;
+    $("#btnNewMeeting").hidden = false;
+    renderMeetings();
+  }
+
+  $("#btnNewMeeting").addEventListener("click", function () { openMeetingForm(null); });
+  $("#btnCancelMeeting").addEventListener("click", closeMeetingForm);
+  ["date", "time", "timezone"].forEach(function (k) {
+    $("#meetingForm").elements[k].addEventListener("input", showMeetingPreview);
+    $("#meetingForm").elements[k].addEventListener("change", showMeetingPreview);
+  });
+
+  $("#meetingForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = this;
+    var btn = $("#btnMeetingSubmit");
+    var editingId = state.editingMeetingId;
+    var body = {
+      client_id: state.clientId,
+      local: form.elements.date.value + "T" + form.elements.time.value,
+      timezone: form.elements.timezone.value,
+      duration_min: Number(form.elements.duration_min.value),
+      link: form.elements.link.value.trim(),
+      topic: form.elements.topic.value.trim(),
+    };
+    busy(btn, true);
+    (editingId
+      ? api("/api/sessions?resource=meetings&id=" + editingId, { method: "PATCH", body: body })
+      : api("/api/sessions?resource=meetings", { method: "POST", body: body }))
+      .then(function (r) {
+        var list = state.detail.meetings.filter(function (m) { return m.id !== r.meeting.id; });
+        list.push(r.meeting);
+        state.detail.meetings = list;
+        state.detail.client.timezone = r.meeting.timezone;
+        toast(editingId ? "Meeting updated ✓" : "Meeting scheduled ✓");
+        closeMeetingForm();
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  });
+
+  $("#meetingsCard").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-act]");
+    if (!btn) return;
+    var m = meetingById(Number(btn.closest(".meet").getAttribute("data-id")));
+    if (!m) return;
+    var act = btn.getAttribute("data-act");
+    if (act === "edit") return openMeetingForm(m);
+    if (act === "copy") {
+      return navigator.clipboard.writeText(m.link).then(
+        function () { toast("Meeting link copied ✓"); },
+        function () { prompt("Copy the meeting link:", m.link); }
+      );
+    }
+    if (act === "record") {
+      // a meeting that happened becomes a session record, which is what uses hours
+      var form = $("#addSessionForm");
+      stopEditSession();
+      form.elements.session_date.value = Meet.localFields(new Date(m.starts_at), myZone()).date;
+      form.elements.hours.value = Math.max(0.25, Math.round(m.duration_min / 15) / 4);
+      form.elements.topic.value = m.topic || "";
+      form.scrollIntoView({ behavior: "smooth", block: "center" });
+      form.elements.topic.focus({ preventScroll: true });
+      return;
+    }
+    if (act === "delete") {
+      if (!confirm("Delete this meeting? The client will no longer see it.")) return;
+      api("/api/sessions?resource=meetings&id=" + m.id, { method: "DELETE" })
+        .then(function () {
+          state.detail.meetings = state.detail.meetings.filter(function (x) { return x.id !== m.id; });
+          if (state.editingMeetingId === m.id) closeMeetingForm();
+          else renderMeetings();
+          toast("Meeting deleted");
+        })
+        .catch(function (e) { toast(e.message, true); });
+    }
+  });
+
+  // "in 2h 15m" goes stale; so does "today" at midnight
+  setInterval(function () {
+    if (document.hidden) return;
+    if (!$("#view-client").hidden && $("#meetingForm").hidden) renderMeetings();
+    if (!$("#view-list").hidden) { renderAgenda(); }
+  }, 60000);
 
   $("#btnShare").addEventListener("click", function () {
     var btn = this;
@@ -578,17 +907,6 @@
     resizeTimer = setTimeout(function () {
       if (state.detail && !$("#view-client").hidden) renderChart(state.detail.timeline);
     }, 150);
-  });
-
-  /* ---------------- 3D card tilt (same effect as ahmedtarek.tech) ---------------- */
-  document.querySelectorAll(".card").forEach(function (card) {
-    card.addEventListener("mousemove", function (e) {
-      var r = card.getBoundingClientRect();
-      var px = (e.clientX - r.left) / r.width - 0.5;
-      var py = (e.clientY - r.top) / r.height - 0.5;
-      card.style.transform = "perspective(700px) rotateY(" + (px * 10) + "deg) rotateX(" + (-py * 10) + "deg) translateY(-4px)";
-    });
-    card.addEventListener("mouseleave", function () { card.style.transform = ""; });
   });
 
   /* ---------------- go ---------------- */

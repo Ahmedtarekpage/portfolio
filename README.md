@@ -218,10 +218,10 @@ where marked PUBLIC. Each file opens with its own route list; this is the map.
 | `auth.js` | passkey register / login / logout / recovery reset |
 | `clients.js` | clients CRUD, per-client detail and timeline, share tokens |
 | `packages.js` | hour purchases, with payment proof |
-| `sessions.js` | session records, with meeting-minutes PDF |
+| `sessions.js` | session records, with meeting-minutes PDF; also scheduled meetings and admin settings |
 | `pdf.js` | streams a stored PDF or payment proof |
 | `cms.js` | **PUBLIC** content read; authed content write; media library; the whole newsletter |
-| `share.js` | **PUBLIC** read-only client view, gated by share token |
+| `share.js` | **PUBLIC** read-only client view, gated by share token; also the meeting-reminder run (off unless `MEETING_REMINDERS=on`) |
 | `tasks.js`, `quarters.js`, `goals.js`, `ideas.js`, `day-photos.js` | the time tracker |
 
 `api/_lib/` holds what they share: `db.js` (Neon client and schema),

@@ -51,6 +51,32 @@ async function migrate(sql) {
   // optional client photo, shown in place of the gender avatar — a small
   // square data: URL (the browser crops/compresses before upload)
   await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS photo TEXT`;
+  // the zone a client was last scheduled in, offered first the next time
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS timezone TEXT`;
+  // Scheduled meetings — what is coming, as opposed to client_sessions, which
+  // records what happened. starts_at is the instant; timezone is the zone it
+  // was arranged in (the client's), which their reminder emails are written in.
+  // The two remind_* columns are stamped when that reminder is claimed, so two
+  // overlapping runs of the reminder job cannot both send it.
+  await sql`CREATE TABLE IF NOT EXISTS meetings (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    starts_at TIMESTAMPTZ NOT NULL,
+    duration_min INTEGER NOT NULL DEFAULT 60,
+    timezone TEXT NOT NULL,
+    link TEXT,
+    topic TEXT,
+    remind_day_at TIMESTAMPTZ,
+    remind_2h_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS meetings_client_idx ON meetings (client_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meetings_starts_idx ON meetings (starts_at)`;
+  // the admin's own preferences: time zone, default meeting link, reminder address
+  await sql`CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`;
   // payment-proof attachment (screenshot or PDF) on purchases
   await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof BYTEA`;
   await sql`ALTER TABLE hour_packages ADD COLUMN IF NOT EXISTS proof_name TEXT`;

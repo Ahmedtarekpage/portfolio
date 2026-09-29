@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/tools/app.css?v=9" />
+  <link rel="stylesheet" href="/css/tools/app.css?v=10" />
 </head>
 <body>
   <div class="wrap">
@@ -47,6 +47,12 @@
           </div>
         </div>
       </header>
+
+      <section class="agenda" id="agenda" hidden>
+        <div id="meetingHero"></div>
+        <div class="meet-grid" id="meetingList"></div>
+        <p class="muted agenda__note" id="agendaZone"></p>
+      </section>
 
       <div class="tiles" id="tiles"></div>
 
@@ -105,6 +111,7 @@
   </div>
 
   <script src="/js/tools/chart.js?v=19"></script>
-  <script src="/js/tools/share.js?v=4"></script>
+  <script src="/js/tools/meetings.js?v=1"></script>
+  <script src="/js/tools/share.js?v=5"></script>
 </body>
 </html>

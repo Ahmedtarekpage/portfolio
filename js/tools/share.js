@@ -82,8 +82,35 @@
     box.hidden = false;
   }
 
+  /* Meetings are printed in the reader's own zone — the browser knows where
+     they are, which is more than the person who scheduled it can promise. */
+  function renderMeetings(animate) {
+    var Meet = window.Meet;
+    // only the first drawing arrives with motion; the minute tick does not
+    $("#meetingHero").classList.toggle("stagger", animate === true);
+    $("#meetingList").classList.toggle("stagger", animate === true);
+    var all = (current && current.meetings) || [];
+    var now = new Date();
+    var tz = Meet.deviceZone();
+    var lead = Meet.focus(all, now);
+    $("#agenda").hidden = !lead;
+    if (!lead) return;
+    var rest = all
+      .filter(function (m) { return m.id !== lead.id && Meet.status(m, now) !== "past"; })
+      .sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); })
+      .slice(0, 6);
+    var opts = { tz: tz, noLinkText: "The link will be sent to you" };
+    $("#meetingHero").innerHTML = Meet.cardHtml(lead, now, { tz: tz, hero: true, noLinkText: opts.noLinkText });
+    $("#meetingList").innerHTML = rest.map(function (m) { return Meet.cardHtml(m, now, opts); }).join("");
+    $("#meetingList").hidden = rest.length === 0;
+    $("#agendaZone").textContent = "Times are shown in your time zone: " + Meet.zoneLabel(tz) + ".";
+  }
+
+  setInterval(function () { if (current && !document.hidden) renderMeetings(); }, 60000);
+
   function render(data) {
     current = data;
+    renderMeetings(true);
     var av = $("#cAvatar");
     if (data.photo) {
       av.innerHTML = '<img src="' + esc(data.photo) + '" alt="" />';

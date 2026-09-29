@@ -88,7 +88,7 @@ function paragraphs(body) {
  * The full email. `unsubUrl` is per-recipient, so every copy carries its own
  * one-click way out — which is also what keeps the mail out of spam folders.
  */
-export function renderEmail({ heading, body, ctaLabel, ctaUrl, preheader, unsubUrl, siteUrl }) {
+export function renderEmail({ heading, body, ctaLabel, ctaUrl, preheader, unsubUrl, siteUrl, kicker, footerNote }) {
   const site = siteUrl || "https://ahmedtarek.tech";
   const cta = ctaLabel && ctaUrl
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 28px 0;">
@@ -122,7 +122,7 @@ export function renderEmail({ heading, body, ctaLabel, ctaUrl, preheader, unsubU
         </td>
         <td style="font-size:15px;font-weight:600;color:${INK};">
           Ahmed Tarek
-          <div style="font-size:12px;font-weight:400;color:${MUTED};letter-spacing:.06em;text-transform:uppercase;">The Track</div>
+          <div style="font-size:12px;font-weight:400;color:${MUTED};letter-spacing:.06em;text-transform:uppercase;">${esc(kicker || "The Track")}</div>
         </td>
       </tr></table>
     </td></tr>
@@ -134,8 +134,8 @@ export function renderEmail({ heading, body, ctaLabel, ctaUrl, preheader, unsubU
     </td></tr>
 
     <tr><td style="padding:22px 36px 30px 36px;border-top:1px solid ${LINE};font-size:12px;line-height:1.7;color:${MUTED};">
-      You are getting this because you subscribed at
-      <a href="${site}" style="color:${ACCENT_DARK};text-decoration:none;">ahmedtarek.tech</a>.
+      ${footerNote ? esc(footerNote) : `You are getting this because you subscribed at
+      <a href="${site}" style="color:${ACCENT_DARK};text-decoration:none;">ahmedtarek.tech</a>.`}
       ${unsub ? unsub + " any time." : ""}
       <div style="margin-top:8px;">© Ahmed Tarek · Dubai, working globally</div>
     </td></tr>
@@ -147,12 +147,13 @@ export function renderEmail({ heading, body, ctaLabel, ctaUrl, preheader, unsubU
 }
 
 /** Plain-text twin, so the message is readable anywhere and scores better. */
-export function renderText({ heading, body, ctaLabel, ctaUrl, unsubUrl }) {
+export function renderText({ heading, body, ctaLabel, ctaUrl, unsubUrl, footerNote }) {
   const lines = [];
   if (heading) lines.push(heading, "");
-  lines.push(String(body || "").replace(/\*\*/g, ""));
+  // a plain-text reader has no links, so "[words](address)" becomes "words: address"
+  lines.push(String(body || "").replace(/\*\*/g, "").replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1: $2"));
   if (ctaLabel && ctaUrl) lines.push("", `${ctaLabel}: ${ctaUrl}`);
-  lines.push("", "—", "You subscribed at ahmedtarek.tech.");
+  lines.push("", "—", footerNote || "You subscribed at ahmedtarek.tech.");
   if (unsubUrl) lines.push(`Unsubscribe: ${unsubUrl}`);
   return lines.join("\n");
 }

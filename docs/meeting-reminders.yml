@@ -1,0 +1,39 @@
+# NOT INSTALLED. GitHub only runs workflows found in .github/workflows/, and
+# this file is kept in docs/ on purpose: reminder emails are switched off.
+# To switch them on, copy it to .github/workflows/meeting-reminders.yml and
+# set MEETING_REMINDERS=on in the Vercel project's environment variables.
+#
+# Sends the meeting reminder emails (1 day before, and 2 hours before).
+#
+# Vercel's Hobby plan runs a cron job once a day at most, which cannot do
+# "two hours before". So the clock lives here instead: every ten minutes this
+# asks the site to send whatever reminders have come due. The site decides
+# what is due and sends each one exactly once, so a run that finds nothing to
+# do is the normal case, and an extra run is harmless.
+#
+# GitHub starts scheduled runs late when it is busy — usually a few minutes,
+# occasionally more — so a "2 hours before" email can arrive a little inside
+# the two hours. It also switches a schedule off after 60 days without a
+# commit to the repository; pressing "Run workflow" turns it back on.
+name: Meeting reminders
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: meeting-reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ask the site to send what is due
+        run: |
+          curl --fail --silent --show-error --max-time 60 --retry 2 --retry-delay 5 \
+            -X POST "https://ahmedtarek.tech/api/share?cron=reminders"

@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=9" />
+  <link rel="stylesheet" href="css/tools/app.css?v=10" />
   <script src="https://unpkg.com/@simplewebauthn/browser@13.1.0/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
@@ -77,11 +77,40 @@
         <h1>Clients</h1>
         <div class="topbar__actions">
           <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">🌙</button>
+          <button id="btnZone" class="btn btn--ghost btn--sm" title="Your time zone and meeting settings" aria-expanded="false" aria-controls="settingsCard">🌍 <span id="zoneNow">Time zone</span></button>
           <a class="btn btn--ghost btn--sm" href="/time">⏱ Time</a>
           <a class="btn btn--ghost btn--sm" href="/dashboard">Site content</a>
           <button id="btnLogout" class="btn btn--ghost btn--sm">Log out</button>
         </div>
       </header>
+
+      <div class="card" id="settingsCard" hidden>
+        <div class="card__head">
+          <h2>Meeting settings</h2>
+          <button type="button" class="iconbtn iconbtn--edit" id="btnCloseSettings" aria-label="Close settings">✕</button>
+        </div>
+        <form id="settingsForm" class="form form--grid">
+          <label>Your time zone
+            <select name="timezone"></select>
+          </label>
+          <label>Your usual meeting link
+            <input name="default_link" type="url" placeholder="https://meet.google.com/… or https://zoom.us/j/…" />
+          </label>
+          <label class="span2" id="notifyField" hidden>Send my copy of each reminder to
+            <input name="notify_email" type="email" />
+          </label>
+          <p class="span2 form__note" id="mailStatus" hidden></p>
+          <div class="span2"><button type="submit" class="btn btn--primary">Save settings</button></div>
+        </form>
+      </div>
+
+      <section class="agenda" id="agenda" hidden>
+        <div class="section-head">
+          <h2>Upcoming meetings</h2>
+          <span class="muted section-head__note" id="agendaZone"></span>
+        </div>
+        <div class="meet-grid" id="agendaList"></div>
+      </section>
 
       <div class="card">
         <details id="addClientBox">
@@ -116,17 +145,13 @@
         </details>
       </div>
 
-      <div class="card">
-        <div class="table-scroll">
-          <table class="table" id="clientsTable">
-            <thead>
-              <tr><th>Name</th><th>Contact</th><th>Type</th><th class="num">Hours left</th><th>Next expiry</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <p id="clientsEmpty" class="muted center" hidden>No clients yet — add your first one above.</p>
+      <div class="section-head">
+        <h2>All clients <span class="count" id="clientCount"></span></h2>
+        <input type="search" id="clientSearch" class="search" placeholder="Search by name, phone or email" aria-label="Search clients" />
       </div>
+      <div class="client-grid" id="clientGrid"></div>
+      <p id="clientsEmpty" class="muted center" hidden>No clients yet — add your first one above.</p>
+      <p id="clientsNoMatch" class="muted center" hidden>No client matches that search.</p>
     </section>
 
     <!-- ================= CLIENT DETAIL ================= -->
@@ -183,6 +208,45 @@
       </div>
 
       <div class="tiles" id="tiles"></div>
+
+      <div class="card" id="meetingsCard">
+        <div class="card__head">
+          <h2>Meetings</h2>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnNewMeeting">+ Schedule a meeting</button>
+        </div>
+        <form id="meetingForm" class="form form--grid" hidden>
+          <label>Date *<input name="date" type="date" required /></label>
+          <label>Time *<input name="time" type="time" required /></label>
+          <label>Time zone the time is in *
+            <select name="timezone" required></select>
+          </label>
+          <label>Duration
+            <select name="duration_min">
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60" selected>1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+            </select>
+          </label>
+          <label class="span2">Meeting link (Zoom, Google Meet…)
+            <input name="link" type="url" placeholder="https://…" />
+          </label>
+          <label class="span2">Topic<input name="topic" placeholder="What is the session about?" maxlength="300" /></label>
+          <p class="span2 meet-preview" id="meetingPreview" hidden></p>
+          <div class="span2 form__actions">
+            <button type="submit" class="btn btn--primary" id="btnMeetingSubmit">Schedule meeting</button>
+            <button type="button" class="btn btn--ghost" id="btnCancelMeeting">Cancel</button>
+          </div>
+        </form>
+        <div class="meet-list" id="meetingsUpcoming"></div>
+        <p class="muted" id="meetingsEmpty" hidden>Nothing scheduled yet.</p>
+        <details id="meetingsPastBox" class="meet-past" hidden>
+          <summary class="btnish" id="meetingsPastSummary">Earlier meetings</summary>
+          <div class="meet-list" id="meetingsPast"></div>
+        </details>
+      </div>
 
       <div class="card">
         <div class="card__head">
@@ -257,6 +321,7 @@
 
   <script src="js/tools/chart.js?v=19"></script>
   <script src="js/tools/theme.js?v=1"></script>
-  <script src="js/tools/admin.js?v=5"></script>
+  <script src="js/tools/meetings.js?v=1"></script>
+  <script src="js/tools/admin.js?v=6"></script>
 </body>
 </html>
