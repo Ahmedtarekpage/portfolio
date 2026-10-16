@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
-  <link rel="stylesheet" href="css/tools/go.css?v=1" />
+  <link rel="stylesheet" href="css/tools/go.css?v=2" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -143,10 +143,23 @@
 
       <section class="agenda" id="agenda" hidden>
         <div class="section-head">
-          <h2>Upcoming meetings</h2>
+          <h2>📅 Upcoming meetings</h2>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnCalendar" data-sound="open">🔗 Add to Google Calendar</button>
+        </div>
+        <div class="agenda-bar">
+          <div class="agenda-filter" id="agendaFilter" role="group" aria-label="Show meetings">
+            <button type="button" class="chip" data-range="today" aria-pressed="false">Today <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="tomorrow" aria-pressed="false">Tomorrow <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="week" aria-pressed="false">This week <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="next" aria-pressed="false">Next week <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="month" aria-pressed="false">This month <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="all" aria-pressed="false">All <span class="chip__n"></span></button>
+          </div>
           <span class="muted section-head__note" id="agendaZone"></span>
         </div>
         <div class="meet-grid" id="agendaList"></div>
+        <p class="agenda-empty" id="agendaEmpty" hidden></p>
+        <div class="agenda-more"><button type="button" class="btn btn--ghost btn--sm" id="agendaMore" hidden></button></div>
       </section>
 
       <div class="card">
@@ -209,7 +222,7 @@
         </div>
       </header>
 
-      <div class="card">
+      <div class="card client-hero">
         <div class="client-head">
           <button type="button" class="avatar-upload" id="btnPhoto" title="Upload a photo" aria-label="Upload a photo">
             <span class="avatar avatar--lg" id="cAvatar"></span>
@@ -218,7 +231,7 @@
           <input id="photoInput" type="file" accept="image/*" hidden />
           <div>
             <h1 id="cName"></h1>
-            <p id="cMeta" class="muted"></p>
+            <div id="cMeta" class="client-chips"></div>
             <button type="button" class="linklike avatar-remove" id="btnRemovePhoto" hidden>Remove photo</button>
           </div>
         </div>
@@ -420,6 +433,26 @@
       </div>
     </section>
 
+    <dialog id="calDialog" class="dialog cal-dialog" aria-labelledby="calTitle">
+      <div class="cal-dialog__glyph" aria-hidden="true">📅</div>
+      <h2 id="calTitle">Your meetings in your calendar</h2>
+      <p class="muted">Subscribe once. New meetings, new times and cancellations then follow on their own. Google reads the link every few hours, an iPhone more often.</p>
+      <div id="calOff">
+        <button type="button" class="btn btn--hero" id="calMake">Make my calendar link</button>
+      </div>
+      <div id="calOn" hidden>
+        <div class="cal-dialog__steps">
+          <a class="btn btn--primary" id="calGoogle" target="_blank" rel="noopener">Add to Google Calendar</a>
+          <a class="btn btn--ghost" id="calApple">Add to iPhone / Mac calendar</a>
+        </div>
+        <label class="cal-dialog__url">Or paste this link into any calendar app
+          <span class="cal-dialog__row"><input id="calUrl" readonly /><button type="button" class="btn btn--ghost btn--sm" id="calCopy">Copy</button></span>
+        </label>
+        <p class="muted cal-dialog__note">Keep the link private: anyone who has it can see your meetings. <button type="button" class="linklike" id="calRotate">Make a new link</button> and the old one stops working.</p>
+      </div>
+      <div class="dialog__actions"><button type="button" class="btn btn--ghost" id="calClose">Done</button></div>
+    </dialog>
+
     <dialog id="askDialog" class="dialog" aria-labelledby="askTitle">
       <h2 id="askTitle"></h2>
       <p id="askText" class="muted"></p>
@@ -431,8 +464,8 @@
 
   <script src="js/tools/chart.js?v=19"></script>
   <script src="js/tools/theme.js?v=2"></script>
-  <script src="js/tools/meetings.js?v=2"></script>
+  <script src="js/tools/meetings.js?v=3"></script>
   <script src="js/tools/go.js?v=1"></script>
-  <script src="js/tools/admin.js?v=9"></script>
+  <script src="js/tools/admin.js?v=10"></script>
 </body>
 </html>

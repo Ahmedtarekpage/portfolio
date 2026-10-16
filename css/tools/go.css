@@ -413,3 +413,115 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   .tab { font-family: var(--font-ui); font-weight: 700; }
   .tab--active .tab__icon { animation: go-tick 260ms var(--ease-bounce) both; }
 }
+
+/* ---------- meetings: white cards, a coloured edge saying when ---------- */
+.meet, .card .meet {
+  background: var(--glass); border: 1.5px solid var(--glass-brd); border-radius: var(--radius-lg);
+  position: relative; overflow: hidden;
+}
+.meet::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--wash-strong); }
+.meet--today::before { background: var(--coin-amber); }
+.meet--tomorrow::before { background: var(--go-blue); }
+.meet--live::before { background: var(--c-purchase); }
+.meet--today, .meet--live { border-color: var(--glass-brd); }
+.meet__cal { border-radius: var(--radius-md); border-width: 1.5px; }
+.meet__mon { font-weight: 800; background: var(--go-blue); color: #fff; }
+.meet--today .meet__mon { background: var(--coin-amber); color: var(--night-navy); }
+.meet__day { font: 800 1.35rem var(--font-display); }
+.meet__time { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.01em; }
+.meet__who strong { font-weight: 700; }
+.meet__foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.meet__actions { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: auto; }
+.pill { font-weight: 800 !important; border-radius: 999px; }
+.pill--today { background: var(--coin-amber) !important; color: var(--night-navy) !important; }
+.pill--tomorrow { background: var(--go-blue-tint) !important; color: var(--go-blue-dark) !important; }
+:root[data-theme="dark"] .pill--tomorrow { color: var(--blue-2) !important; }
+
+/* ---------- upcoming meetings: the when-filter ---------- */
+.agenda .section-head { flex-wrap: wrap; gap: 10px; }
+.agenda-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin: 4px 0 14px; }
+.agenda-filter { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; max-width: 100%; }
+.agenda-filter::-webkit-scrollbar { display: none; }
+.agenda-filter .chip { flex: none; min-height: 40px; display: inline-flex; align-items: center; gap: 6px; }
+.chip__n:empty { display: none; }
+.chip__n {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center;
+  font: 800 0.72rem var(--font-ui); background: var(--wash-strong); color: var(--ink);
+}
+.chip[aria-pressed="true"] .chip__n { background: var(--go-blue); color: #fff; }
+.agenda-empty {
+  text-align: center; padding: 28px 16px; border: 1.5px dashed var(--glass-brd); border-radius: var(--radius-lg);
+  color: var(--muted); font-weight: 700; background: var(--glass); animation: go-pop 380ms var(--ease-bounce) both;
+}
+.agenda-more { text-align: center; margin-top: 12px; }
+
+/* ---------- the calendar popup ---------- */
+.cal-dialog { max-width: 460px; width: calc(100% - 32px); padding: 26px 24px; text-align: center; background: var(--glass); color: var(--ink); }
+.cal-dialog__glyph { font-size: 2.8rem; animation: go-float 2.4s ease-in-out infinite; }
+.cal-dialog h2 { margin: 6px 0 4px; font-size: 1.35rem; }
+.cal-dialog > .muted { font-size: 0.9rem; margin-bottom: 18px; }
+.cal-dialog__steps { display: grid; gap: 10px; margin-bottom: 16px; }
+.cal-dialog__steps .btn { width: 100%; min-height: 48px; }
+.cal-dialog__url { display: grid; gap: 6px; text-align: left; font: 700 0.82rem var(--font-ui); color: var(--muted); }
+.cal-dialog__row { display: flex; gap: 8px; }
+.cal-dialog__row input {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--glass-brd);
+  background: var(--bg); color: var(--ink); font: 600 0.8rem var(--font-ui);
+}
+.cal-dialog__note { font-size: 0.8rem; margin-top: 12px; text-align: left; }
+.cal-dialog__note .linklike { margin: 0; font-size: 0.8rem; }
+#calOff .btn { width: 100%; }
+
+/* ---------- a client's page: a navy band for who they are ---------- */
+.client-hero {
+  background: var(--night-navy); border: 0; color: #fff; border-radius: var(--radius-xl);
+  overflow: hidden; isolation: isolate;
+}
+:root[data-theme="dark"] .client-hero { background: #1b2b47; }
+.client-hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(rgba(157, 180, 216, 0.2) 1.2px, transparent 1.3px); background-size: 22px 22px;
+}
+.client-hero:hover { box-shadow: var(--shadow-card); }
+.client-hero h1 { color: #fff; overflow-wrap: anywhere; }
+.client-hero .avatar--lg { width: 84px; height: 84px; box-shadow: 0 0 0 4px var(--coin-amber); }
+.client-hero .linklike { color: #9db4d8; }
+.client-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.client-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1); color: #e6edf9; font: 700 0.82rem var(--font-ui); max-width: 100%; overflow-wrap: anywhere;
+  animation: go-rise 320ms var(--ease-out) both;
+}
+.client-chip:nth-child(2) { animation-delay: 40ms; } .client-chip:nth-child(3) { animation-delay: 80ms; }
+.client-chip:nth-child(4) { animation-delay: 120ms; } .client-chip:nth-child(5) { animation-delay: 160ms; }
+.client-chip--empty { color: #9db4d8; }
+/* the edit wizard opens inside the band, on its own white sheet */
+.client-hero #editClientForm {
+  background: var(--glass); color: var(--ink); border-radius: var(--radius-lg); padding: 18px; margin-top: 18px;
+}
+
+/* ---------- purchases and sessions: rows as small cards, not a spreadsheet ---------- */
+#packagesTable, #sessionsTable, #packagesTable tbody, #sessionsTable tbody { display: block; width: 100%; }
+#packagesTable thead, #sessionsTable thead { display: none; }
+#packagesTable tr, #sessionsTable tr {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 18px; position: relative;
+  padding: 12px 52px 12px 14px; margin-top: 8px; border: 1.5px solid var(--glass-brd); border-radius: var(--radius-md);
+  background: var(--glass); animation: go-rise 320ms var(--ease-out) both;
+}
+#sessionsTable tr { padding-right: 96px; }
+#packagesTable td, #sessionsTable td { display: block; padding: 0; border: 0; text-align: left; min-width: 0; }
+#packagesTable td[data-label]::before, #sessionsTable td[data-label]::before {
+  content: attr(data-label); display: block; font: 800 0.64rem var(--font-ui); letter-spacing: var(--kicker-track);
+  text-transform: uppercase; color: var(--faint); margin-bottom: 2px;
+}
+#sessionsTable td.row-wide { flex: 1 1 160px; overflow-wrap: anywhere; }
+#packagesTable td strong, #sessionsTable td strong { font: 800 1.1rem var(--font-display); }
+#packagesTable td.row-act, #sessionsTable td.row-act { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; }
+#packagesTable tr:hover, #sessionsTable tr:hover { border-color: var(--blue); }
+.table-scroll { overflow: visible; }
+/* on the agenda's narrower cards the three actions sit in one tidy row under Join */
+.meet-grid .meet__actions { margin-left: 0; width: 100%; }
+.meet__actions .btn--sm { min-height: 36px; padding: 6px 12px; font-size: 0.8rem; }
+@media (max-width: 520px) {
+  .client-hero .client-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+}

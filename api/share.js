@@ -9,9 +9,9 @@
 // the database before it is sent, so calling it a thousand times sends the
 // same emails as calling it once.
 import { db } from "./_lib/db.js";
-import { withErrors, json } from "./_lib/util.js";
+import { withErrors, json, safeEqual } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
-import { runReminders, remindersOn, shape, getSettings, adminZone, todayIn } from "./_lib/meetings.js";
+import { runReminders, remindersOn, shape, getSettings, adminZone, todayIn, calendarFeed } from "./_lib/meetings.js";
 
 const toBuf = (v) => (Buffer.isBuffer(v) ? v : Buffer.from(String(v).replace(/^\\x/, ""), "hex"));
 
@@ -25,6 +25,20 @@ export default withErrors(async (req, res) => {
     const r = await runReminders(await db(), process.env.SITE_URL || "https://ahmedtarek.tech");
     res.setHeader("Cache-Control", "no-store");
     return json(res, 200, { ok: true, sent: r.sent });
+  }
+
+  // the private calendar feed, /cal/<token>.ics — a calendar app has no login,
+  // so the long random token in the address is the key
+  if (req.query.calendar !== undefined && req.method === "GET") {
+    const given = String(req.query.calendar).replace(/\.ics$/, "");
+    const sql = await db();
+    const [row] = given.length >= 24 ? await sql`SELECT value FROM app_settings WHERE key = 'calendar_token'` : [];
+    if (!row || !safeEqual(given, row.value)) return json(res, 404, { error: "This calendar link is not valid anymore" });
+    const body = await calendarFeed(sql, process.env.SITE_URL || "https://ahmedtarek.tech");
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", 'inline; filename="client-meetings.ics"');
+    res.setHeader("Cache-Control", "private, max-age=300");
+    return res.status(200).send(body);
   }
 
   if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });

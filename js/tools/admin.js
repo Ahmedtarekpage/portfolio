@@ -8,6 +8,8 @@
     clients: [], agenda: [], settings: null, editingMeetingId: null,
     daysTouched: false, seriesPlan: null, seriesSeq: 0,
     route: "home", loaded: false,
+    agendaRange: (function () { try { return localStorage.getItem("admin-agenda-range") || "week"; } catch (e) { return "week"; } })(),
+    agendaAll: false,
   };
   var Meet = window.Meet;
 
@@ -319,13 +321,60 @@
     $("#clientSearch").hidden = state.clients.length < 2;
   }
 
+  /* Upcoming meetings, by when (owner, 2026-10-16: "today, this week etc
+     filter"). Weeks run Monday to Sunday on your own calendar. */
+  var AGENDA_LIMIT = 12;
+  var AGENDA_EMPTY = {
+    today: "Nothing left today 🎉 Enjoy the free time.",
+    tomorrow: "Nothing tomorrow yet.",
+    week: "Nothing more this week.",
+    next: "Nothing booked for next week yet.",
+    month: "Nothing more this month.",
+    all: "Nothing scheduled.",
+  };
+
+  function agendaTest(range, now) {
+    var tz = myZone();
+    var today = Meet.localFields(now, tz).date;
+    var dow = (new Date(today + "T00:00:00Z").getUTCDay() + 6) % 7; // Monday is 0
+    return function (m) {
+      var d = Meet.dayDiff(new Date(m.starts_at), now, tz);
+      if (range === "today") return d <= 0;
+      if (range === "tomorrow") return d === 1;
+      if (range === "week") return d <= 6 - dow;
+      if (range === "next") return d > 6 - dow && d <= 13 - dow;
+      if (range === "month") return Meet.localFields(new Date(m.starts_at), tz).date.slice(0, 7) === today.slice(0, 7);
+      return true;
+    };
+  }
+
+  function meetingTitle(m, name) {
+    return (m.topic ? m.topic + " · " : "Meeting · ") + name;
+  }
+
+  function googleButton(m, name) {
+    return '<a class="btn btn--ghost btn--sm" data-sound="open" target="_blank" rel="noopener" title="Add this one meeting to Google Calendar" href="' +
+      esc(Meet.googleUrl(m, meetingTitle(m, name), "With " + name + ".")) + '">📅 Google</a>';
+  }
+
   function renderAgenda(animate) {
     var now = new Date();
     var byId = {};
     $("#agendaList").classList.toggle("stagger", animate === true);
     state.clients.forEach(function (c) { byId[c.id] = c; });
-    var list = state.agenda.slice(0, 6);
-    $("#agenda").hidden = list.length === 0;
+    $("#agendaFilter").querySelectorAll(".chip").forEach(function (b) {
+      var r = b.getAttribute("data-range");
+      var n = state.agenda.filter(agendaTest(r, now)).length;
+      b.querySelector(".chip__n").textContent = n ? String(n) : "";
+      b.setAttribute("aria-pressed", String(r === state.agendaRange));
+    });
+    var all = state.agenda.filter(agendaTest(state.agendaRange, now));
+    var list = state.agendaAll ? all : all.slice(0, AGENDA_LIMIT);
+    $("#agenda").hidden = state.agenda.length === 0;
+    $("#agendaEmpty").hidden = all.length > 0;
+    $("#agendaEmpty").textContent = AGENDA_EMPTY[state.agendaRange] || "";
+    $("#agendaMore").hidden = all.length <= list.length;
+    $("#agendaMore").textContent = "Show all " + all.length;
     $("#agendaZone").textContent = "Times in " + Meet.zoneLabel(myZone());
     $("#agendaList").innerHTML = list.map(function (m) {
       var c = byId[m.client_id] || { name: m.client_name, photo: m.client_photo, gender: m.client_gender };
@@ -335,17 +384,78 @@
         otherName: firstName(c.name),
         who: { name: c.name, avatarHtml: avatarHtml(c, "avatar--sm") },
         noLinkText: "No link yet",
+        actions: function (mm, st) {
+          if (st === "past") return "";
+          return googleButton(mm, c.name) +
+            '<button type="button" class="btn btn--ghost btn--sm" data-act="reschedule">↻ Reschedule</button>' +
+            '<button type="button" class="btn btn--danger btn--sm" data-act="cancel">✕ Cancel</button>';
+        },
       });
     }).join("");
   }
 
+  $("#agendaFilter").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".chip");
+    if (!b) return;
+    state.agendaRange = b.getAttribute("data-range");
+    state.agendaAll = false;
+    try { localStorage.setItem("admin-agenda-range", state.agendaRange); } catch (e) {}
+    renderAgenda(true);
+  });
+  $("#agendaMore").addEventListener("click", function () { state.agendaAll = true; renderAgenda(); });
+
   $("#agendaList").addEventListener("click", function (ev) {
-    var btn = ev.target.closest("[data-act=open]");
+    var btn = ev.target.closest("[data-act]");
     if (!btn) return;
     var id = Number(btn.closest(".meet").getAttribute("data-id"));
     var m = state.agenda.filter(function (x) { return x.id === id; })[0];
-    if (m) openClient(m.client_id);
+    if (!m) return;
+    var act = btn.getAttribute("data-act");
+    if (act === "open") return openClient(m.client_id);
+    if (act === "reschedule") {
+      // the meeting form lives on the client's page: go there, open it on "when"
+      return openClient(m.client_id).then(function () {
+        var mm = meetingById(m.id);
+        if (mm) openMeetingForm(mm, true);
+      });
+    }
+    if (act === "cancel") {
+      cancelMeeting(m, state.agenda, function (gone) {
+        state.agenda = state.agenda.filter(function (x) { return gone.indexOf(x.id) === -1; });
+        renderAgenda();
+        renderClientGrid();
+        renderHome();
+      });
+    }
   });
+
+  /* Cancelling: one meeting, or it and the rest of its series. `pool` is the
+     list the meeting came from, to count what follows it. */
+  function cancelMeeting(m, pool, done) {
+    var rest = m.series_id ? pool.filter(function (x) {
+      return x.series_id === m.series_id && new Date(x.starts_at) > new Date(m.starts_at);
+    }) : [];
+    var when = Meet.dayLabel(new Date(m.starts_at), new Date(), myZone()) + " " + Meet.fmtTime(new Date(m.starts_at), myZone());
+    var choice = rest.length
+      ? ask("Cancel " + when + "?", "It is part of a repeating series. The client will no longer see what you cancel, and it leaves your calendar on its next refresh.", [
+          { value: "one", label: "Only this one", cls: "btn--danger" },
+          { value: "following", label: "This and the " + rest.length + " after it", cls: "btn--danger" },
+          { value: "cancel", label: "Keep them" },
+        ])
+      : ask("Cancel " + when + "?", "The client will no longer see it, and it leaves your calendar on its next refresh.", [
+          { value: "one", label: "Yes, cancel it", cls: "btn--danger" },
+          { value: "cancel", label: "Keep it" },
+        ]);
+    return choice.then(function (scope) {
+      if (!scope) return;
+      return api("/api/sessions?resource=meetings&id=" + m.id + (scope === "following" ? "&scope=following" : ""), { method: "DELETE" })
+        .then(function (r) {
+          var gone = r.deleted || [m.id];
+          done(gone);
+          toast(gone.length > 1 ? gone.length + " meetings cancelled" : "Meeting cancelled");
+        });
+    }).catch(function (e) { toast(e.message, true); });
+  }
 
   $("#clientGrid").addEventListener("click", function (ev) {
     var card = ev.target.closest(".client-card");
@@ -478,8 +588,10 @@
     $("#btnPhoto").setAttribute("aria-label", $("#btnPhoto").title);
     $("#btnRemovePhoto").hidden = !c.photo;
     $("#cName").textContent = c.name;
-    $("#cMeta").textContent = [c.phone, c.email, c.nationality, c.transaction_type, c.notes]
-      .filter(Boolean).join("  ·  ") || "No contact details yet";
+    var chips = [["📞", c.phone], ["✉️", c.email], ["🌍", c.nationality], ["💳", c.transaction_type], ["📝", c.notes]]
+      .filter(function (x) { return x[1]; })
+      .map(function (x) { return '<span class="client-chip"><span aria-hidden="true">' + x[0] + "</span>" + esc(x[1]) + "</span>"; });
+    $("#cMeta").innerHTML = chips.join("") || '<span class="client-chip client-chip--empty">No contact details yet</span>';
     $("#editClientForm").hidden = true;
     state.editingMeetingId = null;
     $("#meetingForm").hidden = true;
@@ -524,11 +636,11 @@
       if (p.has_proof) paid += ' <a href="/api/pdf?proof=' + p.id + '" target="_blank" rel="noopener" title="Payment proof">📷</a>';
       var tr = document.createElement("tr");
       tr.innerHTML =
-        "<td>" + fmtDate(p.purchased_at) + (p.note ? '<div class="muted" style="font-size:.78rem">' + esc(p.note) + "</div>" : "") + "</td>" +
-        '<td class="num"><strong>' + fmtH(p.hours) + "</strong></td>" +
-        '<td class="num muted">' + paid + "</td>" +
-        "<td class=\"muted\">" + fmtDate(p.expires_at) + (expired ? ' <span class="badge badge--warn">expired</span>' : "") + "</td>" +
-        '<td><button class="iconbtn" title="Delete purchase">✕</button></td>';
+        '<td data-label="Bought">' + fmtDate(p.purchased_at) + (p.note ? '<div class="muted" style="font-size:.78rem">' + esc(p.note) + "</div>" : "") + "</td>" +
+        '<td class="num" data-label="Hours"><strong>' + fmtH(p.hours) + "</strong></td>" +
+        '<td class="num muted" data-label="Paid">' + paid + "</td>" +
+        '<td class="muted" data-label="Expires">' + fmtDate(p.expires_at) + (expired ? ' <span class="badge badge--warn">expired</span>' : "") + "</td>" +
+        '<td class="row-act"><button class="iconbtn" title="Delete purchase" aria-label="Delete purchase">✕</button></td>';
       tr.querySelector(".iconbtn").addEventListener("click", function () {
         if (!confirm("Delete this " + fmtH(p.hours) + " purchase? This changes the balance history.")) return;
         api("/api/packages?id=" + p.id, { method: "DELETE" })
@@ -544,11 +656,11 @@
     data.sessions.forEach(function (s) {
       var tr = document.createElement("tr");
       tr.innerHTML =
-        "<td>" + fmtDate(s.session_date) + "</td>" +
-        '<td class="num">' + fmtH(s.hours) + "</td>" +
-        "<td>" + esc(s.topic || "—") + "</td>" +
-        "<td>" + (s.has_pdf ? '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>' : '<span class="muted">—</span>') + "</td>" +
-        '<td class="num">' +
+        '<td data-label="Date">' + fmtDate(s.session_date) + "</td>" +
+        '<td class="num" data-label="Hours"><strong>' + fmtH(s.hours) + "</strong></td>" +
+        '<td class="row-wide" data-label="Topic">' + esc(s.topic || "—") + "</td>" +
+        '<td data-label="Minutes">' + (s.has_pdf ? '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>' : '<span class="muted">—</span>') + "</td>" +
+        '<td class="num row-act">' +
           '<button class="iconbtn iconbtn--edit" title="Edit session">✎</button>' +
           '<button class="iconbtn iconbtn--del" title="Delete session">✕</button></td>';
       tr.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditSession(s); });
@@ -622,9 +734,15 @@
       reminders: !!(state.settings && state.settings.reminders_enabled),
       noLinkText: "No link yet",
       actions: function (m, st) {
-        return (st === "past" ? '<button type="button" class="btn btn--ghost btn--sm" data-act="record">Record as session</button>' : "") +
-          '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="Edit meeting" aria-label="Edit meeting">✎</button>' +
-          '<button type="button" class="iconbtn iconbtn--del" data-act="delete" title="Delete meeting" aria-label="Delete meeting">✕</button>';
+        if (st === "past") {
+          return '<button type="button" class="btn btn--ghost btn--sm" data-act="record">Record as session</button>' +
+            '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="Edit meeting" aria-label="Edit meeting">✎</button>' +
+            '<button type="button" class="iconbtn iconbtn--del" data-act="delete" title="Delete meeting" aria-label="Delete meeting">✕</button>';
+        }
+        return googleButton(m, data.client.name) +
+          '<button type="button" class="btn btn--ghost btn--sm" data-act="reschedule">↻ Reschedule</button>' +
+          '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="Edit link, topic or length" aria-label="Edit meeting">✎</button>' +
+          '<button type="button" class="btn btn--danger btn--sm" data-act="delete">✕ Cancel</button>';
       },
     };
     var card = function (m) { opts.otherTz = m.timezone; return Meet.cardHtml(m, now, opts); };
@@ -660,7 +778,7 @@
     box.hidden = false;
   }
 
-  function openMeetingForm(m) {
+  function openMeetingForm(m, reschedule) {
     var form = $("#meetingForm");
     var client = state.detail.client;
     var s = state.settings || {};
@@ -688,15 +806,15 @@
     state.daysTouched = false;
     state.seriesPlan = null;
     syncRepeatFields();
-    $("#btnMeetingSubmit").textContent = m ? "Update meeting" : "Schedule meeting";
+    $("#btnMeetingSubmit").textContent = reschedule ? "Save the new time ✓" : m ? "Update meeting" : "Schedule meeting";
     form.hidden = false;
     $("#btnNewMeeting").hidden = true;
     $("#meetingsEmpty").hidden = true;
     showMeetingPreview();
-    if (m) Go.wizard.review(form); else Go.wizard.restart(form);
+    if (m && !reschedule) Go.wizard.review(form); else Go.wizard.restart(form);
     Go.play("open");
     if (m) form.scrollIntoView({ behavior: "smooth", block: "center" });
-    else form.elements.time.focus();
+    if (!m || reschedule) form.elements.time.focus({ preventScroll: !!m });
   }
 
   function closeMeetingForm() {
@@ -924,6 +1042,7 @@
     if (!m) return;
     var act = btn.getAttribute("data-act");
     if (act === "edit") return openMeetingForm(m);
+    if (act === "reschedule") return openMeetingForm(m, true);
     if (act === "copy") {
       return navigator.clipboard.writeText(m.link).then(
         function () { toast("Meeting link copied ✓"); },
@@ -942,28 +1061,12 @@
       return;
     }
     if (act === "delete") {
-      // the ones after this in the same series, if it is part of one
-      var rest = m.series_id ? state.detail.meetings.filter(function (x) {
-        return x.series_id === m.series_id && new Date(x.starts_at) > new Date(m.starts_at);
-      }) : [];
-      var choice = rest.length
-        ? ask("Delete this meeting?", "It is part of a repeating series. The client will no longer see what you delete.", [
-            { value: "one", label: "Only this one", cls: "btn--danger" },
-            { value: "following", label: "This and the " + rest.length + " after it", cls: "btn--danger" },
-            { value: "cancel", label: "Keep them" },
-          ])
-        : Promise.resolve(confirm("Delete this meeting? The client will no longer see it.") ? "one" : null);
-      choice.then(function (scope) {
-        if (!scope) return;
-        return api("/api/sessions?resource=meetings&id=" + m.id + (scope === "following" ? "&scope=following" : ""), { method: "DELETE" })
-          .then(function (r) {
-            var gone = r.deleted || [m.id];
-            state.detail.meetings = state.detail.meetings.filter(function (x) { return gone.indexOf(x.id) === -1; });
-            if (gone.indexOf(state.editingMeetingId) !== -1) closeMeetingForm();
-            else renderMeetings();
-            toast(gone.length > 1 ? gone.length + " meetings deleted" : "Meeting deleted");
-          });
-      }).catch(function (e) { toast(e.message, true); });
+      cancelMeeting(m, state.detail.meetings, function (gone) {
+        state.detail.meetings = state.detail.meetings.filter(function (x) { return gone.indexOf(x.id) === -1; });
+        state.agenda = state.agenda.filter(function (x) { return gone.indexOf(x.id) === -1; });
+        if (gone.indexOf(state.editingMeetingId) !== -1) closeMeetingForm();
+        else renderMeetings();
+      });
     }
   });
 
@@ -1187,6 +1290,48 @@
     resizeTimer = setTimeout(function () {
       if (state.detail && !$("#view-client").hidden) renderChart(state.detail.timeline);
     }, 150);
+  });
+
+  /* ---------------- the calendar feed: subscribe once, stays in step ---------------- */
+
+  function calendarUrl() {
+    var t = state.settings && state.settings.calendar_token;
+    return t ? location.origin + "/cal/" + t + ".ics" : "";
+  }
+
+  function renderCalendar() {
+    var url = calendarUrl();
+    $("#calOff").hidden = !!url;
+    $("#calOn").hidden = !url;
+    if (!url) return;
+    $("#calUrl").value = url;
+    $("#calGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(url.replace(/^https?:/, "webcal:"));
+    $("#calApple").href = url.replace(/^https?:/, "webcal:");
+  }
+
+  function calendarSetting(what) {
+    return api("/api/sessions?resource=settings", { method: "PUT", body: { calendar: what } })
+      .then(function (r) { useSettings(r.settings); renderCalendar(); });
+  }
+
+  $("#btnCalendar").addEventListener("click", function () {
+    renderCalendar();
+    $("#calDialog").showModal();
+  });
+  $("#calClose").addEventListener("click", function () { $("#calDialog").close(); });
+  $("#calDialog").addEventListener("click", function (ev) { if (ev.target === this) this.close(); });
+  $("#calMake").addEventListener("click", function () {
+    var btn = this;
+    busy(btn, true);
+    calendarSetting("create").then(function () { Go.play("coin"); }).catch(function (e) { toast(e.message, true); }).finally(function () { busy(btn, false); });
+  });
+  $("#calRotate").addEventListener("click", function () {
+    if (!confirm("Make a new calendar link? The old one stops working, and calendars subscribed to it stop updating.")) return;
+    calendarSetting("rotate").then(function () { toast("New calendar link ✓ Subscribe again with it."); }).catch(function (e) { toast(e.message, true); });
+  });
+  $("#calCopy").addEventListener("click", function () {
+    var url = $("#calUrl").value;
+    navigator.clipboard.writeText(url).then(function () { toast("Calendar link copied ✓"); }, function () { $("#calUrl").select(); });
   });
 
   /* ---------------- go ---------------- */

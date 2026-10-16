@@ -113,8 +113,11 @@ export async function getSettings(sql) {
   const s = { timezone: "auto", detected_timezone: null, default_link: "", notify_email: "" };
   for (const r of rows) if (SETTING_KEYS.includes(r.key)) s[r.key] = r.value;
   const mail = mailConfig();
+  const cal = rows.find((r) => r.key === "calendar_token");
   return {
     ...s,
+    // the private calendar feed (/cal/<token>.ics) — admin only, never on the share page
+    calendar_token: cal ? cal.value : null,
     // the address reminders about your own meetings go to
     notify_email_effective: s.notify_email || mail.replyTo,
     mail_configured: mail.configured,
@@ -159,6 +162,14 @@ export async function handleSettings(req, res, sql) {
       const email = String(b.notify_email || "").trim().toLowerCase();
       if (email && !EMAIL_RE.test(email)) return json(res, 400, { error: "That does not look like an email address." });
       next.notify_email = email;
+    }
+    // the calendar feed's secret: make one, swap it for a new one (the old
+    // link stops working), or switch the feed off
+    if (b.calendar === "create" || b.calendar === "rotate") {
+      const [had] = await sql`SELECT value FROM app_settings WHERE key = 'calendar_token'`;
+      if (!had || b.calendar === "rotate") next.calendar_token = crypto.randomBytes(24).toString("base64url");
+    } else if (b.calendar === "off") {
+      await sql`DELETE FROM app_settings WHERE key = 'calendar_token'`;
     }
     for (const [key, value] of Object.entries(next)) {
       await sql`INSERT INTO app_settings (key, value) VALUES (${key}, ${value})
@@ -206,7 +217,7 @@ export async function clientMeetings(sql, clientId, opts) {
 
 /** Everything still to come (and anything running now), soonest first, across all clients. */
 export async function upcomingMeetings(sql) {
-  // the first 50 overall, plus every client's next one — a long series alone
+  // the first 200 overall (enough for a month's filter), plus every client's next one — a long series alone
   // would otherwise fill the 50 and leave other clients' cards with no meeting
   const rows = await sql`SELECT * FROM (
       SELECT m.*, c.name AS client_name, c.photo AS client_photo, c.gender AS client_gender,
@@ -214,7 +225,7 @@ export async function upcomingMeetings(sql) {
         row_number() OVER (PARTITION BY m.client_id ORDER BY m.starts_at) AS per_client
       FROM meetings m JOIN clients c ON c.id = m.client_id
       WHERE m.starts_at + (m.duration_min * interval '1 minute') > now()
-    ) x WHERE n <= 50 OR per_client = 1
+    ) x WHERE n <= 200 OR per_client = 1
     ORDER BY starts_at ASC`;
   return rows.map((m) => shape(m, { admin: true }));
 }
@@ -617,4 +628,75 @@ export async function runReminders(sql, base) {
     }
   }
   return { sent, failed, configured: true };
+}
+
+/* ---------------- the calendar feed ----------------
+   Every meeting from the last 30 days on, as an iCalendar file that Google
+   Calendar or the iPhone subscribes to by URL (owner, 2026-10-16: "realtime
+   url to add to google calendar"). A calendar app re-reads the whole file on
+   its own clock — Google every few hours, Apple as often as asked — so a
+   reschedule or a cancel shows up there on its next read: a moved meeting
+   keeps its UID and changes time, a cancelled one is simply gone. */
+
+const icsText = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+const icsTime = (d) => new Date(d).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+
+/* Lines longer than 75 octets are folded: CRLF, then a space. */
+function fold(line) {
+  const bytes = Buffer.from(line, "utf8");
+  if (bytes.length <= 75) return line;
+  const out = [];
+  let cur = "";
+  for (const ch of line) {
+    if (Buffer.byteLength(cur + ch, "utf8") > (out.length ? 74 : 75)) { out.push(cur); cur = ""; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.join("\r\n ");
+}
+
+export async function calendarFeed(sql, siteUrl) {
+  const rows = await sql`SELECT m.id, m.client_id, m.starts_at, m.duration_min, m.link, m.topic, m.timezone, m.series_id, c.name AS client_name
+    FROM meetings m JOIN clients c ON c.id = m.client_id
+    WHERE m.starts_at > now() - interval '30 days'
+    ORDER BY m.starts_at ASC LIMIT 1000`;
+  const stamp = icsTime(new Date());
+  const host = new URL(siteUrl).hostname;
+  const lines = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ahmedtarek.tech//Client meetings//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "X-WR-CALNAME:Client meetings", "X-WR-CALDESC:Your client meetings from ahmedtarek.tech/admin",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT15M", "X-PUBLISHED-TTL:PT15M",
+  ];
+  for (const m of rows) {
+    const start = new Date(m.starts_at);
+    const end = new Date(start.getTime() + Number(m.duration_min) * 60000);
+    const link = safeLinkOrNull(m.link);
+    const title = (m.topic ? m.topic + " · " : "Meeting · ") + m.client_name;
+    const desc = [
+      "With " + m.client_name + ".",
+      link ? "Join: " + link : "No meeting link yet.",
+      "Their time zone: " + m.timezone + ".",
+      "Open in admin: " + siteUrl + "/admin#client/" + m.client_id,
+    ].join("\n");
+    lines.push(
+      "BEGIN:VEVENT",
+      "UID:meeting-" + m.id + "@" + host,
+      "DTSTAMP:" + stamp,
+      "DTSTART:" + icsTime(start),
+      "DTEND:" + icsTime(end),
+      "SUMMARY:" + icsText(title),
+      "DESCRIPTION:" + icsText(desc),
+      ...(link ? ["LOCATION:" + icsText(link), "URL:" + icsText(link)] : []),
+      "STATUS:CONFIRMED",
+      "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsText(title), "TRIGGER:-PT15M", "END:VALARM",
+      "END:VEVENT",
+    );
+  }
+  lines.push("END:VCALENDAR");
+  return lines.map(fold).join("\r\n") + "\r\n";
+}
+
+function safeLinkOrNull(v) {
+  const s = String(v || "").trim();
+  return /^https?:\/\/[^\s<>"']+$/i.test(s) ? s : null;
 }

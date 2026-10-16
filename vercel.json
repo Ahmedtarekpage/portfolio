@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/cal/:token",
+      "destination": "/api/share?calendar=:token"
+    },
+    {
       "source": "/unsubscribe",
       "destination": "/api/cms?resource=newsletter&action=unsubscribe"
     },

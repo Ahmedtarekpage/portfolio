@@ -281,7 +281,22 @@
     return html;
   }
 
+  /* A one-tap "add this meeting to Google Calendar" link: Google's own event
+     template, filled in. For the whole set, kept in step, there is the feed. */
+  function googleUrl(m, title, details) {
+    var t = function (d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); };
+    var start = new Date(m.starts_at);
+    var end = new Date(start.getTime() + m.duration_min * 60000);
+    var link = safeLink(m.link);
+    var q = "action=TEMPLATE&text=" + encodeURIComponent(title) +
+      "&dates=" + t(start) + "/" + t(end) +
+      "&details=" + encodeURIComponent((details || "") + (link ? "\n\nJoin: " + link : "")) +
+      (link ? "&location=" + encodeURIComponent(link) : "");
+    return "https://calendar.google.com/calendar/render?" + q;
+  }
+
   window.Meet = {
+    googleUrl: googleUrl,
     esc: esc,
     isZone: isZone,
     deviceZone: deviceZone,
