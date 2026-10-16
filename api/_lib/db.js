@@ -150,6 +150,9 @@ async function migrate(sql) {
   // drag-to-reorder position within a day, and a picked emoji icon per task
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon TEXT`;
+  // written in afterwards by "fill empty days" rather than tracked on the day
+  // itself, so the day can say so (owner, 2026-10-16)
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated BOOLEAN NOT NULL DEFAULT false`;
   // stamped when a task is marked done -- powers the "completed by hour" chart
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`;
   // the abandoned rebuild also re-pointed tasks.category_id at its new "categories"

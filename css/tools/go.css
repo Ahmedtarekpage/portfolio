@@ -829,3 +829,15 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 .fill-sheet__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .fill-sheet__actions .btn { flex: 1 1 150px; justify-content: center; }
 .days-quarter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- a day written in afterwards, not tracked on the day ---------- */
+.day-tile__estimated {
+  position: absolute; left: 0; top: 0; z-index: 2;
+  padding: 3px 8px; border-radius: 0 0 var(--radius-md) 0;
+  background: var(--wash-amber); color: var(--wash-amber-text);
+  font: 800 0.6rem/1.2 var(--font-ui); letter-spacing: 0.03em;
+  max-width: calc(100% - 26px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.day-tile--estimated { border-color: var(--coin-amber); }
+.day-tile--estimated .day-tile__fill { background: var(--coin-amber); }
+@container (max-width: 96px) { .day-tile__estimated { padding: 2px 5px; font-size: 0.52rem; } }

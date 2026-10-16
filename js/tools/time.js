@@ -2661,6 +2661,8 @@
     (stats || []).forEach(function (s) { statsByDate[s.date] = s; });
     var photosByDate = {};
     (photos || []).forEach(function (p) { photosByDate[p.task_date] = p.photo_data; });
+    var estimatedByDate = {};
+    (stats || []).forEach(function (s) { if (s.estimated) estimatedByDate[String(s.date).slice(0, 10)] = true; });
 
     // one walk of the whole quarter, for the chart and the quarter average. The
     // focus range only ever narrows what's drawn from this — it never re-fetches.
@@ -2683,7 +2685,7 @@
     state.daysData = {
       quarterId: opts.all ? "all" : quarter ? quarter.id : null,
       from: from, to: to, days: chartDays, avg: avg,
-      statsByDate: statsByDate, photosByDate: photosByDate,
+      statsByDate: statsByDate, photosByDate: photosByDate, estimatedByDate: estimatedByDate,
       goalsByDate: opts.goalsByDate || {},
       goalsEstimatedByDate: opts.goalsEstimatedByDate || {},
     };
@@ -2806,6 +2808,7 @@
   function renderTileRun(box, from, to, animate) {
     var statsByDate = state.daysData.statsByDate;
     var photosByDate = state.daysData.photosByDate;
+    var estimatedByDate = state.daysData.estimatedByDate || {};
     var today = todayISO();
 
     // weeks start Saturday: pad the grid with blank cells so day `from`
@@ -2823,9 +2826,19 @@
       var pct = s && s.total ? Math.round((s.done / s.total) * 100) : null;
       var photo = photosByDate[d];
 
+      var estimated = !!estimatedByDate[d];
       var tile = document.createElement("div");
-      tile.className = "day-tile" + (d === today ? " day-tile--today" : "") + (animate ? " day-tile--enter" : "");
+      tile.className = "day-tile" + (d === today ? " day-tile--today" : "") +
+        (estimated ? " day-tile--estimated" : "") + (animate ? " day-tile--enter" : "");
       tile.setAttribute("data-day", d);
+      if (estimated) {
+        // written in afterwards rather than ticked off on the day itself
+        var mark = document.createElement("span");
+        mark.className = "day-tile__estimated";
+        mark.textContent = "estimated";
+        mark.title = "These tasks were written in afterwards, not tracked on the day";
+        tile.appendChild(mark);
+      }
 
       var photoLabel = document.createElement("div");
       photoLabel.className = "day-tile__photo";
@@ -3276,7 +3289,8 @@
           var day = empty[i];
           var one = function (k) {
             if (k >= list.length) return Promise.resolve();
-            return api("/api/tasks", { method: "POST", body: { task_date: day, title: list[k].title } })
+            // marked, so the day's card can say it was written in afterwards
+            return api("/api/tasks", { method: "POST", body: { task_date: day, title: list[k].title, estimated: true } })
               .then(function (r) {
                 made++;
                 btn.textContent = "Writing… " + Math.round((made / total) * 100) + "%";

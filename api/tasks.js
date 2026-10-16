@@ -3,7 +3,7 @@
 //   GET    /api/tasks?stats=1&from=&to=      -> [{date, total, done}] for the % history strip
 //   GET    /api/tasks?totals=1               -> { totalDone, totalTasks } all-time — for gamification stats
 //   POST   /api/tasks?duplicate=1            -> { from_date, to_date }: copy a day's tasks (title/category/planned hours only) onto another date
-//   POST   /api/tasks                        -> { task_date, title, category_id?, planned_hours?, icon? }
+//   POST   /api/tasks                        -> { task_date, title, category_id?, planned_hours?, icon?, estimated? }
 //   PATCH  /api/tasks?reorder=1              -> { ids: [id, ...] }: persist new drag order for those tasks
 //   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, actual_hours?, icon? }
 //   DELETE /api/tasks?date=YYYY-MM-DD        -> delete every task on that day
@@ -32,7 +32,8 @@ export default withErrors(async (req, res) => {
     const to = String(req.query.to || "").slice(0, 10);
     if (!isDate(from) || !isDate(to)) return json(res, 400, { error: "from/to must be YYYY-MM-DD" });
     const rows = await sql`SELECT task_date::text AS date, COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE done)::int AS done
+        COUNT(*) FILTER (WHERE done)::int AS done,
+        bool_and(estimated) AS estimated
       FROM tasks WHERE task_date BETWEEN ${from}::date AND ${to}::date
       GROUP BY task_date ORDER BY task_date`;
     return json(res, 200, { stats: rows });
@@ -71,8 +72,8 @@ export default withErrors(async (req, res) => {
     const plannedHours = b.planned_hours != null && b.planned_hours !== "" ? Number(b.planned_hours) : null;
     const icon = b.icon ? String(b.icon).slice(0, 8) : null;
 
-    const [task] = await sql`INSERT INTO tasks (task_date, title, category_id, planned_hours, icon, position)
-      VALUES (${b.task_date}::date, ${String(b.title).trim()}, ${categoryId}, ${plannedHours}, ${icon},
+    const [task] = await sql`INSERT INTO tasks (task_date, title, category_id, planned_hours, icon, estimated, position)
+      VALUES (${b.task_date}::date, ${String(b.title).trim()}, ${categoryId}, ${plannedHours}, ${icon}, ${b.estimated === true},
         (SELECT COALESCE(MAX(position), -1) + 1 FROM tasks WHERE task_date = ${b.task_date}::date))
       RETURNING *`;
     return json(res, 201, { task });
