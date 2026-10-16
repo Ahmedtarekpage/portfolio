@@ -851,3 +851,121 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 .day-tile--estimated { border-color: var(--coin-amber); }
 .day-tile--estimated .day-tile__fill { background: var(--coin-amber); }
 @container (max-width: 96px) { .day-tile__estimated { padding: 2px 5px; font-size: 0.52rem; } }
+
+/* ---------- a cycle's categories and goals (owner, 2026-10-16: "I want design
+   of this to be same edited style") ----------
+   The goals screen was still the old flat list: hairline dividers, 24px
+   steppers, a percentage in grey. Here each goal becomes a card you can hit
+   with a thumb, the bar is the Go Blue one, and a goal that is finished turns
+   green and says so. */
+
+.go-note {
+  margin: 0 0 12px; padding: 10px 14px; border-radius: var(--radius-md);
+  background: var(--wash-amber); color: var(--wash-amber-text);
+  font: 700 0.84rem/1.5 var(--font-ui);
+}
+
+.goals-view-toggle { gap: 6px; padding: 5px; border-radius: 999px; background: var(--wash); }
+.goals-view-toggle__btn {
+  border-radius: 999px; padding: 8px 16px; min-height: 38px;
+  font: 800 0.84rem var(--font-ui); border: none; background: transparent; color: var(--muted);
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms var(--ease-bounce);
+}
+.goals-view-toggle__btn:active { transform: scale(0.96); }
+.goals-view-toggle__btn--active { background: var(--go-blue); color: #fff; box-shadow: var(--shadow-card); }
+
+/* the card for one category */
+.category-cards { gap: 16px; }
+.category-card {
+  background: var(--glass); border: 1.5px solid var(--border); border-radius: var(--radius-lg);
+  padding: 18px; box-shadow: var(--shadow-card);
+  animation: go-rise 460ms var(--ease-out) both;
+}
+.category-card:hover { border-color: var(--go-blue); transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+.category-card__head { gap: 8px; }
+.category-card__name { font: 800 1.12rem var(--font-display); letter-spacing: -0.015em; }
+.category-card__stats b { font: 800 1.15rem var(--font-display); }
+.category-card .chart { border-radius: var(--radius-md); }
+
+.goals { margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 14px; }
+.goals__label, .copy-dialog__head .goals__label {
+  font: 800 0.72rem var(--font-ui); letter-spacing: var(--kicker-track);
+  text-transform: uppercase; color: var(--faint); margin-bottom: 10px;
+}
+.goals__list { display: grid; gap: 10px; }
+
+/* one goal, as a card */
+.goal-row {
+  gap: 10px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-md);
+  background: var(--bg); border-bottom: 1.5px solid var(--border);
+  animation: go-rise 420ms var(--ease-out) both;
+  transition: border-color 160ms ease, background-color 200ms ease, transform 180ms var(--ease-bounce);
+}
+.goal-row:last-of-type { border-bottom: 1.5px solid var(--border); }
+.goal-row:hover { border-color: var(--go-blue); }
+.goal-row:nth-child(1) { animation-delay: 0ms; }
+.goal-row:nth-child(2) { animation-delay: 40ms; }
+.goal-row:nth-child(3) { animation-delay: 80ms; }
+.goal-row:nth-child(4) { animation-delay: 120ms; }
+.goal-row:nth-child(n+5) { animation-delay: 160ms; }
+.goal-row__title { font: 700 0.95rem var(--font-ui); }
+.goal-row__pct {
+  font: 800 0.78rem var(--font-ui); color: var(--go-blue-dark);
+  background: var(--go-blue-tint); border-radius: 999px; padding: 3px 9px;
+}
+.goal-row__bar { height: 10px; background: var(--wash-strong); }
+.goal-row__fill { background: var(--go-blue); transition: width 520ms var(--ease-out); }
+.goal-row__fill--done { background: var(--wash-success-text); }
+/* a goal that is there turns green and keeps its tick */
+.goal-row--done { border-color: var(--wash-success-text); background: var(--wash-success); }
+.goal-row--done .goal-row__pct { background: var(--wash-success); color: var(--wash-success-text); }
+:root[data-theme="dark"] .goal-row--done { background: transparent; }
+.goal-row__nums { gap: 8px; font: 700 0.84rem var(--font-ui); }
+.goal-row__nums b { font: 800 0.95rem var(--font-display); color: var(--ink); }
+.goal-row__current {
+  width: 78px; border: 1.5px solid var(--border); border-radius: var(--radius-md);
+  padding: 7px 10px; font: 800 0.95rem var(--font-ui); background: var(--glass);
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.goal-row__current:focus { border-color: var(--go-blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+.goal-row__step {
+  width: 38px; height: 38px; border-radius: 999px; border: 1.5px solid var(--border);
+  background: var(--glass); font: 800 1.15rem var(--font-ui); color: var(--go-blue-dark);
+  transition: transform 160ms var(--ease-bounce), border-color 160ms ease, background-color 160ms ease;
+}
+.goal-row__step:hover { border-color: var(--go-blue); background: var(--go-blue-tint); }
+.goal-row__step:active { transform: scale(0.9); }
+.goal-row__cat-tag {
+  background: var(--wash-strong); color: var(--muted); border-radius: 999px;
+  padding: 3px 9px; font: 800 0.7rem var(--font-ui);
+}
+
+/* the "overall" rollups, above a category's goals and above the whole cycle */
+.goals-overall__top { font: 700 0.8rem var(--font-ui); }
+.goals-overall__pct { font: 800 0.95rem var(--font-display); }
+
+/* adding a goal: its own quiet strip, not three loose boxes */
+.goal-add-form {
+  margin-top: 12px; padding: 10px; gap: 8px; border-radius: var(--radius-md);
+  border: 1.5px dashed var(--border); background: var(--wash);
+}
+.goal-add-form input {
+  border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 9px 12px;
+  font: 600 0.88rem var(--font-ui); background: var(--glass);
+}
+.goal-add-form input:focus { border-color: var(--go-blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+.goal-add-form .btn { border-radius: 999px; font-weight: 800; }
+
+@media (max-width: 560px) {
+  /* a long goal name gets the first line to itself, rather than being squeezed
+     into a column beside the percentage and the buttons */
+  .goal-row__top { flex-wrap: wrap; row-gap: 6px; }
+  .goal-row__title { flex: 1 1 60%; min-width: 0; }
+  .goal-row__pct { order: 3; }
+  .goal-row__top .iconbtn { order: 4; }
+  .goal-row__top .iconbtn:first-of-type { margin-left: auto; } /* the buttons keep to the right edge */
+  .goal-add-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .goal-add-form input[name="title"] { grid-column: 1 / -1; width: 100%; }
+  .goal-add-form input[name="target"], .goal-add-form input[name="unit"] { width: 100%; }
+  .goal-add-form .btn { grid-column: 1 / -1; justify-content: center; }
+}

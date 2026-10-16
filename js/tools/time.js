@@ -1738,7 +1738,7 @@
   function goalRowHtml(g, opts) {
     opts = opts || {};
     var pct = goalPct(g);
-    return '<div class="goal-row" data-id="' + g.id + '">' +
+    return '<div class="goal-row' + (pct >= 100 ? " goal-row--done" : "") + '" data-id="' + g.id + '">' +
       '<div class="goal-row__top">' +
         (opts.draggable || opts.handle ? '<span class="goal-row__handle" title="Drag to reorder">⠿</span>' : '') +
         (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
@@ -1768,6 +1768,14 @@
     var fill = row.querySelector(".goal-row__fill");
     fill.style.width = pct + "%";
     fill.classList.toggle("goal-row__fill--done", pct >= 100);
+    // the moment it is reached, the goal goes green and says so once
+    var wasDone = row.classList.contains("goal-row--done");
+    row.classList.toggle("goal-row--done", pct >= 100);
+    if (pct >= 100 && !wasDone && window.Go) {
+      var r = row.getBoundingClientRect();
+      window.Go.burst(r.left + r.width / 2, r.top + r.height / 2, 20, ["🎯", "✨"]);
+      window.Go.play("success");
+    }
     row.querySelector(".goal-row__current").value = fmtNum(current);
   }
 
@@ -2051,9 +2059,8 @@
 
     if (data.quarter.anti_perfectionist) {
       var note = document.createElement("p");
-      note.className = "muted";
-      note.style.marginBottom = "4px";
-      note.textContent = "Anti-perfectionist mode is on — targets below already count 75% as done.";
+      note.className = "go-note";
+      note.textContent = "🌤 Anti-perfectionist mode is on — targets below already count 75% as done.";
       box.appendChild(note);
     }
 
