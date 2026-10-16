@@ -566,6 +566,13 @@
   });
 
   function openClient(id) {
+    // Reading the same client again after a save is a refresh, not a new page:
+    // the loading screen stays away and the page keeps its place, so saving a
+    // photo on a phone no longer throws you back to the top (owner, 2026-10-16).
+    var refresh = state.clientId === id && state.detail && !$("#view-client").hidden;
+    // hold on to the card nearest the top of the screen, and where on the screen
+    // it sits: cards change height as forms reopen, so a raw offset is not enough
+    var anchor = refresh ? keepPlace() : null;
     if (state.clientId !== id) {
       state.chartFrom = null;
       state.chartTo = null;
@@ -575,15 +582,38 @@
     state.route = "client";
     var url = location.pathname + "#client/" + id;
     if (location.pathname + location.hash !== url) history.pushState(null, "", url);
-    show("view-loading");
+    if (!refresh) show("view-loading");
     return api("/api/clients?id=" + id).then(function (data) {
       state.detail = data;
       if (data.settings) useSettings(data.settings);
       renderClient(data);
-      renderMeetings(true);
+      renderMeetings(!refresh);
       show("view-client");
       renderChart(data.timeline);
+      if (anchor) anchor();
     }).catch(function (e) { toast(e.message, true); nav({ name: "clients" }, true, true); });
+  }
+
+  /* Returns a function that puts the page back where it was, measured against
+     the card nearest the top of the screen rather than the page's own offset. */
+  function keepPlace() {
+    var top = null, best = Infinity;
+    // only the cards: the tiles are built again on every render, so they are gone
+    // by the time we measure, and a vanished anchor tells us nothing
+    document.querySelectorAll("#view-client .card").forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      var d = Math.abs(r.top);
+      if (r.height && d < best) { best = d; top = el; }
+    });
+    if (!top) return null;
+    var was = top.getBoundingClientRect().top;
+    var scroll = window.scrollY;
+    return function () {
+      // after the new layout, move by however far that card has shifted
+      var move = top.isConnected ? top.getBoundingClientRect().top - was : 0;
+      var to = Math.max(0, (top.isConnected ? window.scrollY : scroll) + move);
+      if (Math.abs(to - window.scrollY) > 1) window.scrollTo(0, to);
+    };
   }
 
   function renderClient(data) {
@@ -1145,12 +1175,19 @@
     var file = input.files[0];
     if (!file) return;
     var btn = $("#btnPhoto");
+    Go.play("coin"); // the picture was chosen: the same sound the drop box makes
     busy(btn, true);
     squarePhoto(file, 320, 0.82)
       .then(function (photo) {
         return api("/api/clients?id=" + state.clientId, { method: "PATCH", body: { photo: photo } });
       })
-      .then(function () { toast("Photo saved ✓"); return openClient(state.clientId); })
+      .then(function () {
+        toast("Photo saved ✓");
+        // the new picture arrives with a little party around it
+        var r = btn.getBoundingClientRect();
+        Go.burst(r.left + r.width / 2, r.top + r.height / 2, 18, ["📸", "✨"]);
+        return openClient(state.clientId);
+      })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); input.value = ""; });
   });
