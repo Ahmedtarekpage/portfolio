@@ -169,6 +169,7 @@
     var btn = ev.target.closest(".tab");
     if (!btn) return;
     showTab(btn.dataset.tab);
+    if (btn.dataset.tab === "focus") loadPomodoros();
     if (btn.dataset.tab === "days") loadDaysGallery();
     if (btn.dataset.tab === "ideas") loadIdeas();
     if (btn.dataset.tab === "quarter") restoreQuarterView();
@@ -772,6 +773,9 @@
         if (activeTab && activeTab.dataset.tab === "days") loadDaysGallery();
         if (activeTab && activeTab.dataset.tab === "ideas") loadIdeas();
         if (activeTab && activeTab.dataset.tab === "quarter") restoreQuarterView();
+        // the focus list is loaded whenever a block is mid-run, whichever tab
+        // is open, so the clock in the browser tab keeps counting
+        if ((activeTab && activeTab.dataset.tab === "focus") || pomo.run) loadPomodoros();
         loadGamification();
       })
       .catch(function (e) { toast(e.message, true); show("view-app"); });
@@ -3424,6 +3428,275 @@
       })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { btn.disabled = false; btn.textContent = "Fill the days"; });
+  });
+
+  /* ---------------- Focus: ten pomodoros a day ----------------
+     Owner, 2026-10-17: "daily target is 10 pomodoro … 1st will be sitting,
+     2nd standing, 3rd walking treadmill and etc … reset with Cairo time
+     zone", and then: "I want it like checklist, can do daily or click its
+     button to work its pomodoro". So: a checklist of ten blocks, each
+     carrying the posture it asks for. Tick one off by hand, or press its ▶
+     and let its own 25 minutes run it in.
+
+     The day is Cairo's, not the device's, so the list turns over at midnight
+     in Cairo wherever he is. A running block is kept by the clock it ends on,
+     not by a counter, so a locked phone or a reloaded page never loses time. */
+
+  var POMO_TARGET = 10;
+  var POMO_MINUTES = 25;
+  // the postures, in the order he asked for; after the third it starts again
+  var POMO_MODES = [
+    { glyph: "🪑", name: "Sitting" },
+    { glyph: "🧍", name: "Standing" },
+    { glyph: "🚶", name: "Walking (treadmill)" },
+  ];
+  function pomoMode(slot) { return POMO_MODES[(slot - 1) % POMO_MODES.length]; }
+
+  function cairoToday() {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+    } catch (e) { return todayISO(); }
+  }
+
+  // how long until the list turns over, in Cairo
+  function cairoLeft() {
+    var now = new Date();
+    var parts;
+    try {
+      parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false,
+      }).formatToParts(now).reduce(function (m, p) { m[p.type] = p.value; return m; }, {});
+    } catch (e) { return ""; }
+    var mins = (24 * 60) - (Number(parts.hour) * 60 + Number(parts.minute));
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return "Resets in " + (h ? h + "h " : "") + m + "m · Cairo";
+  }
+
+  var pomo = { date: null, done: {}, extra: 0, history: [], run: null };
+  // a block left running when the page was closed picks up where it was
+  var pomoSaved = recallJSON("pomo-run", null);
+  if (pomoSaved && pomoSaved.slot) pomo.run = pomoSaved;
+
+  function pomoSlots() {
+    var highest = 0;
+    Object.keys(pomo.done).forEach(function (s) { highest = Math.max(highest, Number(s)); });
+    return Math.max(POMO_TARGET, highest, POMO_TARGET + pomo.extra);
+  }
+
+  function loadPomodoros() {
+    var day = cairoToday();
+    return api("/api/tasks?pomodoros=1&date=" + day).then(function (r) {
+      pomo.date = r.date || day;
+      pomo.done = {};
+      (r.slots || []).forEach(function (s) { pomo.done[s.slot] = s; });
+      pomo.history = r.history || [];
+      renderPomodoros();
+      if (pomo.run) paintPomoRun(); // a block that was running when the page closed
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function renderPomodoros() {
+    var total = pomoSlots();
+    var done = Object.keys(pomo.done).length;
+    $("#pomoDone").textContent = done;
+    $("#pomoTarget").textContent = POMO_TARGET;
+    $("#pomoFill").style.width = Math.min(100, Math.round((done / POMO_TARGET) * 100)) + "%";
+    $("#pomoFill").classList.toggle("goal-row__fill--done", done >= POMO_TARGET);
+    $("#pomoReset").textContent = cairoLeft();
+    $("#pomoSay").textContent = done >= POMO_TARGET
+      ? "Ten done — that is the day's work 🎉"
+      : done === 0 ? "Ten blocks waiting. Press ▶ on the first one."
+        : (POMO_TARGET - done) + " to go. " + pomoMode(done + 1).glyph + " " + pomoMode(done + 1).name + " is next.";
+    var mins = 0;
+    Object.keys(pomo.done).forEach(function (s) { mins += Number(pomo.done[s].minutes) || 0; });
+    $("#pomoMinutes").textContent = mins ? mins + (mins === 1 ? " minute" : " minutes") + " of focus logged today" : "";
+
+    var list = $("#pomoList");
+    list.innerHTML = "";
+    for (var slot = 1; slot <= total; slot++) {
+      var mode = pomoMode(slot);
+      var row = document.createElement("div");
+      var isDone = !!pomo.done[slot];
+      var isRunning = pomo.run && pomo.run.slot === slot;
+      row.className = "pomo-row" + (isDone ? " pomo-row--done" : "") + (isRunning ? " pomo-row--running" : "") +
+        (slot > POMO_TARGET ? " pomo-row--extra" : "");
+      row.dataset.slot = slot;
+      row.innerHTML =
+        '<button type="button" class="pomo-row__check" aria-pressed="' + isDone + '" ' +
+          'aria-label="' + (isDone ? "Undo block " : "Tick off block ") + slot + '">' + (isDone ? "✓" : "") + '</button>' +
+        '<span class="pomo-row__n">' + slot + '</span>' +
+        '<span class="pomo-row__mode"><span class="pomo-row__glyph">' + mode.glyph + '</span>' + esc(mode.name) + '</span>' +
+        '<span class="pomo-row__len">' + (pomo.done[slot] && pomo.done[slot].minutes ? pomo.done[slot].minutes : POMO_MINUTES) + ' min</span>' +
+        '<button type="button" class="btn btn--ghost btn--sm pomo-row__go">' +
+          (isRunning ? "Running…" : isDone ? "Again" : "▶ Start") + '</button>';
+      list.appendChild(row);
+    }
+    renderPomoHistory();
+  }
+
+  function renderPomoHistory() {
+    var byDate = {};
+    pomo.history.forEach(function (h) { byDate[String(h.date).slice(0, 10)] = h.done; });
+    var box = $("#pomoHistory");
+    box.innerHTML = "";
+    for (var i = 13; i >= 0; i--) {
+      var d = addDays(pomo.date || cairoToday(), -i);
+      var n = byDate[d] || 0;
+      var cell = document.createElement("div");
+      cell.className = "pomo-day" + (n >= POMO_TARGET ? " pomo-day--full" : n ? " pomo-day--some" : "");
+      cell.style.setProperty("--fill", Math.min(100, Math.round((n / POMO_TARGET) * 100)) + "%");
+      cell.title = fmtDate(d) + " — " + n + " of " + POMO_TARGET;
+      cell.innerHTML = '<span class="pomo-day__n">' + (n || "") + "</span>";
+      box.appendChild(cell);
+    }
+  }
+
+  function tickPomodoro(slot, minutes) {
+    var mode = pomoMode(slot);
+    return api("/api/tasks?pomodoros=1", {
+      method: "POST",
+      body: { date: pomo.date || cairoToday(), slot: slot, mode: mode.name, minutes: minutes || null },
+    }).then(function (r) {
+      pomo.done[slot] = r.slot || { slot: slot, mode: mode.name, minutes: minutes || null };
+      var today = pomo.date || cairoToday();
+      var seen = false;
+      pomo.history.forEach(function (h) { if (String(h.date).slice(0, 10) === today) { h.done = Object.keys(pomo.done).length; seen = true; } });
+      if (!seen) pomo.history.push({ date: today, done: Object.keys(pomo.done).length });
+      renderPomodoros();
+    });
+  }
+
+  function untickPomodoro(slot) {
+    return api("/api/tasks?pomodoros=1&date=" + (pomo.date || cairoToday()) + "&slot=" + slot, { method: "DELETE" })
+      .then(function () {
+        delete pomo.done[slot];
+        var today = pomo.date || cairoToday();
+        pomo.history.forEach(function (h) { if (String(h.date).slice(0, 10) === today) h.done = Object.keys(pomo.done).length; });
+        renderPomodoros();
+      });
+  }
+
+  /* ---- the running block ---- */
+
+  function savePomoRun() { remember("pomo-run", pomo.run); }
+
+  function startPomodoro(slot) {
+    pomo.run = { slot: slot, endsAt: Date.now() + POMO_MINUTES * 60000, left: null, minutes: POMO_MINUTES };
+    savePomoRun();
+    if (window.Go) window.Go.play("open");
+    renderPomodoros();
+    paintPomoRun();
+  }
+
+  function stopPomodoro(silent) {
+    pomo.run = null;
+    savePomoRun();
+    document.title = pomoTitleBase;
+    $("#pomoRun").hidden = true;
+    if (!silent && window.Go) window.Go.play("tap");
+    renderPomodoros();
+  }
+
+  function pomoLeftMs() {
+    if (!pomo.run) return 0;
+    return pomo.run.left != null ? pomo.run.left : Math.max(0, pomo.run.endsAt - Date.now());
+  }
+
+  var pomoTitleBase = document.title;
+
+  function paintPomoRun() {
+    var box = $("#pomoRun");
+    if (!pomo.run) { box.hidden = true; document.title = pomoTitleBase; return; }
+    box.hidden = false;
+    var mode = pomoMode(pomo.run.slot);
+    var ms = pomoLeftMs();
+    var secs = Math.ceil(ms / 1000);
+    var clock = Math.floor(secs / 60) + ":" + ("0" + (secs % 60)).slice(-2);
+    $("#pomoRunMode").textContent = "Block " + pomo.run.slot + " · " + mode.glyph + " " + mode.name;
+    $("#pomoRunClock").textContent = clock;
+    $("#pomoRunFill").style.width = (100 - Math.min(100, (ms / (pomo.run.minutes * 60000)) * 100)) + "%";
+    $("#pomoPause").textContent = pomo.run.left != null ? "Resume" : "Pause";
+    document.title = clock + " · " + mode.name + " — " + pomoTitleBase;
+    if (ms <= 0) finishPomodoro();
+  }
+
+  function finishPomodoro() {
+    var run = pomo.run;
+    if (!run) return;
+    pomo.run = null;
+    savePomoRun();
+    document.title = pomoTitleBase;
+    $("#pomoRun").hidden = true;
+    tickPomodoro(run.slot, run.minutes).then(function () {
+      var row = document.querySelector('.pomo-row[data-slot="' + run.slot + '"]');
+      if (row && window.Go) {
+        var r = row.getBoundingClientRect();
+        window.Go.burst(r.left + r.width / 2, r.top + r.height / 2, 22, ["🍅", "✨"]);
+      }
+      if (window.Go) window.Go.play("success");
+      var done = Object.keys(pomo.done).length;
+      toast(done >= POMO_TARGET ? "Ten blocks done today 🎉" : "Block " + run.slot + " done — " + (POMO_TARGET - done) + " to go");
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  // one timer for the page: the clock, the Cairo turnover, and nothing else
+  setInterval(function () {
+    if (document.querySelector('.tabpanel[data-tabpanel="focus"]').hidden && !pomo.run) return;
+    if (pomo.date && cairoToday() !== pomo.date) { stopPomodoro(true); loadPomodoros(); return; }
+    if (pomo.run) paintPomoRun();
+    else if (pomo.date) $("#pomoReset").textContent = cairoLeft();
+  }, 1000);
+
+  $("#pomoList").addEventListener("click", function (ev) {
+    var row = ev.target.closest(".pomo-row");
+    if (!row) return;
+    var slot = Number(row.dataset.slot);
+    if (ev.target.closest(".pomo-row__check")) {
+      if (pomo.done[slot]) {
+        untickPomodoro(slot).catch(function (e) { toast(e.message, true); });
+      } else {
+        if (pomo.run && pomo.run.slot === slot) stopPomodoro(true);
+        tickPomodoro(slot).then(function () {
+          if (window.Go) {
+            var r = row.getBoundingClientRect();
+            window.Go.burst(r.left + r.width / 2, r.top + r.height / 2, 14, ["🍅"]);
+            window.Go.play("coin");
+          }
+        }).catch(function (e) { toast(e.message, true); });
+      }
+      return;
+    }
+    if (ev.target.closest(".pomo-row__go")) {
+      if (pomo.run && pomo.run.slot !== slot && pomoLeftMs() > 0) {
+        if (!confirm("Block " + pomo.run.slot + " is still running. Start block " + slot + " instead?")) return;
+      }
+      startPomodoro(slot);
+      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+
+  $("#pomoPause").addEventListener("click", function () {
+    if (!pomo.run) return;
+    if (pomo.run.left != null) { pomo.run.endsAt = Date.now() + pomo.run.left; pomo.run.left = null; }
+    else pomo.run.left = Math.max(0, pomo.run.endsAt - Date.now());
+    savePomoRun();
+    if (window.Go) window.Go.play("tap");
+    paintPomoRun();
+  });
+  $("#pomoDoneNow").addEventListener("click", function () {
+    if (!pomo.run) return;
+    // credit the minutes actually spent, not the whole block
+    var spent = Math.max(1, Math.round((pomo.run.minutes * 60000 - pomoLeftMs()) / 60000));
+    pomo.run.minutes = spent;
+    finishPomodoro();
+  });
+  $("#pomoStop").addEventListener("click", function () { stopPomodoro(); });
+  $("#pomoAddOne").addEventListener("click", function () {
+    pomo.extra++;
+    renderPomodoros();
+    if (window.Go) window.Go.play("tap");
   });
 
   /* ---------------- resize: redraw progress charts ---------------- */

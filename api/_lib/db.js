@@ -287,6 +287,23 @@ async function migrate(sql) {
     position INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // Ten focus blocks a day, each with its posture, ticked by hand or by its own
+  // 25-minute timer (owner, 2026-10-17: "daily target is 10 pomodoro … 1st
+  // sitting, 2nd standing, 3rd walking treadmill"). The day is the Cairo day,
+  // worked out by whoever writes the row, so the list resets at Cairo midnight
+  // wherever the owner happens to be. One row per slot per day.
+  await sql`CREATE TABLE IF NOT EXISTS pomodoros (
+    id SERIAL PRIMARY KEY,
+    day DATE NOT NULL,
+    slot INTEGER NOT NULL,
+    mode TEXT NOT NULL DEFAULT '',
+    minutes INTEGER,
+    note TEXT,
+    done_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (day, slot)
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS pomodoros_day_idx ON pomodoros (day)`;
+
   // last, so it sees the goal_log seed readings it has to arrive at
   await backfillGoalHistory(sql);
 }

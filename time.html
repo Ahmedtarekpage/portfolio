@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
   <link rel="stylesheet" href="css/tools/time.css?v=45" />
-  <link rel="stylesheet" href="css/tools/go.css?v=13" />
+  <link rel="stylesheet" href="css/tools/go.css?v=14" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -158,6 +158,7 @@
       <nav class="tabbar" id="tabbar">
         <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label">Today</span></button>
         <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label">Quarter</span></button>
+        <button type="button" class="tab" data-tab="focus"><span class="tab__icon">🍅</span><span class="tab__label">Focus</span></button>
         <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label">Days</span></button>
         <button type="button" class="tab" data-tab="ideas"><span class="tab__icon">💡</span><span class="tab__label">Ideas</span></button>
         <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label">Analytics</span></button>
@@ -460,6 +461,47 @@
       </section>
 
       <!-- ---- Days: a photo gallery, one tile per day in the selected quarter ---- -->
+      <!-- ---- Focus: ten pomodoros a day, each with its posture (owner,
+           2026-10-17). A block is ticked by hand, or run on its own timer. ---- -->
+      <section class="tabpanel" data-tabpanel="focus" hidden>
+        <div class="card">
+          <div class="card__head">
+            <h2>🍅 Focus</h2>
+            <span class="muted pomo-reset" id="pomoReset"></span>
+          </div>
+
+          <div class="pomo-top">
+            <div class="pomo-top__count"><b id="pomoDone">0</b> of <b id="pomoTarget">10</b> today</div>
+            <div class="goal-row__bar"><div class="goal-row__fill" id="pomoFill" style="width:0%"></div></div>
+            <p class="pomo-top__say muted" id="pomoSay"></p>
+          </div>
+
+          <!-- the one running block, if any -->
+          <div class="pomo-run" id="pomoRun" hidden>
+            <div class="pomo-run__mode" id="pomoRunMode"></div>
+            <div class="pomo-run__clock" id="pomoRunClock">25:00</div>
+            <div class="pomo-run__bar"><div class="pomo-run__fill" id="pomoRunFill"></div></div>
+            <div class="pomo-run__actions">
+              <button type="button" class="btn btn--hero" id="pomoPause">Pause</button>
+              <button type="button" class="btn btn--ghost" id="pomoDoneNow">Done now</button>
+              <button type="button" class="btn btn--ghost" id="pomoStop">Stop</button>
+            </div>
+          </div>
+
+          <div class="pomo-list" id="pomoList"></div>
+
+          <div class="pomo-foot">
+            <button type="button" class="btn btn--ghost btn--sm" id="pomoAddOne">+ One more block</button>
+            <span class="muted" id="pomoMinutes"></span>
+          </div>
+
+          <div class="pomo-history">
+            <div class="goals__label">The last two weeks</div>
+            <div class="pomo-history__row" id="pomoHistory"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="tabpanel" data-tabpanel="days" hidden>
       <div class="card">
         <div class="card__head">
@@ -672,6 +714,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=67"></script>
+  <script src="js/tools/time.js?v=68"></script>
 </body>
 </html>

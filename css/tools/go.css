@@ -414,6 +414,13 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   .tab--active { background: var(--go-blue); border-color: var(--go-blue); color: #fff; }
   .tab--active:hover { color: #fff; }
 }
+/* six tabs since Focus joined them: on a small phone they have to shrink to
+   fit, or the bar itself scrolls sideways (owner, 2026-10-17) */
+@media (max-width: 400px) {
+  .tab { min-width: 0; padding-left: 0; padding-right: 0; }
+  .tab__label { font-size: 0.56rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .tab__icon { font-size: 1.15rem; }
+}
 @media (max-width: 640px) {
   .tabbar, :root[data-theme="light"] .tabbar { background: var(--glass); backdrop-filter: none; -webkit-backdrop-filter: none; border-top: 1.5px solid var(--glass-brd); }
   .tab { font-family: var(--font-ui); font-weight: 700; }
@@ -968,4 +975,97 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   .goal-add-form input[name="title"] { grid-column: 1 / -1; width: 100%; }
   .goal-add-form input[name="target"], .goal-add-form input[name="unit"] { width: 100%; }
   .goal-add-form .btn { grid-column: 1 / -1; justify-content: center; }
+}
+
+/* ---------- Focus: ten blocks a day, each with its posture (owner, 2026-10-17) ----------
+   A checklist first: tick a block off by hand, or press ▶ and let its own
+   twenty-five minutes run it in. The running block floats above the list. */
+
+.pomo-top { display: grid; gap: 8px; margin: 4px 0 16px; }
+.pomo-top__count { font: 800 1.05rem var(--font-display); }
+.pomo-top__count b { font-size: 1.5rem; color: var(--go-blue-dark); }
+.pomo-top__say { margin: 0; font: 700 0.85rem var(--font-ui); }
+.pomo-reset { font: 700 0.76rem var(--font-ui); white-space: nowrap; }
+
+.pomo-run {
+  display: grid; gap: 10px; justify-items: center; text-align: center;
+  padding: 18px 16px; margin-bottom: 16px; border-radius: var(--radius-lg);
+  background: var(--night-navy); color: #fff;
+  animation: go-pop 320ms var(--ease-bounce) both;
+}
+.pomo-run__mode { font: 800 0.9rem var(--font-ui); color: #9db4d8; }
+.pomo-run__clock {
+  font: 800 3.4rem/1 var(--font-display); letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.pomo-run__bar { width: min(420px, 100%); height: 10px; border-radius: 999px; background: rgba(157, 180, 216, 0.25); overflow: hidden; }
+.pomo-run__fill { height: 100%; border-radius: 999px; background: var(--coin-amber); transition: width 900ms linear; }
+.pomo-run__actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pomo-run__actions .btn--ghost { border-color: rgba(157, 180, 216, 0.45); color: #fff; background: transparent; }
+.pomo-run__actions .btn--ghost:hover { border-color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+.pomo-list { display: grid; gap: 10px; }
+.pomo-row {
+  display: flex; align-items: center; gap: 12px;
+  min-width: 0; /* a grid item is max-content wide by default: the ▶ would be cut off */
+  padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-md);
+  background: var(--bg); animation: go-rise 380ms var(--ease-out) both;
+  transition: border-color 160ms ease, background-color 200ms ease, transform 180ms var(--ease-bounce);
+}
+.pomo-row:hover { border-color: var(--go-blue); }
+.pomo-row:nth-child(1) { animation-delay: 0ms; }
+.pomo-row:nth-child(2) { animation-delay: 30ms; }
+.pomo-row:nth-child(3) { animation-delay: 60ms; }
+.pomo-row:nth-child(4) { animation-delay: 90ms; }
+.pomo-row:nth-child(n+5) { animation-delay: 120ms; }
+.pomo-row__check {
+  flex: none; width: 30px; height: 30px; border-radius: 999px; cursor: pointer;
+  border: 2px solid var(--border); background: var(--glass); color: #fff;
+  font: 800 0.95rem var(--font-ui); line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 160ms var(--ease-bounce), background-color 160ms ease, border-color 160ms ease;
+}
+.pomo-row__check:hover { border-color: var(--go-blue); transform: scale(1.08); }
+.pomo-row__check:active { transform: scale(0.9); }
+.pomo-row__n { flex: none; width: 20px; font: 800 0.85rem var(--font-display); color: var(--faint); text-align: center; }
+.pomo-row__mode { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font: 700 0.95rem var(--font-ui); }
+.pomo-row__glyph { font-size: 1.2rem; line-height: 1; }
+.pomo-row__len { flex: none; font: 700 0.78rem var(--font-ui); color: var(--faint); font-variant-numeric: tabular-nums; }
+.pomo-row__go { flex: none; border-radius: 999px; font-weight: 800; }
+
+.pomo-row--done { border-color: var(--wash-success-text); background: var(--wash-success); }
+:root[data-theme="dark"] .pomo-row--done { background: transparent; }
+.pomo-row--done .pomo-row__check { background: var(--wash-success-text); border-color: var(--wash-success-text); animation: go-tick 280ms var(--ease-bounce) both; }
+.pomo-row--done .pomo-row__mode { color: var(--muted); }
+.pomo-row--running { border-color: var(--coin-amber); box-shadow: 0 0 0 3px rgba(255, 176, 32, 0.18); }
+.pomo-row--running .pomo-row__glyph { animation: go-bob 1.8s ease-in-out infinite; }
+.pomo-row--extra { border-style: dashed; }
+
+.pomo-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.pomo-foot .muted { font: 700 0.78rem var(--font-ui); }
+.pomo-foot .btn { border-radius: 999px; }
+
+.pomo-history { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 14px; }
+.pomo-history__row { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 5px; }
+.pomo-day {
+  position: relative; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden;
+  border: 1.5px solid var(--border); background: var(--wash);
+  display: flex; align-items: center; justify-content: center;
+}
+.pomo-day::before {
+  content: ""; position: absolute; inset: auto 0 0 0; height: var(--fill, 0%);
+  background: var(--go-blue-tint);
+}
+.pomo-day--full { border-color: var(--wash-success-text); }
+.pomo-day--full::before { background: var(--wash-success); }
+.pomo-day__n { position: relative; font: 800 0.7rem var(--font-ui); color: var(--muted); }
+.pomo-day--full .pomo-day__n { color: var(--wash-success-text); }
+
+@media (max-width: 480px) {
+  .pomo-run__clock { font-size: 2.8rem; }
+  /* one line a block, however long the posture's name is */
+  .pomo-row { gap: 8px; padding: 9px 10px; }
+  .pomo-row__mode { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; }
+  .pomo-row__len { display: none; }
+  .pomo-history__row { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }

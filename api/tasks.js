@@ -17,9 +17,50 @@ function isDate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
 }
 
+// The ten focus blocks of a day. They live here rather than in their own
+// function because Vercel's Hobby plan allows twelve, and twelve are in use.
+//   GET    /api/tasks?pomodoros=1&date=  -> { date, slots: [{slot, mode, minutes}], history: [{date, done}] }
+//   POST   /api/tasks?pomodoros=1        -> { date, slot, mode?, minutes? } tick one
+//   DELETE /api/tasks?pomodoros=1&date=&slot=N -> untick it
+async function pomodoros(req, res, sql) {
+  const q = req.query, b = req.body || {};
+  // the Cairo day, so the list turns over at midnight in Cairo wherever he is
+  const cairoDay = async () => (await sql`SELECT (now() AT TIME ZONE 'Africa/Cairo')::date::text AS d`)[0].d;
+  const day = isDate(q.date) ? String(q.date) : isDate(b.date) ? String(b.date) : await cairoDay();
+
+  if (req.method === "GET") {
+    const slots = await sql`SELECT slot, mode, minutes, done_at FROM pomodoros WHERE day = ${day}::date ORDER BY slot`;
+    const history = await sql`SELECT day::text AS date, COUNT(*)::int AS done FROM pomodoros
+      WHERE day BETWEEN ${day}::date - 13 AND ${day}::date GROUP BY day ORDER BY day`;
+    return json(res, 200, { date: day, slots, history });
+  }
+
+  if (req.method === "POST") {
+    const slot = Number(b.slot);
+    if (!Number.isInteger(slot) || slot < 1 || slot > 50) return json(res, 400, { error: "slot is out of range" });
+    const minutes = b.minutes != null && b.minutes !== "" ? Math.round(Number(b.minutes)) : null;
+    const [row] = await sql`INSERT INTO pomodoros (day, slot, mode, minutes)
+      VALUES (${day}::date, ${slot}, ${String(b.mode || "").slice(0, 60)}, ${minutes})
+      ON CONFLICT (day, slot) DO UPDATE SET mode = EXCLUDED.mode, minutes = COALESCE(EXCLUDED.minutes, pomodoros.minutes)
+      RETURNING slot, mode, minutes, done_at`;
+    return json(res, 201, { date: day, slot: row });
+  }
+
+  if (req.method === "DELETE") {
+    const slot = Number(q.slot);
+    if (!Number.isInteger(slot)) return json(res, 400, { error: "slot is required" });
+    await sql`DELETE FROM pomodoros WHERE day = ${day}::date AND slot = ${slot}`;
+    return json(res, 200, { ok: true });
+  }
+
+  return json(res, 405, { error: "Method not allowed" });
+}
+
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  if (req.query.pomodoros) return pomodoros(req, res, sql);
 
   if (req.method === "GET" && req.query.totals) {
     const [row] = await sql`SELECT COUNT(*) FILTER (WHERE done)::int AS "totalDone",
