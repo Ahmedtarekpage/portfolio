@@ -22,13 +22,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/tools/app.css?v=12" />
-  <link rel="stylesheet" href="/css/tools/go.css?v=3" />
+  <link rel="stylesheet" href="/css/tools/go.css?v=5" />
 </head>
 <body>
   <div class="wrap">
 
-    <section id="view-loading" class="view">
-      <div class="card card--center"><p class="muted">Loading…</p></div>
+    <section id="view-loading" class="view go-loader-view">
+      <div class="go-loader" role="status" aria-live="polite">
+        <svg class="go-loader__mark" viewBox="0 0 120 120" aria-hidden="true">
+          <ellipse class="go-loader__shadow" cx="60" cy="104" rx="38" ry="5"></ellipse>
+          <path class="go-loader__track" d="M20 94 L60 26 L100 94"></path>
+          <path class="go-loader__climb" d="M20 94 L60 26"></path>
+          <circle class="go-loader__peak" cx="60" cy="26" r="9.5"></circle>
+        </svg>
+        <p class="go-loader__text">Loading…</p>
+      </div>
     </section>
 
     <section id="view-error" class="view" hidden>

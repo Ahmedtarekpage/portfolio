@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
   <link rel="stylesheet" href="css/tools/time.css?v=45" />
-  <link rel="stylesheet" href="css/tools/go.css?v=3" />
+  <link rel="stylesheet" href="css/tools/go.css?v=5" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -43,8 +43,16 @@
   <div class="wrap">
 
     <!-- ================= LOADING ================= -->
-    <section id="view-loading" class="view">
-      <div class="card card--center"><p class="muted">Loading…</p></div>
+    <section id="view-loading" class="view go-loader-view">
+      <div class="go-loader" role="status" aria-live="polite">
+        <svg class="go-loader__mark" viewBox="0 0 120 120" aria-hidden="true">
+          <ellipse class="go-loader__shadow" cx="60" cy="104" rx="38" ry="5"></ellipse>
+          <path class="go-loader__track" d="M20 94 L60 26 L100 94"></path>
+          <path class="go-loader__climb" d="M20 94 L60 26"></path>
+          <circle class="go-loader__peak" cx="60" cy="26" r="9.5"></circle>
+        </svg>
+        <p class="go-loader__text">Loading…</p>
+      </div>
     </section>
 
     <!-- ================= LOGIN ================= -->
@@ -121,9 +129,12 @@
           </div>
         </div>
 
-        <div class="countdown" id="quarterCountdown" hidden>
-          <span class="countdown__label" id="countdownLabel">Time left in this quarter</span>
-          <span class="countdown__spent" id="countdownSpent"></span>
+        <div class="countdown countdown--quarter" id="quarterCountdown" hidden>
+          <div class="countdown__head">
+            <span class="countdown__label"><span aria-hidden="true">⏳ </span><span id="countdownLabel">Time left in this quarter</span></span>
+            <span class="countdown__spent" id="countdownSpent"></span>
+            <span class="countdown__bar" aria-hidden="true"><i id="countdownBar"></i></span>
+          </div>
           <div class="countdown__units">
             <div class="countdown__unit"><span class="countdown__value" id="cdDays">00</span><span class="countdown__unit-label">days</span></div>
             <div class="countdown__unit"><span class="countdown__value" id="cdHours">00</span><span class="countdown__unit-label">hrs</span></div>
@@ -611,8 +622,8 @@
   </div>
 
   <script src="js/tools/theme.js?v=2"></script>
-  <script src="js/tools/go.js?v=1"></script>
+  <script src="js/tools/go.js?v=2"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=56"></script>
+  <script src="js/tools/time.js?v=57"></script>
 </body>
 </html>

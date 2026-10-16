@@ -207,6 +207,7 @@
       if (lastCountdownText !== "ended") {
         $("#countdownLabel").textContent = "This quarter has ended";
         $("#countdownSpent").textContent = "";
+        $("#countdownBar").style.width = "100%";
         ["cdDays", "cdHours", "cdMinutes", "cdSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
         lastCountdownText = "ended";
       }
@@ -219,10 +220,13 @@
 
     if (now < start) {
       $("#countdownSpent").textContent = "";
+      $("#countdownBar").style.width = "0%";
     } else {
       var totalQuarterDays = Math.max(1, Math.round((end - start) / 86400000));
       var spentDays = Math.min(totalQuarterDays, Math.max(0, Math.floor((now - start) / 86400000)));
-      $("#countdownSpent").textContent = "· " + spentDays + " of " + totalQuarterDays + " days in";
+      var done = Math.min(1, Math.max(0, (now - start) / (end - start)));
+      $("#countdownSpent").textContent = "Day " + spentDays + " of " + totalQuarterDays + " · " + Math.round(done * 100) + "% gone";
+      $("#countdownBar").style.width = (done * 100).toFixed(2) + "%";
     }
 
     var totalSeconds = Math.max(0, Math.floor((target - now) / 1000));

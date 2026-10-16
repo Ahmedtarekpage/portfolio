@@ -541,3 +541,137 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   background: var(--wash); color: var(--ink); font: 700 0.74rem var(--font-ui); white-space: nowrap;
 }
 .client-chip--country { background: #fff; color: var(--night-navy); }
+
+/* ---------- /time countdowns, second pass (owner, 2026-10-16: "edit also this timer") ---------- */
+/* labels in sentence case, in the display font: a heading, not a shout */
+.countdown__label {
+  text-transform: none; letter-spacing: -0.01em; color: #fff;
+  font: 800 0.98rem/1.3 var(--font-display); text-align: center;
+}
+/* the target age sits in the sentence as a white pill */
+.countdown__year-input {
+  width: 3.4em; margin-left: 4px; padding: 2px 6px; border-radius: 999px; border: 0;
+  background: #fff; color: var(--night-navy); font: 800 0.95rem var(--font-display); text-align: center;
+  -moz-appearance: textfield; appearance: textfield; vertical-align: 1px;
+}
+.countdown__year-input::-webkit-inner-spin-button, .countdown__year-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.countdown__year-input:focus { outline: 3px solid var(--coin-amber); outline-offset: 1px; }
+.countdown__unit { padding: 8px 6px 6px; min-width: 48px; }
+.countdown__unit-label { font: 700 0.62rem var(--font-ui); letter-spacing: 0.08em; }
+.countdown--ended { background: #3a1f2b !important; }
+
+/* the quarter: what has gone on the left, what is left on the right */
+.countdown--quarter { width: 100%; flex-basis: 100% !important; padding: 18px 20px; gap: 14px; }
+.countdown__head { display: grid; gap: 8px; width: 100%; justify-items: center; text-align: center; }
+.countdown--quarter .countdown__spent { margin: 0; color: #c9d6ec; font: 700 0.85rem var(--font-ui); }
+.countdown__bar { display: block; width: 100%; max-width: 420px; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.countdown__bar i {
+  display: block; height: 100%; width: 0; border-radius: inherit; background: var(--coin-amber);
+  transition: width 600ms var(--ease-out);
+}
+.countdown--ended .countdown__bar i { background: #ff7a8a; }
+@media (min-width: 720px) {
+  .countdown--quarter { flex-direction: row; justify-content: space-between; align-items: center; padding: 20px 24px; }
+  .countdown--quarter .countdown__head { justify-items: start; text-align: left; flex: 1; min-width: 0; }
+  .countdown--quarter .countdown__label { text-align: left; font-size: 1.15rem; }
+  .countdown--quarter .countdown__units { flex: none; }
+  .countdown--quarter .countdown__unit { min-width: 64px; }
+  .countdown--quarter .countdown__value { font-size: 1.9rem; }
+}
+/* the three side-by-side timers keep all six boxes on one line */
+.countdown:not(.countdown--quarter) { padding: 16px 12px; }
+.countdown:not(.countdown--quarter) .countdown__units { gap: 5px; flex-wrap: nowrap; }
+.countdown:not(.countdown--quarter) .countdown__unit { min-width: 0; flex: 1 1 0; max-width: 56px; padding: 7px 2px 5px; }
+.countdown:not(.countdown--quarter) .countdown__value { font-size: 1.3rem; }
+.countdown:not(.countdown--quarter) .countdown__units { width: 100%; justify-content: center; }
+
+/* ================= motion pack (owner, 2026-10-16) ================= */
+
+/* ink from the press */
+.btn, .go-pick, .chip, .go-home__tile, .client-card, .tab { position: relative; overflow: hidden; }
+.go-ripple {
+  position: absolute; border-radius: 50%; pointer-events: none; background: currentColor; opacity: 0.18;
+  transform: scale(0); animation: go-ripple 600ms var(--ease-out) forwards;
+}
+.btn--hero .go-ripple, .btn--primary .go-ripple, .tab--active .go-ripple { background: #fff; opacity: 0.35; }
+@keyframes go-ripple { to { transform: scale(1); opacity: 0; } }
+
+/* confetti */
+.go-burst { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
+.go-burst i { position: absolute; display: block; border-radius: 2px; will-change: transform, opacity; }
+.go-burst .go-burst__glyph { font-style: normal; font-size: 18px; background: none !important; }
+
+/* no */
+.go-shake { animation: go-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important; }
+@keyframes go-shake {
+  10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); } 40%, 60% { transform: translateX(7px); }
+}
+
+/* a ticked task glows green for a moment */
+.go-done { animation: go-done 900ms var(--ease-out); }
+@keyframes go-done { 0% { background-color: var(--wash-success); transform: scale(1.015); } 100% { background-color: transparent; transform: none; } }
+
+/* the theme switch sweeps a circle out from the press */
+.go-sweep {
+  position: fixed; inset: 0; z-index: 9998; pointer-events: none; background: var(--go-blue); opacity: 0.18;
+  clip-path: circle(0 at var(--x) var(--y)); animation: go-sweep 650ms var(--ease-out) forwards;
+}
+@keyframes go-sweep { 70% { opacity: 0.18; } to { clip-path: circle(150% at var(--x) var(--y)); opacity: 0; } }
+
+/* cards that lean toward the pointer settle back smoothly */
+.tile, .countdown, .go-home__tile, .client-card { transition: transform 260ms var(--ease-out), box-shadow 220ms ease, border-color 160ms ease; will-change: transform; }
+
+/* countdown digits roll in on every tick */
+.countdown__unit--tick .countdown__value { animation: go-roll 420ms var(--ease-bounce) both !important; }
+@keyframes go-roll { from { transform: translateY(-55%); opacity: 0; filter: blur(1px); } to { transform: none; opacity: 1; filter: none; } }
+
+/* the home banner: emoji drifting like stickers */
+.go-doodles { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.go-doodles i {
+  position: absolute; font-style: normal; font-size: 26px; opacity: 0.28;
+  animation: go-doodle 14s ease-in-out infinite;
+}
+.go-doodles i:nth-child(1) { left: 55%; top: 14%; animation-delay: -1s; }
+.go-doodles i:nth-child(2) { left: 70%; top: 58%; animation-delay: -4s; font-size: 22px; }
+.go-doodles i:nth-child(3) { left: 82%; top: 26%; animation-delay: -7s; }
+.go-doodles i:nth-child(4) { left: 46%; top: 64%; animation-delay: -2s; font-size: 18px; }
+.go-doodles i:nth-child(5) { left: 92%; top: 66%; animation-delay: -9s; font-size: 20px; }
+.go-doodles i:nth-child(6) { left: 63%; top: 30%; animation-delay: -11s; font-size: 16px; }
+@keyframes go-doodle {
+  0%, 100% { transform: translateY(0) rotate(-8deg) scale(1); }
+  50% { transform: translateY(-18px) rotate(10deg) scale(1.12); }
+}
+.go-hero__bar { animation: go-bar 900ms 200ms var(--ease-bounce) both; transform-origin: left; }
+@keyframes go-bar { from { transform: scaleX(0); } }
+
+/* wizard: the step glyph pops in each time */
+.go-wiz__step.is-in .go-wiz__glyph { animation: go-tick 420ms var(--ease-bounce) both, go-float 2.4s 420ms ease-in-out infinite; }
+/* progress bar shimmers while it moves */
+.go-wiz__bar i { background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent); background-size: 60% 100%; background-repeat: no-repeat; animation: go-shimmer 1.6s linear infinite; background-color: var(--go-blue); }
+@keyframes go-shimmer { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+
+/* ================= the loader: the summit, climbed ================= */
+.go-loader-view:not([hidden]) { display: grid; place-items: center; min-height: 70vh; }
+.go-loader { display: grid; justify-items: center; gap: 14px; animation: go-pop 420ms var(--ease-bounce) both; }
+.go-loader__mark { width: 120px; height: 120px; overflow: visible; }
+.go-loader__track { stroke: var(--glass-brd); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.go-loader__climb {
+  stroke: var(--ink); stroke-width: 9; stroke-linecap: round; fill: none;
+  stroke-dasharray: 80; stroke-dashoffset: 80; animation: go-climb 1.8s var(--ease-out) infinite;
+}
+.go-loader__peak { fill: #9184d9; transform-box: fill-box; transform-origin: center; animation: go-peak 1.8s var(--ease-bounce) infinite; }
+.go-loader__shadow { fill: var(--wash-strong); transform-box: fill-box; transform-origin: center; animation: go-ground 1.8s ease-in-out infinite; }
+.go-loader__text { font: 700 0.95rem var(--font-ui); color: var(--muted); min-height: 1.4em; }
+.go-swap { animation: go-swap 360ms var(--ease-out) both; }
+@keyframes go-climb { 0% { stroke-dashoffset: 80; } 50%, 78% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -80; } }
+@keyframes go-peak { 0%, 42% { transform: scale(0); } 56% { transform: scale(1.35); } 64%, 80% { transform: scale(1); } 100% { transform: scale(0); } }
+@keyframes go-ground { 0%, 100% { transform: scaleX(0.7); opacity: 0.5; } 55% { transform: scaleX(1); opacity: 1; } }
+@keyframes go-swap { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .go-doodles i, .go-hero__bar, .go-wiz__bar i, .go-loader, .countdown__unit--tick .countdown__value { animation: none !important; }
+  .go-loader__climb { animation: none; stroke-dashoffset: 0; }
+  .go-loader__peak, .go-loader__shadow { animation: none; }
+  .go-ripple, .go-sweep, .go-burst { display: none; }
+}

@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
-  <link rel="stylesheet" href="css/tools/go.css?v=3" />
+  <link rel="stylesheet" href="css/tools/go.css?v=5" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -42,8 +42,16 @@
   <div class="wrap">
 
     <!-- ================= LOADING ================= -->
-    <section id="view-loading" class="view">
-      <div class="card card--center"><p class="muted">Loading…</p></div>
+    <section id="view-loading" class="view go-loader-view">
+      <div class="go-loader" role="status" aria-live="polite">
+        <svg class="go-loader__mark" viewBox="0 0 120 120" aria-hidden="true">
+          <ellipse class="go-loader__shadow" cx="60" cy="104" rx="38" ry="5"></ellipse>
+          <path class="go-loader__track" d="M20 94 L60 26 L100 94"></path>
+          <path class="go-loader__climb" d="M20 94 L60 26"></path>
+          <circle class="go-loader__peak" cx="60" cy="26" r="9.5"></circle>
+        </svg>
+        <p class="go-loader__text">Loading…</p>
+      </div>
     </section>
 
     <!-- ================= LOGIN ================= -->
@@ -76,6 +84,7 @@
     <section id="view-home" class="view" hidden>
       <div class="go-hero">
         <span class="go-hero__glyph" aria-hidden="true">👋</span>
+        <span class="go-doodles" aria-hidden="true"><i>📅</i><i>⏱</i><i>💰</i><i>✨</i><i>🎯</i><i>☕</i></span>
         <div class="go-hero__kicker" id="homeDate"></div>
         <h1 id="homeHello">Hi Ahmed</h1>
         <p>Where do you want to go?</p>
@@ -465,7 +474,7 @@
   <script src="js/tools/chart.js?v=19"></script>
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/meetings.js?v=3"></script>
-  <script src="js/tools/go.js?v=1"></script>
+  <script src="js/tools/go.js?v=2"></script>
   <script src="js/tools/country.js?v=1"></script>
   <script src="js/tools/admin.js?v=12"></script>
 </body>

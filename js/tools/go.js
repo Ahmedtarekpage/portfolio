@@ -129,8 +129,16 @@
       var key = t.className + "|" + t.textContent;
       if (key === last) return;
       last = key;
-      play(/toast--error/.test(t.className) ? "error" : "success");
+      var bad = /toast--error/.test(t.className);
+      play(bad ? "error" : "success");
       t.classList.remove("go-pop"); void t.offsetWidth; t.classList.add("go-pop");
+      if (bad) shake(t);
+      else {
+        // from the press that saved it, if there was one just now
+        var r = t.getBoundingClientRect();
+        var fresh = performance.now() - lastPoint.t < 4000;
+        burst(fresh ? lastPoint.x : r.left + r.width / 2, fresh ? lastPoint.y : r.top, 26, ["🎉", "✨"]);
+      }
     }).observe(t, { attributes: true, attributeFilter: ["hidden", "class"], childList: true, characterData: true, subtree: true });
   }
 
@@ -347,6 +355,7 @@
     var bad = fieldsOf(step).filter(function (el) { return !el.checkValidity(); })[0];
     if (!bad) return true;
     play("error");
+    shake(step);
     if (bad.hidden && bad._goPicks) {
       bad._goPicks.classList.remove("go-pop"); void bad._goPicks.offsetWidth; bad._goPicks.classList.add("go-pop");
     } else bad.reportValidity();
@@ -426,10 +435,170 @@
     }
   }, true);
 
+  /* ---------------- motion pack (owner, 2026-10-16: "a lot of motion graphics and sound") ----------------
+     Everything here answers something the reader did or something that just
+     changed: a press ripples, a save bursts, numbers count up, a ticked task
+     pops. With reduced motion asked for, none of it runs. */
+  var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var lastPoint = { x: innerWidth / 2, y: innerHeight / 2, t: 0 };
+
+  // a ring of ink from where the finger landed
+  function ripple(ev) {
+    var el = ev.target.closest(".btn, .go-pick, .chip, .go-home__tile, .client-card, .tab");
+    if (!el || el.disabled) return;
+    var r = el.getBoundingClientRect();
+    var size = Math.max(r.width, r.height) * 2.2;
+    var ink = document.createElement("span");
+    ink.className = "go-ripple";
+    ink.style.width = ink.style.height = size + "px";
+    ink.style.left = ev.clientX - r.left - size / 2 + "px";
+    ink.style.top = ev.clientY - r.top - size / 2 + "px";
+    el.appendChild(ink);
+    setTimeout(function () { ink.remove(); }, 650);
+  }
+
+  // confetti: dots in the brand colours and a few sparkles, from a point
+  var BITS = ["#2563eb", "#ffb020", "#1fa876", "#5b93ff", "#ffcf6b"];
+  function burst(x, y, n, glyphs) {
+    if (calm) return;
+    n = n || 22;
+    var layer = document.createElement("div");
+    layer.className = "go-burst";
+    layer.setAttribute("aria-hidden", "true");
+    document.body.appendChild(layer);
+    for (var i = 0; i < n; i++) {
+      var b = document.createElement("i");
+      var glyph = glyphs && i % 4 === 0 ? glyphs[i % glyphs.length] : null;
+      if (glyph) { b.textContent = glyph; b.className = "go-burst__glyph"; }
+      else {
+        b.style.background = BITS[i % BITS.length];
+        var s = 5 + Math.random() * 6;
+        b.style.width = s + "px"; b.style.height = (Math.random() < 0.5 ? s : s * 0.45) + "px";
+        if (Math.random() < 0.5) b.style.borderRadius = "50%";
+      }
+      b.style.left = x + "px"; b.style.top = y + "px";
+      layer.appendChild(b);
+      var a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 120;
+      var dx = Math.cos(a) * d, dy = Math.sin(a) * d - 40;
+      b.animate([
+        { transform: "translate(-50%,-50%) scale(0.4) rotate(0deg)", opacity: 1 },
+        { transform: "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px)) scale(1) rotate(" + (Math.random() * 360) + "deg)", opacity: 1, offset: 0.55 },
+        { transform: "translate(calc(-50% + " + dx * 1.15 + "px), calc(-50% + " + (dy + 90) + "px)) scale(0.8) rotate(" + (Math.random() * 720) + "deg)", opacity: 0 },
+      ], { duration: 900 + Math.random() * 400, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" });
+    }
+    setTimeout(function () { layer.remove(); }, 1500);
+  }
+
+  // numbers that changed count up to their new value: "8.5h", "500 USD", "14h"
+  function countUp(el) {
+    if (calm || el._goCounted === el.textContent) return;
+    var text = el.textContent;
+    var m = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/.exec(text);
+    if (!m) return;
+    var target = Number(m[2].replace(/,/g, ""));
+    if (!isFinite(target) || target === 0) { el._goCounted = text; return; }
+    var decimals = (m[2].split(".")[1] || "").length;
+    var commas = m[2].indexOf(",") !== -1;
+    var t0 = performance.now(), dur = 700;
+    el._goCounted = text;
+    (function frame(now) {
+      var k = Math.min(1, (now - t0) / dur);
+      var v = target * (1 - Math.pow(1 - k, 3));
+      var shown = decimals ? v.toFixed(decimals) : String(Math.round(v));
+      if (commas) shown = Number(shown).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      el.textContent = m[1] + shown + m[3];
+      el._goCounted = el.textContent;
+      if (k < 1) requestAnimationFrame(frame);
+      else { el.textContent = text; el._goCounted = text; }
+    })(t0);
+  }
+  function watchCounts() {
+    var sel = ".tile__value, .client-card__hours b, .chip__n";
+    var run = function (root) { (root.querySelectorAll ? root : document).querySelectorAll(sel).forEach(countUp); };
+    new MutationObserver(function (list) {
+      list.forEach(function (r) {
+        r.addedNodes.forEach(function (n) {
+          if (n.nodeType !== 1) return;
+          if (n.matches && n.matches(sel)) countUp(n); else run(n);
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  // cards lean toward the pointer, a little
+  function tilt(ev) {
+    var el = ev.target.closest && ev.target.closest(".go-home__tile, .client-card, .tile, .countdown");
+    document.querySelectorAll(".go-tilting").forEach(function (o) {
+      if (o !== el) { o.classList.remove("go-tilting"); o.style.transform = ""; }
+    });
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    var px = (ev.clientX - r.left) / r.width - 0.5, py = (ev.clientY - r.top) / r.height - 0.5;
+    el.classList.add("go-tilting");
+    el.style.transform = "perspective(900px) rotateX(" + (-py * 5).toFixed(2) + "deg) rotateY(" + (px * 6).toFixed(2) + "deg) translateY(-3px)";
+  }
+
+  // a shake for "no"
+  function shake(el) {
+    if (calm || !el) return;
+    el.classList.remove("go-shake"); void el.offsetWidth; el.classList.add("go-shake");
+    setTimeout(function () { el.classList.remove("go-shake"); }, 500);
+  }
+
+  // the loader says something new while it waits
+  function loaderTalk() {
+    var lines = ["Loading…", "Climbing to your data…", "Almost at the top…", "Nearly there…"];
+    var i = 0;
+    setInterval(function () {
+      document.querySelectorAll(".go-loader-view:not([hidden]) .go-loader__text").forEach(function (p) {
+        i = (i + 1) % lines.length;
+        p.classList.remove("go-swap"); void p.offsetWidth; p.classList.add("go-swap");
+        p.textContent = lines[i];
+      });
+    }, 1400);
+  }
+
+  function setupMotion() {
+    document.addEventListener("pointerdown", function (ev) {
+      lastPoint = { x: ev.clientX, y: ev.clientY, t: performance.now() };
+      if (!calm) ripple(ev);
+    }, true);
+    if (!calm && window.matchMedia("(pointer: fine)").matches) {
+      document.addEventListener("pointermove", tilt, { passive: true });
+      document.addEventListener("pointerleave", function () { tilt({ target: document.body }); });
+    }
+    watchCounts();
+    loaderTalk();
+    // a ticked box is a small win: a coin and a pop of confetti
+    document.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (t.type !== "checkbox" || !t.checked || t.closest(".go-sound")) return;
+      if (!t.matches(".task-row__check, .milestone-row__check")) return;
+      var r = t.getBoundingClientRect();
+      play("coin");
+      burst(r.left + r.width / 2, r.top + r.height / 2, 16, ["✨", "⭐"]);
+      var row = t.closest("li, .task-row, tr");
+      if (row && !calm) { row.classList.remove("go-done"); void row.offsetWidth; row.classList.add("go-done"); }
+    });
+    // switching theme makes a sound and sweeps the page
+    document.addEventListener("click", function (ev) {
+      if (!ev.target.closest(".theme-toggle")) return;
+      setTimeout(function () { play("open"); }, 0);
+      if (calm) return;
+      var sweep = document.createElement("div");
+      sweep.className = "go-sweep";
+      sweep.style.setProperty("--x", ev.clientX + "px");
+      sweep.style.setProperty("--y", ev.clientY + "px");
+      document.body.appendChild(sweep);
+      setTimeout(function () { sweep.remove(); }, 700);
+    });
+  }
+
   function init() {
     document.querySelectorAll("[data-wiz-review]").forEach(function (x) { x._home = x.parentNode; });
     document.querySelectorAll("form[data-wizard]").forEach(function (f) { if (!f._goWizard) new Wizard(f); });
     sync();
+    setupMotion();
     addSoundButtons();
     watchToast();
     watchViews();
@@ -437,6 +606,8 @@
 
   window.Go = {
     play: play,
+    burst: burst,
+    shake: shake,
     sync: sync,
     wizard: {
       restart: function (form) { var w = form && form._goWizard; if (w) { clearTimeout(w._t); w.go(0, 0, true); } },
