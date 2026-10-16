@@ -1489,6 +1489,7 @@
     return api("/api/quarters").then(function (data) {
       state.quarters = data.quarters || [];
       renderQuarterGallery();
+      fillCopyFrom(); // the "start it from an earlier cycle" list
 
       if (!state.quarters.length) {
         state.selectedQuarterId = null;
@@ -2296,7 +2297,56 @@
       '<button type="button" class="iconbtn category-row__remove" title="Remove category">✕</button>';
     row.querySelector(".category-row__remove").addEventListener("click", function () { row.remove(); });
     $("#categoryRows").appendChild(row);
+    syncCopyFrom();
   }
+
+  /* With a cycle to copy from, the categories come with it, so an empty row
+     here must not stand in the way of saving. */
+  function syncCopyFrom() {
+    var copying = !!($("#quarterCopyFrom") || {}).value;
+    $("#categoryRows").querySelectorAll("[name=cat_name]").forEach(function (i) { i.required = !copying; });
+    $("#categoryRowsNote").hidden = !copying;
+  }
+
+  /* How long it runs, counted from the first day (owner, 2026-10-16: "make it
+     21 days starts from 22 oct"). 21 days from the 22nd ends on the 11th —
+     the first day counts as one. */
+  function syncLengthPicks() {
+    var form = $("#quarterForm");
+    var from = form.elements.start_date.value, to = form.elements.end_date.value;
+    var days = from && to && to >= from ? Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1 : 0;
+    $("#quarterLength").querySelectorAll(".go-pick").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.days) === days));
+    });
+  }
+
+  $("#quarterLength").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".go-pick");
+    if (!btn) return;
+    var form = $("#quarterForm");
+    if (!form.elements.start_date.value) form.elements.start_date.value = todayISO();
+    form.elements.end_date.value = addDays(form.elements.start_date.value, Number(btn.dataset.days) - 1);
+    syncLengthPicks();
+  });
+  ["start_date", "end_date"].forEach(function (n) {
+    $("#quarterForm").elements[n].addEventListener("input", syncLengthPicks);
+  });
+
+  /* A new cycle can be born as a copy of an earlier one — its categories and
+     their goals (owner, 2026-10-16: "duplicate same goals exactly of cycle 7
+     part 1"). Editing an existing cycle hides this; it is only about birth. */
+  function fillCopyFrom() {
+    var select = $("#quarterCopyFrom");
+    var keep = select.value;
+    select.innerHTML = '<option value="">Nothing — start empty</option>' +
+      (state.quarters || []).map(function (q) {
+        return '<option value="' + q.id + '">' + esc(q.name) + " · " + fmtDate(q.start_date) + " – " + fmtDate(q.end_date) + "</option>";
+      }).join("");
+    select.value = keep;
+    syncCopyFrom();
+  }
+
+  $("#quarterCopyFrom").addEventListener("change", syncCopyFrom);
 
   function resetQuarterForm() {
     var form = $("#quarterForm");
@@ -2306,6 +2356,12 @@
     state.editingQuarterId = null;
     $("#btnQuarterSubmit").textContent = "Save quarter";
     $("#btnCancelQuarterEdit").hidden = true;
+    $("#quarterCopyFromBox").hidden = false;
+    $("#quarterCopyFrom").value = "";
+    $("#quarterCopyProgress").checked = false;
+    fillCopyFrom();
+    syncCopyFrom();
+    syncLengthPicks();
   }
 
   $("#btnCancelQuarterEdit").addEventListener("click", function () {
@@ -2326,6 +2382,10 @@
     (state.quarterDetail.categories || []).forEach(function (c) { addCategoryRow(c); });
     if (!state.quarterDetail.categories.length) addCategoryRow();
     state.editingQuarterId = q.id;
+    $("#quarterCopyFromBox").hidden = true;
+    $("#quarterCopyFrom").value = "";
+    syncCopyFrom();
+    syncLengthPicks();
     $("#btnQuarterSubmit").textContent = "Update quarter";
     $("#btnCancelQuarterEdit").hidden = false;
     $("#addQuarterBox").open = true;
@@ -2449,10 +2509,30 @@
 
     busy(btn, true);
     var editingId = state.editingQuarterId;
+    var copyFrom = editingId ? 0 : Number($("#quarterCopyFrom").value) || 0;
+    var keepProgress = $("#quarterCopyProgress").checked;
     (editingId ? api("/api/quarters?id=" + editingId, { method: "PATCH", body: body })
                : api("/api/quarters", { method: "POST", body: body }))
+      // born as a copy: the older cycle's categories and goals, carried over whole
       .then(function (r) {
-        toast(editingId ? "Quarter updated ✓" : "Quarter created ✓");
+        var newId = r.quarter && r.quarter.id;
+        if (!copyFrom || !newId) return { r: r, copied: "" };
+        return api("/api/quarters?id=" + copyFrom).then(function (src) {
+          var ids = (src.categories || []).map(function (c) { return c.id; });
+          if (!ids.length) return { r: r, copied: " — that cycle had nothing to copy" };
+          return api("/api/quarters?copy_categories=1", {
+            method: "POST",
+            body: { to_quarter_id: newId, category_ids: ids, keep_progress: keepProgress, log_date: todayISO() },
+          }).then(function (c) {
+            return { r: r, copied: " with " + c.categories_added + " categor" + (c.categories_added === 1 ? "y" : "ies") +
+              (c.goals_added ? " and " + c.goals_added + " goal" + (c.goals_added === 1 ? "" : "s") : "") +
+              " from " + src.quarter.name };
+          });
+        });
+      })
+      .then(function (done) {
+        var r = done.r;
+        toast(editingId ? "Quarter updated ✓" : "Quarter created" + done.copied + " ✓");
         if (!editingId) playAddSound();
         resetQuarterForm();
         $("#addQuarterBox").open = false;

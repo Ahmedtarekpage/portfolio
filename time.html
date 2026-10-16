@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
   <link rel="stylesheet" href="css/tools/time.css?v=45" />
-  <link rel="stylesheet" href="css/tools/go.css?v=11" />
+  <link rel="stylesheet" href="css/tools/go.css?v=12" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -347,11 +347,27 @@
               <label>Start date *<input name="start_date" type="date" required /></label>
               <label>End date *<input name="end_date" type="date" required /></label>
             </div>
+            <!-- how long it runs, counted from the start day (owner, 2026-10-16:
+                 "make it 21 days starts from 22 oct") -->
+            <div class="go-picks go-picks--tight" id="quarterLength" role="group" aria-label="How long">
+              <button type="button" class="go-pick" data-days="21">21 days</button>
+              <button type="button" class="go-pick" data-days="30">30 days</button>
+              <button type="button" class="go-pick" data-days="90">90 days</button>
+            </div>
             <label class="checkline">
               <input type="checkbox" name="anti_perfectionist" />
               Anti-perfectionist mode — count 75% of the full target as done
             </label>
+            <!-- a new cycle can start as a copy of an earlier one, categories and
+                 goals and all (owner, 2026-10-16: "duplicate same goals exactly") -->
+            <div class="copy-from" id="quarterCopyFromBox">
+              <label>Start it from an earlier cycle
+                <select id="quarterCopyFrom"><option value="">Nothing — start empty</option></select>
+              </label>
+              <label class="checkline"><input type="checkbox" id="quarterCopyProgress" /> Keep the numbers where they are (otherwise every goal starts at 0)</label>
+            </div>
             <div id="categoryRows" class="category-rows"></div>
+            <p class="muted category-rows__note" id="categoryRowsNote" hidden>The categories and goals come from the cycle you picked — anything typed here is added on top.</p>
             <button type="button" id="btnAddCategoryRow" class="linklike">+ Add category</button>
             <div>
               <button type="submit" class="btn btn--primary" id="btnQuarterSubmit">Save quarter</button>
@@ -656,6 +672,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=65"></script>
+  <script src="js/tools/time.js?v=66"></script>
 </body>
 </html>

@@ -209,6 +209,12 @@ input[type="time"], input[type="url"], input[type="email"], input[type="tel"], s
 .go-pick:active { transform: scale(0.97); }
 .go-pick[aria-pressed="true"] { background: var(--go-blue-tint); border-color: var(--go-blue); color: var(--go-blue-dark); }
 :root[data-theme="dark"] .go-pick[aria-pressed="true"] { color: var(--blue-2); }
+/* a short row of small choices (how long a cycle runs) */
+.go-picks--tight { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.go-picks--tight .go-pick { min-height: 42px; padding: 8px 12px; font-size: 0.85rem; justify-content: center; }
+.copy-from { display: grid; gap: 8px; padding: 12px; border-radius: var(--radius-md); background: var(--wash); border: 1px dashed var(--border); }
+.copy-from > label:first-child { display: grid; gap: 6px; font: 800 0.74rem var(--font-ui); letter-spacing: var(--kicker-track); text-transform: uppercase; color: var(--faint); }
+.copy-from select { font: 600 0.92rem var(--font-ui); padding: 10px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--border); background: var(--glass); color: var(--ink); }
 .go-pick__glyph { font-size: 1.35rem; line-height: 1; }
 .go-pick[aria-pressed="true"] .go-pick__glyph { animation: go-tick 260ms var(--ease-bounce) both; }
 .go-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
