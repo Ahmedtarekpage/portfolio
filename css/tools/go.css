@@ -735,3 +735,32 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
           mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
 }
+
+/* ---------- /time Days: the quarters as cards to tap ---------- */
+.cycle-picks {
+  display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+  margin: 0 -4px 16px; padding: 4px 4px 6px;
+}
+.cycle-picks::-webkit-scrollbar { display: none; }
+.cycle-pick {
+  flex: none; scroll-snap-align: start; position: relative;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; align-items: center;
+  min-width: 190px; max-width: 260px; min-height: 60px; padding: 10px 14px 10px 10px;
+  border: 1.5px solid var(--glass-brd); border-radius: var(--radius-lg); background: var(--glass);
+  color: var(--ink); text-align: left; cursor: pointer; font: inherit;
+  transition: transform 200ms var(--ease-bounce), border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.cycle-pick:hover { transform: translateY(-2px); border-color: var(--go-blue); box-shadow: var(--shadow-pop); }
+.cycle-pick:active { transform: scale(0.97); }
+.cycle-pick__glyph { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 1.25rem; background: var(--wash); }
+.cycle-pick__text { display: grid; min-width: 0; }
+.cycle-pick__text b { font: 800 0.92rem/1.25 var(--font-display); letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cycle-pick__text small { font: 600 0.74rem var(--font-ui); color: var(--muted); white-space: nowrap; }
+.cycle-pick__now {
+  position: absolute; top: -8px; right: 10px; padding: 2px 9px; border-radius: 999px;
+  background: var(--coin-amber); color: var(--night-navy); font: 800 0.66rem var(--font-ui); letter-spacing: 0.04em;
+}
+.cycle-pick.is-on { background: var(--go-blue); border-color: var(--go-blue); color: #fff; }
+.cycle-pick.is-on .cycle-pick__text small { color: rgba(255, 255, 255, 0.82); }
+.cycle-pick.is-on .cycle-pick__glyph { background: rgba(255, 255, 255, 0.18); animation: go-tick 320ms var(--ease-bounce) both; }
+.cycle-picks { overflow-y: visible; padding-top: 10px; }

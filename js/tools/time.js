@@ -2539,14 +2539,14 @@
     }
     $("#noDaysQuarter").hidden = true;
     var picker = $("#daysQuarterPicker");
-    picker.hidden = quarters.length < 2; // nothing to switch to
     picker.innerHTML = (quarters.length > 1 ? '<option value="all">All quarters</option>' : "") +
       quarters.map(function (q) { return '<option value="' + q.id + '">' + esc(q.name) + "</option>"; }).join("");
     picker.value = all ? "all" : String(quarter.id);
+    renderCycleChips(quarters, picker.value);
 
     var span = all ? allQuartersSpan() : { from: String(quarter.start_date).slice(0, 10), to: String(quarter.end_date).slice(0, 10) };
     var from = span.from, to = span.to;
-    $("#daysQuarterLabel").textContent = (all ? plural(quarters.length, "quarter") + " · " : picker.hidden ? quarter.name + " · " : "") +
+    $("#daysQuarterLabel").textContent = (all ? plural(quarters.length, "quarter") + " · " : quarters.length < 2 ? quarter.name + " · " : "") +
       fmtDate(from) + " – " + fmtDate(to);
 
     return Promise.all([
@@ -2565,6 +2565,44 @@
       renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
   }
+
+  /* The quarters as a row of cards: name, dates, and "Now" on the running one.
+     A tap writes into the hidden select, whose change handler does the rest. */
+  function renderCycleChips(quarters, current) {
+    var box = $("#daysQuarterChips");
+    box.hidden = quarters.length < 2; // nothing to switch to
+    if (box.hidden) { box.innerHTML = ""; return; }
+    var today = todayISO();
+    var chip = function (value, title, sub, glyph, now) {
+      var on = String(value) === String(current);
+      return '<button type="button" class="cycle-pick' + (on ? " is-on" : "") + (now ? " is-now" : "") + '" data-value="' + esc(value) + '" aria-pressed="' + on + '">' +
+        '<span class="cycle-pick__glyph" aria-hidden="true">' + glyph + "</span>" +
+        '<span class="cycle-pick__text"><b>' + esc(title) + "</b><small>" + esc(sub) + "</small></span>" +
+        (now ? '<span class="cycle-pick__now">Now</span>' : "") + "</button>";
+    };
+    var span = allQuartersSpan();
+    box.innerHTML = chip("all", "All quarters", plural(quarters.length, "quarter") + " · " + fmtDate(span.from) + " – " + fmtDate(span.to), "🗂", false) +
+      quarters.map(function (q) {
+        var from = String(q.start_date).slice(0, 10), to = String(q.end_date).slice(0, 10);
+        var now = from <= today && today <= to;
+        var done = to < today;
+        return chip(q.id, q.name, fmtDate(from) + " – " + fmtDate(to), now ? "🚀" : done ? "🏁" : "🗓", now);
+      }).join("");
+    var on = box.querySelector(".is-on");
+    if (on) setTimeout(function () { on.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, 50);
+  }
+
+  $("#daysQuarterChips").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".cycle-pick");
+    if (!b || b.classList.contains("is-on")) return;
+    var picker = $("#daysQuarterPicker");
+    picker.value = b.getAttribute("data-value");
+    this.querySelectorAll(".cycle-pick").forEach(function (x) {
+      x.classList.toggle("is-on", x === b);
+      x.setAttribute("aria-pressed", String(x === b));
+    });
+    picker.dispatchEvent(new Event("change"));
+  });
 
   $("#daysQuarterPicker").addEventListener("change", function () {
     if (this.value === "all") {

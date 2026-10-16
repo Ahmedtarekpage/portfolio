@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
   <link rel="stylesheet" href="css/tools/time.css?v=45" />
-  <link rel="stylesheet" href="css/tools/go.css?v=6" />
+  <link rel="stylesheet" href="css/tools/go.css?v=7" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -451,10 +451,12 @@
           <!-- the Days tab follows the selected quarter; this changes it without
                a detour through the Quarter tab -->
           <div class="days-quarter">
-            <select id="daysQuarterPicker" aria-label="Which quarter to show"></select>
+            <select id="daysQuarterPicker" aria-label="Which quarter to show" hidden></select>
             <span class="muted" id="daysQuarterLabel"></span>
           </div>
         </div>
+        <!-- the quarters as cards to tap (owner, 2026-10-16: the dropdown was "not the best") -->
+        <div class="cycle-picks" id="daysQuarterChips" role="group" aria-label="Which quarter to show" hidden></div>
         <p id="noDaysQuarter" class="muted center" hidden>Create a quarter first (in the Quarter tab) to see its days here.</p>
 
         <div class="tiles">
@@ -624,6 +626,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=58"></script>
+  <script src="js/tools/time.js?v=59"></script>
 </body>
 </html>
