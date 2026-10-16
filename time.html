@@ -148,7 +148,9 @@
         <details class="section-collapse milestone-ladder">
           <summary>🪜 Milestones to $500K/yr</summary>
           <div class="section-collapse__body">
-            <p class="muted" style="margin:0 0 10px">Halved down from $500K to ~$976 — doubling every 5 months from today, 9 times in a row. Check one off once you've actually reached it.</p>
+            <!-- the pace line is written by the script: the steps are spread
+                 between today and the age target above (owner, 2026-10-17) -->
+            <p class="muted" id="milestonePace" style="margin:0 0 10px"></p>
             <p class="milestone-total muted">💵 Total entered across all milestones: <b id="milestoneTotalAmount">$0</b></p>
             <div class="milestone-list" id="milestoneList"></div>
           </div>
@@ -714,6 +716,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=69"></script>
+  <script src="js/tools/time.js?v=70"></script>
 </body>
 </html>

@@ -321,10 +321,16 @@
 
   /* ---------------- $500K/yr milestone ladder ----------------
      Halve the target down from $500K until ~$976 (9 halvings) — 10 values.
-     Double the target every fixed 5-month checkpoint counted forward from
-     today — a constant, explicit growth-rate assumption, independent of
-     the age-target date above (that's a separate personal deadline; this
-     ladder is its own pace tracker). */
+
+     The pace used to be a fixed five months a step counted from today, which
+     ran years past the deadline above: ten steps took 50 months while the
+     $500K-by-age-30 date was 18 months away. Owner, 2026-10-17: "this dates
+     has to be depends on this year". So the steps are now spread evenly
+     between today and that date, and the last one lands exactly on it. Change
+     the age and every date moves with it.
+
+     If the date has already gone by, there is nothing to spread, so the old
+     five-month cadence carries the ladder forward instead. */
 
   var MILESTONE_HALVINGS = 9;
   var MILESTONE_TARGET = 500000;
@@ -335,11 +341,41 @@
     for (var i = 0; i < MILESTONE_HALVINGS; i++) values.unshift(values[0] / 2);
 
     var today = new Date(); today.setHours(0, 0, 0, 0);
+    var deadline = new Date(GOAL_DATE.getFullYear(), GOAL_DATE.getMonth(), GOAL_DATE.getDate());
+    var span = deadline - today;
 
+    if (span <= 0) {
+      return values.map(function (val, idx) {
+        var monthsOut = (idx + 1) * MILESTONE_MONTHS_PER_DOUBLING;
+        return { value: val, date: new Date(today.getFullYear(), today.getMonth() + monthsOut, today.getDate()) };
+      });
+    }
+
+    var step = span / values.length;
     return values.map(function (val, idx) {
-      var monthsOut = (idx + 1) * MILESTONE_MONTHS_PER_DOUBLING;
-      return { value: val, date: new Date(today.getFullYear(), today.getMonth() + monthsOut, today.getDate()) };
+      // the last one is the deadline itself, to the day, not a rounded step
+      var when = idx === values.length - 1 ? deadline : new Date(today.getTime() + step * (idx + 1));
+      when.setHours(0, 0, 0, 0);
+      return { value: val, date: when };
     });
+  }
+
+  // the line above the ladder, which has to say what the pace now is
+  function milestonePaceLine() {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var deadline = new Date(GOAL_DATE.getFullYear(), GOAL_DATE.getMonth(), GOAL_DATE.getDate());
+    var age = GOAL_DATE.getFullYear() - BIRTH_DATE.getFullYear();
+    if (deadline <= today) {
+      return "Halved down from $500K to ~$976, " + MILESTONE_HALVINGS + " steps. The age " + age +
+        " date has gone by, so the ladder keeps a " + MILESTONE_MONTHS_PER_DOUBLING +
+        "-month pace from today. Check one off once you've actually reached it.";
+    }
+    var weeks = Math.max(1, Math.round((deadline - today) / 604800000 / (MILESTONE_HALVINGS + 1)));
+    var every = weeks >= 9 ? Math.round(weeks / 4.345) + " months" : weeks + (weeks === 1 ? " week" : " weeks");
+    return "Halved down from $500K to ~$976 — doubling every " + every + ", " + MILESTONE_HALVINGS +
+      " times in a row, the last landing on your " + age + "th birthday (" +
+      deadline.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) +
+      "). Check one off once you've actually reached it.";
   }
 
   function fmtMoney(v) {
@@ -404,6 +440,8 @@
     var milestones = buildMilestones();
     var checked = loadMilestoneChecks();
     var amounts = loadMilestoneAmounts();
+    var paceEl = $("#milestonePace");
+    if (paceEl) paceEl.textContent = milestonePaceLine();
     var nextIdx = milestones.findIndex(function (_, i) { return !checked[i]; });
 
     var total = amounts.reduce(function (sum, v) { return sum + (Number(v) || 0); }, 0);
