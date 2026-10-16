@@ -185,8 +185,8 @@ details > summary.btnish::-webkit-details-marker { display: none; }
 
 /* ---------- forms ---------- */
 .form { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; text-align: left; }
-.form--grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form label { display: flex; flex-direction: column; gap: 5px; font-size: 0.82rem; color: var(--muted); }
+.form--grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.form label { display: flex; flex-direction: column; gap: 5px; min-width: 0; font-size: 0.82rem; color: var(--muted); }
 .form .span2 { grid-column: 1 / -1; }
 .form input, .form select {
   background: var(--bg);
@@ -197,6 +197,7 @@ details > summary.btnish::-webkit-details-marker { display: none; }
   padding: 10px 12px;
   outline: none;
   width: 100%;
+  min-width: 0;
   transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease, background-color var(--t-mid) ease;
 }
 .form input:focus, .form select:focus {
@@ -305,10 +306,10 @@ tr.rowlink:hover td { background: rgba(var(--accent-rgb), 0.07); }
 .tooltip .muted { font-size: 0.72rem; }
 
 /* ---------- layout ---------- */
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) {
-  .cols { grid-template-columns: 1fr; }
-  .form--grid { grid-template-columns: 1fr; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  .form--grid { grid-template-columns: minmax(0, 1fr); }
   .form .span2 { grid-column: auto; }
 }
 
@@ -453,8 +454,8 @@ input, select, textarea, .btn--ghost {
 }
 
 /* ---------- mobile: bigger tap targets for the small icon buttons ---------- */
-@media (max-width: 640px) {
-  .iconbtn { padding: 8px 9px; font-size: 1.05rem; }
+@media (max-width: 640px), (pointer: coarse) {
+  .iconbtn { min-width: 44px; min-height: 44px; padding: 8px 9px; font-size: 1.05rem; }
 }
 
 /* ---------- toast ---------- */

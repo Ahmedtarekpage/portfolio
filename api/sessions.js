@@ -55,7 +55,7 @@ export default withErrors(async (req, res) => {
     }
 
     const [session] = await sql`INSERT INTO client_sessions (client_id, session_date, hours, topic, pdf_name, pdf)
-      VALUES (${clientId}, ${date}::date, ${hours}, ${b.topic || null}, ${pdfName}, ${pdfHex}::bytea)
+      VALUES (${clientId}, ${date}::date, ${hours}, ${b.topic ? String(b.topic).slice(0, 1000) : null}, ${pdfName}, ${pdfHex}::bytea)
       RETURNING id, client_id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf`;
     return json(res, 201, { session });
   }
@@ -68,16 +68,17 @@ export default withErrors(async (req, res) => {
     if (!hours || hours <= 0) return json(res, 400, { error: "hours must be a positive number" });
     const date = String(b.session_date || "").slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(res, 400, { error: "session_date must be YYYY-MM-DD" });
+    // check the new PDF first, so a bad file leaves the session as it was
+    const pdf = b.pdf_base64 ? parsePdf(b) : null;
+    if (typeof pdf === "string") return json(res, 400, { error: pdf });
 
     const [session] = await sql`UPDATE client_sessions
-      SET session_date = ${date}::date, hours = ${hours}, topic = ${b.topic || null}
+      SET session_date = ${date}::date, hours = ${hours}, topic = ${b.topic ? String(b.topic).slice(0, 1000) : null}
       WHERE id = ${id}
       RETURNING id, client_id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf`;
     if (!session) return json(res, 404, { error: "Session not found" });
 
-    if (b.pdf_base64) {
-      const pdf = parsePdf(b);
-      if (typeof pdf === "string") return json(res, 400, { error: pdf });
+    if (pdf) {
       await sql`UPDATE client_sessions SET pdf = ${pdf.hex}::bytea, pdf_name = ${pdf.name} WHERE id = ${id}`;
       session.pdf_name = pdf.name;
       session.has_pdf = true;

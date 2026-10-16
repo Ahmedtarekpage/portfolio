@@ -444,8 +444,8 @@
       });
     }
     $("#tiles").innerHTML = tiles.map(function (x) {
-      return '<div class="tile ' + (x.cls || "") + '"><div class="tile__label">' + x.label +
-        '</div><div class="tile__value">' + x.value + "</div>" +
+      return '<div class="tile ' + (x.cls || "") + '"><div class="tile__label">' + esc(x.label) +
+        '</div><div class="tile__value">' + esc(x.value) + "</div>" +
         (x.sub ? '<div class="tile__sub">' + esc(x.sub) + "</div>" : "") + "</div>";
     }).join("");
 
@@ -984,7 +984,7 @@
 
   $("#btnDeleteClient").addEventListener("click", function () {
     var c = state.detail.client;
-    if (!confirm('Delete "' + c.name + '" and ALL their purchases and sessions? This cannot be undone.')) return;
+    if (!confirm('Delete "' + c.name + '" and ALL their purchases, sessions and scheduled meetings? This cannot be undone.')) return;
     api("/api/clients?id=" + state.clientId, { method: "DELETE" })
       .then(function () { toast("Client deleted"); return loadClients(); })
       .catch(function (e) { toast(e.message, true); });

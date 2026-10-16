@@ -10,9 +10,13 @@ import crypto from "node:crypto";
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
-import { clientMeetings, upcomingMeetings, getSettings } from "./_lib/meetings.js";
+import { clientMeetings, upcomingMeetings, getSettings, adminZone, todayIn } from "./_lib/meetings.js";
 
 const MAX_PHOTO_CHARS = 400_000; // ~300KB decoded — the browser sends a 320px square, far below this
+const MAX_CHARS = { name: 200, phone: 60, email: 200, nationality: 100, transaction_type: 100, notes: 5000 };
+
+// A text field cut to its limit; undefined/null pass through (not sent / no value)
+const field = (b, k) => (b[k] == null ? b[k] : String(b[k]).slice(0, MAX_CHARS[k]));
 
 // undefined = not sent (leave as is), null = remove, string = the new photo, false = rejected
 function readPhoto(b) {
@@ -38,9 +42,10 @@ export default withErrors(async (req, res) => {
       FROM hour_packages WHERE client_id = ${id} ORDER BY purchased_at DESC, id DESC`;
     const sessions = await sql`SELECT id, client_id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf
       FROM client_sessions WHERE client_id = ${id} ORDER BY session_date DESC, id DESC`;
-    const { timeline, totals } = computeClient(packages, sessions);
-    const meetings = await clientMeetings(sql, id, { admin: true });
     const settings = await getSettings(sql);
+    // "today" is the admin's calendar day, not the server's UTC one
+    const { timeline, totals } = computeClient(packages, sessions, todayIn(adminZone(settings)));
+    const meetings = await clientMeetings(sql, id, { admin: true });
     return json(res, 200, { client, packages, sessions, timeline, totals, meetings, settings });
   }
 
@@ -58,12 +63,13 @@ export default withErrors(async (req, res) => {
     };
     const pkgMap = byClient(packages);
     const sesMap = byClient(sessions);
+    const settings = await getSettings(sql);
+    const today = todayIn(adminZone(settings));
     const list = clients.map((c) => {
-      const { totals } = computeClient(pkgMap.get(c.id) || [], sesMap.get(c.id) || []);
+      const { totals } = computeClient(pkgMap.get(c.id) || [], sesMap.get(c.id) || [], today);
       return { ...c, totals };
     });
     const meetings = await upcomingMeetings(sql);
-    const settings = await getSettings(sql);
     return json(res, 200, { clients: list, meetings, settings });
   }
 
@@ -91,8 +97,8 @@ export default withErrors(async (req, res) => {
     const photo = readPhoto(b);
     if (photo === false) return json(res, 400, { error: "Photo must be a JPEG, PNG or WebP image" });
     const [client] = await sql`INSERT INTO clients (name, phone, email, nationality, transaction_type, notes, gender, photo)
-      VALUES (${String(b.name).trim()}, ${b.phone || null}, ${b.email || null},
-              ${b.nationality || null}, ${b.transaction_type || null}, ${b.notes || null}, ${gender}, ${photo || null})
+      VALUES (${field(b, "name").trim()}, ${field(b, "phone") || null}, ${field(b, "email") || null},
+              ${field(b, "nationality") || null}, ${field(b, "transaction_type") || null}, ${field(b, "notes") || null}, ${gender}, ${photo || null})
       RETURNING *`;
     return json(res, 201, { client });
   }
@@ -104,14 +110,15 @@ export default withErrors(async (req, res) => {
     const b = req.body || {};
     const photo = readPhoto(b);
     if (photo === false) return json(res, 400, { error: "Photo must be a JPEG, PNG or WebP image" });
+    if (b.name != null && !String(b.name).trim()) return json(res, 400, { error: "Name is required" });
     const [client] = await sql`UPDATE clients SET
         photo = CASE WHEN ${photo !== undefined}::boolean THEN ${photo ?? null}::text ELSE photo END,
-        name = COALESCE(${b.name ?? null}, name),
-        phone = COALESCE(${b.phone ?? null}, phone),
-        email = COALESCE(${b.email ?? null}, email),
-        nationality = COALESCE(${b.nationality ?? null}, nationality),
-        transaction_type = COALESCE(${b.transaction_type ?? null}, transaction_type),
-        notes = COALESCE(${b.notes ?? null}, notes),
+        name = COALESCE(${b.name == null ? null : field(b, "name").trim()}, name),
+        phone = COALESCE(${field(b, "phone") ?? null}, phone),
+        email = COALESCE(${field(b, "email") ?? null}, email),
+        nationality = COALESCE(${field(b, "nationality") ?? null}, nationality),
+        transaction_type = COALESCE(${field(b, "transaction_type") ?? null}, transaction_type),
+        notes = COALESCE(${field(b, "notes") ?? null}, notes),
         gender = COALESCE(${["male", "female"].includes(b.gender) ? b.gender : null}, gender)
       WHERE id = ${id} RETURNING *`;
     if (!client) return json(res, 404, { error: "Client not found" });

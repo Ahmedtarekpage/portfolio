@@ -11,7 +11,7 @@
 import { db } from "./_lib/db.js";
 import { withErrors, json } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
-import { runReminders, remindersOn, shape } from "./_lib/meetings.js";
+import { runReminders, remindersOn, shape, getSettings, adminZone, todayIn } from "./_lib/meetings.js";
 
 const toBuf = (v) => (Buffer.isBuffer(v) ? v : Buffer.from(String(v).replace(/^\\x/, ""), "hex"));
 
@@ -60,7 +60,7 @@ export default withErrors(async (req, res) => {
     ORDER BY starts_at ASC`;
   const meetings = meetingRows.map((m) => shape(m));
 
-  const { timeline, totals } = computeClient(packages, sessions);
+  const { timeline, totals } = computeClient(packages, sessions, todayIn(adminZone(await getSettings(sql))));
   res.setHeader("Cache-Control", "private, no-store");
   return json(res, 200, { name: client.name, gender: client.gender, photo: client.photo, packages, sessions, timeline, totals, meetings });
 });

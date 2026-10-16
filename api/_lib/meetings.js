@@ -102,6 +102,12 @@ export function platform(link) {
 
 const SETTING_KEYS = ["timezone", "detected_timezone", "default_link", "notify_email"];
 
+/** Today's date (YYYY-MM-DD) on the calendar of a zone. */
+export function todayIn(tz) {
+  const p = parts(new Date(), tz);
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
 export async function getSettings(sql) {
   const rows = await sql`SELECT key, value FROM app_settings`;
   const s = { timezone: "auto", detected_timezone: null, default_link: "", notify_email: "" };
@@ -117,7 +123,7 @@ export async function getSettings(sql) {
 }
 
 /** The zone the admin's own emails are written in. */
-function adminZone(settings) {
+export function adminZone(settings) {
   if (settings.timezone !== "auto" && isZone(settings.timezone)) return settings.timezone;
   if (isZone(settings.detected_timezone)) return settings.detected_timezone;
   return "Asia/Dubai";
@@ -200,10 +206,16 @@ export async function clientMeetings(sql, clientId, opts) {
 
 /** Everything still to come (and anything running now), soonest first, across all clients. */
 export async function upcomingMeetings(sql) {
-  const rows = await sql`SELECT m.*, c.name AS client_name, c.photo AS client_photo, c.gender AS client_gender
-    FROM meetings m JOIN clients c ON c.id = m.client_id
-    WHERE m.starts_at + (m.duration_min * interval '1 minute') > now()
-    ORDER BY m.starts_at ASC LIMIT 50`;
+  // the first 50 overall, plus every client's next one — a long series alone
+  // would otherwise fill the 50 and leave other clients' cards with no meeting
+  const rows = await sql`SELECT * FROM (
+      SELECT m.*, c.name AS client_name, c.photo AS client_photo, c.gender AS client_gender,
+        row_number() OVER (ORDER BY m.starts_at) AS n,
+        row_number() OVER (PARTITION BY m.client_id ORDER BY m.starts_at) AS per_client
+      FROM meetings m JOIN clients c ON c.id = m.client_id
+      WHERE m.starts_at + (m.duration_min * interval '1 minute') > now()
+    ) x WHERE n <= 50 OR per_client = 1
+    ORDER BY starts_at ASC`;
   return rows.map((m) => shape(m, { admin: true }));
 }
 
@@ -294,6 +306,7 @@ const hoursWord = (h) => `${Number.isInteger(h) ? h : h.toFixed(2).replace(/0$/,
  * diary was counting on, even when the new date comes first.
  */
 async function creditFor(sql, clientId, candidates, hours) {
+  const today = todayIn(adminZone(await getSettings(sql)));
   const packages = await sql`SELECT id, hours, purchased_at, expires_at FROM hour_packages WHERE client_id = ${clientId}`;
   const sessions = await sql`SELECT id, session_date, hours FROM client_sessions WHERE client_id = ${clientId}`;
   const booked = await sql`SELECT id, starts_at, duration_min, timezone FROM meetings
@@ -307,7 +320,7 @@ async function creditFor(sql, clientId, candidates, hours) {
     ...booked.map((m) => ({ id: `m${m.id}`, session_date: dateIn(m.starts_at, m.timezone), hours: m.duration_min / 60 })),
   ];
   const replay = (list) => {
-    const { timeline } = computeClient(packages, list);
+    const { timeline } = computeClient(packages, list, today);
     return {
       short: timeline.reduce((sum, e) => sum + (e.kind === "session" ? e.uncovered || 0 : 0), 0),
       expiries: timeline.filter((e) => e.kind === "expiry").map((e) => ({ date: e.date, hours: -e.delta })),

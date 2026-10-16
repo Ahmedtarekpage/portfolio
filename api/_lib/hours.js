@@ -58,7 +58,9 @@ export function computeClient(packages, sessions, now = new Date()) {
   };
 
   for (const ev of events) {
-    const future = ev.t > today;
+    // an expiry date is the package's last usable day, so today's expiry is
+    // still to come: those hours count as available until the day is over
+    const future = ev.kind === "expiry" ? ev.t >= today : ev.t > today;
     if (future) takeSnapshot();
 
     if (ev.kind === "purchase") {
@@ -86,7 +88,7 @@ export function computeClient(packages, sessions, now = new Date()) {
         if (needed > 0) asOfToday.overdraft += needed;
       }
       timeline.push({
-        date: iso(ev.t), balance, kind: "session", delta: -ev.hours,
+        date: iso(ev.t), balance, kind: "session", delta: -consumed,
         label: `Session${ev.topic ? ` — ${ev.topic}` : ""} (−${fmt(ev.hours)}h)`,
         future, sessionId: ev.id, uncovered: needed > 0 ? needed : 0,
       });

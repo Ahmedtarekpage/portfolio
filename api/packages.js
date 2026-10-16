@@ -47,10 +47,10 @@ export default withErrors(async (req, res) => {
 
     const [pkg] = await sql`INSERT INTO hour_packages
         (client_id, hours, amount_paid, currency, purchased_at, expires_at, note, proof, proof_name, proof_type)
-      VALUES (${clientId}, ${hours}, ${b.amount_paid ? Number(b.amount_paid) : null}, ${b.currency || null},
+      VALUES (${clientId}, ${hours}, ${b.amount_paid ? Number(b.amount_paid) : null}, ${b.currency ? String(b.currency).slice(0, 8) : null},
               ${purchased}::date,
               COALESCE(${explicitExpiry}::date, (${purchased}::date + make_interval(months => ${months}))::date),
-              ${b.note || null},
+              ${b.note ? String(b.note).slice(0, 500) : null},
               ${proof ? proof.hex : null}::bytea, ${proof ? proof.name : null}, ${proof ? proof.type : null})
       RETURNING id, client_id, hours, amount_paid, currency, purchased_at, expires_at, note, (proof IS NOT NULL) AS has_proof`;
     return json(res, 201, { package: pkg });
