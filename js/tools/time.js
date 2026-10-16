@@ -2763,6 +2763,46 @@
     });
   }
 
+  /* A day with no picture, drawn rather than left as a camera emoji (owner,
+     2026-10-16). It says which kind of empty it is: today is an invitation,
+     a day already gone is plainly empty, and a day still to come is quiet.
+     The mark is the summit from the logo, so an empty day still looks ours. */
+  var SUMMIT = '<svg class="day-empty__mark" viewBox="0 0 48 36" aria-hidden="true">' +
+    '<path class="day-empty__range" d="M3 31 L17 11 L26 23 L33 15 L45 31" />' +
+    '<circle class="day-empty__sun" cx="37" cy="7" r="3.2" /></svg>';
+
+  function emptyPhotoHtml(day, today) {
+    var when = day === today ? "today" : day < today ? "past" : "future";
+    var word = when === "today" ? "Add photo" : when === "past" ? "No photo" : "Not yet";
+    return '<span class="day-empty day-empty--' + when + '">' + SUMMIT +
+      '<span class="day-empty__word">' + word + "</span>" +
+      (when === "future" ? "" : '<span class="day-empty__add">+ Add a photo</span>') + "</span>";
+  }
+
+  /* Adding or removing a day's picture builds the whole gallery again, which
+     empties the page for a moment: the browser then pulls the scroll to the
+     top, and on a phone you lose your place (owner, 2026-10-16). This holds on
+     to where that day sits on the screen and puts it back afterwards. */
+  function keepDayPlace(date) {
+    var el = document.querySelector('[data-day="' + date + '"]');
+    if (!el) return function () {};
+    var was = el.getBoundingClientRect().top;
+    return function () {
+      var again = function () {
+        var now = document.querySelector('[data-day="' + date + '"]');
+        if (!now) return;
+        var move = now.getBoundingClientRect().top - was;
+        if (Math.abs(move) > 1) window.scrollTo(0, Math.max(0, window.scrollY + move));
+      };
+      // a phone scrolls the file input back into view after its picker closes,
+      // and the picture lands a frame later again: hold the place through both
+      again();
+      requestAnimationFrame(again);
+      setTimeout(again, 120);
+      setTimeout(again, 400);
+    };
+  }
+
   function renderTileRun(box, from, to, animate) {
     var statsByDate = state.daysData.statsByDate;
     var photosByDate = state.daysData.photosByDate;
@@ -2785,11 +2825,12 @@
 
       var tile = document.createElement("div");
       tile.className = "day-tile" + (d === today ? " day-tile--today" : "") + (animate ? " day-tile--enter" : "");
+      tile.setAttribute("data-day", d);
 
       var photoLabel = document.createElement("div");
       photoLabel.className = "day-tile__photo";
       if (photo) photoLabel.style.backgroundImage = "url(" + photo + ")";
-      else photoLabel.textContent = "📷";
+      else photoLabel.innerHTML = emptyPhotoHtml(d, today);
       var fileInput = document.createElement("input");
       fileInput.type = "file";
       fileInput.accept = "image/*";
@@ -2824,8 +2865,10 @@
           return function (ev) {
             ev.preventDefault();
             if (!confirm("Remove this day's photo?")) return;
+            var hold = keepDayPlace(dd);
             api("/api/day-photos?date=" + dd, { method: "DELETE" })
               .then(function () { playDeleteSound(); return loadDaysGallery({ animate: false }); })
+              .then(hold)
               .catch(function (e) { toast(e.message, true); });
           };
         }(d));
@@ -2835,11 +2878,14 @@
         return function () {
           var file = this.files[0];
           if (!file) return;
+          var hold = keepDayPlace(dd);
+          this.blur(); // a focused input is something a phone scrolls to
           Promise.all([resizeImageFile(file, 320, 0.72), resizeImageFile(file, 1800, 0.85)])
             .then(function (sizes) {
               return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: sizes[0], photo_full: sizes[1] } });
             })
             .then(function () { playAddSound(); toast("Photo saved ✓"); return loadDaysGallery({ animate: false }); })
+            .then(hold)
             .catch(function (e) { toast(e.message, true); });
         };
       }(d));

@@ -609,10 +609,18 @@
     var was = top.getBoundingClientRect().top;
     var scroll = window.scrollY;
     return function () {
-      // after the new layout, move by however far that card has shifted
-      var move = top.isConnected ? top.getBoundingClientRect().top - was : 0;
-      var to = Math.max(0, (top.isConnected ? window.scrollY : scroll) + move);
-      if (Math.abs(to - window.scrollY) > 1) window.scrollTo(0, to);
+      var put = function () {
+        // after the new layout, move by however far that card has shifted
+        var move = top.isConnected ? top.getBoundingClientRect().top - was : 0;
+        var to = Math.max(0, (top.isConnected ? window.scrollY : scroll) + move);
+        if (Math.abs(to - window.scrollY) > 1) window.scrollTo(0, to);
+      };
+      put();
+      // a phone scrolls the file input back into view once its picker closes,
+      // and the new picture lands a frame later: hold the place through both
+      requestAnimationFrame(put);
+      setTimeout(put, 120);
+      setTimeout(put, 400);
     };
   }
 
@@ -1175,6 +1183,9 @@
     var file = input.files[0];
     if (!file) return;
     var btn = $("#btnPhoto");
+    // the picker leaves the hidden input focused, and a phone then scrolls to it
+    input.blur();
+    var hold = keepPlace();
     Go.play("coin"); // the picture was chosen: the same sound the drop box makes
     busy(btn, true);
     squarePhoto(file, 320, 0.82)
@@ -1189,7 +1200,7 @@
         return openClient(state.clientId);
       })
       .catch(function (e) { toast(e.message, true); })
-      .finally(function () { busy(btn, false); input.value = ""; });
+      .finally(function () { busy(btn, false); input.value = ""; if (hold) hold(); });
   });
 
   $("#btnRemovePhoto").addEventListener("click", function () {

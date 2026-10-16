@@ -764,3 +764,47 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 .cycle-pick.is-on .cycle-pick__text small { color: rgba(255, 255, 255, 0.82); }
 .cycle-pick.is-on .cycle-pick__glyph { background: rgba(255, 255, 255, 0.18); animation: go-tick 320ms var(--ease-bounce) both; }
 .cycle-picks { overflow-y: visible; padding-top: 10px; }
+
+/* ---------- /time Days: a day with no picture ----------
+   Three kinds of empty, told apart at a glance: today asks for one, a day
+   already gone is plainly empty, and a day still to come stays quiet. */
+.day-tile__photo { color: var(--faint); font-size: inherit; background-color: var(--bg-2); }
+.day-empty {
+  position: absolute; inset: 6px; display: grid; place-content: center; justify-items: center; gap: 4px;
+  border-radius: var(--radius-md); border: 1.5px dashed var(--glass-brd); background: var(--glass);
+  text-align: center; padding: 6px; overflow: hidden;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.day-tile__photo { position: relative; }
+.day-empty__mark { width: 40%; max-width: 46px; min-width: 26px; height: auto; display: block; }
+.day-empty__range { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
+.day-empty__sun { fill: currentColor; opacity: 0.4; }
+.day-empty__word { font: 800 0.66rem/1.15 var(--font-ui); letter-spacing: 0.02em; color: var(--faint); }
+.day-empty__add {
+  position: absolute; inset: 0; display: grid; place-content: center; padding: 4px;
+  font: 800 0.66rem/1.2 var(--font-ui); color: #fff; background: var(--night-navy);
+  opacity: 0; transition: opacity 160ms ease;
+}
+.day-tile__photo:hover .day-empty__add, .day-tile__photo:focus-visible .day-empty__add { opacity: 0.94; }
+
+/* a day already gone, with nothing in it */
+.day-empty--past { color: var(--faint); background: var(--bg-2); }
+.day-empty--past .day-empty__word { opacity: 0.85; }
+
+/* today: an invitation */
+.day-empty--today {
+  border-color: var(--coin-amber); border-style: solid; color: var(--coin-amber-dark);
+  background: var(--wash-amber);
+}
+.day-empty--today .day-empty__word { color: var(--wash-amber-text); }
+.day-empty--today .day-empty__range, .day-empty--today .day-empty__sun { opacity: 0.9; }
+.day-empty--today .day-empty__mark { animation: go-float 2.6s ease-in-out infinite; }
+
+/* a day still to come */
+.day-empty--future { border-style: dotted; opacity: 0.5; }
+.day-empty--future .day-empty__word { font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) { .day-empty--today .day-empty__mark { animation: none; } }
+/* on the smallest tiles the words would be crumbs: the mark carries it alone */
+.day-tile { container-type: inline-size; }
+@container (max-width: 96px) { .day-empty__word { display: none; } .day-empty { inset: 4px; } }
