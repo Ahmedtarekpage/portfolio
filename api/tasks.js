@@ -28,6 +28,15 @@ async function pomodoros(req, res, sql) {
   const cairoDay = async () => (await sql`SELECT (now() AT TIME ZONE 'Africa/Cairo')::date::text AS d`)[0].d;
   const day = isDate(q.date) ? String(q.date) : isDate(b.date) ? String(b.date) : await cairoDay();
 
+  // for the achievements: everything ever, in one row
+  if (req.method === "GET" && q.totals) {
+    const [row] = await sql`SELECT COALESCE(SUM(n), 0)::int AS blocks,
+        COALESCE(MAX(n), 0)::int AS "bestDay",
+        COUNT(*) FILTER (WHERE n >= 10)::int AS "fullDays"
+      FROM (SELECT day, COUNT(*)::int AS n FROM pomodoros GROUP BY day) d`;
+    return json(res, 200, row);
+  }
+
   if (req.method === "GET") {
     const slots = await sql`SELECT slot, mode, minutes, done_at FROM pomodoros WHERE day = ${day}::date ORDER BY slot`;
     const history = await sql`SELECT day::text AS date, COUNT(*)::int AS done FROM pomodoros

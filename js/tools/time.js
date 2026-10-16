@@ -1355,21 +1355,30 @@
   var COMMIT_CYCLE_MONTHS = 5;
   var STREAK_WINDOW_DAYS = 400;
 
+  /* One glyph each, and a number to reach. The old set repeated the same
+     emoji to mean "more of it" ("🔥🔥🔥"), which spilled out of the little
+     tiles and read as a mess (owner, 2026-10-17: "this gamification has an
+     issue, redo"). Now every badge has its own glyph and shows how far along
+     it is, counted from real data each time — nothing is stored but whether
+     its fanfare has already played. */
   var BADGES = [
-    { id: "task-1", icon: "✅", name: "First Task", test: function (s) { return s.totalDone >= 1; } },
-    { id: "task-50", icon: "🥉", name: "50 Tasks Done", test: function (s) { return s.totalDone >= 50; } },
-    { id: "task-200", icon: "🥈", name: "200 Tasks Done", test: function (s) { return s.totalDone >= 200; } },
-    { id: "task-500", icon: "🥇", name: "500 Tasks Done", test: function (s) { return s.totalDone >= 500; } },
-    { id: "streak-3", icon: "🔥", name: "3-Day Streak", test: function (s) { return s.longestStreak >= 3; } },
-    { id: "streak-7", icon: "🔥🔥", name: "7-Day Streak", test: function (s) { return s.longestStreak >= 7; } },
-    { id: "streak-30", icon: "🔥🔥🔥", name: "30-Day Streak", test: function (s) { return s.longestStreak >= 30; } },
-    { id: "goal-1", icon: "🎯", name: "First Goal Hit", test: function (s) { return s.completedGoals >= 1; } },
-    { id: "goal-10", icon: "🏹", name: "10 Goals Hit", test: function (s) { return s.completedGoals >= 10; } },
-    { id: "milestone-1", icon: "🪜", name: "First Milestone", test: function (s) { return s.milestonesChecked >= 1; } },
-    { id: "milestone-half", icon: "💰", name: "Halfway to $500K", test: function (s) { return s.milestonesChecked >= 5; } },
-    { id: "cycle-1", icon: "🎖️", name: "1st 5-Month Cycle Committed", test: function (s) { return s.cyclesCompleted >= 1; } },
-    { id: "cycle-2", icon: "🎖️🎖️", name: "10 Months Committed", test: function (s) { return s.cyclesCompleted >= 2; } },
-    { id: "cycle-4", icon: "🏆", name: "1 Year Committed", test: function (s) { return s.cyclesCompleted >= 4; } },
+    { id: "task-1", icon: "✅", name: "First task done", goal: 1, of: function (s) { return s.totalDone; }, unit: "tasks" },
+    { id: "task-50", icon: "🥉", name: "50 tasks done", goal: 50, of: function (s) { return s.totalDone; }, unit: "tasks" },
+    { id: "task-200", icon: "🥈", name: "200 tasks done", goal: 200, of: function (s) { return s.totalDone; }, unit: "tasks" },
+    { id: "task-500", icon: "🥇", name: "500 tasks done", goal: 500, of: function (s) { return s.totalDone; }, unit: "tasks" },
+    { id: "streak-3", icon: "🔥", name: "3 days in a row, all done", goal: 3, of: function (s) { return s.longestStreak; }, unit: "days" },
+    { id: "streak-7", icon: "⚡", name: "A whole week in a row", goal: 7, of: function (s) { return s.longestStreak; }, unit: "days" },
+    { id: "streak-30", icon: "🌋", name: "30 days in a row", goal: 30, of: function (s) { return s.longestStreak; }, unit: "days" },
+    { id: "goal-1", icon: "🎯", name: "First goal reached", goal: 1, of: function (s) { return s.completedGoals; }, unit: "goals" },
+    { id: "goal-10", icon: "🏹", name: "10 goals reached", goal: 10, of: function (s) { return s.completedGoals; }, unit: "goals" },
+    { id: "pomo-1", icon: "🍅", name: "First focus block", goal: 1, of: function (s) { return s.focusBlocks; }, unit: "blocks" },
+    { id: "pomo-day", icon: "💯", name: "A full ten-block day", goal: 1, of: function (s) { return s.focusFullDays; }, unit: "days" },
+    { id: "pomo-100", icon: "🧘", name: "100 focus blocks", goal: 100, of: function (s) { return s.focusBlocks; }, unit: "blocks" },
+    { id: "milestone-1", icon: "🪜", name: "First money milestone", goal: 1, of: function (s) { return s.milestonesChecked; }, unit: "rungs" },
+    { id: "milestone-half", icon: "💰", name: "Halfway up to $500K", goal: 5, of: function (s) { return s.milestonesChecked; }, unit: "rungs" },
+    { id: "cycle-1", icon: "🎖️", name: "One 5-month cycle kept", goal: 1, of: function (s) { return s.cyclesCompleted; }, unit: "cycles" },
+    { id: "cycle-2", icon: "🏅", name: "Ten months kept", goal: 2, of: function (s) { return s.cyclesCompleted; }, unit: "cycles" },
+    { id: "cycle-4", icon: "🏆", name: "A year kept", goal: 4, of: function (s) { return s.cyclesCompleted; }, unit: "cycles" },
   ];
 
   function loadCommitStart() {
@@ -1463,13 +1472,34 @@
       longestStreak: stats.longestStreak,
       milestonesChecked: stats.milestonesChecked,
       cyclesCompleted: cycle.cyclesCompleted,
+      focusBlocks: stats.focusBlocks || 0,
+      focusFullDays: stats.focusFullDays || 0,
     };
-    var unlockedIds = BADGES.filter(function (b) { return b.test(fullStats); }).map(function (b) { return b.id; });
-    $("#gamifyBadges").innerHTML = BADGES.map(function (b) {
-      var unlocked = unlockedIds.indexOf(b.id) !== -1;
-      return '<span class="badge-chip' + (unlocked ? " badge-chip--unlocked" : "") + '" data-id="' + b.id +
-        '" title="' + esc(b.name) + (unlocked ? "" : " (locked)") + '">' + b.icon + '</span>';
+    var reached = BADGES.map(function (b) {
+      var now = Math.max(0, Number(b.of(fullStats)) || 0);
+      return { badge: b, now: now, done: now >= b.goal, pct: Math.min(100, Math.round((now / b.goal) * 100)) };
+    });
+    var unlockedIds = reached.filter(function (r) { return r.done; }).map(function (r) { return r.badge.id; });
+
+    $("#gamifyBadges").innerHTML = reached.map(function (r) {
+      var b = r.badge;
+      var shown = Math.min(r.now, b.goal);
+      var tip = b.name + " — " + shown + " of " + b.goal + " " + b.unit + (r.done ? " ✓" : "");
+      return '<span class="badge-chip' + (r.done ? " badge-chip--unlocked" : "") + '" data-id="' + b.id +
+        '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
+        '<span class="badge-chip__glyph">' + b.icon + '</span>' +
+        (r.done ? "" : '<span class="badge-chip__bar"><span style="width:' + r.pct + '%"></span></span>') +
+      '</span>';
     }).join("");
+    $("#gamifyBadgeCount").textContent = unlockedIds.length + " of " + BADGES.length;
+
+    // the nearest one still to come, so the row says what to aim at
+    var next = reached.filter(function (r) { return !r.done; })
+      .sort(function (a, b) { return b.pct - a.pct; })[0];
+    $("#gamifyNext").textContent = next
+      ? "Closest: " + next.badge.icon + " " + next.badge.name + " — " + Math.min(next.now, next.badge.goal) +
+        " of " + next.badge.goal + " " + next.badge.unit
+      : "Every badge earned 🎉";
 
     var meta = loadGamifyMeta();
     if (meta.initialized) {
@@ -1479,6 +1509,19 @@
     }
     saveGamifyMeta({ cyclesCompleted: cycle.cyclesCompleted, badges: unlockedIds, initialized: true });
   }
+
+  /* Start again. The badges themselves are worked out from real data, so
+     there is nothing in them to reset — what is reset is the commitment
+     (back to today) and the memory of which fanfares have played. Tasks,
+     goals, milestones and focus blocks are untouched. */
+  $("#btnGamifyReset").addEventListener("click", function () {
+    if (!confirm("Start the 5-month commitment again from today, and forget which badges have already been celebrated?\n\nYour tasks, goals, milestones and focus blocks are not touched.")) return;
+    saveCommitStart(todayISO());
+    saveGamifyMeta({ cyclesCompleted: 0, badges: [], initialized: false });
+    playAddSound();
+    toast("Commitment restarted from today ✓");
+    loadGamification();
+  });
 
   $("#gamifyStartInput").addEventListener("change", function () {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(this.value)) return;
@@ -1496,6 +1539,7 @@
       api("/api/tasks?totals=1"),
       api("/api/goals?all=1"),
       api("/api/tasks?stats=1&from=" + from + "&to=" + to),
+      api("/api/tasks?pomodoros=1&totals=1"),
     ]).then(function (results) {
       var totals = results[0], goalsAll = results[1], statsResp = results[2];
       var byDate = {};
@@ -1521,6 +1565,8 @@
         currentStreak: currentStreak,
         longestStreak: longestStreak,
         milestonesChecked: loadMilestoneChecks().filter(Boolean).length,
+        focusBlocks: (results[3] || {}).blocks || 0,
+        focusFullDays: (results[3] || {}).fullDays || 0,
       });
     }).catch(function () {});
   }

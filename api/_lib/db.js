@@ -287,6 +287,20 @@ async function migrate(sql) {
     position INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // A meeting that was cancelled leaves a headstone behind for a while.
+  // Google Calendar keeps an event it has already taken from a subscribed
+  // feed when the event simply stops being in the file; it only removes it
+  // when the feed says so (STATUS:CANCELLED). Owner, 2026-10-17: "I have
+  // deleted abdullah today meeting but it still in my calendar".
+  await sql`CREATE TABLE IF NOT EXISTS cancelled_meetings (
+    meeting_id INTEGER PRIMARY KEY,
+    client_name TEXT NOT NULL DEFAULT '',
+    topic TEXT,
+    starts_at TIMESTAMPTZ NOT NULL,
+    duration_min INTEGER NOT NULL DEFAULT 60,
+    cancelled_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
+
   // Ten focus blocks a day, each with its posture, ticked by hand or by its own
   // 25-minute timer (owner, 2026-10-17: "daily target is 10 pomodoro … 1st
   // sitting, 2nd standing, 3rd walking treadmill"). The day is the Cairo day,

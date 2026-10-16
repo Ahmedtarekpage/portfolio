@@ -469,17 +469,35 @@ export async function handleMeetings(req, res, sql) {
     if (req.query.scope === "following") {
       const [m] = await sql`SELECT series_id, starts_at FROM meetings WHERE id = ${id}`;
       if (m && m.series_id) {
+        await tombstone(sql, sql`SELECT id FROM meetings
+          WHERE series_id = ${m.series_id} AND starts_at >= ${new Date(m.starts_at).toISOString()}::timestamptz`);
         const gone = await sql`DELETE FROM meetings
           WHERE series_id = ${m.series_id} AND starts_at >= ${new Date(m.starts_at).toISOString()}::timestamptz
           RETURNING id`;
         return json(res, 200, { ok: true, deleted: gone.map((r) => r.id) });
       }
     }
+    await tombstone(sql, [{ id }]);
     await sql`DELETE FROM meetings WHERE id = ${id}`;
     return json(res, 200, { ok: true, deleted: [id] });
   }
 
   return json(res, 405, { error: "Method not allowed" });
+}
+
+/* Remember a meeting that is about to be deleted, so the calendar feed can
+   tell a subscriber to drop it (owner, 2026-10-17: a cancelled meeting was
+   still showing in Google Calendar). `ids` is a list of rows with an `id`, or
+   a query that returns them. Anything already gone is simply skipped. */
+export async function tombstone(sql, ids) {
+  const rows = await ids;
+  const list = (rows || []).map((r) => Number(r.id)).filter(Boolean);
+  if (!list.length) return;
+  await sql`INSERT INTO cancelled_meetings (meeting_id, client_name, topic, starts_at, duration_min)
+    SELECT m.id, c.name, m.topic, m.starts_at, m.duration_min
+      FROM meetings m JOIN clients c ON c.id = m.client_id
+      WHERE m.id = ANY(${list})
+    ON CONFLICT (meeting_id) DO UPDATE SET cancelled_at = now()`;
 }
 
 /* ---------------- reminders ---------------- */
@@ -636,7 +654,12 @@ export async function runReminders(sql, base) {
    url to add to google calendar"). A calendar app re-reads the whole file on
    its own clock — Google every few hours, Apple as often as asked — so a
    reschedule or a cancel shows up there on its next read: a moved meeting
-   keeps its UID and changes time, a cancelled one is simply gone. */
+   keeps its UID and changes time.
+
+   A cancelled one cannot simply vanish from the file. Google keeps an event
+   it has already taken in, so the feed has to say out loud that it is off:
+   the same UID, STATUS:CANCELLED and a higher SEQUENCE. Those headstones are
+   carried for 60 days and then dropped. */
 
 const icsText = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 const icsTime = (d) => new Date(d).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -660,6 +683,10 @@ export async function calendarFeed(sql, siteUrl) {
     FROM meetings m JOIN clients c ON c.id = m.client_id
     WHERE m.starts_at > now() - interval '30 days'
     ORDER BY m.starts_at ASC LIMIT 1000`;
+  // meetings that were cancelled recently, so a subscriber drops them
+  await sql`DELETE FROM cancelled_meetings WHERE cancelled_at < now() - interval '60 days'`;
+  const off = await sql`SELECT meeting_id, client_name, topic, starts_at, duration_min
+    FROM cancelled_meetings ORDER BY starts_at ASC LIMIT 500`;
   const stamp = icsTime(new Date());
   const host = new URL(siteUrl).hostname;
   const lines = [
@@ -687,8 +714,24 @@ export async function calendarFeed(sql, siteUrl) {
       "SUMMARY:" + icsText(title),
       "DESCRIPTION:" + icsText(desc),
       ...(link ? ["LOCATION:" + icsText(link), "URL:" + icsText(link)] : []),
+      "SEQUENCE:0",
       "STATUS:CONFIRMED",
       "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsText(title), "TRIGGER:-PT15M", "END:VALARM",
+      "END:VEVENT",
+    );
+  }
+  for (const m of off) {
+    const start = new Date(m.starts_at);
+    const end = new Date(start.getTime() + Number(m.duration_min) * 60000);
+    lines.push(
+      "BEGIN:VEVENT",
+      "UID:meeting-" + m.meeting_id + "@" + host,
+      "DTSTAMP:" + stamp,
+      "DTSTART:" + icsTime(start),
+      "DTEND:" + icsTime(end),
+      "SUMMARY:" + icsText("Cancelled · " + ((m.topic ? m.topic + " · " : "") + m.client_name)),
+      "SEQUENCE:9",
+      "STATUS:CANCELLED",
       "END:VEVENT",
     );
   }

@@ -1105,3 +1105,37 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   .pomo-row__len { display: none; }
   .pomo-history__row { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
+
+/* ---------- achievements (owner, 2026-10-17: "this gamification has an issue") ----------
+   Repeated emoji ("🔥🔥🔥") spilled out of the 30px tiles and the row read as
+   a mess. One glyph a badge now, in a tile that cannot overflow, with how far
+   along it is drawn along the bottom. */
+
+.gamify__badges-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.gamify__badges-head .goals__label { margin: 0; }
+.gamify__badges-count { font: 800 0.72rem var(--font-ui); color: var(--go-blue-dark); background: var(--go-blue-tint); border-radius: 999px; padding: 3px 9px; }
+.gamify__badges-head .btn { margin-left: auto; border-radius: 999px; font-size: 0.76rem; }
+.gamify__badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.gamify__next { margin: 10px 0 0; font: 700 0.78rem var(--font-ui); }
+
+.badge-chip {
+  position: relative; width: 42px; height: 42px; border-radius: var(--radius-md);
+  display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+  background: var(--bg); border: 1.5px solid var(--border);
+  transition: transform 180ms var(--ease-bounce), border-color 180ms ease, background-color 180ms ease;
+}
+.badge-chip:hover { transform: translateY(-2px); }
+.badge-chip:hover .badge-chip__glyph { opacity: 0.85; }
+/* the glyph greys out, not the tile — so the progress bar keeps its colour */
+.badge-chip__glyph {
+  font-size: 1.15rem; line-height: 1; max-width: 100%;
+  overflow: hidden; white-space: nowrap; /* a stray second glyph can never spill */
+  filter: grayscale(1); opacity: 0.45; transition: filter 220ms ease, opacity 220ms ease;
+}
+.badge-chip--unlocked .badge-chip__glyph { filter: none; opacity: 1; }
+.badge-chip__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--wash-strong); }
+.badge-chip__bar > span { display: block; height: 100%; background: var(--go-blue); }
+.badge-chip--unlocked {
+  background: var(--wash-amber); border-color: var(--coin-amber); box-shadow: none;
+}
+:root[data-theme="dark"] .badge-chip--unlocked { background: rgba(255, 176, 32, 0.14); }

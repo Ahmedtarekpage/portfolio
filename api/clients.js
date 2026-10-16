@@ -10,7 +10,7 @@ import crypto from "node:crypto";
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
-import { clientMeetings, upcomingMeetings, getSettings, adminZone, todayIn } from "./_lib/meetings.js";
+import { clientMeetings, upcomingMeetings, getSettings, adminZone, todayIn, tombstone } from "./_lib/meetings.js";
 
 const MAX_PHOTO_CHARS = 400_000; // ~300KB decoded — the browser sends a 320px square, far below this
 const MAX_CHARS = { name: 200, phone: 60, email: 200, nationality: 100, transaction_type: 100, notes: 5000 };
@@ -127,6 +127,8 @@ export default withErrors(async (req, res) => {
   }
 
   if (req.method === "DELETE") {
+    // their meetings go with them, so the calendar feed has to be told
+    await tombstone(sql, await sql`SELECT id FROM meetings WHERE client_id = ${id}`);
     await sql`DELETE FROM clients WHERE id = ${id}`;
     return json(res, 200, { ok: true });
   }
