@@ -670,11 +670,18 @@
         '<td data-label="Date">' + fmtDate(s.session_date) + "</td>" +
         '<td class="num" data-label="Hours"><strong>' + fmtH(s.hours) + "</strong></td>" +
         '<td class="row-wide" data-label="Topic">' + esc(s.topic || "—") + "</td>" +
-        '<td data-label="Minutes">' + (s.has_pdf ? '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>' : '<span class="muted">—</span>') + "</td>" +
+        '<td class="row-file">' + (s.has_pdf ? fileChip(s) : "") + "</td>" +
         '<td class="num row-act">' +
           '<button class="iconbtn iconbtn--edit" title="Edit session">✎</button>' +
           '<button class="iconbtn iconbtn--del" title="Delete session">✕</button></td>';
       tr.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditSession(s); });
+      var chip = tr.querySelector("[data-file]");
+      if (chip) chip.addEventListener("click", function () {
+        chip.classList.add("is-busy");
+        Files.open("/api/pdf?id=" + s.id, { size: s.file_size, name: s.pdf_name, type: s.file_type })
+          .catch(function (e) { toast(e.message, true); })
+          .then(function () { chip.classList.remove("is-busy"); });
+      });
       tr.querySelector(".iconbtn--del").addEventListener("click", function () {
         if (!confirm("Delete this session record?")) return;
         api("/api/sessions?id=" + s.id, { method: "DELETE" })
@@ -692,6 +699,14 @@
     Go.wizard.restart($("#addSessionForm"));
   }
 
+  // a session's minutes or slides: an icon for the kind, its name and size
+  function fileChip(s) {
+    var k = Files.kind(s.pdf_name);
+    return '<button type="button" class="file-chip file-chip--' + k.tone + '" data-file="' + Number(s.id) + '" title="Open ' + esc(s.pdf_name || "the file") + '">' +
+      '<span class="file-chip__icon" aria-hidden="true">' + k.glyph + "</span>" +
+      '<span class="file-chip__text"><b>' + esc(s.pdf_name || "File") + "</b><small>" + esc(k.label + (s.file_size ? " · " + Files.size(s.file_size) : "")) + "</small></span></button>";
+  }
+
   function startEditSession(s) {
     state.editingSessionId = s.id;
     var form = $("#addSessionForm");
@@ -699,6 +714,9 @@
     form.elements.hours.value = Number(s.hours);
     form.elements.topic.value = s.topic || "";
     form.elements.pdf.value = "";
+    // the drop box says which file is there now; a new one replaces it
+    form.elements.pdf.setAttribute("data-current", s.has_pdf ? (s.pdf_name || "a file") : "");
+    Go.sync(form);
     $("#btnSessionSubmit").textContent = "Update session";
     $("#btnCancelEdit").hidden = false;
     Go.wizard.review(form);
@@ -710,6 +728,7 @@
     var form = $("#addSessionForm");
     form.reset();
     form.elements.session_date.value = todayISO();
+    form.elements.pdf.setAttribute("data-current", "");
     $("#btnSessionSubmit").textContent = "Record session";
     $("#btnCancelEdit").hidden = true;
   }
@@ -1215,11 +1234,15 @@
     var file = form.elements.pdf.files[0];
 
     var ready = Promise.resolve();
+    var label = btn.textContent;
     if (file) {
-      if (file.size > 3 * 1024 * 1024) { toast("PDF is too large (max 3 MB)", true); return; }
-      ready = readFileB64(file).then(function (b64) {
-        b.pdf_base64 = b64;
-        b.pdf_name = file.name;
+      var problem = Files.check(file);
+      if (problem) { toast(problem, true); return; }
+      // sent ahead in pieces, so slides bigger than one request still go
+      ready = Files.upload(file, function (p) { btn.textContent = "Uploading " + p + "%…"; }).then(function (id) {
+        b.file_upload_id = id;
+        b.file_name = file.name;
+        btn.textContent = "Saving…";
       });
     }
     busy(btn, true);
@@ -1231,7 +1254,7 @@
       })
       .then(function () { toast(editingId ? "Session updated ✓" : "Session recorded ✓"); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
-      .finally(function () { busy(btn, false); });
+      .finally(function () { busy(btn, false); if (/Uploading|Saving/.test(btn.textContent)) btn.textContent = label; });
   });
 
   /* ---------------- balance chart (shared renderer in chart.js) ---------------- */

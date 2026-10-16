@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
-  <link rel="stylesheet" href="css/tools/go.css?v=5" />
+  <link rel="stylesheet" href="css/tools/go.css?v=6" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -203,7 +203,7 @@
             </fieldset>
             <fieldset class="go-wiz__step" data-title="Anything to remember?" data-hint="A note for you, and a photo if you have one." data-glyph="📝" data-optional>
               <label>Notes<input name="notes" /></label>
-              <label>Photo<input name="photo" type="file" accept="image/*" /></label>
+              <label>Photo<input name="photo" type="file" accept="image/*" data-drop="Drop a photo here" data-drop-hint="We'll crop it to a square" /></label>
             </fieldset>
             <div class="go-wiz__actions"><button type="submit" class="btn btn--primary">Add client ✓</button></div>
           </form>
@@ -403,7 +403,7 @@
               <label>Valid for (months)<input name="months" type="number" min="1" max="24" value="1" data-quick="1,2,3,6,12" data-quick-suffix=" mo" /></label>
             </fieldset>
             <fieldset class="go-wiz__step" data-title="Proof and a note" data-hint="A payment screenshot or PDF, max 3 MB." data-glyph="📎" data-optional>
-              <label>Payment screenshot<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" /></label>
+              <label>Payment screenshot<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" data-drop="Drop the payment screenshot here" data-drop-hint="An image or a PDF · up to 3 MB" /></label>
               <label>Note<input name="note" /></label>
             </fieldset>
             <div class="go-wiz__actions"><button type="submit" class="btn btn--primary">Add hours ✓</button></div>
@@ -423,9 +423,9 @@
               <label>Date<input name="session_date" type="date" required /></label>
               <label>Duration (hours)<input name="hours" type="number" min="0.25" step="0.25" value="1" required data-quick="0.5,1,1.5,2" data-quick-suffix="h" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="What was it about?" data-hint="A topic, and the minutes as a PDF if you wrote them." data-glyph="📝" data-optional>
+            <fieldset class="go-wiz__step" data-title="What was it about?" data-hint="A topic, and the minutes or the slides you showed." data-glyph="📝" data-optional>
               <label>Topic<input name="topic" placeholder="What was the session about?" /></label>
-              <label>Meeting minutes (PDF, max 3 MB)<input name="pdf" type="file" accept="application/pdf" /></label>
+              <label>Minutes or slides<input name="pdf" type="file" accept=".pdf,.pptx,.ppsx,.ppt,.key,.odp,.docx,.doc" data-drop="Drop the minutes or slides here" data-drop-hint="PDF, PowerPoint, Keynote or Word · up to 20 MB" /></label>
             </fieldset>
             <div class="go-wiz__actions">
               <button type="submit" class="btn btn--primary" id="btnSessionSubmit">Record session</button>
@@ -434,7 +434,7 @@
           </form>
           <div class="table-scroll">
             <table class="table" id="sessionsTable">
-              <thead><tr><th>Date</th><th class="num">Hours</th><th>Topic</th><th>Minutes</th><th></th></tr></thead>
+              <thead><tr><th>Date</th><th class="num">Hours</th><th>Topic</th><th>File</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -474,8 +474,9 @@
   <script src="js/tools/chart.js?v=19"></script>
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/meetings.js?v=3"></script>
-  <script src="js/tools/go.js?v=2"></script>
+  <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/country.js?v=1"></script>
-  <script src="js/tools/admin.js?v=12"></script>
+  <script src="js/tools/files.js?v=1"></script>
+  <script src="js/tools/admin.js?v=13"></script>
 </body>
 </html>

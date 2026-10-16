@@ -229,9 +229,53 @@
     });
   }
 
+  /* <input type=file data-drop="title" data-drop-hint="…"> becomes a drop box:
+     drag a file onto it or tap it; the chosen file shows with its icon. The
+     input itself lies over the box, so picking and dropping stay the
+     browser's own. data-current names a file already saved. */
+  var FILE_GLYPHS = { pdf: "📕", pptx: "📊", ppsx: "📊", ppt: "📊", key: "🎞", odp: "📽", docx: "📝", doc: "📝", png: "🖼", jpg: "🖼", jpeg: "🖼", webp: "🖼", heic: "🖼" };
+  function glyphFor(name) { return FILE_GLYPHS[((/\.([a-z0-9]+)$/i.exec(name || "") || [])[1] || "").toLowerCase()] || "📎"; }
+  function kb(n) { return n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB"; }
+
+  function buildDrop(input) {
+    var box = input._goDrop;
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "go-drop";
+      box.innerHTML = '<span class="go-drop__icon" aria-hidden="true">⬆️</span>' +
+        '<span class="go-drop__text"><b></b><small></small></span><span class="go-drop__file" hidden></span>';
+      input.parentNode.insertBefore(box, input);
+      box.appendChild(input);
+      input._goDrop = box;
+      box.querySelector("b").textContent = input.getAttribute("data-drop");
+      box.querySelector("small").textContent = input.getAttribute("data-drop-hint") || "";
+      ["dragenter", "dragover"].forEach(function (t) { input.addEventListener(t, function () { box.classList.add("is-over"); }); });
+      ["dragleave", "drop"].forEach(function (t) { input.addEventListener(t, function () { box.classList.remove("is-over"); }); });
+      input.addEventListener("change", function () { syncDrop(input); if (input.files && input.files[0]) { play("coin"); box.classList.remove("go-pop"); void box.offsetWidth; box.classList.add("go-pop"); } });
+      if (input.form) input.form.addEventListener("reset", function () { setTimeout(function () { syncDrop(input); }, 0); });
+    }
+    syncDrop(input);
+  }
+  function syncDrop(input) {
+    var box = input._goDrop;
+    if (!box) return;
+    var f = input.files && input.files[0];
+    var current = input.getAttribute("data-current");
+    var out = box.querySelector(".go-drop__file");
+    box.classList.toggle("has-file", !!f);
+    if (f) {
+      out.hidden = false;
+      out.innerHTML = '<span aria-hidden="true">' + glyphFor(f.name) + "</span><b>" + esc(f.name) + "</b><small>" + kb(f.size) + " · tap to change</small>";
+    } else if (current) {
+      out.hidden = false;
+      out.innerHTML = '<span aria-hidden="true">' + glyphFor(current) + "</span><b>" + esc(current) + "</b><small>saved · drop a new one to replace it</small>";
+    } else out.hidden = true;
+  }
+
   function sync(root) {
     (root || document).querySelectorAll("select[data-picks]").forEach(buildPicks);
     (root || document).querySelectorAll("input[data-quick]").forEach(buildQuick);
+    (root || document).querySelectorAll("input[type=file][data-drop]").forEach(buildDrop);
   }
 
   /* ---------------- wizards ----------------
@@ -525,19 +569,6 @@
     }).observe(document.body, { childList: true, subtree: true });
   }
 
-  // cards lean toward the pointer, a little
-  function tilt(ev) {
-    var el = ev.target.closest && ev.target.closest(".go-home__tile, .client-card, .tile, .countdown");
-    document.querySelectorAll(".go-tilting").forEach(function (o) {
-      if (o !== el) { o.classList.remove("go-tilting"); o.style.transform = ""; }
-    });
-    if (!el) return;
-    var r = el.getBoundingClientRect();
-    var px = (ev.clientX - r.left) / r.width - 0.5, py = (ev.clientY - r.top) / r.height - 0.5;
-    el.classList.add("go-tilting");
-    el.style.transform = "perspective(900px) rotateX(" + (-py * 5).toFixed(2) + "deg) rotateY(" + (px * 6).toFixed(2) + "deg) translateY(-3px)";
-  }
-
   // a shake for "no"
   function shake(el) {
     if (calm || !el) return;
@@ -563,10 +594,7 @@
       lastPoint = { x: ev.clientX, y: ev.clientY, t: performance.now() };
       if (!calm) ripple(ev);
     }, true);
-    if (!calm && window.matchMedia("(pointer: fine)").matches) {
-      document.addEventListener("pointermove", tilt, { passive: true });
-      document.addEventListener("pointerleave", function () { tilt({ target: document.body }); });
-    }
+    // no 3D tilt on cards (owner, 2026-10-16: "disable all this 3d effect")
     watchCounts();
     loaderTalk();
     // a ticked box is a small win: a coin and a pop of confetti

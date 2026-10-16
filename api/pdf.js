@@ -1,8 +1,9 @@
 // Stream stored attachments.
-//   GET /api/pdf?id=N      -> a session's meeting-minutes PDF
+//   GET /api/pdf?id=N      -> a session's file (minutes or slides); &info=1 / &part=k for big ones
 //   GET /api/pdf?proof=N   -> a purchase's payment proof (image or PDF)
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
+import { serveSessionFile } from "./_lib/files.js";
 
 // neon may return bytea as a Buffer or as a '\x…' hex string
 const toBuf = (v) => (Buffer.isBuffer(v) ? v : Buffer.from(String(v).replace(/^\\x/, ""), "hex"));
@@ -28,7 +29,5 @@ export default withErrors(async (req, res) => {
 
   const id = Number(req.query.id);
   if (!id) return json(res, 400, { error: "id is required" });
-  const [row] = await sql`SELECT pdf, pdf_name FROM client_sessions WHERE id = ${id}`;
-  if (!row || !row.pdf) return json(res, 404, { error: "No PDF for this session" });
-  return send(res, row.pdf, "application/pdf", row.pdf_name || "minutes.pdf");
+  return serveSessionFile(sql, res, req.query, id, null);
 });

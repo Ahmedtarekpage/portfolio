@@ -619,8 +619,8 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 }
 @keyframes go-sweep { 70% { opacity: 0.18; } to { clip-path: circle(150% at var(--x) var(--y)); opacity: 0; } }
 
-/* cards that lean toward the pointer settle back smoothly */
-.tile, .countdown, .go-home__tile, .client-card { transition: transform 260ms var(--ease-out), box-shadow 220ms ease, border-color 160ms ease; will-change: transform; }
+/* flat, always: no 3D on any card (owner, 2026-10-16) */
+.card, .tile, .countdown, .go-home__tile, .client-card { transform-style: flat; }
 
 /* countdown digits roll in on every tick */
 .countdown__unit--tick .countdown__value { animation: go-roll 420ms var(--ease-bounce) both !important; }
@@ -674,4 +674,64 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   .go-loader__climb { animation: none; stroke-dashoffset: 0; }
   .go-loader__peak, .go-loader__shadow { animation: none; }
   .go-ripple, .go-sweep, .go-burst { display: none; }
+}
+
+/* ---------- a drop box for files ---------- */
+.go-drop {
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: center;
+  padding: 18px; border: 2px dashed var(--glass-brd); border-radius: var(--radius-lg); background: var(--bg);
+  transition: border-color 160ms ease, background-color 160ms ease, transform 200ms var(--ease-bounce);
+}
+.go-drop:hover, .go-drop.is-over { border-color: var(--go-blue); background: var(--go-blue-tint); }
+.go-drop.is-over { transform: scale(1.015); }
+.go-drop.is-over .go-drop__icon { animation: go-bob 900ms ease-in-out infinite; }
+.go-drop.has-file { border-style: solid; border-color: var(--c-purchase); background: var(--wash-success); }
+.go-drop__icon { font-size: 1.9rem; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: var(--glass); box-shadow: var(--shadow-card); }
+.go-drop__text { display: grid; gap: 2px; min-width: 0; }
+.go-drop__text b { font: 800 0.98rem var(--font-ui); color: var(--ink); }
+.go-drop__text small { font: 600 0.8rem var(--font-ui); color: var(--muted); }
+.go-drop__file {
+  grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; align-items: center;
+  margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--glass); border: 1.5px solid var(--glass-brd);
+}
+.go-drop__file > span { grid-row: 1 / span 2; font-size: 1.5rem; }
+.go-drop__file b { font: 700 0.88rem var(--font-ui); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.go-drop__file small { font: 600 0.75rem var(--font-ui); color: var(--muted); }
+.go-drop input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; padding: 0; border: 0; z-index: 1; }
+
+/* ---------- a session's file: icon, name, size ---------- */
+.file-chip {
+  display: inline-grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; align-items: center; max-width: 240px;
+  padding: 7px 12px 7px 8px; border-radius: var(--radius-md); border: 1.5px solid var(--glass-brd); background: var(--glass);
+  color: var(--ink); cursor: pointer; text-align: left; font: inherit;
+  transition: transform 180ms var(--ease-bounce), border-color 160ms ease, box-shadow 160ms ease;
+}
+.file-chip:hover { transform: translateY(-2px); border-color: var(--go-blue); box-shadow: var(--shadow-pop); }
+.file-chip.is-busy { opacity: 0.6; cursor: progress; }
+.file-chip__icon { grid-row: 1 / span 2; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; font-size: 1.25rem; background: var(--wash); }
+.file-chip--pdf .file-chip__icon { background: var(--wash-rose); }
+.file-chip--ppt .file-chip__icon { background: var(--wash-amber); }
+.file-chip--key .file-chip__icon, .file-chip--doc .file-chip__icon { background: var(--go-blue-tint); }
+.file-chip__text { display: grid; min-width: 0; }
+.file-chip__text b { font: 700 0.82rem var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip__text small { font: 600 0.7rem var(--font-ui); color: var(--muted); }
+
+/* ---------- purchases and sessions: one size, the list scrolls inside ---------- */
+#view-client .cols { align-items: stretch; }
+#view-client .cols > .card { display: flex; flex-direction: column; min-height: 0; }
+#view-client .cols .table-scroll, .share-sessions .table-scroll {
+  flex: 1; max-height: 440px; overflow-y: auto; overflow-x: hidden; margin: 6px -6px 0; padding: 0 6px 6px;
+  scrollbar-gutter: stable; overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+}
+#sessionsTable tr { align-items: center; }
+#sessionsTable td.row-file:empty { display: none; }
+#sessionsTable td.row-file { flex: 0 1 auto; min-width: 0; }
+.table-scroll:has(> #sessionsTable) { max-height: 440px; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
+/* a long run of meetings scrolls inside its card too */
+#meetingsUpcoming:not(:empty) {
+  max-height: 560px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding-right: 4px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
 }

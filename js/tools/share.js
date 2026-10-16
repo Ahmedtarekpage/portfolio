@@ -71,7 +71,7 @@
       var s = (current.sessions || []).filter(function (x) { return x.id === p.sessionId; })[0];
       if (s) {
         if (s.topic) rows.push(detailRow("Topic", esc(s.topic)));
-        if (s.has_pdf) rows.push(detailRow("Minutes", '<a href="/api/share?token=' + encodeURIComponent(token) + "&pdf=" + s.id + '" target="_blank" rel="noopener">📄 PDF</a>'));
+        if (s.has_pdf) rows.push(detailRow("File", fileChip(s)));
       }
     }
 
@@ -145,17 +145,32 @@
     }).join("");
 
     $("#sessionsTable tbody").innerHTML = data.sessions.map(function (s) {
-      return "<tr><td>" + fmtDate(s.session_date) + "</td>" +
-        '<td class="num">' + fmtH(s.hours) + "</td>" +
-        "<td>" + esc(s.topic || "—") + "</td>" +
-        "<td>" + (s.has_pdf
-          ? '<a href="/api/share?token=' + encodeURIComponent(token) + "&pdf=" + s.id + '" target="_blank" rel="noopener">📄 PDF</a>'
-          : '<span class="muted">—</span>') + "</td></tr>";
+      return '<tr><td data-label="Date">' + fmtDate(s.session_date) + "</td>" +
+        '<td class="num" data-label="Hours"><strong>' + fmtH(s.hours) + "</strong></td>" +
+        '<td class="row-wide" data-label="Topic">' + esc(s.topic || "—") + "</td>" +
+        '<td class="row-file">' + (s.has_pdf ? fileChip(s) : "") + "</td></tr>";
     }).join("");
 
     show("view-share");
     renderChart();
   }
+
+  // a session's minutes or slides: an icon for the kind, opened however big it is
+  function fileChip(s) {
+    var k = Files.kind(s.pdf_name);
+    return '<button type="button" class="file-chip file-chip--' + k.tone + '" data-file="' + Number(s.id) + '">' +
+      '<span class="file-chip__icon" aria-hidden="true">' + k.glyph + "</span>" +
+      '<span class="file-chip__text"><b>' + esc(s.pdf_name || "File") + "</b><small>" + esc(k.label + (s.file_size ? " · " + Files.size(s.file_size) : "")) + "</small></span></button>";
+  }
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-file]");
+    if (!b || !current) return;
+    var s = (current.sessions || []).filter(function (x) { return x.id === Number(b.getAttribute("data-file")); })[0];
+    if (!s) return;
+    b.classList.add("is-busy");
+    Files.open("/api/share?token=" + encodeURIComponent(token) + "&pdf=" + s.id, { size: s.file_size, name: s.pdf_name, type: s.file_type })
+      .catch(function () {}).then(function () { b.classList.remove("is-busy"); });
+  });
 
   fetch("/api/share?token=" + encodeURIComponent(token))
     .then(function (r) { return r.json().then(function (d) { return r.ok ? d : Promise.reject(new Error(d.error || "Invalid link")); }); })

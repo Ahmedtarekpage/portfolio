@@ -40,7 +40,8 @@ export default withErrors(async (req, res) => {
     const packages = await sql`SELECT id, client_id, hours, amount_paid, currency, purchased_at, expires_at, note,
         (proof IS NOT NULL) AS has_proof
       FROM hour_packages WHERE client_id = ${id} ORDER BY purchased_at DESC, id DESC`;
-    const sessions = await sql`SELECT id, client_id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf
+    const sessions = await sql`SELECT id, client_id, session_date, hours, topic, pdf_name, file_type,
+        coalesce(file_size, octet_length(pdf)) AS file_size, (pdf IS NOT NULL) AS has_pdf
       FROM client_sessions WHERE client_id = ${id} ORDER BY session_date DESC, id DESC`;
     const settings = await getSettings(sql);
     // "today" is the admin's calendar day, not the server's UTC one

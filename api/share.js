@@ -11,9 +11,9 @@
 import { db } from "./_lib/db.js";
 import { withErrors, json, safeEqual } from "./_lib/util.js";
 import { computeClient } from "./_lib/hours.js";
+import { serveSessionFile } from "./_lib/files.js";
 import { runReminders, remindersOn, shape, getSettings, adminZone, todayIn, calendarFeed } from "./_lib/meetings.js";
 
-const toBuf = (v) => (Buffer.isBuffer(v) ? v : Buffer.from(String(v).replace(/^\\x/, ""), "hex"));
 
 export default withErrors(async (req, res) => {
   if (req.query.cron === "reminders" && (req.method === "GET" || req.method === "POST")) {
@@ -51,20 +51,15 @@ export default withErrors(async (req, res) => {
 
   const pdfId = Number(req.query.pdf);
   if (pdfId) {
-    const [row] = await sql`SELECT pdf, pdf_name FROM client_sessions
-      WHERE id = ${pdfId} AND client_id = ${client.id}`;
-    if (!row || !row.pdf) return json(res, 404, { error: "No PDF for this session" });
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${String(row.pdf_name || "minutes.pdf").replace(/[^\w.\- ]+/g, "_")}"`);
-    res.setHeader("Cache-Control", "private, no-store");
-    return res.status(200).send(toBuf(row.pdf));
+    return serveSessionFile(sql, res, req.query, pdfId, client.id);
   }
 
   // NOTE: no amount_paid / currency here — payment amounts are admin-only
   // and must never be exposed through the public share link.
   const packages = await sql`SELECT id, hours, purchased_at, expires_at
     FROM hour_packages WHERE client_id = ${client.id} ORDER BY purchased_at DESC, id DESC`;
-  const sessions = await sql`SELECT id, session_date, hours, topic, pdf_name, (pdf IS NOT NULL) AS has_pdf
+  const sessions = await sql`SELECT id, session_date, hours, topic, pdf_name, file_type,
+      coalesce(file_size, octet_length(pdf)) AS file_size, (pdf IS NOT NULL) AS has_pdf
     FROM client_sessions WHERE client_id = ${client.id} ORDER BY session_date DESC, id DESC`;
 
   // what is coming, and the last week of what has been — enough for the page

@@ -94,6 +94,17 @@ async function migrate(sql) {
     pdf BYTEA,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  // a session's file may be slides or a document, not just a PDF
+  await sql`ALTER TABLE client_sessions ADD COLUMN IF NOT EXISTS file_type TEXT`;
+  await sql`ALTER TABLE client_sessions ADD COLUMN IF NOT EXISTS file_size INTEGER`;
+  // big files arrive in pieces and are joined when the session is saved
+  await sql`CREATE TABLE IF NOT EXISTS upload_chunks (
+    upload_id TEXT NOT NULL,
+    idx INTEGER NOT NULL,
+    data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (upload_id, idx)
+  )`;
   // time tracking: quarterly category goals + daily to-do tasks
   await sql`CREATE TABLE IF NOT EXISTS quarters (
     id SERIAL PRIMARY KEY,
