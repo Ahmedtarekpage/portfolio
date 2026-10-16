@@ -3266,6 +3266,31 @@
     $(sel).addEventListener("input", fillCountNow);
   });
 
+  /* The days filled in before the label existed, and a stretch marked by
+     mistake (owner, 2026-10-16: "I have filled days from 25th Sep to 17 Oct,
+     so add this to them"). The dates above say which days. */
+  function markRange(estimated, btn) {
+    var from = $("#fillFrom").value, to = $("#fillTo").value;
+    if (!from || !to || from > to) { toast("Pick a first and last day", true); return; }
+    var was = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = estimated ? "Marking…" : "Removing…";
+    api("/api/tasks?estimate=1", { method: "PATCH", body: { from: from, to: to, estimated: estimated } })
+      .then(function (r) {
+        if (!r.days) { toast(estimated ? "Those days already say estimated" : "No label to remove in those days"); return null; }
+        closeFillDays();
+        playAddSound();
+        toast(r.days + " day" + (r.days === 1 ? "" : "s") +
+          (estimated ? " now say estimated ✓" : " no longer say estimated ✓"));
+        return loadDaysGallery({ animate: false });
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { btn.disabled = false; btn.textContent = was; });
+  }
+
+  $("#fillMark").addEventListener("click", function () { markRange(true, this); });
+  $("#fillUnmark").addEventListener("click", function () { markRange(false, this); });
+
   $("#fillGo").addEventListener("click", function () {
     var btn = this;
     var list = readRoutine($("#fillList").value);

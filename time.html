@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
   <link rel="stylesheet" href="css/tools/time.css?v=45" />
-  <link rel="stylesheet" href="css/tools/go.css?v=10" />
+  <link rel="stylesheet" href="css/tools/go.css?v=11" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -635,6 +635,15 @@
           <button type="button" class="btn btn--hero" id="fillGo">Fill the days</button>
           <button type="button" class="btn btn--ghost" id="fillCancel">Cancel</button>
         </div>
+        <!-- Days filled in before the label existed can be marked now, and a
+             stretch marked by mistake can be unmarked (owner, 2026-10-16). -->
+        <div class="fill-sheet__also">
+          <p class="muted fill-sheet__hint">Already filled those days? Put the <strong>estimated</strong> label on everything between the two dates above.</p>
+          <div class="fill-sheet__actions">
+            <button type="button" class="btn btn--ghost" id="fillMark">🏷 Mark as estimated</button>
+            <button type="button" class="btn btn--ghost" id="fillUnmark">Remove the label</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -647,6 +656,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=64"></script>
+  <script src="js/tools/time.js?v=65"></script>
 </body>
 </html>

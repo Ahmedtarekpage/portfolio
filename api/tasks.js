@@ -4,7 +4,8 @@
 //   GET    /api/tasks?totals=1               -> { totalDone, totalTasks } all-time — for gamification stats
 //   POST   /api/tasks?duplicate=1            -> { from_date, to_date }: copy a day's tasks (title/category/planned hours only) onto another date
 //   POST   /api/tasks                        -> { task_date, title, category_id?, planned_hours?, icon?, estimated? }
-//   PATCH  /api/tasks?reorder=1              -> { ids: [id, ...] }: persist new drag order for those tasks
+//   PATCH  /api/tasks?estimate=1          -> { from, to, estimated? }: mark (or unmark) a stretch of days as written in afterwards
+//   PATCH  /api/tasks?reorder=1             -> { ids: [id, ...] }: persist new drag order for those tasks
 //   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, actual_hours?, icon? }
 //   DELETE /api/tasks?date=YYYY-MM-DD        -> delete every task on that day
 //   DELETE /api/tasks?ids=1,2,3              -> delete a hand-picked set in one go -> { count }
@@ -77,6 +78,23 @@ export default withErrors(async (req, res) => {
         (SELECT COALESCE(MAX(position), -1) + 1 FROM tasks WHERE task_date = ${b.task_date}::date))
       RETURNING *`;
     return json(res, 201, { task });
+  }
+
+  // Days filled in before the "estimated" mark existed (owner, 2026-10-16:
+  // "I have filled days from 25th Sep to 17 Oct, add this to them"), and the
+  // way back out if a stretch was marked by mistake.
+  if (req.method === "PATCH" && req.query.estimate) {
+    const b = req.body || {};
+    const from = String(b.from || "").slice(0, 10);
+    const to = String(b.to || "").slice(0, 10);
+    if (!isDate(from) || !isDate(to)) return json(res, 400, { error: "from/to must be YYYY-MM-DD" });
+    if (from > to) return json(res, 400, { error: "The first day must come before the last" });
+    const estimated = b.estimated !== false;
+    const rows = await sql`UPDATE tasks SET estimated = ${estimated}
+      WHERE task_date BETWEEN ${from}::date AND ${to}::date AND estimated IS DISTINCT FROM ${estimated}
+      RETURNING task_date::text AS date`;
+    const days = new Set(rows.map((r) => r.date)).size;
+    return json(res, 200, { ok: true, tasks: rows.length, days });
   }
 
   if (req.method === "PATCH" && req.query.reorder) {

@@ -828,6 +828,10 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 .fill-sheet__count { font: 700 0.82rem var(--font-ui); color: var(--muted); min-height: 1.3em; }
 .fill-sheet__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .fill-sheet__actions .btn { flex: 1 1 150px; justify-content: center; }
+.fill-sheet__also {
+  display: grid; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--border);
+}
+.fill-sheet__also .btn { font-size: 0.82rem; }
 .days-quarter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 /* ---------- a day written in afterwards, not tracked on the day ---------- */
