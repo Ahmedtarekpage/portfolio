@@ -942,6 +942,37 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 }
 .goal-row__step:hover { border-color: var(--go-blue); background: var(--go-blue-tint); }
 .goal-row__step:active { transform: scale(0.9); }
+/* the save row of the cycle form: the two buttons had nothing between them and
+   sat right on top of the tiles below (owner, 2026-10-17: "these button is too
+   close") */
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 22px; }
+.form-actions .btn { min-height: 46px; }
+#quartersSummary { margin-top: 18px; }
+#addQuarterBox .section-collapse__body, details#addQuarterBox > .form { padding-bottom: 6px; }
+
+/* the target, with its own small +/- so it never needs the edit form */
+.goal-row__target { display: inline-flex; align-items: center; gap: 6px; }
+.goal-row__slash { color: var(--faint); font-weight: 800; }
+.goal-row__tstep {
+  width: 30px; height: 30px; flex: none; border-radius: 999px; cursor: pointer;
+  border: 1.5px dashed var(--border); background: transparent; color: var(--muted);
+  font: 800 0.95rem var(--font-ui); line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 160ms var(--ease-bounce), border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+.goal-row__tstep:hover { border-style: solid; border-color: var(--go-blue); color: var(--go-blue-dark); background: var(--go-blue-tint); }
+.goal-row__tstep:active { transform: scale(0.9); }
+.goal-row__target-input {
+  width: 56px; padding: 5px 6px; border-radius: var(--radius-md);
+  border: 1.5px dashed var(--border); background: transparent; color: var(--ink);
+  font: 800 0.9rem var(--font-display); text-align: center; font-variant-numeric: tabular-nums;
+  outline: none; -moz-appearance: textfield;
+}
+.goal-row__target-input::-webkit-outer-spin-button,
+.goal-row__target-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.goal-row__target-input:focus { border-style: solid; border-color: var(--go-blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+.goal-row__unit { color: var(--muted); }
+
 .goal-row__cat-tag {
   background: var(--wash-strong); color: var(--muted); border-radius: 999px;
   padding: 3px 9px; font: 800 0.7rem var(--font-ui);
@@ -971,6 +1002,11 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   .goal-row__pct { order: 3; }
   .goal-row__top .iconbtn { order: 4; }
   .goal-row__top .iconbtn:first-of-type { margin-left: auto; } /* the buttons keep to the right edge */
+  /* the count and the target each keep a line, rather than squeezing six
+     controls onto one */
+  .goal-row__nums { flex-wrap: wrap; row-gap: 8px; }
+  .goal-row__current { width: 64px; }
+  .goal-row__target { flex: 1 1 100%; }
   .goal-add-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .goal-add-form input[name="title"] { grid-column: 1 / -1; width: 100%; }
   .goal-add-form input[name="target"], .goal-add-form input[name="unit"] { width: 100%; }

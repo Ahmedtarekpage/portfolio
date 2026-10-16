@@ -1759,7 +1759,15 @@
         '<button type="button" class="goal-row__step" data-delta="-1" title="-1">−</button>' +
         '<input type="number" min="0" step="any" class="goal-row__current" value="' + fmtNum(g.current) + '" />' +
         '<button type="button" class="goal-row__step" data-delta="1" title="+1">+</button>' +
-        ' / <b>' + fmtNum(g.target) + '</b>' + (g.unit ? ' ' + esc(g.unit) : '') +
+        // the target moves by its own buttons too, rather than only through the
+        // edit form (owner, 2026-10-17: "like additional shortcut")
+        '<span class="goal-row__target">' +
+          '<span class="goal-row__slash">/</span>' +
+          '<button type="button" class="goal-row__tstep" data-tdelta="-1" title="Lower the target" aria-label="Lower the target">−</button>' +
+          '<input type="number" min="0" step="any" class="goal-row__target-input" value="' + fmtNum(g.target) + '" aria-label="Target" />' +
+          '<button type="button" class="goal-row__tstep" data-tdelta="1" title="Raise the target" aria-label="Raise the target">+</button>' +
+          (g.unit ? '<span class="goal-row__unit">' + esc(g.unit) + '</span>' : '') +
+        '</span>' +
       '</div>' +
     '</div>';
   }
@@ -1775,6 +1783,8 @@
     // the moment it is reached, the goal goes green and says so once
     var wasDone = row.classList.contains("goal-row--done");
     row.classList.toggle("goal-row--done", pct >= 100);
+    var targetInput = row.querySelector(".goal-row__target-input");
+    if (targetInput && document.activeElement !== targetInput) targetInput.value = fmtNum(target);
     if (pct >= 100 && !wasDone && window.Go) {
       var r = row.getBoundingClientRect();
       window.Go.burst(r.left + r.width / 2, r.top + r.height / 2, 20, ["🎯", "✨"]);
@@ -1814,6 +1824,26 @@
 
   // updates every instance of this goal's row in the DOM — a goal can appear
   // both in its category card and in the flat "all goals" list at once
+  /* The target, moved from the row itself. A target of nothing would make the
+     percentage meaningless, so the buttons stop at 1; typing any number is
+     still allowed. */
+  function setGoalTarget(goal, target, category) {
+    var current = Number(goal.current) || 0;
+    var wasDone = goalPct(goal) >= 100;
+    goal.target = target;
+    updateAllGoalRowInstances(goal.id, current, target);
+    refreshOverallBars(category);
+    bumpGoalRows(goal.id);
+    if (!(target > 0 && current >= target && !wasDone)) playStepSound(); // the done moment makes its own noise
+    api("/api/goals?id=" + goal.id, { method: "PATCH", body: { target: target, log_date: todayISO() } })
+      .then(function () { loadGamification(); })
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  }
+
+  function stepGoalTarget(goal, delta, category) {
+    setGoalTarget(goal, Math.max(1, (Number(goal.target) || 0) + delta), category);
+  }
+
   function updateAllGoalRowInstances(goalId, current, target) {
     document.querySelectorAll('.goal-row[data-id="' + goalId + '"]').forEach(function (row) {
       updateGoalRowUI(row, current, target);
@@ -1867,6 +1897,14 @@
   function wireGoalRow(row, g, category) {
     row.querySelectorAll(".goal-row__step").forEach(function (btn) {
       btn.addEventListener("click", function () { stepGoal(g, Number(btn.dataset.delta), category); });
+    });
+    row.querySelectorAll(".goal-row__tstep").forEach(function (btn) {
+      btn.addEventListener("click", function () { stepGoalTarget(g, Number(btn.dataset.tdelta), category); });
+    });
+    row.querySelector(".goal-row__target-input").addEventListener("change", function (ev) {
+      var v = Number(ev.target.value);
+      if (!(v > 0)) { ev.target.value = fmtNum(g.target); toast("A target has to be more than 0", true); return; }
+      setGoalTarget(g, v, category);
     });
     row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
       var v = ev.target.value === "" ? 0 : Number(ev.target.value);
