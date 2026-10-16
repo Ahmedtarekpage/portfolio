@@ -525,3 +525,19 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 @media (max-width: 520px) {
   .client-hero .client-head { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+/* ---------- where a client is from: a flag sticker on the photo, a chip on the card ---------- */
+.client-card__pic { position: relative; display: inline-flex; flex: none; }
+.flag-sticker {
+  position: absolute; right: -6px; bottom: -4px; font-size: 1.05rem; line-height: 1;
+  background: var(--glass); border-radius: 999px; padding: 3px; box-shadow: 0 2px 6px rgba(21, 34, 56, 0.18);
+  transform: rotate(-8deg); transition: transform 260ms var(--ease-bounce);
+}
+.client-card:hover .flag-sticker { transform: rotate(0) scale(1.15); }
+.client-card__end { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+.client-card__end .client-card__type { margin-left: 0; }
+.country-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  background: var(--wash); color: var(--ink); font: 700 0.74rem var(--font-ui); white-space: nowrap;
+}
+.client-chip--country { background: #fff; color: var(--night-navy); }

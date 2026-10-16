@@ -293,16 +293,21 @@
       if (days <= 7) chips += '<span class="badge badge--warn">' + fmtH(t.nextExpiry.hours) + " expire in " + days + "d</span>";
     }
     if (t.overdraft > 0) chips += '<span class="badge badge--danger">unpaid ' + fmtH(t.overdraft) + "</span>";
+    var where = Country.of(c);
 
     return '<button type="button" class="client-card" data-id="' + Number(c.id) + '">' +
-      '<span class="client-card__head">' + avatarHtml(c, "avatar--md") +
+      '<span class="client-card__head"><span class="client-card__pic">' + avatarHtml(c, "avatar--md") +
+        (where ? '<span class="flag-sticker" title="' + esc(where.name) + '" aria-hidden="true">' + where.flag + "</span>" : "") + "</span>" +
         '<span class="client-card__id"><strong>' + esc(c.name) + "</strong>" +
         '<span class="muted">' + esc([c.phone, c.email].filter(Boolean)[0] || c.nationality || "No contact details") + "</span></span>" +
         '<span class="client-card__hours' + (Number(t.available) > 0 ? "" : " client-card__hours--none") + '"><b>' + fmtH(t.available) + "</b><span>left</span></span>" +
       "</span>" +
       '<span class="client-card__foot">' +
         (chips || '<span class="muted">' + (t.nextExpiry ? "Expires " + fmtDate(t.nextExpiry.date) : "No meeting scheduled") + "</span>") +
-        (c.transaction_type ? '<span class="client-card__type">' + esc(c.transaction_type) + "</span>" : "") +
+        '<span class="client-card__end">' +
+          (where ? '<span class="country-chip"><span aria-hidden="true">' + where.flag + "</span>" + esc(where.name) + "</span>" : "") +
+          (c.transaction_type ? '<span class="client-card__type">' + esc(c.transaction_type) + "</span>" : "") +
+        "</span>" +
       "</span></button>";
   }
 
@@ -312,7 +317,8 @@
     $("#clientGrid").classList.toggle("stagger", animate === true);
     var shown = state.clients.filter(function (c) {
       if (!q) return true;
-      return [c.name, c.phone, c.email, c.nationality].join(" ").toLowerCase().indexOf(q) !== -1;
+      var where = Country.of(c);
+      return [c.name, c.phone, c.email, c.nationality, where ? where.name : ""].join(" ").toLowerCase().indexOf(q) !== -1;
     });
     $("#clientGrid").innerHTML = shown.map(clientCardHtml).join("");
     $("#clientCount").textContent = state.clients.length ? String(state.clients.length) : "";
@@ -588,9 +594,14 @@
     $("#btnPhoto").setAttribute("aria-label", $("#btnPhoto").title);
     $("#btnRemovePhoto").hidden = !c.photo;
     $("#cName").textContent = c.name;
-    var chips = [["📞", c.phone], ["✉️", c.email], ["🌍", c.nationality], ["💳", c.transaction_type], ["📝", c.notes]]
+    // the country from the phone's code leads; a nationality saying something else still shows
+    var where = Country.of(c);
+    var said = Country.fromName(c.nationality);
+    var chips = [[where ? where.flag : "", where ? where.name : ""], ["📞", c.phone], ["✉️", c.email],
+      [said ? said.flag : "🌍", c.nationality && (!where || !said || said.iso !== where.iso) ? c.nationality : ""],
+      ["💳", c.transaction_type], ["📝", c.notes]]
       .filter(function (x) { return x[1]; })
-      .map(function (x) { return '<span class="client-chip"><span aria-hidden="true">' + x[0] + "</span>" + esc(x[1]) + "</span>"; });
+      .map(function (x, i) { return '<span class="client-chip' + (i === 0 && where ? " client-chip--country" : "") + '"><span aria-hidden="true">' + x[0] + "</span>" + esc(x[1]) + "</span>"; });
     $("#cMeta").innerHTML = chips.join("") || '<span class="client-chip client-chip--empty">No contact details yet</span>';
     $("#editClientForm").hidden = true;
     state.editingMeetingId = null;
