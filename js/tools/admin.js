@@ -8,7 +8,8 @@
     clients: [], agenda: [], settings: null, editingMeetingId: null,
     daysTouched: false, seriesPlan: null, seriesSeq: 0,
     route: "home", loaded: false,
-    agendaRange: (function () { try { return localStorage.getItem("admin-agenda-range") || "week"; } catch (e) { return "week"; } })(),
+    // every visit opens on Today (owner, 2026-10-16); another filter lasts for the visit
+    agendaRange: "today",
     agendaAll: false,
   };
   var Meet = window.Meet;
@@ -405,7 +406,6 @@
     if (!b) return;
     state.agendaRange = b.getAttribute("data-range");
     state.agendaAll = false;
-    try { localStorage.setItem("admin-agenda-range", state.agendaRange); } catch (e) {}
     renderAgenda(true);
   });
   $("#agendaMore").addEventListener("click", function () { state.agendaAll = true; renderAgenda(); });
