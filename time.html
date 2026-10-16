@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
   <link rel="stylesheet" href="css/tools/time.css?v=45" />
-  <link rel="stylesheet" href="css/tools/go.css?v=8" />
+  <link rel="stylesheet" href="css/tools/go.css?v=9" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -453,6 +453,7 @@
           <div class="days-quarter">
             <select id="daysQuarterPicker" aria-label="Which quarter to show" hidden></select>
             <span class="muted" id="daysQuarterLabel"></span>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnFillDays" data-sound="open">✍️ Fill empty days</button>
           </div>
         </div>
         <!-- the quarters as cards to tap (owner, 2026-10-16: the dropdown was "not the best") -->
@@ -617,6 +618,26 @@
       </div>
     </div>
 
+    <!-- Write the same list onto every empty day of a stretch (owner, 2026-10-16).
+         One task per line; end a line with the word "check" to tick it. -->
+    <div class="photo-menu" id="fillDays" hidden>
+      <div class="photo-menu__backdrop" id="fillDaysBackdrop"></div>
+      <div class="photo-menu__sheet fill-sheet">
+        <div class="photo-menu__title">✍️ Fill empty days</div>
+        <p class="muted fill-sheet__hint">One task per line. End a line with <code>check</code> to have it already ticked. Days that already have tasks are left alone.</p>
+        <div class="fill-sheet__dates">
+          <label>From<input type="date" id="fillFrom" /></label>
+          <label>To<input type="date" id="fillTo" /></label>
+        </div>
+        <textarea id="fillList" rows="10" spellcheck="false" aria-label="The tasks, one per line"></textarea>
+        <p class="fill-sheet__count" id="fillCount"></p>
+        <div class="fill-sheet__actions">
+          <button type="button" class="btn btn--hero" id="fillGo">Fill the days</button>
+          <button type="button" class="btn btn--ghost" id="fillCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div class="photo-view" id="dayPhotoView" hidden>
       <button type="button" class="photo-view__close" id="dayPhotoViewClose" aria-label="Close">✕</button>
       <img class="photo-view__img" id="dayPhotoViewImg" alt="" />
@@ -626,6 +647,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=62"></script>
+  <script src="js/tools/time.js?v=63"></script>
 </body>
 </html>

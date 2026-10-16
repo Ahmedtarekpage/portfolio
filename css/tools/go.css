@@ -808,3 +808,24 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
 /* on the smallest tiles the words would be crumbs: the mark carries it alone */
 .day-tile { container-type: inline-size; }
 @container (max-width: 96px) { .day-empty__word { display: none; } .day-empty { inset: 4px; } }
+
+/* ---------- /time: writing a daily list onto the empty days ---------- */
+.fill-sheet { max-width: 520px; width: calc(100% - 28px); text-align: left; display: grid; gap: 12px; }
+.fill-sheet__hint { font-size: 0.85rem; line-height: 1.5; }
+.fill-sheet__hint code { font: 700 0.8rem var(--font-ui); background: var(--wash-strong); padding: 1px 6px; border-radius: 6px; }
+.fill-sheet__dates { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.fill-sheet__dates label { display: grid; gap: 5px; font: 800 0.74rem var(--font-ui); letter-spacing: var(--kicker-track); text-transform: uppercase; color: var(--faint); }
+.fill-sheet__dates input {
+  width: 100%; min-width: 0; padding: 11px 12px; border-radius: var(--radius-md);
+  border: 1.5px solid var(--glass-brd); background: var(--bg); color: var(--ink); font: 600 0.9rem var(--font-ui);
+}
+.fill-sheet textarea {
+  width: 100%; resize: vertical; min-height: 180px; padding: 12px 14px; border-radius: var(--radius-md);
+  border: 1.5px solid var(--glass-brd); background: var(--bg); color: var(--ink);
+  font: 500 0.88rem/1.7 var(--font-ui); outline: none;
+}
+.fill-sheet textarea:focus, .fill-sheet__dates input:focus { border-color: var(--go-blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+.fill-sheet__count { font: 700 0.82rem var(--font-ui); color: var(--muted); min-height: 1.3em; }
+.fill-sheet__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.fill-sheet__actions .btn { flex: 1 1 150px; justify-content: center; }
+.days-quarter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

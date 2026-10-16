@@ -3179,6 +3179,125 @@
     if (ev.key !== "Escape") return;
     if (!$("#dayPhotoView").hidden) closeDayPhotoView();
     else if (!$("#dayPhotoMenu").hidden) closeDayPhotoMenu();
+    else if (!$("#fillDays").hidden) closeFillDays();
+  });
+
+  /* ---------------- fill the empty days of a stretch (owner, 2026-10-16) ----------------
+     The same daily list written onto every day in a range that has nothing on
+     it yet. One task per line; a line ending in the word "check" is written
+     already ticked. A day with any task on it is never touched, so this can be
+     run again later without doubling anything up. */
+
+  var ROUTINE_KEY = "time-routine";
+  var DEFAULT_ROUTINE = [
+    "Pray Fajr on Time", "Azkar Elsbah", "Pray Dohr on Time", "Pray Asr on Time",
+    "Azkar Elmsaa", "Pray Maghrib on Time", "Pray Isha on Time", "Walking 5K Steps",
+    "Healthy Breakfast", "Healthy dinner", "Healthy lunch", "Dwa 1",
+    "Dwa 2 check",
+    "Work 2 hours check", "Work 2 hours check", "Work 2 hours check",
+    "Work 2 hours check", "Work 2 hours check",
+    "Free time check",
+  ].join("\n");
+
+  function readRoutine(text) {
+    return String(text || "").split("\n").map(function (line) {
+      var t = line.trim();
+      if (!t) return null;
+      var done = /(^|\s)check$/i.test(t);
+      var title = t.replace(/(^|\s)check$/i, "").trim();
+      return title ? { title: title.slice(0, 500), done: done } : null;
+    }).filter(Boolean);
+  }
+
+  function daysBetween(from, to) {
+    var out = [];
+    if (!from || !to || from > to) return out;
+    var d = from;
+    while (d <= to && out.length < 400) { out.push(d); d = addDays(d, 1); }
+    return out;
+  }
+
+  function fillCountNow() {
+    var list = readRoutine($("#fillList").value);
+    var days = daysBetween($("#fillFrom").value, $("#fillTo").value);
+    var ticked = list.filter(function (t) { return t.done; }).length;
+    var box = $("#fillCount");
+    if (!days.length || !list.length) {
+      box.textContent = !list.length ? "Write at least one task." : "Pick a first and last day.";
+      $("#fillGo").disabled = true;
+      return;
+    }
+    $("#fillGo").disabled = false;
+    box.textContent = days.length + " day" + (days.length === 1 ? "" : "s") + " × " + list.length +
+      " task" + (list.length === 1 ? "" : "s") + ", " + ticked + " of them ticked — only the empty days get them.";
+  }
+
+  function openFillDays() {
+    var q = state.quarterDetail && state.quarterDetail.quarter;
+    var saved = null;
+    try { saved = localStorage.getItem(ROUTINE_KEY); } catch (e) { /* no storage */ }
+    $("#fillList").value = saved || DEFAULT_ROUTINE;
+    $("#fillFrom").value = q ? String(q.start_date).slice(0, 10) : addDays(todayISO(), -27);
+    // never the days still to come unless you ask for them
+    $("#fillTo").value = todayISO();
+    $("#fillGo").textContent = "Fill the days";
+    fillCountNow();
+    $("#fillDays").hidden = false;
+  }
+  function closeFillDays() { $("#fillDays").hidden = true; }
+
+  $("#btnFillDays").addEventListener("click", openFillDays);
+  $("#fillCancel").addEventListener("click", closeFillDays);
+  $("#fillDaysBackdrop").addEventListener("click", closeFillDays);
+  ["#fillList", "#fillFrom", "#fillTo"].forEach(function (sel) {
+    $(sel).addEventListener("input", fillCountNow);
+  });
+
+  $("#fillGo").addEventListener("click", function () {
+    var btn = this;
+    var list = readRoutine($("#fillList").value);
+    var days = daysBetween($("#fillFrom").value, $("#fillTo").value);
+    if (!list.length || !days.length) return;
+    try { localStorage.setItem(ROUTINE_KEY, $("#fillList").value); } catch (e) { /* no storage */ }
+    btn.disabled = true;
+
+    api("/api/tasks?stats=1&from=" + days[0] + "&to=" + days[days.length - 1])
+      .then(function (res) {
+        var taken = {};
+        (res.stats || []).forEach(function (st) { if (st.total > 0) taken[String(st.date).slice(0, 10)] = true; });
+        var empty = days.filter(function (d) { return !taken[d]; });
+        if (!empty.length) { toast("Every day in that stretch already has tasks"); return null; }
+        var total = empty.length * list.length, made = 0;
+
+        // one at a time: hundreds of rows, and the order they are written is
+        // the order they show in the day's list
+        var step = function (i) {
+          if (i >= empty.length) return Promise.resolve(empty.length);
+          var day = empty[i];
+          var one = function (k) {
+            if (k >= list.length) return Promise.resolve();
+            return api("/api/tasks", { method: "POST", body: { task_date: day, title: list[k].title } })
+              .then(function (r) {
+                made++;
+                btn.textContent = "Writing… " + Math.round((made / total) * 100) + "%";
+                if (!list[k].done || !r.task) return null;
+                return api("/api/tasks?id=" + r.task.id, { method: "PATCH", body: { done: true } });
+              })
+              .then(function () { return one(k + 1); });
+          };
+          return one(0).then(function () { return step(i + 1); });
+        };
+        return step(0);
+      })
+      .then(function (filled) {
+        if (filled == null) return null;
+        closeFillDays();
+        playAddSound();
+        toast(filled + " day" + (filled === 1 ? "" : "s") + " filled ✓");
+        return loadDaysGallery({ animate: false });
+      })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { btn.disabled = false; btn.textContent = "Fill the days"; });
   });
 
   /* ---------------- resize: redraw progress charts ---------------- */
