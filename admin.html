@@ -32,8 +32,9 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=12" />
+  <link rel="stylesheet" href="css/tools/go.css?v=1" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -52,7 +53,7 @@
         <h1>Admin</h1>
         <p class="muted">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
         from a computer your browser will show a QR code to scan with the iPhone.</p>
-        <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
+        <button id="btnLogin" class="btn btn--hero">Sign in with passkey</button>
         <p id="loginError" class="error" hidden></p>
       </div>
     </section>
@@ -66,15 +67,51 @@
         <p class="muted"><strong>On a computer:</strong> tap the button below and your browser will show a
         <strong>QR code</strong> — scan it with the iPhone camera, then confirm with Face&nbsp;ID.<br /><br />
         <strong>On the iPhone itself:</strong> just tap the button and confirm with Face&nbsp;ID.</p>
-        <button id="btnSetup" class="btn btn--primary">Create passkey</button>
+        <button id="btnSetup" class="btn btn--hero">Create passkey</button>
         <p id="setupError" class="error" hidden></p>
+      </div>
+    </section>
+
+    <!-- ================= HOME: where to go (owner, 2026-10-16) ================= -->
+    <section id="view-home" class="view" hidden>
+      <div class="go-hero">
+        <span class="go-hero__glyph" aria-hidden="true">👋</span>
+        <div class="go-hero__kicker" id="homeDate"></div>
+        <h1 id="homeHello">Hi Ahmed</h1>
+        <p>Where do you want to go?</p>
+        <span class="go-hero__bar" aria-hidden="true"></span>
+      </div>
+      <div class="go-home">
+        <button type="button" class="go-home__tile" id="goClients">
+          <span class="go-home__icon" aria-hidden="true">👥</span>
+          <span>
+            <span class="go-home__name">Clients</span>
+            <span class="go-home__sub">Hours, sessions and meetings</span>
+            <span class="go-home__facts" id="homeClientFacts"></span>
+          </span>
+          <span class="go-home__go" aria-hidden="true">→</span>
+        </button>
+        <a class="go-home__tile" href="/time" id="goTime">
+          <span class="go-home__icon" aria-hidden="true">⏱</span>
+          <span>
+            <span class="go-home__name">Time</span>
+            <span class="go-home__sub">Your days, tasks, goals and quarters</span>
+            <span class="go-home__facts"><span class="go-home__fact">Today · Days · Quarters · Ideas</span></span>
+          </span>
+          <span class="go-home__go" aria-hidden="true">→</span>
+        </a>
+      </div>
+      <div class="go-home__more">
+        <a class="btn btn--ghost btn--sm" href="/dashboard">🖋 Site content</a>
+        <button type="button" class="btn btn--ghost btn--sm go-sound"></button>
+        <button type="button" id="btnLogoutHome" class="btn btn--ghost btn--sm">Log out</button>
       </div>
     </section>
 
     <!-- ================= CLIENT LIST ================= -->
     <section id="view-list" class="view" hidden>
       <header class="topbar">
-        <h1>Clients</h1>
+        <h1><button type="button" id="btnHome" class="btn btn--ghost btn--sm" data-sound="page">← Home</button> Clients</h1>
         <div class="topbar__actions">
           <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">🌙</button>
           <button id="btnZone" class="btn btn--ghost btn--sm" title="Your time zone and meeting settings" aria-expanded="false" aria-controls="settingsCard">🌍 <span id="zoneNow">Time zone</span></button>
@@ -114,33 +151,39 @@
 
       <div class="card">
         <details id="addClientBox">
-          <summary class="btnish">+ Add client</summary>
-          <form id="addClientForm" class="form form--grid">
-            <label>Name *<input name="name" required /></label>
-            <label>Phone<input name="phone" type="tel" placeholder="+20 …" /></label>
-            <label>Email<input name="email" type="email" /></label>
-            <label>Gender
-              <select name="gender">
-                <option value="">—</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+          <summary class="btn btn--hero"><span class="when-closed">+ Add a client</span><span class="when-open">✕ Close</span></summary>
+          <form id="addClientForm" class="form" data-wizard data-review-title="Ready to add them?">
+            <fieldset class="go-wiz__step" data-title="What's their name?" data-hint="As you'd write it on an invoice." data-glyph="👤">
+              <label>Name<input name="name" required maxlength="200" autocomplete="off" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="Man or woman?" data-hint="Picks the default picture. You can upload a photo later." data-glyph="🧑" data-optional>
+              <select name="gender" data-picks data-picks-empty>
+                <option value="" data-glyph="🤷">Skip</option>
+                <option value="male" data-glyph="👨">Man</option>
+                <option value="female" data-glyph="👩">Woman</option>
               </select>
-            </label>
-            <label>Nationality<input name="nationality" /></label>
-            <label>Transaction type
-              <select name="transaction_type">
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="How do you reach them?" data-hint="Phone, email, or both." data-glyph="📞" data-optional data-two>
+              <label>Phone<input name="phone" type="tel" placeholder="+20 …" /></label>
+              <label>Email<input name="email" type="email" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="How do they pay you?" data-glyph="💳" data-optional>
+              <select name="transaction_type" data-picks>
                 <option value="">—</option>
-                <option>Direct</option>
-                <option>PayPal</option>
-                <option>Bank transfer</option>
-                <option>Wise</option>
-                <option>InstaPay</option>
-                <option>Other</option>
+                <option data-glyph="🤝">Direct</option>
+                <option data-glyph="🅿️">PayPal</option>
+                <option data-glyph="🏦">Bank transfer</option>
+                <option data-glyph="🌍">Wise</option>
+                <option data-glyph="⚡">InstaPay</option>
+                <option data-glyph="✨">Other</option>
               </select>
-            </label>
-            <label class="span2">Notes<input name="notes" /></label>
-            <label class="span2">Photo (optional)<input name="photo" type="file" accept="image/*" /></label>
-            <div class="span2"><button type="submit" class="btn btn--primary">Save client</button></div>
+              <label>Nationality<input name="nationality" placeholder="Egypt, Saudi Arabia…" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="Anything to remember?" data-hint="A note for you, and a photo if you have one." data-glyph="📝" data-optional>
+              <label>Notes<input name="notes" /></label>
+              <label>Photo<input name="photo" type="file" accept="image/*" /></label>
+            </fieldset>
+            <div class="go-wiz__actions"><button type="submit" class="btn btn--primary">Add client ✓</button></div>
           </form>
         </details>
       </div>
@@ -179,31 +222,40 @@
             <button type="button" class="linklike avatar-remove" id="btnRemovePhoto" hidden>Remove photo</button>
           </div>
         </div>
-        <form id="editClientForm" class="form form--grid" hidden>
-          <label>Name *<input name="name" required /></label>
-          <label>Phone<input name="phone" /></label>
-          <label>Email<input name="email" type="email" /></label>
-          <label>Gender
-              <select name="gender">
-                <option value="">—</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+        <form id="editClientForm" class="form" data-wizard data-review-title="Edit client" data-review-hint="Tap Change on anything you want to fix, then save." hidden>
+          <fieldset class="go-wiz__step" data-title="Name" data-glyph="👤">
+            <label>Name<input name="name" required maxlength="200" /></label>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="Man or woman" data-glyph="🧑" data-optional>
+            <select name="gender" data-picks>
+                <option value="" data-glyph="🤷">Skip</option>
+                <option value="male" data-glyph="👨">Man</option>
+                <option value="female" data-glyph="👩">Woman</option>
               </select>
-            </label>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="Contact" data-glyph="📞" data-optional data-two>
+            <label>Phone<input name="phone" /></label>
+            <label>Email<input name="email" type="email" /></label>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="Payment and nationality" data-glyph="💳" data-optional>
+            <select name="transaction_type" data-picks>
+                <option value="">—</option>
+                <option data-glyph="🤝">Direct</option>
+                <option data-glyph="🅿️">PayPal</option>
+                <option data-glyph="🏦">Bank transfer</option>
+                <option data-glyph="🌍">Wise</option>
+                <option data-glyph="⚡">InstaPay</option>
+                <option data-glyph="✨">Other</option>
+              </select>
             <label>Nationality<input name="nationality" /></label>
-          <label>Transaction type
-            <select name="transaction_type">
-              <option value="">—</option>
-              <option>Direct</option>
-              <option>PayPal</option>
-              <option>Bank transfer</option>
-              <option>Wise</option>
-              <option>InstaPay</option>
-              <option>Other</option>
-            </select>
-          </label>
-          <label class="span2">Notes<input name="notes" /></label>
-          <div class="span2"><button type="submit" class="btn btn--primary">Save changes</button></div>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="Notes" data-glyph="📝" data-optional>
+            <label>Notes<input name="notes" /></label>
+          </fieldset>
+          <div class="go-wiz__actions">
+            <button type="submit" class="btn btn--primary">Save changes ✓</button>
+            <button type="button" class="btn btn--ghost" id="btnCancelEditClient">Cancel</button>
+          </div>
         </form>
       </div>
 
@@ -214,61 +266,68 @@
           <h2>Meetings</h2>
           <button type="button" class="btn btn--ghost btn--sm" id="btnNewMeeting">+ Schedule a meeting</button>
         </div>
-        <form id="meetingForm" class="form form--grid" hidden>
-          <label>Date *<input name="date" type="date" required /></label>
-          <label>Time *<input name="time" type="time" required /></label>
-          <label>Time zone the time is in *
-            <select name="timezone" required></select>
-          </label>
-          <label>Duration
-            <select name="duration_min">
-              <option value="30">30 minutes</option>
-              <option value="45">45 minutes</option>
-              <option value="60" selected>1 hour</option>
-              <option value="90">1.5 hours</option>
-              <option value="120">2 hours</option>
-              <option value="180">3 hours</option>
+        <form id="meetingForm" class="form" data-wizard data-review-title="Book it?" data-review-hint="Check the time for you and for them." hidden>
+          <fieldset class="go-wiz__step" data-title="When is it?" data-hint="In the time zone you agreed with them." data-glyph="📅" data-two>
+            <label>Date<input name="date" type="date" required /></label>
+            <label>Time<input name="time" type="time" required /></label>
+            <label class="span2">Time zone the time is in
+              <select name="timezone" required></select>
+            </label>
+            <p class="span2 meet-preview" id="meetingPreview" data-wiz-review hidden></p>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="How long?" data-glyph="⏳">
+            <select name="duration_min" data-picks>
+              <option value="30" data-glyph="☕">30 minutes</option>
+              <option value="45" data-glyph="🕒">45 minutes</option>
+              <option value="60" data-glyph="🕐" selected>1 hour</option>
+              <option value="90" data-glyph="🕜">1.5 hours</option>
+              <option value="120" data-glyph="🕑">2 hours</option>
+              <option value="180" data-glyph="🕒">3 hours</option>
             </select>
-          </label>
-          <label class="repeat-only">Repeat
-            <select name="repeat">
-              <option value="none">Does not repeat</option>
-              <option value="1">Every week</option>
-              <option value="2">Every 2 weeks</option>
-            </select>
-          </label>
-          <label class="repeat-only" id="untilField" hidden>Until
-            <select name="until">
-              <option value="credit">The credit runs out</option>
-              <option value="count">A number of sessions</option>
-              <option value="date">A date</option>
-            </select>
-          </label>
-          <div class="span2 field repeat-only" id="daysField" hidden>
-            <span class="field__label" id="daysLabel">On these days</span>
-            <div class="daychips" id="dayChips" role="group" aria-labelledby="daysLabel">
-              <button type="button" class="chip" data-day="1" aria-pressed="false">Mon</button>
-              <button type="button" class="chip" data-day="2" aria-pressed="false">Tue</button>
-              <button type="button" class="chip" data-day="3" aria-pressed="false">Wed</button>
-              <button type="button" class="chip" data-day="4" aria-pressed="false">Thu</button>
-              <button type="button" class="chip" data-day="5" aria-pressed="false">Fri</button>
-              <button type="button" class="chip" data-day="6" aria-pressed="false">Sat</button>
-              <button type="button" class="chip" data-day="0" aria-pressed="false">Sun</button>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="Does it repeat?" data-hint="A repeat books the whole series in one go." data-glyph="🔁">
+            <div class="repeat-only">
+              <select name="repeat" data-picks>
+                <option value="none" data-glyph="1️⃣">Just once</option>
+                <option value="1" data-glyph="🔁">Every week</option>
+                <option value="2" data-glyph="🗓">Every 2 weeks</option>
+              </select>
             </div>
-          </div>
-          <label class="repeat-only" id="countField" hidden>How many sessions
-            <input name="count" type="number" min="1" max="60" step="1" value="4" />
-          </label>
-          <label class="repeat-only" id="untilDateField" hidden>Last date
-            <input name="until_date" type="date" />
-          </label>
-          <label class="span2">Meeting link (Zoom, Google Meet…)
-            <input name="link" type="url" placeholder="https://…" />
-          </label>
-          <label class="span2">Topic<input name="topic" placeholder="What is the session about?" maxlength="300" /></label>
-          <p class="span2 meet-preview" id="meetingPreview" hidden></p>
-          <div class="span2 series" id="seriesPreview" hidden aria-live="polite"></div>
-          <div class="span2 form__actions">
+            <div class="field repeat-only" id="daysField" hidden>
+              <span class="field__label" id="daysLabel">On these days</span>
+              <div class="daychips" id="dayChips" role="group" aria-labelledby="daysLabel">
+                <button type="button" class="chip" data-day="1" aria-pressed="false">Mon</button>
+                <button type="button" class="chip" data-day="2" aria-pressed="false">Tue</button>
+                <button type="button" class="chip" data-day="3" aria-pressed="false">Wed</button>
+                <button type="button" class="chip" data-day="4" aria-pressed="false">Thu</button>
+                <button type="button" class="chip" data-day="5" aria-pressed="false">Fri</button>
+                <button type="button" class="chip" data-day="6" aria-pressed="false">Sat</button>
+                <button type="button" class="chip" data-day="0" aria-pressed="false">Sun</button>
+              </div>
+            </div>
+            <div class="field repeat-only" id="untilField" hidden>
+              <span class="field__label">Until</span>
+              <select name="until" data-picks>
+                <option value="credit" data-glyph="⏱">The credit runs out</option>
+                <option value="count" data-glyph="#️⃣">A number of sessions</option>
+                <option value="date" data-glyph="📆">A date</option>
+              </select>
+            </div>
+            <label class="repeat-only" id="countField" hidden>How many sessions
+              <input name="count" type="number" min="1" max="60" step="1" value="4" data-quick="4,8,12" />
+            </label>
+            <label class="repeat-only" id="untilDateField" hidden>Last date
+              <input name="until_date" type="date" />
+            </label>
+            <div class="series" id="seriesPreview" data-wiz-review hidden aria-live="polite"></div>
+          </fieldset>
+          <fieldset class="go-wiz__step" data-title="Where, and about what?" data-hint="The link they'll join from, and a topic." data-glyph="🔗" data-optional>
+            <label>Meeting link (Zoom, Google Meet…)
+              <input name="link" type="url" placeholder="https://…" />
+            </label>
+            <label>Topic<input name="topic" placeholder="What is the session about?" maxlength="300" /></label>
+          </fieldset>
+          <div class="go-wiz__actions">
             <button type="submit" class="btn btn--primary" id="btnMeetingSubmit">Schedule meeting</button>
             <button type="button" class="btn btn--ghost" id="btnCancelMeeting">Cancel</button>
           </div>
@@ -309,15 +368,23 @@
       <div class="cols">
         <div class="card">
           <div class="card__head"><h2>Hours purchased</h2></div>
-          <form id="addPackageForm" class="form form--grid">
-            <label>Hours *<input name="hours" type="number" min="0.5" step="0.5" required /></label>
-            <label>Amount paid<input name="amount_paid" type="number" min="0" step="0.01" /></label>
-            <label>Currency<input name="currency" value="USD" maxlength="8" /></label>
-            <label>Purchase date *<input name="purchased_at" type="date" required /></label>
-            <label>Valid for (months)<input name="months" type="number" min="1" max="24" value="1" /></label>
-            <label>Note<input name="note" /></label>
-            <label class="span2">Payment screenshot (image or PDF, max 3 MB)<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" /></label>
-            <div class="span2"><button type="submit" class="btn btn--primary">Add hours</button></div>
+          <form id="addPackageForm" class="form" data-wizard data-review-title="Add these hours?">
+            <fieldset class="go-wiz__step" data-title="How many hours?" data-glyph="⏱">
+              <label>Hours<input name="hours" type="number" min="0.5" step="0.5" required data-quick="1,5,10,20" data-quick-suffix="h" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="What did they pay?" data-glyph="💰" data-optional data-two>
+              <label>Amount paid<input name="amount_paid" type="number" min="0" step="0.01" /></label>
+              <label>Currency<input name="currency" value="USD" maxlength="8" data-quick="USD,EUR,EGP,AED,SAR" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="When, and for how long?" data-hint="The hours expire after this many months." data-glyph="📅" data-two>
+              <label>Purchase date<input name="purchased_at" type="date" required /></label>
+              <label>Valid for (months)<input name="months" type="number" min="1" max="24" value="1" data-quick="1,2,3,6,12" data-quick-suffix=" mo" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="Proof and a note" data-hint="A payment screenshot or PDF, max 3 MB." data-glyph="📎" data-optional>
+              <label>Payment screenshot<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" /></label>
+              <label>Note<input name="note" /></label>
+            </fieldset>
+            <div class="go-wiz__actions"><button type="submit" class="btn btn--primary">Add hours ✓</button></div>
           </form>
           <div class="table-scroll">
             <table class="table" id="packagesTable">
@@ -329,12 +396,16 @@
 
         <div class="card">
           <div class="card__head"><h2>Sessions</h2></div>
-          <form id="addSessionForm" class="form form--grid">
-            <label>Date *<input name="session_date" type="date" required /></label>
-            <label>Duration (hours) *<input name="hours" type="number" min="0.25" step="0.25" value="1" required /></label>
-            <label class="span2">Topic<input name="topic" placeholder="What was the session about?" /></label>
-            <label class="span2">Meeting minutes (PDF, max 3 MB)<input name="pdf" type="file" accept="application/pdf" /></label>
-            <div class="span2">
+          <form id="addSessionForm" class="form" data-wizard data-review-title="Record it?">
+            <fieldset class="go-wiz__step" data-title="When, and how long?" data-glyph="🗓" data-two>
+              <label>Date<input name="session_date" type="date" required /></label>
+              <label>Duration (hours)<input name="hours" type="number" min="0.25" step="0.25" value="1" required data-quick="0.5,1,1.5,2" data-quick-suffix="h" /></label>
+            </fieldset>
+            <fieldset class="go-wiz__step" data-title="What was it about?" data-hint="A topic, and the minutes as a PDF if you wrote them." data-glyph="📝" data-optional>
+              <label>Topic<input name="topic" placeholder="What was the session about?" /></label>
+              <label>Meeting minutes (PDF, max 3 MB)<input name="pdf" type="file" accept="application/pdf" /></label>
+            </fieldset>
+            <div class="go-wiz__actions">
               <button type="submit" class="btn btn--primary" id="btnSessionSubmit">Record session</button>
               <button type="button" class="btn btn--ghost" id="btnCancelEdit" hidden>Cancel edit</button>
             </div>
@@ -359,8 +430,9 @@
   </div>
 
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/theme.js?v=1"></script>
+  <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/meetings.js?v=2"></script>
-  <script src="js/tools/admin.js?v=8"></script>
+  <script src="js/tools/go.js?v=1"></script>
+  <script src="js/tools/admin.js?v=9"></script>
 </body>
 </html>

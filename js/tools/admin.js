@@ -7,6 +7,7 @@
     clientId: null, detail: null, editingSessionId: null, chartFrom: null, chartTo: null,
     clients: [], agenda: [], settings: null, editingMeetingId: null,
     daysTouched: false, seriesPlan: null, seriesSeq: 0,
+    route: "home", loaded: false,
   };
   var Meet = window.Meet;
 
@@ -41,7 +42,7 @@
   }
 
   function show(id) {
-    ["view-loading", "view-login", "view-setup", "view-list", "view-client"].forEach(function (v) {
+    ["view-loading", "view-login", "view-setup", "view-home", "view-list", "view-client"].forEach(function (v) {
       var el = document.getElementById(v);
       if (el) el.hidden = v !== id;
     });
@@ -129,7 +130,7 @@
 
   function boot() {
     api("/api/auth?action=me").then(function (me) {
-      if (me.authed) return loadClients();
+      if (me.authed) return nav(routeFromHash(), false);
       // one-device policy: setup is only offered while NO passkey exists yet
       show(me.hasCredentials ? "view-login" : "view-setup");
     }).catch(function (e) {
@@ -184,9 +185,64 @@
       .finally(function () { busy(btn, false); });
   });
 
-  $("#btnLogout").addEventListener("click", function () {
+  function logout() {
     api("/api/auth?action=logout", { method: "POST", body: {} }).then(function () { show("view-login"); });
+  }
+  $("#btnLogout").addEventListener("click", logout);
+  $("#btnLogoutHome").addEventListener("click", logout);
+
+  /* ---------------- routes: home → clients → one client ----------------
+     /admin opens on a home screen that asks where to go: Clients or Time
+     (owner, 2026-10-16). #clients and #client/N keep the back button and a
+     reload where they were. */
+
+  function routeFromHash() {
+    var m = /^#client\/(\d+)$/.exec(location.hash);
+    if (m) return { name: "client", id: Number(m[1]) };
+    return { name: location.hash === "#clients" ? "clients" : "home" };
+  }
+
+  function hashFor(r) {
+    return r.name === "client" ? "#client/" + r.id : r.name === "clients" ? "#clients" : "";
+  }
+
+  function nav(r, push, fresh) {
+    if (push) {
+      var url = location.pathname + hashFor(r);
+      if (url !== location.pathname + location.hash) history.pushState(null, "", url);
+    }
+    state.route = r.name;
+    if (r.name === "client") return openClient(r.id);
+    state.clientId = null;
+    if (!state.loaded || fresh) return loadClients();
+    if (r.name === "home") renderHome();
+    show(r.name === "home" ? "view-home" : "view-list");
+    window.scrollTo(0, 0);
+  }
+
+  window.addEventListener("popstate", function () {
+    if (!$("#view-login").hidden || !$("#view-setup").hidden) return;
+    nav(routeFromHash(), false, true);
   });
+
+  $("#btnHome").addEventListener("click", function () { nav({ name: "home" }, true); });
+  $("#goClients").addEventListener("click", function () { nav({ name: "clients" }, true); });
+
+  function renderHome() {
+    var now = new Date();
+    var hour = Number(Meet.fmt(now, myZone(), { hour: "numeric", hourCycle: "h23" }));
+    $("#homeHello").textContent = (hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening") + ", Ahmed";
+    $("#homeDate").textContent = Meet.fmt(now, myZone(), { weekday: "long", day: "numeric", month: "long" });
+    var facts = ['<span class="go-home__fact">' + state.clients.length + " client" + (state.clients.length === 1 ? "" : "s") + "</span>"];
+    var left = state.clients.reduce(function (sum, c) { return sum + Math.max(0, Number(c.totals && c.totals.available) || 0); }, 0);
+    if (left > 0) facts.push('<span class="go-home__fact">' + esc(fmtH(left)) + " left in all</span>");
+    var next = state.agenda.filter(function (m) { return Meet.status(m, now) !== "past"; })[0];
+    if (next) {
+      facts.push('<span class="go-home__fact go-home__fact--blue">Next: ' + esc(firstName(next.client_name) || "a meeting") + " · " +
+        esc(Meet.dayLabel(new Date(next.starts_at), now, myZone()) + " " + Meet.fmtTime(new Date(next.starts_at), myZone())) + "</span>");
+    }
+    $("#homeClientFacts").innerHTML = facts.join("");
+  }
 
   /* ---------------- client list ---------------- */
 
@@ -304,10 +360,12 @@
       state.clients = data.clients;
       state.agenda = data.meetings || [];
       useSettings(data.settings);
+      state.loaded = true;
       renderAgenda(true);
       renderClientGrid(true);
-      show("view-list");
-    }).catch(function (e) { toast(e.message, true); show("view-list"); });
+      renderHome();
+      show(state.route === "home" ? "view-home" : "view-list");
+    }).catch(function (e) { toast(e.message, true); show(state.route === "home" ? "view-home" : "view-list"); });
   }
 
   /* ---------------- settings: my time zone, usual link, reminder address ---------------- */
@@ -377,14 +435,19 @@
         if (photo) b.photo = photo;
         return api("/api/clients", { method: "POST", body: b });
       })
-      .then(function () { form.reset(); $("#addClientBox").open = false; toast("Client added ✓"); return loadClients(); })
+      .then(function () { form.reset(); $("#addClientBox").open = false; toast("Client added ✓"); state.route = "clients"; return loadClients(); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
 
   /* ---------------- client detail ---------------- */
 
-  $("#btnBack").addEventListener("click", function () { state.clientId = null; loadClients(); });
+  $("#btnBack").addEventListener("click", function () { nav({ name: "clients" }, true, true); });
+
+  // the add-client wizard starts from its first question every time it opens
+  $("#addClientBox").addEventListener("toggle", function () {
+    if (this.open) { Go.wizard.restart($("#addClientForm")); Go.play("open"); }
+  });
 
   function openClient(id) {
     if (state.clientId !== id) {
@@ -393,6 +456,9 @@
       chartRangeCtl.reset();
     }
     state.clientId = id;
+    state.route = "client";
+    var url = location.pathname + "#client/" + id;
+    if (location.pathname + location.hash !== url) history.pushState(null, "", url);
     show("view-loading");
     return api("/api/clients?id=" + id).then(function (data) {
       state.detail = data;
@@ -401,7 +467,7 @@
       renderMeetings(true);
       show("view-client");
       renderChart(data.timeline);
-    }).catch(function (e) { toast(e.message, true); loadClients(); });
+    }).catch(function (e) { toast(e.message, true); nav({ name: "clients" }, true, true); });
   }
 
   function renderClient(data) {
@@ -439,7 +505,7 @@
       tiles.push({
         label: "Total paid",
         value: paidTotals[paidCurs[0]].toLocaleString() + " " + paidCurs[0],
-        cls: "tile--accent",
+        cls: "tile--good",
         sub: paidCurs.slice(1).map(function (c) { return "+ " + paidTotals[c].toLocaleString() + " " + c; }).join("  ·  "),
       });
     }
@@ -499,6 +565,8 @@
     stopEditSession();
     $("#addPackageForm").elements.purchased_at.value = todayISO();
     $("#addSessionForm").elements.session_date.value = todayISO();
+    Go.wizard.restart($("#addPackageForm"));
+    Go.wizard.restart($("#addSessionForm"));
   }
 
   function startEditSession(s) {
@@ -510,6 +578,7 @@
     form.elements.pdf.value = "";
     $("#btnSessionSubmit").textContent = "Update session";
     $("#btnCancelEdit").hidden = false;
+    Go.wizard.review(form);
     form.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
@@ -624,6 +693,8 @@
     $("#btnNewMeeting").hidden = true;
     $("#meetingsEmpty").hidden = true;
     showMeetingPreview();
+    if (m) Go.wizard.review(form); else Go.wizard.restart(form);
+    Go.play("open");
     if (m) form.scrollIntoView({ behavior: "smooth", block: "center" });
     else form.elements.time.focus();
   }
@@ -866,8 +937,8 @@
       form.elements.session_date.value = Meet.localFields(new Date(m.starts_at), myZone()).date;
       form.elements.hours.value = Math.max(0.25, Math.round(m.duration_min / 15) / 4);
       form.elements.topic.value = m.topic || "";
+      Go.wizard.review(form);
       form.scrollIntoView({ behavior: "smooth", block: "center" });
-      form.elements.topic.focus({ preventScroll: true });
       return;
     }
     if (act === "delete") {
@@ -969,8 +1040,11 @@
       ["name", "phone", "email", "gender", "nationality", "transaction_type", "notes"].forEach(function (k) {
         if (form.elements[k]) form.elements[k].value = c[k] || "";
       });
+      Go.wizard.review(form);
+      Go.play("open");
     }
   });
+  $("#btnCancelEditClient").addEventListener("click", function () { $("#editClientForm").hidden = true; });
 
   $("#editClientForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -986,7 +1060,7 @@
     var c = state.detail.client;
     if (!confirm('Delete "' + c.name + '" and ALL their purchases, sessions and scheduled meetings? This cannot be undone.')) return;
     api("/api/clients?id=" + state.clientId, { method: "DELETE" })
-      .then(function () { toast("Client deleted"); return loadClients(); })
+      .then(function () { toast("Client deleted"); return nav({ name: "clients" }, true, true); })
       .catch(function (e) { toast(e.message, true); });
   });
 

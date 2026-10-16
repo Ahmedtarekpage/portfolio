@@ -25,7 +25,7 @@
       btn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
     }
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#161826");
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f4f8ff" : "#0b1220");
     try { localStorage.setItem(KEY, theme); } catch (e) {}
     listeners.forEach(function (fn) { try { fn(theme); } catch (e) {} });
   }

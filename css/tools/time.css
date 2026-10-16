@@ -118,7 +118,7 @@
 .gamify__start-row { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--faint); margin-top: 7px; }
 .gamify__start-row input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
-  color: var(--ink); padding: 2px 6px; font: 600 0.72rem "Inter", sans-serif;
+  color: var(--ink); padding: 2px 6px; font: 600 0.72rem var(--font-ui);
   color-scheme: dark; outline: none;
 }
 .gamify__start-row input[type="date"]:focus { border-color: var(--blue-2); }
@@ -185,7 +185,7 @@
 }
 .focus-range__dates input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 5px 8px; font: 400 0.8rem "Inter", sans-serif; outline: none;
+  color: var(--ink); padding: 5px 8px; font: 400 0.8rem var(--font-ui); outline: none;
 }
 .focus-range__dates input[type="date"]:focus { border-color: var(--blue); }
 .focus-range__tiles { margin-bottom: 8px; }
@@ -296,7 +296,7 @@
 .photo-menu__btn {
   appearance: none; border: none; background: transparent; cursor: pointer;
   text-align: left; padding: 13px 12px; border-radius: 8px;
-  font: 500 0.94rem "Inter", sans-serif; color: var(--ink);
+  font: 500 0.94rem var(--font-ui); color: var(--ink);
   transition: background-color 0.15s ease;
 }
 .photo-menu__btn:hover { background: rgba(var(--accent-rgb), 0.1); }
@@ -429,7 +429,7 @@
 .day-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .day-nav input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 6px 10px; font: 400 0.85rem "Inter", sans-serif;
+  color: var(--ink); padding: 6px 10px; font: 400 0.85rem var(--font-ui);
   color-scheme: dark; outline: none;
 }
 .day-nav input[type="date"]:focus { border-color: var(--blue); }
@@ -438,7 +438,7 @@
 .day-actions__dup { display: inline-flex; gap: 6px; align-items: center; }
 .day-actions__dup input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 6px 10px; font: 400 0.85rem "Inter", sans-serif;
+  color: var(--ink); padding: 6px 10px; font: 400 0.85rem var(--font-ui);
   color-scheme: dark; outline: none;
 }
 .day-actions__dup input[type="date"]:focus { border-color: var(--blue); }
@@ -534,7 +534,7 @@
 .task-row__meta { font-size: 0.76rem; color: var(--faint); margin-top: 2px; }
 .task-row__actual {
   width: 68px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 5px 8px; font: 400 0.82rem "Inter", sans-serif; outline: none;
+  color: var(--ink); padding: 5px 8px; font: 400 0.82rem var(--font-ui); outline: none;
 }
 .task-row__actual:focus { border-color: var(--blue); }
 
@@ -648,12 +648,12 @@
 .goal-row__nums { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
 .goal-row__current {
   width: 72px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 4px 7px; font: 400 0.82rem "Inter", sans-serif; outline: none;
+  color: var(--ink); padding: 4px 7px; font: 400 0.82rem var(--font-ui); outline: none;
 }
 .goal-row__current:focus { border-color: var(--blue); }
 .goal-row__step {
   width: 24px; height: 24px; flex: none; border-radius: 7px; border: 1px solid var(--glass-brd);
-  background: var(--bg); color: var(--ink); font: 600 0.95rem "Inter", sans-serif; cursor: pointer;
+  background: var(--bg); color: var(--ink); font: 600 0.95rem var(--font-ui); cursor: pointer;
   line-height: 1; display: inline-flex; align-items: center; justify-content: center;
   transition: transform 0.1s ease, border-color 0.15s ease, background-color 0.3s ease;
 }
@@ -665,7 +665,7 @@
 .goal-add-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .goal-add-form input {
   flex: 1; min-width: 100px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
-  color: var(--ink); padding: 7px 10px; font: 400 0.85rem "Inter", sans-serif; outline: none;
+  color: var(--ink); padding: 7px 10px; font: 400 0.85rem var(--font-ui); outline: none;
 }
 .goal-add-form input:focus { border-color: var(--blue); }
 .goal-add-form input[name="target"] { flex: none; width: 90px; }
@@ -744,7 +744,7 @@
 .pomodoro-launcher { display: flex; gap: 8px; flex-wrap: wrap; }
 .pomodoro-launcher input {
   flex: 1; min-width: 180px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 10px;
-  color: var(--ink); padding: 9px 12px; font: 400 0.9rem "Inter", sans-serif; outline: none;
+  color: var(--ink); padding: 9px 12px; font: 400 0.9rem var(--font-ui); outline: none;
 }
 .pomodoro-launcher input:focus { border-color: var(--blue-2); }
 
@@ -855,7 +855,7 @@
 .idea-row__text { cursor: text; }
 .idea-row__edit-input {
   width: 100%; background: var(--bg-2); border: 1px solid var(--blue-2); border-radius: 8px;
-  color: var(--ink); padding: 5px 8px; font: 400 0.94rem "Inter", sans-serif; outline: none;
+  color: var(--ink); padding: 5px 8px; font: 400 0.94rem var(--font-ui); outline: none;
 }
 
 /* ---------- mobile: bigger tap targets for the most-tapped controls (task
