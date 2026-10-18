@@ -172,6 +172,13 @@ lengthen a series already made — schedule another from where it ended. The tim
 on the wall is held from week to week in the meeting's own zone, so 6 PM is
 still 6 PM after the clocks change. A series stops at 60 sessions.
 
+**A new link for all of them.** When a room changes — a new Zoom link, a new
+Meet code — *🔗 Change link for all* on the Meetings card puts one link on every
+meeting of that client still to come, in one save. Meetings that have already
+happened keep theirs; nothing moves in time, so no reminder is re-armed. A tick
+box makes it the usual link for new meetings too. The share page and the
+calendar feed pick it up on their next read.
+
 **Your zone** is the 🌍 button in the admin's top bar. *Automatic* takes it from
 the device you are on, so it follows you when you travel; or pick any zone and
 it stays put. The same panel holds your usual meeting link, which every new

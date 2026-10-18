@@ -585,6 +585,21 @@ button.meet__who:hover strong { color: var(--blue-2); }
 }
 .meet-preview b { color: var(--ink); font-weight: 600; }
 
+/* ---------- one new link for every meeting still to come ---------- */
+.card__tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.link-all {
+  margin: 0 0 16px; padding: 16px; border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.06); border: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+.link-all__head { display: flex; gap: 12px; align-items: flex-start; }
+.link-all__glyph { font-size: 1.6rem; line-height: 1; flex: none; margin-top: 2px; }
+.link-all h3 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+.link-all__head p { font-size: 0.84rem; margin-top: 2px; }
+.link-all__app { font-size: 0.82rem; color: var(--muted); margin: -4px 0 0; }
+.link-all__app b { color: var(--ink); font-weight: 600; }
+.link-all__check { flex-direction: row !important; align-items: center; gap: 10px !important; font-weight: 500 !important; cursor: pointer; }
+.link-all__check input { width: 18px; height: 18px; accent-color: var(--blue); margin: 0; flex: none; }
+
 /* ---------- a repeating series, before it is made ---------- */
 .is-off { display: none !important; }
 .field { display: flex; flex-direction: column; gap: 7px; }

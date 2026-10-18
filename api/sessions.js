@@ -11,6 +11,7 @@
 //                                                           + repeat: { days: [0-6], interval: 1|2, until: "credit"|"count"|"date", count?, until_date? }
 //                                                           + preview: true to see what a repeat rule would make without making it
 //   PATCH  /api/sessions?resource=meetings&id=N          -> the same fields; a new time re-arms the reminders
+//   PATCH  /api/sessions?resource=meetings&client_id=N&scope=upcoming -> { link } on every meeting of theirs still to come
 //   DELETE /api/sessions?resource=meetings&id=N          -> &scope=following takes the rest of its series with it
 //   GET    /api/sessions?resource=settings               -> { timezone, default_link, notify_email, ... }
 //   PUT    /api/sessions?resource=settings               -> any of those

@@ -645,6 +645,7 @@
     state.editingMeetingId = null;
     $("#meetingForm").hidden = true;
     $("#btnNewMeeting").hidden = false;
+    $("#linkAllForm").hidden = true;
 
     var tiles = [
       { label: "Available now", value: fmtH(t.available), cls: "tile--accent", sub: t.nextExpiry ? fmtH(t.nextExpiry.hours) + " expire " + fmtDate(t.nextExpiry.date) : "" },
@@ -816,7 +817,8 @@
     var card = function (m) { opts.otherTz = m.timezone; return Meet.cardHtml(m, now, opts); };
     $("#meetingsUpcoming").innerHTML = ahead.map(card).join("");
     $("#meetingsPast").innerHTML = past.map(card).join("");
-    $("#meetingsEmpty").hidden = ahead.length > 0 || !$("#meetingForm").hidden;
+    $("#btnLinkAll").hidden = ahead.length === 0 || !$("#linkAllForm").hidden;
+    $("#meetingsEmpty").hidden = ahead.length > 0 || !$("#meetingForm").hidden || !$("#linkAllForm").hidden;
     $("#meetingsPastBox").hidden = past.length === 0;
     $("#meetingsPastSummary").textContent = "Earlier meetings (" + past.length + ")";
   }
@@ -891,6 +893,87 @@
     $("#btnNewMeeting").hidden = false;
     renderMeetings();
   }
+
+  /* ---------------- one new link for everything still to come ----------------
+     Owner, 2026-10-18: "change url of meeting for all meeting for one client".
+     A new Zoom room or Meet code should not mean editing twelve cards. */
+
+  function upcomingMeetings() {
+    var now = new Date();
+    return ((state.detail && state.detail.meetings) || [])
+      .filter(function (m) { return Meet.status(m, now) !== "past"; })
+      .sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+  }
+
+  function showLinkAllApp() {
+    var form = $("#linkAllForm");
+    var box = $("#linkAllApp");
+    var link = form.elements.link.value.trim();
+    if (!link) { box.hidden = true; return; }
+    var app = Meet.platform(link);
+    var ok = /^https?:\/\/\S+$/i.test(link);
+    box.innerHTML = !ok ? '<span class="meet-preview__warn">A link starts with https://</span>'
+      : app ? "That is a <b>" + esc(app) + "</b> link." : "The join button will say <b>Join meeting</b>.";
+    box.hidden = false;
+  }
+
+  function openLinkAll() {
+    var form = $("#linkAllForm");
+    var list = upcomingMeetings();
+    if (!list.length) return;
+    // start from the link they share, if they share one; else the usual one
+    var links = {};
+    list.forEach(function (m) { if (m.link) links[m.link] = (links[m.link] || 0) + 1; });
+    var common = Object.keys(links).sort(function (a, b) { return links[b] - links[a]; })[0] || "";
+    form.reset();
+    form.elements.link.value = common || ((state.settings && state.settings.default_link) || "");
+    $("#linkAllTitle").textContent = "New link for " + (list.length === 1 ? "the upcoming meeting" : "all " + list.length + " upcoming meetings");
+    $("#btnLinkAllSubmit").textContent = "Change the link on " + list.length + " meeting" + (list.length === 1 ? "" : "s") + " ✓";
+    showLinkAllApp();
+    form.hidden = false;
+    $("#btnLinkAll").hidden = true;
+    Go.play("open");
+    form.elements.link.focus();
+    form.elements.link.select();
+  }
+
+  function closeLinkAll() {
+    $("#linkAllForm").hidden = true;
+    renderMeetings();
+  }
+
+  $("#btnLinkAll").addEventListener("click", openLinkAll);
+  $("#btnLinkAllCancel").addEventListener("click", closeLinkAll);
+  $("#linkAllForm").elements.link.addEventListener("input", showLinkAllApp);
+
+  $("#linkAllForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = this;
+    var btn = $("#btnLinkAllSubmit");
+    var link = form.elements.link.value.trim();
+    var saveDefault = form.elements.save_default.checked;
+    busy(btn, true);
+    api("/api/sessions?resource=meetings&client_id=" + state.clientId + "&scope=upcoming", { method: "PATCH", body: { link: link } })
+      .then(function (r) {
+        state.detail.meetings = r.meetings;
+        // the list page's agenda carries the same meetings; keep it honest
+        var byId = {};
+        r.meetings.forEach(function (m) { byId[m.id] = m; });
+        state.agenda = state.agenda.map(function (m) { return byId[m.id] ? Object.assign({}, m, { link: byId[m.id].link, platform: byId[m.id].platform }) : m; });
+        var next = saveDefault && link
+          ? api("/api/sessions?resource=settings", { method: "PUT", body: { default_link: link } }).then(function (s) { useSettings(s.settings); })
+          : Promise.resolve();
+        return next.then(function () {
+          toast(link
+            ? "Link changed on " + r.changed + " meeting" + (r.changed === 1 ? "" : "s") + (saveDefault ? ", and saved as your usual one ✓" : " ✓")
+            : "Link removed from " + r.changed + " meeting" + (r.changed === 1 ? "" : "s"));
+          Go.play("success");
+          closeLinkAll();
+        });
+      })
+      .catch(function (e) { toast(e.message, true); Go.play("error"); })
+      .finally(function () { busy(btn, false); });
+  });
 
   $("#btnNewMeeting").addEventListener("click", function () { openMeetingForm(null); });
   $("#btnCancelMeeting").addEventListener("click", closeMeetingForm);

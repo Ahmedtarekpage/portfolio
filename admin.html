@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=12" />
+  <link rel="stylesheet" href="css/tools/app.css?v=13" />
   <link rel="stylesheet" href="css/tools/go.css?v=16" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
@@ -286,8 +286,32 @@
       <div class="card" id="meetingsCard">
         <div class="card__head">
           <h2>Meetings</h2>
-          <button type="button" class="btn btn--ghost btn--sm" id="btnNewMeeting">+ Schedule a meeting</button>
+          <div class="card__tools">
+            <button type="button" class="btn btn--ghost btn--sm" id="btnLinkAll" hidden>🔗 Change link for all</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnNewMeeting">+ Schedule a meeting</button>
+          </div>
         </div>
+        <form id="linkAllForm" class="form link-all" hidden>
+          <div class="link-all__head">
+            <span class="link-all__glyph" aria-hidden="true">🔗</span>
+            <div>
+              <h3 id="linkAllTitle">New link for every upcoming meeting</h3>
+              <p class="muted" id="linkAllHint">Paste the new Zoom or Google Meet link. Meetings that already happened keep theirs.</p>
+            </div>
+          </div>
+          <label>Meeting link
+            <input name="link" type="url" placeholder="https://meet.google.com/… or https://zoom.us/j/…" autocomplete="off" />
+          </label>
+          <p class="link-all__app" id="linkAllApp" hidden></p>
+          <label class="link-all__check">
+            <input name="save_default" type="checkbox" />
+            <span>Also use it for new meetings from now on</span>
+          </label>
+          <div class="form__actions">
+            <button type="submit" class="btn btn--primary" id="btnLinkAllSubmit">Change the link ✓</button>
+            <button type="button" class="btn btn--ghost" id="btnLinkAllCancel">Cancel</button>
+          </div>
+        </form>
         <form id="meetingForm" class="form" data-wizard data-review-title="Book it?" data-review-hint="Check the time for you and for them." hidden>
           <fieldset class="go-wiz__step" data-title="When is it?" data-hint="In the time zone you agreed with them." data-glyph="📅" data-two>
             <label>Date<input name="date" type="date" required /></label>
@@ -477,6 +501,6 @@
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/country.js?v=1"></script>
   <script src="js/tools/files.js?v=1"></script>
-  <script src="js/tools/admin.js?v=16"></script>
+  <script src="js/tools/admin.js?v=17"></script>
 </body>
 </html>

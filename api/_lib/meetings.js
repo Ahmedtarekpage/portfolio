@@ -442,6 +442,20 @@ export async function handleMeetings(req, res, sql) {
     return json(res, 201, { meeting: shape(row, { admin: true }) });
   }
 
+  // One new link for everything still to come (owner, 2026-10-18: "change url
+  // of meeting for all meeting for one client"). Past meetings keep theirs;
+  // the time does not move, so the reminders are not re-armed.
+  if (req.method === "PATCH" && req.query.scope === "upcoming") {
+    const clientId = Number(req.query.client_id);
+    if (!clientId) return json(res, 400, { error: "client_id is required" });
+    const link = cleanLink((req.body || {}).link);
+    if (link === null) return json(res, 400, { error: "The meeting link has to start with https://" });
+    const changed = await sql`UPDATE meetings SET link = ${link || null}
+      WHERE client_id = ${clientId} AND starts_at + (duration_min * interval '1 minute') > now()
+      RETURNING id`;
+    return json(res, 200, { changed: changed.length, meetings: await clientMeetings(sql, clientId, { admin: true }) });
+  }
+
   const id = Number(req.query.id);
   if (!id) return json(res, 400, { error: "id is required" });
 
