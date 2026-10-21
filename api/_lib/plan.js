@@ -100,6 +100,27 @@ label.f input{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);b
 input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .tbl{overflow-x:auto}
 .pm{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}
+.btn.tiny{padding:2px 9px;font-size:12px}
+td .btn.tiny{margin-inline-start:6px;vertical-align:middle}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);padding:18px;width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;font-family:var(--font)}
+dialog::backdrop{background:rgba(10,14,22,.5)}
+.days{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.days label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--fg);padding:4px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.days label:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.days input{margin:0}
+.hrs{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:4px}
+.hrs label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
+.hrs label span{flex:1}
+.hrs label input{width:70px;font:inherit;text-align:center;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:5px 4px}
+.sr-sum{font-size:13px;color:var(--muted);margin:0 0 8px}
+.sr-blocks{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.sr-blocks li{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:baseline;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+.sr-blocks li .dot{position:relative;top:1px}
+.sr-blocks li .when{font-weight:600}
+.sr-blocks li .meta{grid-column:2;font-size:12.5px;color:var(--muted)}
+.sr-phase{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.sr-phase h3{font-size:14px;font-weight:600;margin:0 0 6px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.sr-phase h3 .muted{font-weight:400;color:var(--muted);font-size:13px}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:520px}
 th,td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
 th{font-weight:500;color:var(--muted);font-size:13px}
@@ -199,6 +220,7 @@ html.embedded body{background:transparent;padding:0}
       <tbody></tbody>
     </table></div>
     <p class="note" id="pomoNote"></p>
+    <div id="seriesOut"></div>
     <div class="head" style="margin-top:10px">
       <span class="save" id="saveState"></span>
       <button class="btn reset" type="button" data-t="reset"></button>
@@ -206,13 +228,36 @@ html.embedded body{background:transparent;padding:0}
   </section>
 </main>
 
+<dialog id="seriesDialog" aria-labelledby="seriesTitle">
+  <form method="dialog">
+    <div class="head"><h2 id="seriesTitle" style="margin:0"></h2><button class="btn" type="submit" data-t="close"></button></div>
+    <p class="note" data-t="seriesIntro"></p>
+    <div class="dials" style="margin-top:12px">
+      <label class="f"><span data-t="from"></span><input type="date" id="sr_from"></label>
+      <label class="f"><span data-t="to"></span><input type="date" id="sr_to"></label>
+    </div>
+    <div class="f" style="margin-top:10px"><span data-t="weekend"></span><div class="days" id="sr_weekend"></div></div>
+    <div class="f" style="margin-top:10px"><span data-t="hoursDay"></span>
+      <div class="hrs">
+        <label><i class="dot" style="background:var(--biz)"></i><span data-t="biz"></span><input type="number" step="0.5" min="0" max="24" id="sr_biz"></label>
+        <label><i class="dot" style="background:var(--brand)"></i><span data-t="brand"></span><input type="number" step="0.5" min="0" max="24" id="sr_brand"></label>
+        <label><i class="dot" style="background:var(--job)"></i><span data-t="job"></span><input type="number" step="0.5" min="0" max="24" id="sr_job"></label>
+        <label><i class="dot" style="background:var(--learn)"></i><span data-t="learn"></span><input type="number" step="0.5" min="0" max="24" id="sr_learn"></label>
+      </div>
+      <button class="btn tiny" type="button" id="sr_useRow" data-t="useRow" style="margin-top:8px"></button>
+    </div>
+    <div id="sr_out" style="margin-top:14px"></div>
+  </form>
+</dialog>
 <script src="/vendor/chart-4.4.1.umd.min.js"></script>
 <script>
 (function(){
   var DEFAULT = {
     settings:{startDate:'2026-10-21', birthDate:'1998-05-15', egpPerUsd:50, salaryUsd:2000, offerMonth:3, startRevenueK:7, growthPct:12, expensesK:20, goalYearlyUsd:500000},
     hours:{p1:{biz:5,brand:3,job:2.5,learn:1.5}, p2:{biz:2,brand:1.5,job:8,learn:0.5}, p3:{biz:2.5,brand:1,job:8,learn:0.5}, p4:{biz:6,brand:4,job:0,learn:2}},
-    milestones:{offer:{done:false,date:''}, team:{done:false,date:''}, passed:{done:false,date:''}, left:{done:false,date:''}, goal200:{done:false,date:''}, goal:{done:false,date:''}}
+    milestones:{offer:{done:false,date:''}, team:{done:false,date:''}, passed:{done:false,date:''}, left:{done:false,date:''}, goal200:{done:false,date:''}, goal:{done:false,date:''}},
+    /* "in series": a stretch of dates for a phase, worked one thing at a time (owner, 2026-10-21) */
+    series:{p1:{from:'',to:'',weekend:[5,6],hours:null}, p2:{from:'',to:'',weekend:[5,6],hours:null}, p3:{from:'',to:'',weekend:[5,6],hours:null}, p4:{from:'',to:'',weekend:[5,6],hours:null}}
   };
   /* Every word on the page, in both languages. English is the default; the
      button in the corner flips it, and the choice stays on this device. */
@@ -233,9 +278,15 @@ html.embedded body{background:transparent;padding:0}
       goalMs:function(k){ return "The goal: $"+k+"K a year"; }, tooltip:function(m,p,d,a){ return d+" · month "+m+" · Phase "+p+" · age "+a; }, here:"You are here",
       million:" million", thousand:" thousand", hours:function(v){ var m={0:"0h",0.5:"30 min",1:"1h",1.5:"1.5h",2:"2h",2.5:"2.5h"}; return m[v]!==undefined?m[v]:v+" hours"; },
       notTwelve:" ≠ 12", saving:"Saving…", saved:"Saved", signIn:"Sign in first so it saves", notSaved:"Not saved — will try again on the next change", local:"Saved on this device only for now",
-      resetDone:"Back to the numbers we agreed on", langBtn:"عربي", locale:"en-US", sep:",",
+      resetDone:"Back to the numbers we agreed on", langBtn:"عربي", locale:"en-US", dateLocale:"en-GB", sep:",",
       rangeAll:"All", rangeNow:"Around now", rangePhase:"This phase", monthDate:function(n,d,a){ return "month "+n+" · "+d+" · age "+a; },
       pomos:function(n){ return n+" pomodoros"; }, pomoCell:function(n){ return n+" 🍅"; },
+      seriesBtn:"📅 In series", seriesTitle:function(n){ return "Phase "+n+", one thing at a time"; },
+      seriesIntro:"Instead of all four every day, give each its own stretch of days. The hours a day decide how long each stretch is: 5 hours of business out of 12 is 5⁄12 of the days.",
+      from:"From", to:"To", weekend:"Weekend", hoursDay:"Hours a day", useRow:"Take the hours from the table", close:"Done",
+      working:function(w,t,off,h,tot){ return w+" working days of "+t+" ("+off+" weekend) · "+h+" h a day · "+tot+" h in all"; },
+      block:function(d,h,p){ return d+" days · "+h+" h · "+p+" 🍅"; }, shared:function(day,ha,a,hb,b){ return day+" is shared: "+ha+" h "+a+", then "+hb+" h "+b; },
+      noDates:"Pick the dates and the stretches appear here.", seriesOut:"In series", dayOf:function(d){ return d; }, arrow:" → ",
       pomoNote:function(w,s,l,r){ return "🍅 is how many pomodoros fit in those hours the way your timer runs them: "+w+" min focus, a "+s+"-min break, and a "+l+"-min break after every "+r+". Change the timer on the Focus tab and these follow."; },
       age:function(a){ return "age "+a; }, ages:function(a,b){ return a===b ? "age "+a : "age "+a+"–"+b; }, birthday:function(a){ return "🎂 "+a; }
     },
@@ -255,9 +306,15 @@ html.embedded body{background:transparent;padding:0}
       goalMs:function(k){ return "الهدف: "+k+" ألف دولار في السنة"; }, tooltip:function(m,p,d,a){ return d+" · شهر "+m+" · المرحلة "+p+" · عندك "+a+" سنة"; }, here:"أنت هنا",
       million:" مليون", thousand:" ألف", hours:function(v){ var m={0:"صفر",0.5:"نص ساعة",1:"ساعة",1.5:"ساعة ونص",2:"ساعتين",2.5:"ساعتين ونص"}; return m[v]!==undefined?m[v]:v.toLocaleString("ar-EG")+" ساعات"; },
       notTwelve:" ≠ ١٢", saving:"بيتحفظ…", saved:"اتحفظ", signIn:"سجّل دخولك الأول عشان يتحفظ", notSaved:"ما اتحفظش، هنجرّب تاني مع أول تغيير", local:"محفوظ على الجهاز ده بس دلوقتي",
-      resetDone:"رجعت الأرقام اللي اتفقنا عليها", langBtn:"English", locale:"ar-EG", sep:"،",
+      resetDone:"رجعت الأرقام اللي اتفقنا عليها", langBtn:"English", locale:"ar-EG", dateLocale:"ar-EG", sep:"،",
       rangeAll:"الكل", rangeNow:"حوالين دلوقتي", rangePhase:"المرحلة دي", monthDate:function(n,d,a){ return "شهر "+n+" · "+d+" · عندك "+a+" سنة"; },
       pomos:function(n){ return n+" بومودورو"; }, pomoCell:function(n){ return n+" 🍅"; },
+      seriesBtn:"📅 بالتتابع", seriesTitle:function(n){ return "المرحلة "+n+"، حاجة واحدة في المرة"; },
+      seriesIntro:"بدل الأربعة كل يوم، كل واحدة تاخد أيامها ورا بعض. الساعات في اليوم هي اللي بتحدد طول كل فترة: ٥ ساعات بيزنس من ١٢ يعني ٥ من ١٢ من الأيام.",
+      from:"من", to:"إلى", weekend:"الويك إند", hoursDay:"ساعات في اليوم", useRow:"خد الساعات من الجدول", close:"تمام",
+      working:function(w,t,off,h,tot){ return w+" يوم شغل من "+t+" ("+off+" ويك إند) · "+h+" ساعة في اليوم · "+tot+" ساعة كلهم"; },
+      block:function(d,h,p){ return d+" يوم · "+h+" ساعة · "+p+" 🍅"; }, shared:function(day,ha,a,hb,b){ return day+" مقسوم: "+ha+" ساعة "+a+"، وبعدين "+hb+" ساعة "+b; },
+      noDates:"اختار التواريخ والفترات بتظهر هنا.", seriesOut:"بالتتابع", dayOf:function(d){ return d; }, arrow:" ← ",
       pomoNote:function(w,s,l,r){ return "🍅 هي عدد البومودورو اللي بتلحق في الساعات دي زي ما التايمر بتاعك شغال: "+w+" دقيقة تركيز، وبريك "+s+" دقايق، وبريك "+l+" دقيقة بعد كل "+r+". غيّر التايمر في تاب Focus وهي بتتغيّر معاه."; },
       age:function(a){ return "عندك "+a+" سنة"; }, ages:function(a,b){ return a===b ? "عندك "+a : "عندك "+a+"–"+b; }, birthday:function(a){ return "🎂 "+a; }
     }
@@ -446,15 +503,79 @@ html.embedded body{background:transparent;padding:0}
     var tb=document.querySelector('#hoursTable tbody'); tb.innerHTML='';
     var names={p1:ar(1)+': '+T.phases[1], p2:ar(2)+': '+T.phases[2], p3:ar(3)+': '+T.phases[3], p4:ar(4)+': '+T.phases[4]};
     ['p1','p2','p3','p4'].forEach(function(p,i){ var tr=document.createElement('tr'); if(M.phase===i+1) tr.className='cur';
-      var sum=0, pomos=0; var html='<td>'+names[p]+'</td>';
+      var sum=0, pomos=0; var html='<td>'+names[p]+'<button type="button" class="btn tiny" data-series="'+p+'">'+T.seriesBtn+'</button></td>';
       TRACKS.forEach(function(t){ var v=state.hours[p][t[0]]; sum+=v; html+='<td><input type="number" step="0.5" min="0" max="12" id="h_'+p+'_'+t[0]+'" value="'+v+'" aria-label="'+T[t[1]]+'"><small class="pm">'+T.pomoCell(ar(pomosIn(v)))+'</small></td>'; pomos+=pomosIn(v); });
       html+='<td class="sum'+(Math.abs(sum-12)>0.01?' bad':'')+'">'+ar(Math.round(sum*2)/2)+(Math.abs(sum-12)>0.01?T.notTwelve:'')+'<small class="pm">'+T.pomoCell(ar(pomos))+'</small></td>';
       tr.innerHTML=html; tb.appendChild(tr);
       TRACKS.forEach(function(t){ tr.querySelector('#h_'+p+'_'+t[0]).addEventListener('change',function(e){ var v=Math.max(0,Math.min(12,Math.round(parseFloat(e.target.value||0)*2)/2)); state.hours[p][t[0]]=v; e.target.value=v; changed(); }); });
     });
     var d=pomoDurations(); document.getElementById('pomoNote').textContent=T.pomoNote(ar(d.work), ar(d.short), ar(d.long), ar(d.rounds));
+    Array.prototype.forEach.call(tb.querySelectorAll('[data-series]'),function(b){ b.addEventListener('click',function(){ openSeries(b.getAttribute('data-series')); }); });
   }
-  function render(){ applyLang(); renderRange(); var M=model(); renderStatus(M); renderCharts(M); renderMilestones(M); renderSettings(); renderHoursTable(M); setSave(lastSave); }
+  /* ---- in series: a phase's hours as consecutive stretches of dates ----
+     Working days between the two dates (weekend out), the hours a day summed,
+     and each category gets its share of the days in the table's order. A day
+     where one stretch ends and the next begins is shared between them. */
+  function dateOf(str){ var p=String(str||'').split('-'); if(p.length<3) return null; var d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d)?null:d; }
+  function iso(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  /* day first ("21 Oct"), as the owner reads dates */
+  function fmtD(d){ return new Intl.DateTimeFormat(T.dateLocale,{day:'numeric',month:'short'}).format(d); }
+  function fmtDY(d){ return new Intl.DateTimeFormat(T.dateLocale,{day:'numeric',month:'short',year:'numeric'}).format(d); }
+  function q(v){ return ar(Math.round(v*4)/4); }
+  function seriesHours(p){ var c=state.series[p]; return c.hours || state.hours[p]; }
+  function seriesPlan(p){
+    var c=state.series[p], a=dateOf(c.from), b=dateOf(c.to); if(!a||!b||b<a) return null;
+    var days=[], off=0, wk=c.weekend||[]; for(var d=new Date(a); d<=b; d.setDate(d.getDate()+1)){ if(wk.indexOf(d.getDay())>=0) off++; else days.push(new Date(d)); }
+    var h=seriesHours(p), perDay=0; TRACKS.forEach(function(t){ perDay+=(+h[t[0]]||0); });
+    var W=days.length; if(!W||!perDay) return {days:days, off:off, W:W, perDay:perDay, blocks:[], total:days.length+off};
+    var blocks=[], cur=0;
+    TRACKS.forEach(function(t){ var hv=+h[t[0]]||0; if(!hv) return; var span=W*hv/perDay, end=cur+span;
+      var si=Math.floor(cur+1e-9), ei=Math.min(W-1, Math.ceil(end-1e-9)-1);
+      blocks.push({k:t[0], from:days[si], to:days[ei], days:span, hours:hv*W, pomos:Math.round(pomosIn(perDay)*span), endAt:end}); cur=end; });
+    var shared=[]; for(var i=0;i<blocks.length-1;i++){ var e=blocks[i].endAt, f=e-Math.floor(e); if(f>1e-6 && f<1-1e-6 && Math.floor(e)<W){
+      shared.push({day:days[Math.floor(e)], a:blocks[i].k, ha:f*perDay, b:blocks[i+1].k, hb:(1-f)*perDay}); } }
+    return {days:days, off:off, W:W, perDay:perDay, blocks:blocks, shared:shared, total:days.length+off};
+  }
+  function seriesHtml(p, S){
+    if(!S) return '<p class="sr-sum" data-empty>'+T.noDates+'</p>';
+    var html='<p class="sr-sum">'+T.working(ar(S.W), ar(S.total), ar(S.off), ar(S.perDay), ar(Math.round(S.perDay*S.W)))+'</p>';
+    if(!S.blocks.length) return html;
+    html+='<ul class="sr-blocks">'+S.blocks.map(function(bk){ var same=bk.from.getTime()===bk.to.getTime();
+      return '<li><i class="dot" style="background:var(--'+bk.k+')"></i><span><b>'+T[bk.k]+'</b> · <span class="when">'+fmtD(bk.from)+(same?'':T.arrow+fmtD(bk.to))+'</span></span>'+
+        '<span class="meta">'+T.block(q(bk.days), ar(Math.round(bk.hours*2)/2), ar(bk.pomos))+'</span></li>'; }).join('')+'</ul>';
+    if(S.shared.length) html+='<p class="note">'+S.shared.map(function(x){ return T.shared(fmtD(x.day), q(x.ha), T[x.a], q(x.hb), T[x.b]); }).join(' · ')+'</p>';
+    return html;
+  }
+  function renderSeriesOut(){
+    var out=document.getElementById('seriesOut'), html='';
+    ['p1','p2','p3','p4'].forEach(function(p,i){ var S=seriesPlan(p); if(!S) return; var c=state.series[p];
+      html+='<div class="sr-phase" data-phase="'+p+'"><h3>'+T.seriesOut+' · '+T.phaseN(ar(i+1), T.phases[i+1])+' <span class="muted">'+fmtDY(dateOf(c.from))+T.arrow+fmtDY(dateOf(c.to))+'</span></h3>'+seriesHtml(p,S)+'</div>'; });
+    out.innerHTML=html;
+  }
+  var seriesP='p1', srDialog=document.getElementById('seriesDialog');
+  var WEEK=[6,0,1,2,3,4,5]; /* the week as Egypt reads it: Saturday first */
+  function renderSeriesDialog(){
+    var c=state.series[seriesP], h=seriesHours(seriesP);
+    document.getElementById('seriesTitle').textContent=T.seriesTitle(ar(seriesP.slice(1)));
+    document.getElementById('sr_from').value=c.from||''; document.getElementById('sr_to').value=c.to||'';
+    var wk=document.getElementById('sr_weekend'); wk.innerHTML=WEEK.map(function(d){ var name=new Intl.DateTimeFormat(T.locale,{weekday:'short'}).format(new Date(2026,10,1+d));
+      return '<label><input type="checkbox" value="'+d+'"'+((c.weekend||[]).indexOf(d)>=0?' checked':'')+'>'+name+'</label>'; }).join('');
+    TRACKS.forEach(function(t){ var el=document.getElementById('sr_'+t[0]); if(document.activeElement!==el) el.value=h[t[0]]; });
+    document.getElementById('sr_out').innerHTML=seriesHtml(seriesP, seriesPlan(seriesP));
+  }
+  function openSeries(p){ seriesP=p; var c=state.series[p];
+    if(!c.from){ var a=new Date(); c.from=iso(a); var b=new Date(a); b.setDate(b.getDate()+20); c.to=iso(b); changed(); }
+    renderSeriesDialog(); if(typeof srDialog.showModal==='function') srDialog.showModal(); else srDialog.setAttribute('open',''); }
+  function seriesChanged(){ var c=state.series[seriesP];
+    c.from=document.getElementById('sr_from').value; c.to=document.getElementById('sr_to').value;
+    c.weekend=Array.prototype.map.call(document.querySelectorAll('#sr_weekend input:checked'),function(i){ return +i.value; });
+    var h={}; TRACKS.forEach(function(t){ var v=Math.max(0,Math.min(24,Math.round(parseFloat(document.getElementById('sr_'+t[0]).value||0)*2)/2)); h[t[0]]=v; });
+    c.hours=h; changed(); renderSeriesDialog(); }
+  ['sr_from','sr_to','sr_biz','sr_brand','sr_job','sr_learn'].forEach(function(id){ document.getElementById(id).addEventListener('change', seriesChanged); });
+  document.getElementById('sr_weekend').addEventListener('change', seriesChanged);
+  document.getElementById('sr_useRow').addEventListener('click', function(){ state.series[seriesP].hours=null; changed(); renderSeriesDialog(); });
+
+  function render(){ applyLang(); renderRange(); var M=model(); renderStatus(M); renderCharts(M); renderMilestones(M); renderSettings(); renderHoursTable(M); renderSeriesOut(); if(srDialog.open) renderSeriesDialog(); setSave(lastSave); }
   document.getElementById('langBtn').addEventListener('click', function(){
     lang = lang === 'ar' ? 'en' : 'ar'; T = L[lang];
     try{ localStorage.setItem('plan-lang', lang); }catch(e){}

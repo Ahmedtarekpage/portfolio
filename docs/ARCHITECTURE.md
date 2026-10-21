@@ -254,6 +254,17 @@ saved `time-pomodoro-durations`, else 25 min focus, 5 min break, 15 min after
 every 4), breaks included — 5 hours is 9 pomodoros, not 12. The note under the
 table states the rhythm in use.
 
+**In series.** Each phase row in the hours table has an *📅 In series* button
+that opens a popup: from and to dates, the weekend days (Friday and Saturday
+by default), and the hours a day per category (taken from the row unless
+changed). The page counts the working days, multiplies out the hours, and
+hands each category its share of the days in the table's order — 5 of 12
+hours a day is 5⁄12 of the days — as consecutive date stretches: business
+21 Oct → 29 Oct, then branding 29 Oct → 3 Nov, and so on, with the hours and
+pomodoros of each and the days two stretches share spelled out. The stretches
+are also listed under the table, and the inputs are saved with the plan
+(`state.series`).
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the
