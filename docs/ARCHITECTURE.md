@@ -235,6 +235,12 @@ charts — a year with this month in it, or the stretch of the phase the plan is
 in — and the choice is kept on the device. Milestones say their date beside
 the plan month.
 
+Every date carries the owner's age on it, from the *Your birthday* dial in the
+numbers (default 15 May 1998, saved with the rest of the plan): the year ticks
+read "2027 · age 28–29", a zoomed-in May wears "🎂 29", and the milestones,
+the tooltip, the month pill and the growth note say the age too. The age is
+counted on the day each plan month starts (the start date's day).
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the

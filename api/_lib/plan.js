@@ -178,6 +178,7 @@ html.embedded body{background:transparent;padding:0}
       <div class="head" style="margin-bottom:10px"><h2 style="margin:0" data-t="numbers"></h2><button class="btn reset" type="button" data-t="reset"></button></div>
       <div class="dials">
         <label class="f"><span data-t="d_startDate"></span><input type="date" id="s_startDate"></label>
+        <label class="f"><span data-t="d_birthDate"></span><input type="date" id="s_birthDate"></label>
         <label class="f"><span data-t="d_egpPerUsd"></span><input type="number" id="s_egpPerUsd" min="1" step="1"></label>
         <label class="f"><span data-t="d_salaryUsd"></span><input type="number" id="s_salaryUsd" min="0" step="50"></label>
         <label class="f"><span data-t="d_offerMonth"></span><input type="number" id="s_offerMonth" min="1" step="1"></label>
@@ -207,7 +208,7 @@ html.embedded body{background:transparent;padding:0}
 <script>
 (function(){
   var DEFAULT = {
-    settings:{startDate:'2026-10-21', egpPerUsd:50, salaryUsd:2000, offerMonth:3, startRevenueK:7, growthPct:12, expensesK:20, goalYearlyUsd:500000},
+    settings:{startDate:'2026-10-21', birthDate:'1998-05-15', egpPerUsd:50, salaryUsd:2000, offerMonth:3, startRevenueK:7, growthPct:12, expensesK:20, goalYearlyUsd:500000},
     hours:{p1:{biz:5,brand:3,job:2.5,learn:1.5}, p2:{biz:2,brand:1.5,job:8,learn:0.5}, p3:{biz:2.5,brand:1,job:8,learn:0.5}, p4:{biz:6,brand:4,job:0,learn:2}},
     milestones:{offer:{done:false,date:''}, team:{done:false,date:''}, passed:{done:false,date:''}, left:{done:false,date:''}, goal200:{done:false,date:''}, goal:{done:false,date:''}}
   };
@@ -220,18 +221,19 @@ html.embedded body{background:transparent;padding:0}
       job:"Job", bizRevenue:"Business revenue", expenses:"Expenses", goal:"Goal", biz:"Business", brand:"Branding", learn:"Learning",
       msTitle:"Milestones: tick what's done", msNote:"The milestone after the last tick is the phase you're in. The date fills itself in the day you tick, and you can change it.",
       numbers:"Numbers", reset:"The numbers we agreed on", tableTitle:"Hours in each phase (half-hour steps, must total 12)", phase:"Phase", total:"Total",
-      d_startDate:"Plan start", d_egpPerUsd:"Dollar rate (EGP)", d_salaryUsd:"Job salary (USD a month)", d_offerMonth:"Expected job-offer month",
+      d_startDate:"Plan start", d_birthDate:"Your birthday", d_egpPerUsd:"Dollar rate (EGP)", d_salaryUsd:"Job salary (USD a month)", d_offerMonth:"Expected job-offer month",
       d_startRevenueK:"Business revenue now (thousand EGP)", d_growthPct:"Business growth a month (%)", d_expensesK:"Your expenses a month (thousand EGP)", d_goalYearlyUsd:"Goal (USD a year)",
       ms:{offer:"Job offer", team:"Business covered expenses for 3 months, and I hired a team", passed:"Business passed the salary", left:"Left the job", goal200:"$200K a year", goal:"The goal"},
       phases:["","Job hunt and building the business","Job and business together","Job, with the team running","Business full-time","Arrived"],
-      phaseN:function(n,name){ return "Phase <b>"+n+"</b> · "+name; }, monthOfPlan:function(n){ return "Month "+n+" of the plan"; },
+      phaseN:function(n,name){ return "Phase <b>"+n+"</b> · "+name; }, monthOfPlan:function(n,a){ return "Month "+n+" of the plan · age "+a; },
       next:function(t,n){ return "Next: "+t+" · month "+n; }, allDone:"All milestones done", month:function(n){ return "month "+n; },
-      growth:function(m,y){ return "At this growth the goal lands around month "+m+", about "+y+" years. Every extra 1% of growth brings it a few months closer."; },
-      goalMs:function(k){ return "The goal: $"+k+"K a year"; }, tooltip:function(m,p,d){ return d+" · month "+m+" · Phase "+p; }, here:"You are here",
+      growth:function(m,y,a){ return "At this growth the goal lands around month "+m+", about "+y+" years, when you're "+a+". Every extra 1% of growth brings it a few months closer."; },
+      goalMs:function(k){ return "The goal: $"+k+"K a year"; }, tooltip:function(m,p,d,a){ return d+" · month "+m+" · Phase "+p+" · age "+a; }, here:"You are here",
       million:" million", thousand:" thousand", hours:function(v){ var m={0:"0h",0.5:"30 min",1:"1h",1.5:"1.5h",2:"2h",2.5:"2.5h"}; return m[v]!==undefined?m[v]:v+" hours"; },
       notTwelve:" ≠ 12", saving:"Saving…", saved:"Saved", signIn:"Sign in first so it saves", notSaved:"Not saved — will try again on the next change", local:"Saved on this device only for now",
       resetDone:"Back to the numbers we agreed on", langBtn:"عربي", locale:"en-US", sep:",",
-      rangeAll:"All", rangeNow:"Around now", rangePhase:"This phase", monthDate:function(n,d){ return "month "+n+" · "+d; }
+      rangeAll:"All", rangeNow:"Around now", rangePhase:"This phase", monthDate:function(n,d,a){ return "month "+n+" · "+d+" · age "+a; },
+      age:function(a){ return "age "+a; }, ages:function(a,b){ return a===b ? "age "+a : "age "+a+"–"+b; }, birthday:function(a){ return "🎂 "+a; }
     },
     ar: {
       title:"خطة أحمد: من الوظيفة للـ ٥٠٠ ألف دولار", sub:"١٢ ساعة في اليوم على أربع حاجات. علّم على اللي خلص، وغيّر الأرقام، والرسمة بتتحرك.",
@@ -239,18 +241,19 @@ html.embedded body{background:transparent;padding:0}
       job:"الوظيفة", bizRevenue:"إيراد البيزنس", expenses:"المصاريف", goal:"الهدف", biz:"البيزنس", brand:"البراندينج", learn:"التعلم",
       msTitle:"المحطات: علّم على اللي خلص", msNote:"المحطة اللي بعد آخر علامة هي المرحلة اللي أنت فيها. التاريخ بيتحط لوحده يوم ما تعلّم، وتقدر تغيّره.",
       numbers:"الأرقام", reset:"الأرقام اللي اتفقنا عليها", tableTitle:"الساعات في كل مرحلة (بالنص ساعة، المجموع لازم ١٢)", phase:"المرحلة", total:"المجموع",
-      d_startDate:"بداية الخطة", d_egpPerUsd:"سعر الدولار بالجنيه", d_salaryUsd:"مرتب الوظيفة (دولار في الشهر)", d_offerMonth:"شهر عرض الشغل المتوقع",
+      d_startDate:"بداية الخطة", d_birthDate:"عيد ميلادك", d_egpPerUsd:"سعر الدولار بالجنيه", d_salaryUsd:"مرتب الوظيفة (دولار في الشهر)", d_offerMonth:"شهر عرض الشغل المتوقع",
       d_startRevenueK:"إيراد البيزنس دلوقتي (ألف جنيه)", d_growthPct:"نمو البيزنس في الشهر (٪)", d_expensesK:"مصاريفك في الشهر (ألف جنيه)", d_goalYearlyUsd:"الهدف (دولار في السنة)",
       ms:{offer:"عرض شغل", team:"البيزنس غطّى المصاريف ٣ شهور، وعيّنت فريق", passed:"البيزنس عدّى المرتب", left:"سبت الوظيفة", goal200:"٢٠٠ ألف دولار في السنة", goal:"الهدف"},
       phases:["","بحث عن شغل وبناء البيزنس","الوظيفة والبيزنس معاك","الوظيفة والفريق شغال","البيزنس فول تايم","وصلت"],
-      phaseN:function(n,name){ return "المرحلة <b>"+n+"</b> · "+name; }, monthOfPlan:function(n){ return "شهر "+n+" من الخطة"; },
+      phaseN:function(n,name){ return "المرحلة <b>"+n+"</b> · "+name; }, monthOfPlan:function(n,a){ return "شهر "+n+" من الخطة · عندك "+a+" سنة"; },
       next:function(t,n){ return "الجاية: "+t+" · شهر "+n; }, allDone:"كل المحطات خلصت", month:function(n){ return "شهر "+n; },
-      growth:function(m,y){ return "بالنمو ده الهدف بييجي شهر "+m+" تقريبًا، يعني "+y+" سنة. كل ١٪ زيادة في النمو بتقرّبه كذا شهر."; },
-      goalMs:function(k){ return "الهدف: "+k+" ألف دولار في السنة"; }, tooltip:function(m,p,d){ return d+" · شهر "+m+" · المرحلة "+p; }, here:"أنت هنا",
+      growth:function(m,y,a){ return "بالنمو ده الهدف بييجي شهر "+m+" تقريبًا، يعني "+y+" سنة، وأنت عندك "+a+" سنة. كل ١٪ زيادة في النمو بتقرّبه كذا شهر."; },
+      goalMs:function(k){ return "الهدف: "+k+" ألف دولار في السنة"; }, tooltip:function(m,p,d,a){ return d+" · شهر "+m+" · المرحلة "+p+" · عندك "+a+" سنة"; }, here:"أنت هنا",
       million:" مليون", thousand:" ألف", hours:function(v){ var m={0:"صفر",0.5:"نص ساعة",1:"ساعة",1.5:"ساعة ونص",2:"ساعتين",2.5:"ساعتين ونص"}; return m[v]!==undefined?m[v]:v.toLocaleString("ar-EG")+" ساعات"; },
       notTwelve:" ≠ ١٢", saving:"بيتحفظ…", saved:"اتحفظ", signIn:"سجّل دخولك الأول عشان يتحفظ", notSaved:"ما اتحفظش، هنجرّب تاني مع أول تغيير", local:"محفوظ على الجهاز ده بس دلوقتي",
       resetDone:"رجعت الأرقام اللي اتفقنا عليها", langBtn:"English", locale:"ar-EG", sep:"،",
-      rangeAll:"الكل", rangeNow:"حوالين دلوقتي", rangePhase:"المرحلة دي", monthDate:function(n,d){ return "شهر "+n+" · "+d; }
+      rangeAll:"الكل", rangeNow:"حوالين دلوقتي", rangePhase:"المرحلة دي", monthDate:function(n,d,a){ return "شهر "+n+" · "+d+" · عندك "+a+" سنة"; },
+      age:function(a){ return "عندك "+a+" سنة"; }, ages:function(a,b){ return a===b ? "عندك "+a : "عندك "+a+"–"+b; }, birthday:function(a){ return "🎂 "+a; }
     }
   };
   var lang = document.documentElement.lang === "ar" ? "ar" : "en";
@@ -289,6 +292,14 @@ html.embedded body{background:transparent;padding:0}
   function monthDate(m){ var p=String(state.settings.startDate).split('-'); return new Date(+p[0], +p[1]-1+(m-1), 1); }
   function monthLabel(m){ return new Intl.DateTimeFormat(T.locale,{month:'short',year:'numeric'}).format(monthDate(m)); }
   function yearLabel(m){ return new Intl.DateTimeFormat(T.locale,{year:'numeric'}).format(monthDate(m)); }
+  /* how old the owner is on the day a plan month starts (the start date's day, one month on each time) */
+  function monthDay(m){ var p=String(state.settings.startDate).split('-'); return new Date(+p[0], +p[1]-1+(m-1), +p[2]); }
+  function ageOn(d){ var b=String(state.settings.birthDate||'').split('-'); if(b.length<3) return null;
+    var a=d.getFullYear()-(+b[0]); if(d.getMonth()+1<+b[1] || (d.getMonth()+1===+b[1] && d.getDate()<+b[2])) a--; return a; }
+  function ageAt(m){ return ageOn(monthDay(m)); }
+  function isBirthdayMonth(m){ var b=String(state.settings.birthDate||'').split('-'); return b.length===3 && monthDate(m).getMonth()+1===+b[1]; }
+  /* "2027 · age 28–29": the ages he is during that calendar year */
+  function yearAges(m){ var y=monthDate(m).getFullYear(); var a=ageOn(new Date(y,0,1)), b=ageOn(new Date(y,11,31)); return a==null?'':T.ages(ar(a),ar(b)); }
 
   /* which stretch the charts show — a view choice, kept on this device, not part of the plan */
   var range='all'; try{ range=localStorage.getItem('plan-range')||'all'; }catch(e){}
@@ -358,13 +369,14 @@ html.embedded body{background:transparent;padding:0}
   function baseOpts(M, yScale, fmt){
     var muted=css('--muted'), grid=css('--line'), w=window_(M), span=w[1]-w[0]+1;
     return {responsive:true, maintainAspectRatio:false, animation:false, interaction:{mode:'index',intersect:false}, layout:{padding:{top:34}},
-      plugins:{legend:{display:false}, tooltip:{rtl:lang==='ar', textDirection:lang==='ar'?'rtl':'ltr', callbacks:{title:function(c){ var m=+c[0].label; return T.tooltip(ar(m), ar(M.phaseAt(m)), monthLabel(m)); }, label:function(c){ return c.parsed.y==null?null:c.dataset.label+': '+fmt(c.parsed.y); }}}},
+      plugins:{legend:{display:false}, tooltip:{rtl:lang==='ar', textDirection:lang==='ar'?'rtl':'ltr', callbacks:{title:function(c){ var m=+c[0].label; return T.tooltip(ar(m), ar(M.phaseAt(m)), monthLabel(m), ar(ageAt(m))); }, label:function(c){ return c.parsed.y==null?null:c.dataset.label+': '+fmt(c.parsed.y); }}}},
       /* the axis reads as dates: every month when zoomed in, every January (the year) plus the start when the whole plan is shown */
       scales:{x:{min:w[0], max:w[1], grid:{display:false}, ticks:{color:muted, maxRotation:0, autoSkip:true, autoSkipPadding:12, font:{family:css('--font'),size:11},
         callback:function(v){ var m=Number(this.getLabelForValue(v)); if(!m) return '';
-          if(span<=18) return monthLabel(m);
-          if(span<=36) return (monthDate(m).getMonth()%3===0 || m===w[0]) ? monthLabel(m) : null;
-          return m===w[0] ? monthLabel(m) : monthDate(m).getMonth()===0 ? yearLabel(m) : null; }}}, y:yScale}};
+          var a=ageAt(m), cake=isBirthdayMonth(m)&&a!=null ? [monthLabel(m), T.birthday(ar(a))] : null;
+          if(span<=18) return cake || monthLabel(m);
+          if(span<=36) return cake || ((monthDate(m).getMonth()%3===0 || m===w[0]) ? monthLabel(m) : null);
+          return m===w[0] ? [monthLabel(m), a==null?'':T.age(ar(a))] : monthDate(m).getMonth()===0 ? [yearLabel(m), yearAges(m)] : null; }}}, y:yScale}};
   }
   function line(l,d,c,dash){ return {label:l,data:d,borderColor:c,backgroundColor:c,borderWidth:2,borderDash:dash||[],pointRadius:0,pointHoverRadius:5,tension:.3,spanGaps:false}; }
 
@@ -388,11 +400,11 @@ html.embedded body{background:transparent;padding:0}
 
   function renderStatus(M){
     document.getElementById('phasePill').innerHTML=T.phaseN(ar(Math.min(M.phase,4)), T.phases[M.phase]);
-    document.getElementById('monthPill').textContent=T.monthOfPlan(ar(M.cur));
+    document.getElementById('monthPill').textContent=T.monthOfPlan(ar(M.cur), ar(ageOn(new Date())));
     var next=null; for(var i=0;i<MS.length;i++){ if(!state.milestones[MS[i].k].done){ next=MS[i]; break; } }
-    document.getElementById('nextPill').textContent = next ? T.next(msShort(next), ar(M.mm[next.k])+' · '+monthLabel(M.mm[next.k])) : T.allDone;
+    document.getElementById('nextPill').textContent = next ? T.next(msShort(next), ar(M.mm[next.k])+' · '+monthLabel(M.mm[next.k])+' · '+T.age(ar(ageAt(M.mm[next.k])))) : T.allDone;
     var yrs=Math.round(M.mm.goal/12*10)/10;
-    document.getElementById('growthNote').textContent=T.growth(ar(M.mm.goal), ar(yrs));
+    document.getElementById('growthNote').textContent=T.growth(ar(M.mm.goal), ar(yrs), ar(ageAt(M.mm.goal)));
   }
   function renderMilestones(M){
     var ol=document.getElementById('msList'); ol.innerHTML='';
@@ -400,7 +412,7 @@ html.embedded body{background:transparent;padding:0}
     MS.forEach(function(x,i){ var ms=state.milestones[x.k]; var li=document.createElement('li'); li.className=(ms.done?'ok':'')+(i===nextIdx?' cur':'');
       var t=x.k==='goal' ? T.goalMs(ar(state.settings.goalYearlyUsd/1000)) : msTitle(x);
       li.innerHTML='<input type="checkbox" id="ms_'+x.k+'"'+(ms.done?' checked':'')+'><label class="t" for="ms_'+x.k+'">'+t+'</label>'+
-        (ms.done?'<input type="date" id="msd_'+x.k+'" value="'+ms.date+'">':'<span class="m">'+T.monthDate(ar(M.mm[x.k]), monthLabel(M.mm[x.k]))+'</span>');
+        (ms.done?'<input type="date" id="msd_'+x.k+'" value="'+ms.date+'">':'<span class="m">'+T.monthDate(ar(M.mm[x.k]), monthLabel(M.mm[x.k]), ar(ageAt(M.mm[x.k])))+'</span>');
       ol.appendChild(li);
       li.querySelector('input[type=checkbox]').addEventListener('change',function(e){ ms.done=e.target.checked; ms.date=ms.done?(ms.date||today()):''; if(!ms.done){ for(var j=i+1;j<MS.length;j++){ state.milestones[MS[j].k].done=false; state.milestones[MS[j].k].date=''; } } changed(); });
       var d=li.querySelector('input[type=date]'); if(d) d.addEventListener('change',function(e){ ms.date=e.target.value; changed(); });
