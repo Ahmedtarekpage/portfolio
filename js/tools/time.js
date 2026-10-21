@@ -1455,6 +1455,57 @@
     toast("🏅 New badge: " + names.join(", "));
   }
 
+  /* Each badge set by hand (owner, 2026-10-21: «manual adjust — can set
+     goal or reset»): its own goal, and a day it counts from. A count
+     (tasks, goals, blocks, rungs, cycles) restarted from a day keeps what
+     it stood at then as its zero; a streak is counted again from that day,
+     out of the days already loaded. Kept in this browser beside the
+     commitment's start. */
+  var BADGE_STAT = {
+    "task-1": "totalDone", "task-50": "totalDone", "task-200": "totalDone", "task-500": "totalDone",
+    "streak-3": "streak", "streak-7": "streak", "streak-30": "streak",
+    "goal-1": "completedGoals", "goal-10": "completedGoals",
+    "pomo-1": "focusBlocks", "pomo-day": "focusFullDays", "pomo-100": "focusBlocks",
+    "milestone-1": "milestonesChecked", "milestone-half": "milestonesChecked",
+    "cycle-1": "cyclesCompleted", "cycle-2": "cyclesCompleted", "cycle-4": "cyclesCompleted",
+  };
+  function loadBadgeTune() {
+    try { return JSON.parse(localStorage.getItem("time-badge-tune") || "{}") || {}; } catch (e) { return {}; }
+  }
+  function saveBadgeTune(t) {
+    try { localStorage.setItem("time-badge-tune", JSON.stringify(t)); } catch (e) {}
+  }
+  // the longest run of all-done days from `since` to today
+  function streakSince(stats, since) {
+    var best = 0, run = 0, d = since, byDate = stats.byDate || {};
+    while (d <= stats.to) {
+      var s = byDate[d];
+      if (s && s.total > 0 && s.done >= s.total) { run++; best = Math.max(best, run); } else { run = 0; }
+      d = addDays(d, 1);
+    }
+    return best;
+  }
+  function badgeRaw(b, full) {
+    return BADGE_STAT[b.id] === "streak" ? full.longestStreak : Math.max(0, Number(b.of(full)) || 0);
+  }
+  function badgeNow(b, full, tune) {
+    var t = tune[b.id];
+    if (!t || !t.since) return badgeRaw(b, full);
+    if (BADGE_STAT[b.id] === "streak") return streakSince(full, t.since);
+    return Math.max(0, badgeRaw(b, full) - (t.base || 0));
+  }
+  function badgeGoal(b, tune) {
+    var g = tune[b.id] && Number(tune[b.id].goal);
+    return g && g > 0 ? g : b.goal;
+  }
+  // "50 tasks done" says its new number; a name without one says the goal
+  function badgeName(b, goal) {
+    if (goal === b.goal) return b.name;
+    return b.name.indexOf(String(b.goal)) !== -1 ? b.name.replace(String(b.goal), String(goal)) : b.name + " (goal " + goal + ")";
+  }
+  var lastGamify = null; // { stats, full } — redrawn without fetching again after a change
+  var openBadge = null;
+
   function renderGamification(stats) {
     var cycle = computeCommitCycle();
     var pct = cycle.totalCycleDays > 0 ? Math.min(100, Math.round((cycle.dayInCycle / cycle.totalCycleDays) * 100)) : 0;
@@ -1475,30 +1526,40 @@
       focusBlocks: stats.focusBlocks || 0,
       focusFullDays: stats.focusFullDays || 0,
     };
+    fullStats.byDate = stats.byDate;
+    fullStats.to = stats.to || todayISO();
+    lastGamify = { stats: stats, full: fullStats };
+    var tune = loadBadgeTune();
     var reached = BADGES.map(function (b) {
-      var now = Math.max(0, Number(b.of(fullStats)) || 0);
-      return { badge: b, now: now, done: now >= b.goal, pct: Math.min(100, Math.round((now / b.goal) * 100)) };
+      var now = badgeNow(b, fullStats, tune);
+      var goal = badgeGoal(b, tune);
+      return {
+        badge: b, now: now, goal: goal, name: badgeName(b, goal), tuned: Boolean(tune[b.id]),
+        done: now >= goal, pct: Math.min(100, Math.round((now / goal) * 100)),
+      };
     });
     var unlockedIds = reached.filter(function (r) { return r.done; }).map(function (r) { return r.badge.id; });
 
     $("#gamifyBadges").innerHTML = reached.map(function (r) {
       var b = r.badge;
-      var shown = Math.min(r.now, b.goal);
-      var tip = b.name + " — " + shown + " of " + b.goal + " " + b.unit + (r.done ? " ✓" : "");
-      return '<span class="badge-chip' + (r.done ? " badge-chip--unlocked" : "") + '" data-id="' + b.id +
+      var shown = Math.min(r.now, r.goal);
+      var tip = r.name + " — " + shown + " of " + r.goal + " " + b.unit + (r.done ? " ✓" : "") + " · click to set the goal or restart";
+      return '<button type="button" class="badge-chip' + (r.done ? " badge-chip--unlocked" : "") + (r.tuned ? " badge-chip--tuned" : "") +
+        (openBadge === b.id ? " badge-chip--open" : "") + '" data-id="' + b.id +
         '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
         '<span class="badge-chip__glyph">' + b.icon + '</span>' +
         (r.done ? "" : '<span class="badge-chip__bar"><span style="width:' + r.pct + '%"></span></span>') +
-      '</span>';
+      '</button>';
     }).join("");
+    if (openBadge) fillBadgeTune(reached.filter(function (r) { return r.badge.id === openBadge; })[0]);
     $("#gamifyBadgeCount").textContent = unlockedIds.length + " of " + BADGES.length;
 
     // the nearest one still to come, so the row says what to aim at
     var next = reached.filter(function (r) { return !r.done; })
       .sort(function (a, b) { return b.pct - a.pct; })[0];
     $("#gamifyNext").textContent = next
-      ? "Closest: " + next.badge.icon + " " + next.badge.name + " — " + Math.min(next.now, next.badge.goal) +
-        " of " + next.badge.goal + " " + next.badge.unit
+      ? "Closest: " + next.badge.icon + " " + next.name + " — " + Math.min(next.now, next.goal) +
+        " of " + next.goal + " " + next.badge.unit
       : "Every badge earned 🎉";
 
     var meta = loadGamifyMeta();
@@ -1515,12 +1576,89 @@
      (back to today) and the memory of which fanfares have played. Tasks,
      goals, milestones and focus blocks are untouched. */
   $("#btnGamifyReset").addEventListener("click", function () {
-    if (!confirm("Start the 5-month commitment again from today, and forget which badges have already been celebrated?\n\nYour tasks, goals, milestones and focus blocks are not touched.")) return;
-    saveCommitStart(todayISO());
+    if (!confirm("Restart the 5-month commitment AND every badge from today?\n\nEach badge counts again from zero; the goals you set are kept. Your tasks, goals, milestones and focus blocks are not touched.")) return;
+    var today = todayISO();
+    var tune = loadBadgeTune();
+    BADGES.forEach(function (b) {
+      var t = tune[b.id] || {};
+      t.since = today;
+      // cycles start over with the commitment itself, so their zero is 0
+      t.base = BADGE_STAT[b.id] === "cyclesCompleted" || !lastGamify ? 0 : badgeRaw(b, lastGamify.full);
+      tune[b.id] = t;
+    });
+    saveBadgeTune(tune);
+    saveCommitStart(today);
     saveGamifyMeta({ cyclesCompleted: 0, badges: [], initialized: false });
     playAddSound();
-    toast("Commitment restarted from today ✓");
+    toast("Commitment and badges restarted from today ✓");
     loadGamification();
+  });
+
+  /* One badge, opened from its tile. */
+  function fillBadgeTune(r) {
+    if (!r) { closeBadgeTune(); return; }
+    var t = loadBadgeTune()[r.badge.id];
+    $("#badgeTuneGlyph").textContent = r.badge.icon;
+    $("#badgeTuneName").textContent = r.name + (r.done ? " ✓" : "");
+    $("#badgeTuneNow").textContent = Math.min(r.now, r.goal) + " of " + r.goal + " " + r.badge.unit +
+      (t && t.since ? " · counting since " + t.since : " · counting all your history");
+    var goalInput = $("#badgeTuneGoal");
+    if (document.activeElement !== goalInput) goalInput.value = r.goal;
+    $("#badgeTuneUnit").textContent = r.badge.unit;
+    $("#badgeTuneDefault").disabled = !t;
+    $("#badgeTune").hidden = false;
+  }
+  function closeBadgeTune() {
+    openBadge = null;
+    $("#badgeTune").hidden = true;
+    document.querySelectorAll("#gamifyBadges .badge-chip--open").forEach(function (el) { el.classList.remove("badge-chip--open"); });
+  }
+  function redrawGamify() { if (lastGamify) renderGamification(lastGamify.stats); }
+
+  $("#gamifyBadges").addEventListener("click", function (ev) {
+    var chip = ev.target.closest(".badge-chip");
+    if (!chip) return;
+    if (openBadge === chip.dataset.id) { closeBadgeTune(); return; }
+    openBadge = chip.dataset.id;
+    redrawGamify();
+  });
+  $("#badgeTuneClose").addEventListener("click", closeBadgeTune);
+  $("#badgeTuneSave").addEventListener("click", function () {
+    var b = BADGES.filter(function (x) { return x.id === openBadge; })[0];
+    var n = Math.round(Number($("#badgeTuneGoal").value));
+    if (!b || !(n >= 1)) { toast("A goal is a whole number, 1 or more"); return; }
+    var tune = loadBadgeTune();
+    var t = tune[b.id] || {};
+    if (n === b.goal) delete t.goal; else t.goal = n;
+    if (Object.keys(t).length) tune[b.id] = t; else delete tune[b.id];
+    saveBadgeTune(tune);
+    playAddSound();
+    toast("Goal set: " + badgeName(b, n) + " ✓");
+    redrawGamify();
+  });
+  $("#badgeTuneGoal").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); $("#badgeTuneSave").click(); }
+  });
+  $("#badgeTuneRestart").addEventListener("click", function () {
+    var b = BADGES.filter(function (x) { return x.id === openBadge; })[0];
+    if (!b || !lastGamify) return;
+    var tune = loadBadgeTune();
+    var t = tune[b.id] || {};
+    t.since = todayISO();
+    t.base = badgeRaw(b, lastGamify.full);
+    tune[b.id] = t;
+    saveBadgeTune(tune);
+    playDeleteSound();
+    toast(b.icon + " restarted from today");
+    redrawGamify();
+  });
+  $("#badgeTuneDefault").addEventListener("click", function () {
+    var tune = loadBadgeTune();
+    delete tune[openBadge];
+    saveBadgeTune(tune);
+    playAddSound();
+    toast("Back to its default goal, counting all your history");
+    redrawGamify();
   });
 
   $("#gamifyStartInput").addEventListener("change", function () {
@@ -1567,6 +1705,8 @@
         milestonesChecked: loadMilestoneChecks().filter(Boolean).length,
         focusBlocks: (results[3] || {}).blocks || 0,
         focusFullDays: (results[3] || {}).fullDays || 0,
+        byDate: byDate,
+        to: to,
       });
     }).catch(function () {});
   }

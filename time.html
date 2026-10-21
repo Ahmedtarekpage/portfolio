@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=13" />
-  <link rel="stylesheet" href="css/tools/time.css?v=45" />
+  <link rel="stylesheet" href="css/tools/time.css?v=46" />
   <link rel="stylesheet" href="css/tools/go.css?v=16" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
@@ -209,9 +209,30 @@
             <div class="gamify__badges-head">
               <span class="goals__label">🏅 Achievements</span>
               <span class="gamify__badges-count" id="gamifyBadgeCount"></span>
-              <button type="button" class="btn btn--ghost btn--sm" id="btnGamifyReset" title="Start the commitment again from today">↺ Reset</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnGamifyReset" title="Restart the commitment and every badge from today">↺ Reset all</button>
             </div>
             <div class="gamify__badges" id="gamifyBadges"></div>
+            <!-- a badge, clicked: set its goal, or restart it from today (owner, 2026-10-21) -->
+            <div class="badge-tune" id="badgeTune" hidden>
+              <div class="badge-tune__head">
+                <span class="badge-tune__glyph" id="badgeTuneGlyph"></span>
+                <div>
+                  <div class="badge-tune__name" id="badgeTuneName"></div>
+                  <div class="badge-tune__now" id="badgeTuneNow"></div>
+                </div>
+              </div>
+              <div class="badge-tune__row">
+                <label for="badgeTuneGoal">Goal</label>
+                <input type="number" id="badgeTuneGoal" min="1" step="1" />
+                <span id="badgeTuneUnit"></span>
+                <button type="button" class="btn btn--sm" id="badgeTuneSave">Save goal</button>
+              </div>
+              <div class="badge-tune__row">
+                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneRestart">↺ Restart this one from today</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneDefault">Back to default</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneClose">Close</button>
+              </div>
+            </div>
             <p class="muted gamify__next" id="gamifyNext"></p>
           </div>
         </div>
@@ -723,6 +744,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=71"></script>
+  <script src="js/tools/time.js?v=72"></script>
 </body>
 </html>
