@@ -113,6 +113,11 @@ tr.cur td{background:var(--accent-soft)}
 .btn{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
 .btn:hover{border-color:var(--accent)}
 .btn.lang{font-weight:600}
+/* which stretch of the plan the charts show: all of it, a year around now, or the current phase */
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--line);background:var(--bg)}
+.seg__btn{font:inherit;font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:999px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg__btn:hover{color:var(--fg)}
+.seg__btn[aria-pressed=true]{background:var(--card);color:var(--accent);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 @media (prefers-reduced-motion:no-preference){.pill{transition:background .2s}}
 /* inside the /time Plan tab the page has no chrome of its own: the card it sits in is the frame */
 html.embedded body{background:transparent;padding:0}
@@ -134,7 +139,14 @@ html.embedded body{background:transparent;padding:0}
   </section>
 
   <section class="card">
-    <h2 data-t="incomeTitle"></h2>
+    <div class="head" style="margin-bottom:6px">
+      <h2 data-t="incomeTitle" style="margin:0"></h2>
+      <div class="seg" id="rangeSeg" role="group">
+        <button type="button" class="seg__btn" data-range="all" data-t="rangeAll"></button>
+        <button type="button" class="seg__btn" data-range="now" data-t="rangeNow"></button>
+        <button type="button" class="seg__btn" data-range="phase" data-t="rangePhase"></button>
+      </div>
+    </div>
     <div class="legend">
       <span><i class="sw" style="background:var(--job)"></i><span data-t="job"></span></span>
       <span><i class="sw" style="background:var(--biz)"></i><span data-t="bizRevenue"></span></span>
@@ -215,10 +227,11 @@ html.embedded body{background:transparent;padding:0}
       phaseN:function(n,name){ return "Phase <b>"+n+"</b> · "+name; }, monthOfPlan:function(n){ return "Month "+n+" of the plan"; },
       next:function(t,n){ return "Next: "+t+" · month "+n; }, allDone:"All milestones done", month:function(n){ return "month "+n; },
       growth:function(m,y){ return "At this growth the goal lands around month "+m+", about "+y+" years. Every extra 1% of growth brings it a few months closer."; },
-      goalMs:function(k){ return "The goal: $"+k+"K a year"; }, tooltip:function(m,p){ return "Month "+m+" · Phase "+p; }, here:"You are here",
+      goalMs:function(k){ return "The goal: $"+k+"K a year"; }, tooltip:function(m,p,d){ return d+" · month "+m+" · Phase "+p; }, here:"You are here",
       million:" million", thousand:" thousand", hours:function(v){ var m={0:"0h",0.5:"30 min",1:"1h",1.5:"1.5h",2:"2h",2.5:"2.5h"}; return m[v]!==undefined?m[v]:v+" hours"; },
       notTwelve:" ≠ 12", saving:"Saving…", saved:"Saved", signIn:"Sign in first so it saves", notSaved:"Not saved — will try again on the next change", local:"Saved on this device only for now",
-      resetDone:"Back to the numbers we agreed on", langBtn:"عربي", locale:"en-US", sep:","
+      resetDone:"Back to the numbers we agreed on", langBtn:"عربي", locale:"en-US", sep:",",
+      rangeAll:"All", rangeNow:"Around now", rangePhase:"This phase", monthDate:function(n,d){ return "month "+n+" · "+d; }
     },
     ar: {
       title:"خطة أحمد: من الوظيفة للـ ٥٠٠ ألف دولار", sub:"١٢ ساعة في اليوم على أربع حاجات. علّم على اللي خلص، وغيّر الأرقام، والرسمة بتتحرك.",
@@ -233,10 +246,11 @@ html.embedded body{background:transparent;padding:0}
       phaseN:function(n,name){ return "المرحلة <b>"+n+"</b> · "+name; }, monthOfPlan:function(n){ return "شهر "+n+" من الخطة"; },
       next:function(t,n){ return "الجاية: "+t+" · شهر "+n; }, allDone:"كل المحطات خلصت", month:function(n){ return "شهر "+n; },
       growth:function(m,y){ return "بالنمو ده الهدف بييجي شهر "+m+" تقريبًا، يعني "+y+" سنة. كل ١٪ زيادة في النمو بتقرّبه كذا شهر."; },
-      goalMs:function(k){ return "الهدف: "+k+" ألف دولار في السنة"; }, tooltip:function(m,p){ return "شهر "+m+" · المرحلة "+p; }, here:"أنت هنا",
+      goalMs:function(k){ return "الهدف: "+k+" ألف دولار في السنة"; }, tooltip:function(m,p,d){ return d+" · شهر "+m+" · المرحلة "+p; }, here:"أنت هنا",
       million:" مليون", thousand:" ألف", hours:function(v){ var m={0:"صفر",0.5:"نص ساعة",1:"ساعة",1.5:"ساعة ونص",2:"ساعتين",2.5:"ساعتين ونص"}; return m[v]!==undefined?m[v]:v.toLocaleString("ar-EG")+" ساعات"; },
       notTwelve:" ≠ ١٢", saving:"بيتحفظ…", saved:"اتحفظ", signIn:"سجّل دخولك الأول عشان يتحفظ", notSaved:"ما اتحفظش، هنجرّب تاني مع أول تغيير", local:"محفوظ على الجهاز ده بس دلوقتي",
-      resetDone:"رجعت الأرقام اللي اتفقنا عليها", langBtn:"English", locale:"ar-EG", sep:"،"
+      resetDone:"رجعت الأرقام اللي اتفقنا عليها", langBtn:"English", locale:"ar-EG", sep:"،",
+      rangeAll:"الكل", rangeNow:"حوالين دلوقتي", rangePhase:"المرحلة دي", monthDate:function(n,d){ return "شهر "+n+" · "+d; }
     }
   };
   var lang = document.documentElement.lang === "ar" ? "ar" : "en";
@@ -271,6 +285,24 @@ html.embedded body{background:transparent;padding:0}
   function fmtH(v){ return T.hours(v); }
   function ar(n){ return Number(n).toLocaleString(T.locale); }
   function today(){ var d=new Date(); return d.toISOString().slice(0,10); }
+  /* the calendar month a plan month falls in: month 1 is the month the plan starts */
+  function monthDate(m){ var p=String(state.settings.startDate).split('-'); return new Date(+p[0], +p[1]-1+(m-1), 1); }
+  function monthLabel(m){ return new Intl.DateTimeFormat(T.locale,{month:'short',year:'numeric'}).format(monthDate(m)); }
+  function yearLabel(m){ return new Intl.DateTimeFormat(T.locale,{year:'numeric'}).format(monthDate(m)); }
+
+  /* which stretch the charts show — a view choice, kept on this device, not part of the plan */
+  var range='all'; try{ range=localStorage.getItem('plan-range')||'all'; }catch(e){}
+  if(['all','now','phase'].indexOf(range)===-1) range='all';
+  function window_(M){
+    if(range==='now'){ var a=Math.max(1,M.cur-6), b=Math.min(M.N,a+12); a=Math.max(1,b-12); return [a,b]; }
+    if(range==='phase'){ var p=M.phaseAt(M.cur), a2=p===1?1:p===2?M.mm.offer:p===3?M.mm.team:M.mm.left, b2=p===1?M.mm.offer-1:p===2?M.mm.team-1:p===3?M.mm.left-1:M.N;
+      a2=Math.min(a2,M.cur); b2=Math.max(b2,M.cur); if(b2-a2<5){ b2=Math.min(M.N,a2+5); a2=Math.max(1,b2-5); } return [Math.max(1,a2),Math.min(M.N,b2)]; }
+    return [1,M.N];
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#rangeSeg .seg__btn'),function(b){ b.addEventListener('click',function(){
+    range=b.getAttribute('data-range'); try{ localStorage.setItem('plan-range',range); }catch(e){} render(); }); });
+  function renderRange(){ Array.prototype.forEach.call(document.querySelectorAll('#rangeSeg .seg__btn'),function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-range')===range?'true':'false'); }); }
+
   function monthOf(dateStr){ var s=state.settings; var a=new Date(s.startDate), b=new Date(dateStr);
     if(isNaN(a)||isNaN(b)) return 1; return Math.max(1, Math.floor((b-a)/(30.44*86400000))+1); }
 
@@ -302,23 +334,37 @@ html.embedded body{background:transparent;padding:0}
   function markerPlugin(M){
     return {id:'marks', beforeDatasetsDraw:function(c){
       var x=c.scales.x, ctx=c.ctx, top=c.chartArea.top, bot=c.chartArea.bottom;
+      var w=window_(M);
       var p=M.phase; if(p>=1&&p<=4){ var a=p===1?1:p===2?M.mm.offer:p===3?M.mm.team:M.mm.left; var b=p===1?M.mm.offer-1:p===2?M.mm.team-1:p===3?M.mm.left-1:M.N;
-        var x0=x.getPixelForValue(Math.max(1,a)), x1=x.getPixelForValue(Math.min(M.N,b)); ctx.save(); ctx.fillStyle=css('--accent-soft'); ctx.globalAlpha=.55; ctx.fillRect(Math.min(x0,x1),top,Math.abs(x1-x0),bot-top); ctx.restore(); }
+        a=Math.max(w[0],a); b=Math.min(w[1],b); if(b>=a){ var x0=x.getPixelForValue(a), x1=x.getPixelForValue(b); ctx.save(); ctx.fillStyle=css('--accent-soft'); ctx.globalAlpha=.55; ctx.fillRect(Math.min(x0,x1),top,Math.abs(x1-x0),bot-top); ctx.restore(); } }
     }, afterDraw:function(c){
       var x=c.scales.x, ctx=c.ctx, top=c.chartArea.top, bot=c.chartArea.bottom, muted=css('--muted');
-      var i=0; MS.forEach(function(ms){ var m=M.mm[ms.k]; if(m>M.N) return; var px=x.getPixelForValue(m); var done=state.milestones[ms.k].done; var isGoal=ms.k==='goal';
+      var w=window_(M), rows=[-1e9,-1e9]; /* the right edge of the last label on each of the two rows */
+      var i=0; MS.forEach(function(ms){ var m=M.mm[ms.k]; if(m>M.N||m<w[0]||m>w[1]) return; var px=x.getPixelForValue(m); var done=state.milestones[ms.k].done; var isGoal=ms.k==='goal';
         ctx.save(); ctx.strokeStyle=done?css('--done'):isGoal?css('--goal'):muted; ctx.setLineDash(done?[]:[3,3]); ctx.lineWidth=done?1.5:1; ctx.beginPath(); ctx.moveTo(px,top); ctx.lineTo(px,bot); ctx.stroke();
-        ctx.fillStyle=done?css('--done'):isGoal?css('--goal'):muted; ctx.font='11px '+css('--font'); ctx.textAlign=isGoal?(lang==='ar'?'right':'left'):'center'; ctx.direction=lang==='ar'?'rtl':'ltr';
-        ctx.fillText((done?'✓ ':'')+msShort(ms), isGoal?px-4:px, top-6-(i%2)*13); ctx.restore(); i++; });
-      if(M.cur>=1 && M.cur<=M.N){ var cx=x.getPixelForValue(M.cur); ctx.save(); ctx.strokeStyle=css('--accent'); ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,top); ctx.lineTo(cx,bot); ctx.stroke();
-        ctx.fillStyle=css('--accent'); ctx.font='600 12px '+css('--font'); ctx.textAlign='center'; ctx.fillText(T.here, cx, bot-6); ctx.restore(); }
+        /* a label is kept inside the chart: the goal sits at the right edge, and a zoomed window can end on a milestone */
+        var label=(done?'✓ ':'')+msShort(ms), left=c.chartArea.left, right=c.chartArea.right;
+        ctx.fillStyle=done?css('--done'):isGoal?css('--goal'):muted; ctx.font='11px '+css('--font'); ctx.textAlign='center'; ctx.direction=lang==='ar'?'rtl':'ltr';
+        var tw=ctx.measureText(label).width, lx=isGoal?px-4-tw/2:px; lx=Math.min(Math.max(lx,left+tw/2),right-tw/2);
+        /* two rows of names; one that would land on another is left out (its line stays), which is what a phone needs */
+        var row=i%2; if(lx-tw/2<rows[row]+8) row=1-row;
+        if(lx-tw/2>=rows[row]+8){ ctx.fillText(label, lx, top-6-row*13); rows[row]=lx+tw/2; }
+        ctx.restore(); i++; });
+      if(M.cur>=w[0] && M.cur<=w[1]){ var cx=x.getPixelForValue(M.cur); ctx.save(); ctx.strokeStyle=css('--accent'); ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,top); ctx.lineTo(cx,bot); ctx.stroke();
+        ctx.fillStyle=css('--accent'); ctx.font='600 12px '+css('--font'); ctx.textAlign='center';
+        var hw=ctx.measureText(T.here).width/2; ctx.fillText(T.here, Math.min(Math.max(cx,c.chartArea.left+hw),c.chartArea.right-hw), bot-6); ctx.restore(); }
     }};
   }
   function baseOpts(M, yScale, fmt){
-    var muted=css('--muted'), grid=css('--line');
+    var muted=css('--muted'), grid=css('--line'), w=window_(M), span=w[1]-w[0]+1;
     return {responsive:true, maintainAspectRatio:false, animation:false, interaction:{mode:'index',intersect:false}, layout:{padding:{top:34}},
-      plugins:{legend:{display:false}, tooltip:{rtl:lang==='ar', textDirection:lang==='ar'?'rtl':'ltr', callbacks:{title:function(c){ var m=+c[0].label; return T.tooltip(ar(m), ar(M.phaseAt(m))); }, label:function(c){ return c.parsed.y==null?null:c.dataset.label+': '+fmt(c.parsed.y); }}}},
-      scales:{x:{grid:{display:false}, ticks:{color:muted, font:{family:css('--font'),size:11}, callback:function(v,i){ return (i+1)%6===0||i===0?ar(i+1):''; }}}, y:yScale}};
+      plugins:{legend:{display:false}, tooltip:{rtl:lang==='ar', textDirection:lang==='ar'?'rtl':'ltr', callbacks:{title:function(c){ var m=+c[0].label; return T.tooltip(ar(m), ar(M.phaseAt(m)), monthLabel(m)); }, label:function(c){ return c.parsed.y==null?null:c.dataset.label+': '+fmt(c.parsed.y); }}}},
+      /* the axis reads as dates: every month when zoomed in, every January (the year) plus the start when the whole plan is shown */
+      scales:{x:{min:w[0], max:w[1], grid:{display:false}, ticks:{color:muted, maxRotation:0, autoSkip:true, autoSkipPadding:12, font:{family:css('--font'),size:11},
+        callback:function(v){ var m=Number(this.getLabelForValue(v)); if(!m) return '';
+          if(span<=18) return monthLabel(m);
+          if(span<=36) return (monthDate(m).getMonth()%3===0 || m===w[0]) ? monthLabel(m) : null;
+          return m===w[0] ? monthLabel(m) : monthDate(m).getMonth()===0 ? yearLabel(m) : null; }}}, y:yScale}};
   }
   function line(l,d,c,dash){ return {label:l,data:d,borderColor:c,backgroundColor:c,borderWidth:2,borderDash:dash||[],pointRadius:0,pointHoverRadius:5,tension:.3,spanGaps:false}; }
 
@@ -344,7 +390,7 @@ html.embedded body{background:transparent;padding:0}
     document.getElementById('phasePill').innerHTML=T.phaseN(ar(Math.min(M.phase,4)), T.phases[M.phase]);
     document.getElementById('monthPill').textContent=T.monthOfPlan(ar(M.cur));
     var next=null; for(var i=0;i<MS.length;i++){ if(!state.milestones[MS[i].k].done){ next=MS[i]; break; } }
-    document.getElementById('nextPill').textContent = next ? T.next(msShort(next), ar(M.mm[next.k])) : T.allDone;
+    document.getElementById('nextPill').textContent = next ? T.next(msShort(next), ar(M.mm[next.k])+' · '+monthLabel(M.mm[next.k])) : T.allDone;
     var yrs=Math.round(M.mm.goal/12*10)/10;
     document.getElementById('growthNote').textContent=T.growth(ar(M.mm.goal), ar(yrs));
   }
@@ -354,7 +400,7 @@ html.embedded body{background:transparent;padding:0}
     MS.forEach(function(x,i){ var ms=state.milestones[x.k]; var li=document.createElement('li'); li.className=(ms.done?'ok':'')+(i===nextIdx?' cur':'');
       var t=x.k==='goal' ? T.goalMs(ar(state.settings.goalYearlyUsd/1000)) : msTitle(x);
       li.innerHTML='<input type="checkbox" id="ms_'+x.k+'"'+(ms.done?' checked':'')+'><label class="t" for="ms_'+x.k+'">'+t+'</label>'+
-        (ms.done?'<input type="date" id="msd_'+x.k+'" value="'+ms.date+'">':'<span class="m">'+T.month(ar(M.mm[x.k]))+'</span>');
+        (ms.done?'<input type="date" id="msd_'+x.k+'" value="'+ms.date+'">':'<span class="m">'+T.monthDate(ar(M.mm[x.k]), monthLabel(M.mm[x.k]))+'</span>');
       ol.appendChild(li);
       li.querySelector('input[type=checkbox]').addEventListener('change',function(e){ ms.done=e.target.checked; ms.date=ms.done?(ms.date||today()):''; if(!ms.done){ for(var j=i+1;j<MS.length;j++){ state.milestones[MS[j].k].done=false; state.milestones[MS[j].k].date=''; } } changed(); });
       var d=li.querySelector('input[type=date]'); if(d) d.addEventListener('change',function(e){ ms.date=e.target.value; changed(); });
@@ -374,7 +420,7 @@ html.embedded body{background:transparent;padding:0}
       TRACKS.forEach(function(t){ tr.querySelector('#h_'+p+'_'+t[0]).addEventListener('change',function(e){ var v=Math.max(0,Math.min(12,Math.round(parseFloat(e.target.value||0)*2)/2)); state.hours[p][t[0]]=v; e.target.value=v; changed(); }); });
     });
   }
-  function render(){ applyLang(); var M=model(); renderStatus(M); renderCharts(M); renderMilestones(M); renderSettings(); renderHoursTable(M); setSave(lastSave); }
+  function render(){ applyLang(); renderRange(); var M=model(); renderStatus(M); renderCharts(M); renderMilestones(M); renderSettings(); renderHoursTable(M); setSave(lastSave); }
   document.getElementById('langBtn').addEventListener('click', function(){
     lang = lang === 'ar' ? 'en' : 'ar'; T = L[lang];
     try{ localStorage.setItem('plan-lang', lang); }catch(e){}

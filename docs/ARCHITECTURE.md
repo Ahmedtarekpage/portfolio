@@ -228,6 +228,13 @@ The page is in English, with a small «عربي / English» switch in its header
 flips it to the Egyptian Arabic it was written in; the choice is kept on the
 device. Every word lives in one dictionary at the top of the page's script.
 
+The charts' time axis reads as dates worked out from the plan's start: the
+start month, then each year when the whole plan is shown, every month when
+zoomed in. *All · Around now · This phase* above the first chart zooms both
+charts — a year with this month in it, or the stretch of the phase the plan is
+in — and the choice is kept on the device. Milestones say their date beside
+the plan month.
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the
