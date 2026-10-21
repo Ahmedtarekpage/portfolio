@@ -219,7 +219,7 @@ html.embedded body{background:transparent;padding:0}
       title:"Ahmed's plan: from a job to $500K", sub:"12 hours a day on four things. Tick what's done, change the numbers, and the chart moves.",
       incomeTitle:"Income per month (thousand EGP, log scale)", hoursTitle:"The 12 hours a day",
       job:"Job", bizRevenue:"Business revenue", expenses:"Expenses", goal:"Goal", biz:"Business", brand:"Branding", learn:"Learning",
-      msTitle:"Milestones: tick what's done", msNote:"The milestone after the last tick is the phase you're in. The date fills itself in the day you tick, and you can change it.",
+      msTitle:"Milestones: tick what's done", msNote:"The milestone after the last tick is the phase you're in. The date fills itself in the day you tick, and you can change it. Tick one early and everything after it moves earlier by the same amount, late and it moves back.",
       numbers:"Numbers", reset:"The numbers we agreed on", tableTitle:"Hours in each phase (half-hour steps, must total 12)", phase:"Phase", total:"Total",
       d_startDate:"Plan start", d_birthDate:"Your birthday", d_egpPerUsd:"Dollar rate (EGP)", d_salaryUsd:"Job salary (USD a month)", d_offerMonth:"Expected job-offer month",
       d_startRevenueK:"Business revenue now (thousand EGP)", d_growthPct:"Business growth a month (%)", d_expensesK:"Your expenses a month (thousand EGP)", d_goalYearlyUsd:"Goal (USD a year)",
@@ -239,7 +239,7 @@ html.embedded body{background:transparent;padding:0}
       title:"خطة أحمد: من الوظيفة للـ ٥٠٠ ألف دولار", sub:"١٢ ساعة في اليوم على أربع حاجات. علّم على اللي خلص، وغيّر الأرقام، والرسمة بتتحرك.",
       incomeTitle:"الدخل في الشهر (ألف جنيه، المحور بيتضاعف)", hoursTitle:"الـ ١٢ ساعة في اليوم",
       job:"الوظيفة", bizRevenue:"إيراد البيزنس", expenses:"المصاريف", goal:"الهدف", biz:"البيزنس", brand:"البراندينج", learn:"التعلم",
-      msTitle:"المحطات: علّم على اللي خلص", msNote:"المحطة اللي بعد آخر علامة هي المرحلة اللي أنت فيها. التاريخ بيتحط لوحده يوم ما تعلّم، وتقدر تغيّره.",
+      msTitle:"المحطات: علّم على اللي خلص", msNote:"المحطة اللي بعد آخر علامة هي المرحلة اللي أنت فيها. التاريخ بيتحط لوحده يوم ما تعلّم، وتقدر تغيّره. لو خلّصت محطة بدري، كل اللي بعدها بيتقدّم بنفس المدة، ولو اتأخرت بتتأخر.",
       numbers:"الأرقام", reset:"الأرقام اللي اتفقنا عليها", tableTitle:"الساعات في كل مرحلة (بالنص ساعة، المجموع لازم ١٢)", phase:"المرحلة", total:"المجموع",
       d_startDate:"بداية الخطة", d_birthDate:"عيد ميلادك", d_egpPerUsd:"سعر الدولار بالجنيه", d_salaryUsd:"مرتب الوظيفة (دولار في الشهر)", d_offerMonth:"شهر عرض الشغل المتوقع",
       d_startRevenueK:"إيراد البيزنس دلوقتي (ألف جنيه)", d_growthPct:"نمو البيزنس في الشهر (٪)", d_expensesK:"مصاريفك في الشهر (ألف جنيه)", d_goalYearlyUsd:"الهدف (دولار في السنة)",
@@ -314,8 +314,9 @@ html.embedded body{background:transparent;padding:0}
     range=b.getAttribute('data-range'); try{ localStorage.setItem('plan-range',range); }catch(e){} render(); }); });
   function renderRange(){ Array.prototype.forEach.call(document.querySelectorAll('#rangeSeg .seg__btn'),function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-range')===range?'true':'false'); }); }
 
-  function monthOf(dateStr){ var s=state.settings; var a=new Date(s.startDate), b=new Date(dateStr);
-    if(isNaN(a)||isNaN(b)) return 1; return Math.max(1, Math.floor((b-a)/(30.44*86400000))+1); }
+  /* the plan month a date falls in, by the calendar: month 1 runs from the start date to the day before the same day next month */
+  function monthOf(dateStr){ var a=String(state.settings.startDate).split('-'), b=String(dateStr).split('-'); if(a.length<3||b.length<3) return 1;
+    var n=(+b[0]-(+a[0]))*12+(+b[1]-(+a[1])); if(+b[2]<+a[2]) n--; return Math.max(1, n+1); }
 
   function model(){
     var s=state.settings, g=1+s.growthPct/100, salaryK=s.salaryUsd*s.egpPerUsd/1000;
@@ -330,9 +331,14 @@ html.embedded body{background:transparent;padding:0}
     mm.goal200 = Math.max(mm.left, firstAtLeast(g200K)||N);
     mm.goal = Math.max(mm.goal200, firstAtLeast(goalK)||N);
     var cur = monthOf(today());
-    var prev=0;
-    MS.forEach(function(x){ var ms=state.milestones[x.k];
-      if(ms.done && ms.date) mm[x.k]=monthOf(ms.date); else mm[x.k]=Math.max(mm[x.k], cur, prev);
+    /* A ticked milestone sits on the day it was ticked, and everything after it
+       keeps its planned distance from that day: finish early and the rest comes
+       earlier by as much; finish late and it moves back. What's not done yet can't
+       be in the past, nor before the milestone ahead of it. */
+    var prev=0, shift=0;
+    MS.forEach(function(x){ var ms=state.milestones[x.k], planned=mm[x.k];
+      if(ms.done && ms.date){ mm[x.k]=monthOf(ms.date); shift=mm[x.k]-planned; }
+      else mm[x.k]=Math.max(planned+shift, cur, prev);
       mm[x.k]=Math.max(mm[x.k], prev); prev=mm[x.k]; });
     var N2=Math.min(N, mm.goal+3);
     var phase=1; MS.forEach(function(x){ if(state.milestones[x.k].done) phase=Math.max(phase,x.phaseAfter); });

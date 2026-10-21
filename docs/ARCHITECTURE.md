@@ -241,6 +241,13 @@ read "2027 · age 28–29", a zoomed-in May wears "🎂 29", and the milestones,
 the tooltip, the month pill and the growth note say the age too. The age is
 counted on the day each plan month starts (the start date's day).
 
+A ticked milestone sits on the day it was ticked, and the milestones after it
+keep their planned distance from that day: tick the job offer two months early
+and the team, the salary, leaving the job and the goal all come two months
+earlier; date it late and they move back. Plan months are counted by the
+calendar from the start date (month 1 runs from 21 Oct to 20 Nov), not in
+30.44-day steps.
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the
