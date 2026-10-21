@@ -224,6 +224,10 @@ like everything else here rather than as a public static file. The **Plan** tab
 on /time frames that same page and sizes the frame to its content; *Open on its
 own ↗* opens it full-screen.
 
+The page is in English, with a small «عربي / English» switch in its header that
+flips it to the Egyptian Arabic it was written in; the choice is kept on the
+device. Every word lives in one dictionary at the top of the page's script.
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the
