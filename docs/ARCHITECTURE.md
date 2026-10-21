@@ -214,6 +214,23 @@ Meetings and settings are not functions of their own (see the twelve-function
 ceiling below): they are `?resource=meetings` and `?resource=settings` on
 `api/sessions.js`, with the logic in `api/_lib/meetings.js`.
 
+## The Plan tab — /time → Plan, and /plan
+
+The owner's own plan page ("خطة أحمد", written 2026-10-21 as `khatet-ahmed.html`):
+the income and hours charts, the milestones to tick, the numbers to change. It
+is kept as it was written, inside `api/_lib/plan.js`, and served at **/plan** —
+a rewrite onto `GET /api/tasks?plan=page` — so that it sits behind the passkey
+like everything else here rather than as a public static file. The **Plan** tab
+on /time frames that same page and sizes the frame to its content; *Open on its
+own ↗* opens it full-screen.
+
+Three things were changed from the original: Chart.js is served from `/vendor`
+rather than a CDN; the page reads the shared `tools-theme` key, and the tab
+tells it when the theme flips; and the ticks and numbers are saved on the
+server (`GET`/`PUT /api/tasks?plan=state`, one row in `app_settings`) so the
+plan reads the same on the phone and the laptop. localStorage keeps a copy that
+paints before the server answers.
+
 ## The booking calendar link
 
 Nine buttons across the site say "Book a free consultation" or "Book a call".

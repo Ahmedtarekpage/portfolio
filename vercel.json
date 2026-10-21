@@ -9,6 +9,10 @@
       "destination": "/api/cms?resource=newsletter&action=unsubscribe"
     },
     {
+      "source": "/plan",
+      "destination": "/api/tasks?plan=page"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },
@@ -81,7 +85,7 @@
       ]
     },
     {
-      "source": "/(admin|dashboard|time)",
+      "source": "/(admin|dashboard|time|plan)",
       "headers": [
         {
           "key": "Cache-Control",

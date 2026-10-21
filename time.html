@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=13" />
-  <link rel="stylesheet" href="css/tools/time.css?v=46" />
+  <link rel="stylesheet" href="css/tools/time.css?v=47" />
   <link rel="stylesheet" href="css/tools/go.css?v=16" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
@@ -164,6 +164,7 @@
         <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label">Days</span></button>
         <button type="button" class="tab" data-tab="ideas"><span class="tab__icon">💡</span><span class="tab__label">Ideas</span></button>
         <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label">Analytics</span></button>
+        <button type="button" class="tab" data-tab="plan"><span class="tab__icon">🗺️</span><span class="tab__label">Plan</span></button>
       </nav>
 
       <!-- ---- Today ---- -->
@@ -675,6 +676,17 @@
       </div>
       </section>
 
+      <!-- ---- Plan: the owner's own plan page (khatet), served at /plan behind the passkey ---- -->
+      <section class="tabpanel" data-tabpanel="plan" hidden>
+      <div class="card plan-card">
+        <div class="card__head">
+          <h2>🗺️ Plan</h2>
+          <a class="btn btn--ghost btn--sm" href="/plan" target="_blank" rel="noopener" data-sound="open">Open on its own ↗</a>
+        </div>
+        <iframe id="planFrame" class="plan-frame" title="Ahmed's plan" data-src="/plan" loading="lazy"></iframe>
+      </div>
+      </section>
+
     </section>
 
     <p id="toast" class="toast" hidden></p>
@@ -744,6 +756,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=72"></script>
+  <script src="js/tools/time.js?v=73"></script>
 </body>
 </html>

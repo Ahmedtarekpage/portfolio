@@ -10,8 +10,12 @@
 //   DELETE /api/tasks?date=YYYY-MM-DD        -> delete every task on that day
 //   DELETE /api/tasks?ids=1,2,3              -> delete a hand-picked set in one go -> { count }
 //   DELETE /api/tasks?id=N
+//   GET    /api/tasks?plan=page              -> the plan page (HTML), which /plan rewrites onto
+//   GET    /api/tasks?plan=state             -> { state } the plan's saved numbers and ticks
+//   PUT    /api/tasks?plan=state             -> save them
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
+import { handlePlan } from "./_lib/plan.js";
 
 function isDate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
@@ -70,6 +74,7 @@ export default withErrors(async (req, res) => {
   const sql = await db();
 
   if (req.query.pomodoros) return pomodoros(req, res, sql);
+  if (req.query.plan) return handlePlan(req, res, sql);
 
   if (req.method === "GET" && req.query.totals) {
     const [row] = await sql`SELECT COUNT(*) FILTER (WHERE done)::int AS "totalDone",

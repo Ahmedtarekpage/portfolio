@@ -222,7 +222,7 @@ where marked PUBLIC. Each file opens with its own route list; this is the map.
 | `pdf.js` | streams a stored PDF or payment proof |
 | `cms.js` | **PUBLIC** content read; authed content write; media library; the whole newsletter |
 | `share.js` | **PUBLIC** read-only client view, gated by share token; also the meeting-reminder run (off unless `MEETING_REMINDERS=on`) |
-| `tasks.js`, `quarters.js`, `goals.js`, `ideas.js`, `day-photos.js` | the time tracker |
+| `tasks.js`, `quarters.js`, `goals.js`, `ideas.js`, `day-photos.js` | the time tracker; `tasks.js` also serves the plan page at `/plan` |
 
 `api/_lib/` holds what they share: `db.js` (Neon client and schema),
 `util.js` (signed cookies, the auth guard, request helpers), `hours.js`,

@@ -147,12 +147,39 @@
     }
   });
 
+  /* ---------------- the Plan tab: the owner's own page, framed ----------------
+     /plan is served behind the passkey and reads the same theme key, so the
+     frame only has to be sized to its content and told when the theme flips. */
+
+  function loadPlan() {
+    var frame = $("#planFrame");
+    if (!frame || frame.getAttribute("src")) return;
+    frame.addEventListener("load", function () {
+      var doc = frame.contentDocument;
+      if (!doc) return;
+      var fit = function () { frame.style.height = Math.max(400, doc.documentElement.scrollHeight) + "px"; };
+      fit();
+      if (window.ResizeObserver) new ResizeObserver(fit).observe(doc.documentElement);
+      else setInterval(fit, 1000);
+    });
+    frame.src = frame.getAttribute("data-src");
+  }
+
+  window.Theme.onChange(function (theme) {
+    var frame = $("#planFrame");
+    var win = frame && frame.contentWindow;
+    if (!win || !frame.contentDocument) return;
+    frame.contentDocument.documentElement.setAttribute("data-theme", theme);
+    if (typeof win.replan === "function") win.replan();
+  });
+
   /* ---------------- tabs: Today / Quarter / Analytics ---------------- */
 
   function showTab(name) {
     document.querySelectorAll("#tabbar .tab").forEach(function (btn) {
       btn.classList.toggle("tab--active", btn.dataset.tab === name);
     });
+    if (name === "plan") loadPlan();
     document.querySelectorAll(".tabpanel").forEach(function (panel) {
       var isTarget = panel.dataset.tabpanel === name;
       panel.hidden = !isTarget;
