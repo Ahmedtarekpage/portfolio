@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E🏐%3C/text%3E%3C/svg%3E">
+<title>Camera Games · Volleyball</title>
+<style>
+  :root {
+    --blue: #2f80ff;
+    --red: #ff3b3b;
+    --panel: rgba(8, 14, 30, 0.72);
+    --text: #f4f7ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b18; color: var(--text);
+    font-family: "SF Pro Display", "Segoe UI", system-ui, sans-serif; }
+  canvas#scene { display: block; width: 100vw; height: 100vh; }
+  video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  #score { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch;
+    border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.45); font-style: italic; }
+  .team { display: flex; align-items: center; gap: 18px; padding: 8px 22px; min-width: 210px; }
+  .team.left { background: linear-gradient(90deg, #0f3d8c, var(--blue)); justify-content: flex-end; }
+  .team.right { background: linear-gradient(90deg, var(--red), #8c1010); }
+  .team .label { font-size: 15px; font-weight: 700; letter-spacing: 2px; opacity: .9; }
+  .team .pts { font-size: 46px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .vs { background: #0b1226; padding: 0 14px; display: flex; align-items: center; font-weight: 800; font-size: 13px;
+    letter-spacing: 1px; color: #9fb0d8; }
+
+  #rally { position: fixed; top: 92px; left: 50%; transform: translateX(-50%); font-weight: 800; font-style: italic;
+    letter-spacing: 2px; color: #ffd23f; text-shadow: 0 2px 10px rgba(0,0,0,.6); font-size: 18px; }
+
+  #banner { position: fixed; top: 26%; left: 50%; transform: translate(-50%, -50%) scale(.9); opacity: 0;
+    font-size: clamp(30px, 5vw, 64px); font-weight: 900; font-style: italic; letter-spacing: 3px; white-space: nowrap;
+    text-shadow: 0 6px 30px rgba(0,0,0,.7); transition: opacity .2s, transform .25s; pointer-events: none; }
+  #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #banner small { display: block; text-align: center; font-size: .3em; letter-spacing: 2px; font-weight: 700; opacity: .9; }
+
+  #pip { position: fixed; right: 18px; bottom: 18px; width: 320px; height: 180px; border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.25); box-shadow: 0 10px 30px rgba(0,0,0,.5); background: #000; }
+  #help { position: fixed; left: 18px; bottom: 18px; font-size: 13px; color: #b8c4e4; background: var(--panel);
+    padding: 8px 12px; border-radius: 10px; }
+  #help b { color: #fff; }
+
+  #menu { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(7,11,24,.35), rgba(7,11,24,.85)); }
+  #menu.hidden { display: none; }
+  .card { width: min(620px, calc(100vw - 32px)); background: var(--panel); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.12); border-radius: 20px; padding: 34px 36px; text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .card h1 { margin: 0; font-size: clamp(34px, 6vw, 56px); font-weight: 900; font-style: italic; letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--blue), #fff 50%, var(--red)); -webkit-background-clip: text;
+    background-clip: text; color: transparent; }
+  .card p { color: #c9d4f2; line-height: 1.55; margin: 14px 0; }
+  .sides { display: flex; gap: 12px; margin: 18px 0; }
+  .sides div { flex: 1; padding: 12px; border-radius: 12px; font-weight: 800; font-style: italic; letter-spacing: 1px; }
+  .sides .l { background: rgba(47,128,255,.25); border: 1px solid var(--blue); }
+  .sides .r { background: rgba(255,59,59,.22); border: 1px solid var(--red); }
+  .games { display: flex; gap: 14px; margin: 18px 0 6px; }
+  .game-pick { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 14px 16px;
+    border-radius: 18px; border: 1px solid rgba(47,128,255,.6); background: rgba(47,128,255,.18); color: #fff;
+    text-decoration: none; cursor: pointer; font: inherit; transition: transform .15s, box-shadow .15s, background .15s; }
+  .game-pick:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(0,0,0,.45); background: rgba(47,128,255,.3); }
+  .game-pick--red { border-color: rgba(255,59,59,.6); background: rgba(255,59,59,.16); }
+  .game-pick--red:hover { background: rgba(255,59,59,.3); }
+  .game-pick__icon { font-size: 44px; line-height: 1; }
+  .game-pick__name { font-size: 20px; font-weight: 900; font-style: italic; letter-spacing: 2px; }
+  .game-pick__sub { font-size: 12.5px; color: #c9d4f2; line-height: 1.4; }
+  @media (max-width: 560px) { .games { flex-direction: column; } }
+  #raise { height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); margin: 16px auto 4px; width: 60%; overflow: hidden; }
+  #raise i { display: block; height: 100%; width: 0; background: #22c55e; }
+  #status { font-size: 14px; color: #ffd23f; min-height: 20px; }
+  #status.err { color: #ff8080; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<video id="video" playsinline muted></video>
+
+<div id="score">
+  <div class="team left"><span class="label" id="leftLabel">CPU</span><span class="pts" id="leftPts">0</span></div>
+  <div class="vs">VS</div>
+  <div class="team right"><span class="pts" id="rightPts">0</span><span class="label" id="rightLabel">CPU</span></div>
+</div>
+<div id="rally"></div>
+<div id="banner"></div>
+<canvas id="pip" width="320" height="180"></canvas>
+<div id="help"><b>Space</b> serve now · <b>R</b> restart · <b>C</b> camera view · <a href="./boxing.html" style="color:#fff">🥊 Boxing</a></div>
+
+<div id="menu">
+  <div class="card">
+    <h1>CAMERA GAMES</h1>
+    <p>Stand back so the camera sees you from your head to your waist. You play with your body, Xbox style:
+       the camera looks over your shoulder, step left and right to move, step forward to go in.</p>
+    <div class="games">
+      <button id="start" class="game-pick">
+        <span class="game-pick__icon">🏐</span><span class="game-pick__name">VOLLEYBALL</span>
+        <span class="game-pick__sub">hit the ball with your hands, jump for the high ones · a friend can join on the far side</span>
+      </button>
+      <a id="pickBoxing" class="game-pick game-pick--red" href="./boxing.html">
+        <span class="game-pick__icon">🥊</span><span class="game-pick__name">BOXING vs CPU</span>
+        <span class="game-pick__sub">punch, block with both hands up, lean to dodge, duck the hooks</span>
+      </a>
+    </div>
+    <div id="raise"><i></i></div>
+    <div style="font-size:13px;color:#9fb0d8">…or raise both hands above your head to start volleyball</div>
+    <p id="status">Loading…</p>
+  </div>
+</div>
+
+<script type="module" src="./game.js"></script>
+</body>
+</html>

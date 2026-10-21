@@ -355,6 +355,23 @@ content, because a field that starts out empty hashes the same as every other
 empty field. cms.js fires a `cms:applied` event once overrides have landed,
 which is how videos.js knows the links have arrived.
 
+## Camera games — /games/
+
+Two Kinect-style games played with the body through the webcam, static files
+under `games/` (owner, 2026-10-21; first written in `~/volley-3d`): Three.js
+for the 3D, MediaPipe's pose landmarker for the body, both vendored under
+`games/vendor` (about 25 MB, cached a year). The view is the Xbox one — the
+camera stands behind the player's side — so left and right in front of the
+webcam is left and right on screen, and stepping toward the webcam is
+stepping back. `index.html` is the chooser: **Volleyball** (one player on the
+near side against the CPU, a second person in the webcam's right half takes
+the far side) and **Boxing vs CPU** (`boxing.html`: punch toward the screen,
+both gloves at the face to block, lean to slip a straight, duck a hook; one
+90-second round or a knockout; the keys J/K/A/D/S/B play it without a camera,
+and `window.boxing` exposes the state for tests). `vercel.json` gives
+`/games/` its own header rule with `camera=(self)`, since the site-wide rule
+turns the camera off. Nothing is stored and no function is involved.
+
 ## Newsletter — /dashboard → Newsletter
 
 The **Subscribe to The Track** box on the home page writes to

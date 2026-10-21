@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E🥊%3C/text%3E%3C/svg%3E">
+<title>Camera Games · Boxing</title>
+<style>
+  :root {
+    --blue: #2f80ff;
+    --red: #ff3b3b;
+    --panel: rgba(8, 14, 30, 0.72);
+    --text: #f4f7ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b18; color: var(--text);
+    font-family: "SF Pro Display", "Segoe UI", system-ui, sans-serif; }
+  canvas#scene { display: block; width: 100vw; height: 100vh; }
+  video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  /* health bars: yours grows from the left, the CPU's from the right, the clock between them */
+  #hud { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); width: min(960px, calc(100vw - 32px));
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; }
+  .hp { display: flex; flex-direction: column; gap: 4px; }
+  .hp .name { font-size: 14px; font-weight: 800; font-style: italic; letter-spacing: 2px; display: flex; justify-content: space-between; }
+  .hp .bar { height: 18px; border-radius: 9px; background: rgba(255,255,255,.12); overflow: hidden; border: 1px solid rgba(255,255,255,.2); }
+  .hp .bar i { display: block; height: 100%; width: 100%; transition: width .18s ease; }
+  .hp.you .bar i { background: linear-gradient(90deg, #0f3d8c, var(--blue)); }
+  .hp.cpu .bar { direction: rtl; }
+  .hp.cpu .bar i { background: linear-gradient(90deg, var(--red), #8c1010); }
+  .hp.cpu .name { flex-direction: row-reverse; }
+  #clock { background: #0b1226; border: 1px solid rgba(255,255,255,.15); padding: 8px 16px; border-radius: 12px;
+    font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  #combo { position: fixed; top: 86px; left: 50%; transform: translateX(-50%); font-weight: 800; font-style: italic;
+    letter-spacing: 2px; color: #ffd23f; text-shadow: 0 2px 10px rgba(0,0,0,.6); font-size: 18px; }
+
+  #banner { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(.9); opacity: 0;
+    font-size: clamp(30px, 5vw, 64px); font-weight: 900; font-style: italic; letter-spacing: 3px; white-space: nowrap;
+    text-shadow: 0 6px 30px rgba(0,0,0,.7); transition: opacity .2s, transform .25s; pointer-events: none; }
+  #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #banner small { display: block; text-align: center; font-size: .3em; letter-spacing: 2px; font-weight: 700; opacity: .9; }
+  #flash { position: fixed; inset: 0; pointer-events: none; background: var(--red); opacity: 0; transition: opacity .25s; }
+  #flash.hit { opacity: .32; transition: none; }
+
+  #pip { position: fixed; right: 18px; bottom: 18px; width: 320px; height: 180px; border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.25); box-shadow: 0 10px 30px rgba(0,0,0,.5); background: #000; }
+  #help { position: fixed; left: 18px; bottom: 18px; font-size: 13px; color: #b8c4e4; background: var(--panel);
+    padding: 8px 12px; border-radius: 10px; line-height: 1.5; }
+  #help b { color: #fff; }
+  #help a { color: #fff; }
+
+  #menu { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(7,11,24,.35), rgba(7,11,24,.85)); }
+  #menu.hidden { display: none; }
+  .card { width: min(620px, calc(100vw - 32px)); background: var(--panel); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.12); border-radius: 20px; padding: 34px 36px; text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .card h1 { margin: 0; font-size: clamp(34px, 6vw, 56px); font-weight: 900; font-style: italic; letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--blue), #fff 50%, var(--red)); -webkit-background-clip: text;
+    background-clip: text; color: transparent; }
+  .card p { color: #c9d4f2; line-height: 1.55; margin: 14px 0; }
+  .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; text-align: left; }
+  .moves div { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    font-size: 13.5px; line-height: 1.4; }
+  .moves b { display: block; font-style: italic; letter-spacing: 1px; color: #fff; }
+  #start { margin-top: 8px; font: inherit; font-size: 22px; font-weight: 900; font-style: italic; letter-spacing: 3px;
+    color: #fff; border: 0; border-radius: 999px; padding: 14px 54px; cursor: pointer;
+    background: linear-gradient(90deg, var(--red), #b91c1c); box-shadow: 0 8px 30px rgba(255,59,59,.45); }
+  #start:hover { filter: brightness(1.1); }
+  #raise { height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); margin: 16px auto 4px; width: 60%; overflow: hidden; }
+  #raise i { display: block; height: 100%; width: 0; background: #22c55e; }
+  #status { font-size: 14px; color: #ffd23f; min-height: 20px; }
+  #status.err { color: #ff8080; }
+  .back { display: inline-block; margin-top: 10px; color: #9fb0d8; font-size: 13px; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<video id="video" playsinline muted></video>
+<div id="flash"></div>
+
+<div id="hud">
+  <div class="hp you"><div class="name"><span>YOU</span><span id="youPts">100</span></div><div class="bar"><i id="youBar"></i></div></div>
+  <div id="clock">1:30</div>
+  <div class="hp cpu"><div class="name"><span>CPU</span><span id="cpuPts">100</span></div><div class="bar"><i id="cpuBar"></i></div></div>
+</div>
+<div id="combo"></div>
+<div id="banner"></div>
+<canvas id="pip" width="320" height="180"></canvas>
+<div id="help"><b>Punch</b> toward the screen · <b>Block</b> both gloves at your face · <b>Lean</b> left/right to slip · <b>Duck</b> for hooks<br>
+  keys: <b>J</b>/<b>K</b> punch · <b>A</b>/<b>D</b> lean · <b>S</b> duck · <b>B</b> block · <b>R</b> restart · <b>C</b> camera view · <a href="./index.html">🏐 Volleyball</a></div>
+
+<div id="menu">
+  <div class="card">
+    <h1>BOXING vs CPU</h1>
+    <p>Stand back so the camera sees you from your head to your waist. The camera looks over your shoulder, Xbox style.</p>
+    <div class="moves">
+      <div><b>🥊 Punch</b>Throw a fist toward the screen. High for the head, low for the body.</div>
+      <div><b>🛡 Block</b>Both gloves up at your face. A blocked punch barely counts.</div>
+      <div><b>↔ Slip</b>Lean left or right and a straight punch goes past you.</div>
+      <div><b>⬇ Duck</b>Drop down to go under a hook.</div>
+    </div>
+    <p>One round of 90 seconds, or a knockout. No camera? The keys work too.</p>
+    <button id="start">FIGHT</button>
+    <div id="raise"><i></i></div>
+    <div style="font-size:13px;color:#9fb0d8">…or raise both hands above your head</div>
+    <p id="status">Loading…</p>
+    <a class="back" href="./index.html">← choose another game</a>
+  </div>
+</div>
+
+<script type="module" src="./boxing.js"></script>
+</body>
+</html>

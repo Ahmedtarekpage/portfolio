@@ -137,6 +137,7 @@ the root.
 | `/dashboard` | `dashboard.html` | passkey |
 | `/admin` | `admin.html` | passkey |
 | `/time` | `time.html` | passkey |
+| `/games/` | `games/index.html`, `games/boxing.html` | public, unlisted |
 
 `journey.html` decides which of the three views to render from the URL it was
 served under. The private pages are `noindex` and never linked from the public
