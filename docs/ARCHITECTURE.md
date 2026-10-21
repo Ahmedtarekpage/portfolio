@@ -280,6 +280,14 @@ shown under the quarter's dates, and each category card names its track's
 days. Nothing is stored: a due date is derived on the client from the
 quarter, the tracks, the order and the plan.
 
+Which phase's hours a day the quarter runs on is the owner's pick
+(`quarters.plan_phase`, 1–4): the dropdown at the head of the stretches line
+(and the same field in Edit quarter) saves it at once; left on *Plan now* it
+follows the plan's ticked milestones. A phase with no hours on a track, like
+phase 4's job, gives that track no stretch and its goals no due date. When
+the plan has never been saved, the plan's own starting numbers for that
+phase are used.
+
 **The Focus tab counts its blocks from hours.** *Hours today* (default 12,
 kept per device as `time-pomo-hours`) becomes the day's blocks the way the
 plan counts pomodoros — 25 on, 5 off, 15 after every fourth, the timer's own

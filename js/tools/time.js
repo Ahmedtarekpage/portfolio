@@ -2009,32 +2009,42 @@
   var TRACK_NAME = { biz: "Business", brand: "Branding", job: "Job", learn: "Learning" };
   var TRACK_COLOR = { biz: "#e0652f", brand: "#15966b", job: "#2a78d6", learn: "#d99a00" };
   var TRACK_WORDS = { biz: /business|biz|startup|company|product|cashflow|sales|client/i, brand: /brand|content|linkedin|youtube|social|writing|audience/i, job: /job|work|career|interview|applications?|cv|resume/i, learn: /learn|study|course|read|book|skill|english/i };
-  var PLAN_DEFAULT_HOURS = { biz: 5, brand: 3, job: 2.5, learn: 1.5 };
+  // the plan's own starting numbers, per phase, for when it has not been saved yet
+  var PLAN_DEFAULT_HOURS = { 1: { biz: 5, brand: 3, job: 2.5, learn: 1.5 }, 2: { biz: 2, brand: 1.5, job: 8, learn: 0.5 }, 3: { biz: 2.5, brand: 1, job: 8, learn: 0.5 }, 4: { biz: 6, brand: 4, job: 0, learn: 2 } };
+  var PLAN_PHASE_NAME = { 1: "Job hunt and building the business", 2: "Job and business together", 3: "Job, with the team running", 4: "Business full-time" };
 
   function guessTrack(name) {
     for (var i = 0; i < TRACK_KEYS.length; i++) if (TRACK_WORDS[TRACK_KEYS[i]].test(name || "")) return TRACK_KEYS[i];
     return "";
   }
 
-  // hours a day per track and the weekend, from the plan's current phase (its
-  // "in series" override if set), else the numbers the plan was born with
-  function planRhythm() {
-    var ps = state.planState, hours = PLAN_DEFAULT_HOURS, weekend = [5, 6];
+  // the plan's phase from its ticked milestones
+  function planPhaseNow() {
+    var ps = state.planState, phase = 1, after = { offer: 2, team: 3, passed: 3, left: 4, goal200: 4, goal: 5 };
+    if (ps && ps.milestones) Object.keys(after).forEach(function (k) { if (ps.milestones[k] && ps.milestones[k].done) phase = Math.max(phase, after[k]); });
+    return Math.min(phase, 4);
+  }
+
+  // hours a day per track and the weekend, from a plan phase (the quarter's
+  // chosen one, else the plan's current one), its "in series" override if set,
+  // else the numbers the plan was born with
+  function planRhythm(chosenPhase) {
+    var ps = state.planState, weekend = [5, 6];
+    var phase = chosenPhase >= 1 && chosenPhase <= 4 ? Number(chosenPhase) : planPhaseNow();
+    var hours = PLAN_DEFAULT_HOURS[phase];
     if (ps && ps.hours) {
-      var phase = 1, after = { offer: 2, team: 3, passed: 3, left: 4, goal200: 4, goal: 5 };
-      Object.keys(after).forEach(function (k) { if (ps.milestones && ps.milestones[k] && ps.milestones[k].done) phase = Math.max(phase, after[k]); });
-      var p = "p" + Math.min(phase, 4);
+      var p = "p" + phase;
       var sr = ps.series && ps.series[p];
       hours = (sr && sr.hours) || ps.hours[p] || hours;
       if (sr && Array.isArray(sr.weekend)) weekend = sr.weekend;
     }
-    return { hours: hours, weekend: weekend };
+    return { hours: hours, weekend: weekend, phase: phase, chosen: !!chosenPhase };
   }
 
   // the quarter's working days (ISO), its tracks' stretches, and a due date on every goal in play
   function computeDueDates(data) {
     if (!data) return null;
-    var r = planRhythm();
+    var r = planRhythm(data.quarter.plan_phase);
     var days = [];
     for (var iso = String(data.quarter.start_date).slice(0, 10), end = String(data.quarter.end_date).slice(0, 10); iso <= end; iso = addDays(iso, 1)) {
       if (r.weekend.indexOf(new Date(iso + "T00:00:00Z").getUTCDay()) < 0) days.push(iso);
@@ -2061,7 +2071,7 @@
       var per = st.span / mine.length, c = st.start;
       mine.forEach(function (g) { c += per; g.due = days[Math.min(W - 1, Math.max(0, Math.ceil(c - 1e-9) - 1))]; });
     });
-    return { days: days, stretches: stretches, weekend: r.weekend, hours: r.hours, perDay: perDay };
+    return { days: days, stretches: stretches, weekend: r.weekend, hours: r.hours, perDay: perDay, phase: r.phase, chosen: r.chosen };
   }
 
   function dueChipHtml(g) {
@@ -2077,10 +2087,15 @@
     var box = $("#quarterSeries");
     if (!data || !due) { box.hidden = true; return; }
     var keys = TRACK_KEYS.filter(function (k) { return due.stretches[k]; });
-    if (!due.days.length || !keys.length) { box.hidden = true; return; }
+    if (!due.days.length) { box.hidden = true; return; }
     var anyTrack = data.categories.some(function (c) { return c.trackKey; });
     var dayName = function (d) { return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; };
-    box.innerHTML = '<span>In series:</span>' + keys.map(function (k) {
+    // which phase's hours: the plan's own (auto) or one chosen for this quarter
+    var phaseSel = '<select class="quarter-series__phase" id="quarterPhase" aria-label="Plan phase for the due dates">' +
+      '<option value=""' + (due.chosen ? '' : ' selected') + '>Plan now · Phase ' + planPhaseNow() + '</option>' +
+      [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (due.chosen && due.phase === n ? ' selected' : '') + '>Phase ' + n + ' · ' + PLAN_PHASE_NAME[n] + '</option>'; }).join("") +
+      '</select>';
+    box.innerHTML = phaseSel + '<span>in series:</span>' + keys.map(function (k) {
       var s = due.stretches[k];
       return '<span class="quarter-series__chip"><i class="quarter-series__dot" style="background:' + TRACK_COLOR[k] + '"></i>' +
         TRACK_NAME[k] + ' ' + fmtDayMonth(s.from) + (s.from === s.to ? '' : ' → ' + fmtDayMonth(s.to)) + '</span>';
@@ -2088,6 +2103,12 @@
       '<span class="quarter-series__hint">' + due.days.length + ' working days · weekend ' + (due.weekend.length ? due.weekend.map(dayName).join(", ") : "none") +
       (anyTrack ? '' : ' · set each category\'s track in Edit quarter to get due dates') + '</span>';
     box.hidden = false;
+    $("#quarterPhase").addEventListener("change", function () {
+      var v = this.value ? Number(this.value) : null;
+      api("/api/quarters?id=" + data.quarter.id, { method: "PATCH", body: { plan_phase: v } })
+        .then(function (r) { data.quarter.plan_phase = r.quarter ? r.quarter.plan_phase : v; renderQuarter(data); if (window.Go) window.Go.play("tap"); })
+        .catch(function (e) { toast(e.message, true); });
+    });
   }
 
   function goalRowHtml(g, opts) {
@@ -2808,6 +2829,7 @@
     form.elements.start_date.value = String(q.start_date).slice(0, 10);
     form.elements.end_date.value = String(q.end_date).slice(0, 10);
     form.elements.anti_perfectionist.checked = !!q.anti_perfectionist;
+    form.elements.plan_phase.value = q.plan_phase ? String(q.plan_phase) : "";
     $("#categoryRows").innerHTML = "";
     (state.quarterDetail.categories || []).forEach(function (c) { addCategoryRow(c); });
     if (!state.quarterDetail.categories.length) addCategoryRow();
@@ -2935,6 +2957,7 @@
     var body = {
       name: b.name, start_date: b.start_date, end_date: b.end_date,
       anti_perfectionist: form.elements.anti_perfectionist.checked,
+      plan_phase: form.elements.plan_phase.value ? Number(form.elements.plan_phase.value) : null,
       categories: categories,
     };
 

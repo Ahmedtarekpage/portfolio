@@ -4,6 +4,7 @@
 //   POST   /api/quarters          -> { name, start_date, end_date, anti_perfectionist?, categories: [{name, weekly_hours, track?}, ...] }
 //   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, anti_perfectionist?, categories?: [{id?, name, weekly_hours, track?}, ...] }
 //          track is one of biz | brand | job | learn (the plan's four tracks) or null
+//          plan_phase is 1-4 (which phase's hours a day the quarter runs on) or null = follow the plan
 //   PATCH  /api/quarters?reorder_categories=1 -> { ids: [id, ...] }: persist new drag order
 //   POST   /api/quarters?copy_categories=1 -> { to_quarter_id, category_ids, keep_progress?, log_date? }
 //          copy categories and their goals into another quarter -> { categories_added, categories_merged, goals_added }
@@ -17,6 +18,12 @@ function isDate(s) {
 }
 
 const TRACKS = new Set(["biz", "brand", "job", "learn"]);
+// 1-4, or null when absent/empty/0; anything else is a 400
+function phaseOf(v) {
+  if (v === undefined || v === null || v === "" || Number(v) === 0) return null;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= 4 ? n : NaN;
+}
 const trackOf = (c) => (TRACKS.has(c.track) ? c.track : null);
 
 async function saveCategories(sql, quarterId, categories) {
@@ -160,8 +167,10 @@ export default withErrors(async (req, res) => {
     if (!isDate(b.start_date) || !isDate(b.end_date)) return json(res, 400, { error: "start_date/end_date must be YYYY-MM-DD" });
     if (b.end_date < b.start_date) return json(res, 400, { error: "end_date must be on or after start_date" });
 
-    const [quarter] = await sql`INSERT INTO quarters (name, start_date, end_date, anti_perfectionist)
-      VALUES (${String(b.name).trim()}, ${b.start_date}::date, ${b.end_date}::date, ${!!b.anti_perfectionist}) RETURNING *`;
+    const phase = phaseOf(b.plan_phase);
+    if (Number.isNaN(phase)) return json(res, 400, { error: "plan_phase must be 1 to 4" });
+    const [quarter] = await sql`INSERT INTO quarters (name, start_date, end_date, anti_perfectionist, plan_phase)
+      VALUES (${String(b.name).trim()}, ${b.start_date}::date, ${b.end_date}::date, ${!!b.anti_perfectionist}, ${phase}) RETURNING *`;
     await saveCategories(sql, quarter.id, b.categories);
     return json(res, 201, { quarter });
   }
@@ -174,11 +183,16 @@ export default withErrors(async (req, res) => {
     if (b.start_date && !isDate(b.start_date)) return json(res, 400, { error: "start_date must be YYYY-MM-DD" });
     if (b.end_date && !isDate(b.end_date)) return json(res, 400, { error: "end_date must be YYYY-MM-DD" });
 
+    // plan_phase is the one field that can be set back to null ("follow the plan")
+    const setPhase = b.plan_phase !== undefined;
+    const phase = setPhase ? phaseOf(b.plan_phase) : null;
+    if (Number.isNaN(phase)) return json(res, 400, { error: "plan_phase must be 1 to 4" });
     const [quarter] = await sql`UPDATE quarters SET
         name = COALESCE(${b.name ?? null}, name),
         start_date = COALESCE(${b.start_date ?? null}::date, start_date),
         end_date = COALESCE(${b.end_date ?? null}::date, end_date),
-        anti_perfectionist = COALESCE(${b.anti_perfectionist ?? null}, anti_perfectionist)
+        anti_perfectionist = COALESCE(${b.anti_perfectionist ?? null}, anti_perfectionist),
+        plan_phase = CASE WHEN ${setPhase} THEN ${phase}::int ELSE plan_phase END
       WHERE id = ${id} RETURNING *`;
     if (!quarter) return json(res, 404, { error: "Quarter not found" });
     if (quarter.end_date < quarter.start_date) return json(res, 400, { error: "end_date must be on or after start_date" });

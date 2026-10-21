@@ -201,6 +201,9 @@ async function migrate(sql) {
   // learn), so the quarter can hand its goals due dates from the plan's
   // "in series" stretches (owner, 2026-10-21). Null: guessed from the name.
   await sql`ALTER TABLE quarter_categories ADD COLUMN IF NOT EXISTS track TEXT`;
+  // which plan phase's hours a day the quarter runs on (1-4); null follows the
+  // plan's ticked milestones (owner, 2026-10-21: "choose from plan the phase")
+  await sql`ALTER TABLE quarters ADD COLUMN IF NOT EXISTS plan_phase INTEGER`;
   // A goal row only holds its value now; this holds what it was on each day,
   // so the Days graph can draw goals reached over time beside execution. One
   // row per goal per day — a day's last change wins.
