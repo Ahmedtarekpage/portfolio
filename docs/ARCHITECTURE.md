@@ -248,6 +248,12 @@ earlier; date it late and they move back. Plan months are counted by the
 calendar from the start date (month 1 runs from 21 Oct to 20 Nov), not in
 30.44-day steps.
 
+The hours table and the hours chart's tooltip say how many pomodoros fit in
+each block of hours, counted the way the Focus tab's timer runs them (its
+saved `time-pomodoro-durations`, else 25 min focus, 5 min break, 15 min after
+every 4), breaks included — 5 hours is 9 pomodoros, not 12. The note under the
+table states the rhythm in use.
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the

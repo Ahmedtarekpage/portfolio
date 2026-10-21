@@ -99,6 +99,7 @@ label.f{display:grid;gap:4px;font-size:13px;color:var(--muted)}
 label.f input{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;font-variant-numeric:tabular-nums}
 input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .tbl{overflow-x:auto}
+.pm{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:520px}
 th,td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
 th{font-weight:500;color:var(--muted);font-size:13px}
@@ -197,6 +198,7 @@ html.embedded body{background:transparent;padding:0}
       <thead><tr><th data-t="phase"></th><th><i class="dot" style="background:var(--biz)"></i><span data-t="biz"></span></th><th><i class="dot" style="background:var(--brand)"></i><span data-t="brand"></span></th><th><i class="dot" style="background:var(--job)"></i><span data-t="job"></span></th><th><i class="dot" style="background:var(--learn)"></i><span data-t="learn"></span></th><th data-t="total"></th></tr></thead>
       <tbody></tbody>
     </table></div>
+    <p class="note" id="pomoNote"></p>
     <div class="head" style="margin-top:10px">
       <span class="save" id="saveState"></span>
       <button class="btn reset" type="button" data-t="reset"></button>
@@ -233,6 +235,8 @@ html.embedded body{background:transparent;padding:0}
       notTwelve:" ≠ 12", saving:"Saving…", saved:"Saved", signIn:"Sign in first so it saves", notSaved:"Not saved — will try again on the next change", local:"Saved on this device only for now",
       resetDone:"Back to the numbers we agreed on", langBtn:"عربي", locale:"en-US", sep:",",
       rangeAll:"All", rangeNow:"Around now", rangePhase:"This phase", monthDate:function(n,d,a){ return "month "+n+" · "+d+" · age "+a; },
+      pomos:function(n){ return n+" pomodoros"; }, pomoCell:function(n){ return n+" 🍅"; },
+      pomoNote:function(w,s,l,r){ return "🍅 is how many pomodoros fit in those hours the way your timer runs them: "+w+" min focus, a "+s+"-min break, and a "+l+"-min break after every "+r+". Change the timer on the Focus tab and these follow."; },
       age:function(a){ return "age "+a; }, ages:function(a,b){ return a===b ? "age "+a : "age "+a+"–"+b; }, birthday:function(a){ return "🎂 "+a; }
     },
     ar: {
@@ -253,6 +257,8 @@ html.embedded body{background:transparent;padding:0}
       notTwelve:" ≠ ١٢", saving:"بيتحفظ…", saved:"اتحفظ", signIn:"سجّل دخولك الأول عشان يتحفظ", notSaved:"ما اتحفظش، هنجرّب تاني مع أول تغيير", local:"محفوظ على الجهاز ده بس دلوقتي",
       resetDone:"رجعت الأرقام اللي اتفقنا عليها", langBtn:"English", locale:"ar-EG", sep:"،",
       rangeAll:"الكل", rangeNow:"حوالين دلوقتي", rangePhase:"المرحلة دي", monthDate:function(n,d,a){ return "شهر "+n+" · "+d+" · عندك "+a+" سنة"; },
+      pomos:function(n){ return n+" بومودورو"; }, pomoCell:function(n){ return n+" 🍅"; },
+      pomoNote:function(w,s,l,r){ return "🍅 هي عدد البومودورو اللي بتلحق في الساعات دي زي ما التايمر بتاعك شغال: "+w+" دقيقة تركيز، وبريك "+s+" دقايق، وبريك "+l+" دقيقة بعد كل "+r+". غيّر التايمر في تاب Focus وهي بتتغيّر معاه."; },
       age:function(a){ return "عندك "+a+" سنة"; }, ages:function(a,b){ return a===b ? "عندك "+a : "عندك "+a+"–"+b; }, birthday:function(a){ return "🎂 "+a; }
     }
   };
@@ -286,6 +292,13 @@ html.embedded body{background:transparent;padding:0}
   function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
   function fmtK(v){ return v>=1000 ? ar(Math.round(v/100)/10)+T.million : ar(Math.round(v))+T.thousand; }
   function fmtH(v){ return T.hours(v); }
+  /* Pomodoros the way the Focus tab's timer runs them (its saved durations, else 25/5/15,
+     a long break after every 4): how many focus rounds really fit in a block of hours,
+     breaks included — not hours × 60 ÷ 25. */
+  function pomoDurations(){ var d={work:25,short:5,long:15,rounds:4}; try{ var raw=JSON.parse(localStorage.getItem('time-pomodoro-durations')||'{}');
+    if(raw.work>0) d.work=+raw.work; if(raw.short>0) d.short=+raw.short; if(raw.long>0) d.long=+raw.long; }catch(e){} return d; }
+  function pomosIn(hours){ var d=pomoDurations(), left=hours*60, n=0; while(left>=d.work){ n++; left-=d.work; left-=(n%d.rounds===0?d.long:d.short); } return n; }
+  function fmtHP(v){ return T.hours(v)+' · '+T.pomos(ar(pomosIn(v))); }
   function ar(n){ return Number(n).toLocaleString(T.locale); }
   function today(){ var d=new Date(); return d.toISOString().slice(0,10); }
   /* the calendar month a plan month falls in: month 1 is the month the plan starts */
@@ -382,7 +395,9 @@ html.embedded body{background:transparent;padding:0}
           var a=ageAt(m), cake=isBirthdayMonth(m)&&a!=null ? [monthLabel(m), T.birthday(ar(a))] : null;
           if(span<=18) return cake || monthLabel(m);
           if(span<=36) return cake || ((monthDate(m).getMonth()%3===0 || m===w[0]) ? monthLabel(m) : null);
-          return m===w[0] ? [monthLabel(m), a==null?'':T.age(ar(a))] : monthDate(m).getMonth()===0 ? [yearLabel(m), yearAges(m)] : null; }}}, y:yScale}};
+          /* the start tick keeps its age line only when the first January (which carries the ages) is not right beside it */
+          if(m===w[0]) return (a==null || (12-monthDate(m).getMonth())%12<4) ? monthLabel(m) : [monthLabel(m), T.age(ar(a))];
+          return monthDate(m).getMonth()===0 ? [yearLabel(m), yearAges(m)] : null; }}}, y:yScale}};
   }
   function line(l,d,c,dash){ return {label:l,data:d,borderColor:c,backgroundColor:c,borderWidth:2,borderDash:dash||[],pointRadius:0,pointHoverRadius:5,tension:.3,spanGaps:false}; }
 
@@ -401,7 +416,7 @@ html.embedded body{background:transparent;padding:0}
     destroy('hours');
     charts.hours=new Chart(document.getElementById('hoursChart'),{type:'line', plugins:[markerPlugin(M)],
       data:{labels:labels, datasets:[line(T.biz,row('biz'),css('--biz')), line(T.brand,row('brand'),css('--brand')), line(T.job,row('job'),css('--job')), line(T.learn,row('learn'),css('--learn'),[2,3])]},
-      options:baseOpts(M,{min:0,max:10,grid:{color:grid},ticks:{color:muted,stepSize:1,font:{family:css('--font'),size:11},callback:function(v){return ar(v);}}}, fmtH)});
+      options:baseOpts(M,{min:0,max:10,grid:{color:grid},ticks:{color:muted,stepSize:1,font:{family:css('--font'),size:11},callback:function(v){return ar(v);}}}, fmtHP)});
   }
 
   function renderStatus(M){
@@ -431,12 +446,13 @@ html.embedded body{background:transparent;padding:0}
     var tb=document.querySelector('#hoursTable tbody'); tb.innerHTML='';
     var names={p1:ar(1)+': '+T.phases[1], p2:ar(2)+': '+T.phases[2], p3:ar(3)+': '+T.phases[3], p4:ar(4)+': '+T.phases[4]};
     ['p1','p2','p3','p4'].forEach(function(p,i){ var tr=document.createElement('tr'); if(M.phase===i+1) tr.className='cur';
-      var sum=0; var html='<td>'+names[p]+'</td>';
-      TRACKS.forEach(function(t){ var v=state.hours[p][t[0]]; sum+=v; html+='<td><input type="number" step="0.5" min="0" max="12" id="h_'+p+'_'+t[0]+'" value="'+v+'" aria-label="'+T[t[1]]+'"></td>'; });
-      html+='<td class="sum'+(Math.abs(sum-12)>0.01?' bad':'')+'">'+ar(Math.round(sum*2)/2)+(Math.abs(sum-12)>0.01?T.notTwelve:'')+'</td>';
+      var sum=0, pomos=0; var html='<td>'+names[p]+'</td>';
+      TRACKS.forEach(function(t){ var v=state.hours[p][t[0]]; sum+=v; html+='<td><input type="number" step="0.5" min="0" max="12" id="h_'+p+'_'+t[0]+'" value="'+v+'" aria-label="'+T[t[1]]+'"><small class="pm">'+T.pomoCell(ar(pomosIn(v)))+'</small></td>'; pomos+=pomosIn(v); });
+      html+='<td class="sum'+(Math.abs(sum-12)>0.01?' bad':'')+'">'+ar(Math.round(sum*2)/2)+(Math.abs(sum-12)>0.01?T.notTwelve:'')+'<small class="pm">'+T.pomoCell(ar(pomos))+'</small></td>';
       tr.innerHTML=html; tb.appendChild(tr);
       TRACKS.forEach(function(t){ tr.querySelector('#h_'+p+'_'+t[0]).addEventListener('change',function(e){ var v=Math.max(0,Math.min(12,Math.round(parseFloat(e.target.value||0)*2)/2)); state.hours[p][t[0]]=v; e.target.value=v; changed(); }); });
     });
+    var d=pomoDurations(); document.getElementById('pomoNote').textContent=T.pomoNote(ar(d.work), ar(d.short), ar(d.long), ar(d.rounds));
   }
   function render(){ applyLang(); renderRange(); var M=model(); renderStatus(M); renderCharts(M); renderMilestones(M); renderSettings(); renderHoursTable(M); setSave(lastSave); }
   document.getElementById('langBtn').addEventListener('click', function(){
