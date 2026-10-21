@@ -1937,8 +1937,14 @@
 
   $("#btnBackToQuarters").addEventListener("click", showQuarterGallery);
 
+  // the plan's rhythm (hours a day per track, weekend) rides along, for due dates
+  function loadPlanState() {
+    return api("/api/tasks?plan=state").then(function (r) { state.planState = r.state || null; }).catch(function () { state.planState = state.planState || null; });
+  }
+
   function loadQuarterDetail(id) {
-    return api("/api/quarters?id=" + id).then(function (data) {
+    return Promise.all([api("/api/quarters?id=" + id), loadPlanState()]).then(function (res) {
+      var data = res[0];
       state.quarterDetail = data;
       renderCategorySelect(data.categories);
       renderQuarter(data);
@@ -1990,6 +1996,100 @@
     '</div>';
   }
 
+  /* ---------------- due dates from the plan, in series ----------------
+     The plan's four tracks run one after another across the quarter (the same
+     stretches as the Plan tab's "In series" popup: working days between the
+     quarter's dates, the weekend out, each track's share by its hours a day).
+     Inside a track's stretch, the goals of its categories — the ones not
+     hidden, in the All-goals order — split the days equally, and each goal is
+     due on the day its share ends (owner, 2026-10-21: "distribute as days,
+     then depends on order in all goals non hidden add days, so this will be
+     the due date"). */
+  var TRACK_KEYS = ["biz", "brand", "job", "learn"];
+  var TRACK_NAME = { biz: "Business", brand: "Branding", job: "Job", learn: "Learning" };
+  var TRACK_COLOR = { biz: "#e0652f", brand: "#15966b", job: "#2a78d6", learn: "#d99a00" };
+  var TRACK_WORDS = { biz: /business|biz|startup|company|product|cashflow|sales|client/i, brand: /brand|content|linkedin|youtube|social|writing|audience/i, job: /job|work|career|interview|applications?|cv|resume/i, learn: /learn|study|course|read|book|skill|english/i };
+  var PLAN_DEFAULT_HOURS = { biz: 5, brand: 3, job: 2.5, learn: 1.5 };
+
+  function guessTrack(name) {
+    for (var i = 0; i < TRACK_KEYS.length; i++) if (TRACK_WORDS[TRACK_KEYS[i]].test(name || "")) return TRACK_KEYS[i];
+    return "";
+  }
+
+  // hours a day per track and the weekend, from the plan's current phase (its
+  // "in series" override if set), else the numbers the plan was born with
+  function planRhythm() {
+    var ps = state.planState, hours = PLAN_DEFAULT_HOURS, weekend = [5, 6];
+    if (ps && ps.hours) {
+      var phase = 1, after = { offer: 2, team: 3, passed: 3, left: 4, goal200: 4, goal: 5 };
+      Object.keys(after).forEach(function (k) { if (ps.milestones && ps.milestones[k] && ps.milestones[k].done) phase = Math.max(phase, after[k]); });
+      var p = "p" + Math.min(phase, 4);
+      var sr = ps.series && ps.series[p];
+      hours = (sr && sr.hours) || ps.hours[p] || hours;
+      if (sr && Array.isArray(sr.weekend)) weekend = sr.weekend;
+    }
+    return { hours: hours, weekend: weekend };
+  }
+
+  // the quarter's working days (ISO), its tracks' stretches, and a due date on every goal in play
+  function computeDueDates(data) {
+    if (!data) return null;
+    var r = planRhythm();
+    var days = [];
+    for (var iso = String(data.quarter.start_date).slice(0, 10), end = String(data.quarter.end_date).slice(0, 10); iso <= end; iso = addDays(iso, 1)) {
+      if (r.weekend.indexOf(new Date(iso + "T00:00:00Z").getUTCDay()) < 0) days.push(iso);
+    }
+    var W = days.length, perDay = 0;
+    TRACK_KEYS.forEach(function (k) { perDay += Number(r.hours[k]) || 0; });
+    var stretches = {}, cur = 0;
+    if (W && perDay) TRACK_KEYS.forEach(function (k) {
+      var h = Number(r.hours[k]) || 0; if (!h) return;
+      var span = W * h / perDay;
+      stretches[k] = { start: cur, span: span, from: days[Math.floor(cur + 1e-9)], to: days[Math.min(W - 1, Math.ceil(cur + span - 1e-9) - 1)] };
+      cur += span;
+    });
+
+    var catTrack = {};
+    data.categories.forEach(function (c) { catTrack[c.id] = c.track || guessTrack(c.name); c.trackKey = catTrack[c.id]; });
+    var goals = data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, [])
+      .sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); });
+    goals.forEach(function (g) { g.due = null; g.dueTrack = catTrack[g.category_id] || ""; });
+    TRACK_KEYS.forEach(function (k) {
+      var st = stretches[k]; if (!st) return;
+      var mine = goals.filter(function (g) { return !g.hidden && catTrack[g.category_id] === k; });
+      if (!mine.length) return;
+      var per = st.span / mine.length, c = st.start;
+      mine.forEach(function (g) { c += per; g.due = days[Math.min(W - 1, Math.max(0, Math.ceil(c - 1e-9) - 1))]; });
+    });
+    return { days: days, stretches: stretches, weekend: r.weekend, hours: r.hours, perDay: perDay };
+  }
+
+  function dueChipHtml(g) {
+    if (!g.due) return "";
+    var today = todayISO(), cls = "", text = "due " + fmtDayMonth(g.due);
+    if (goalPct(g) >= 100) { cls = "goal-row__due--done"; text = "done · was due " + fmtDayMonth(g.due); }
+    else if (g.due < today) { cls = "goal-row__due--late"; text = "late · was due " + fmtDayMonth(g.due); }
+    else if (addDays(today, 2) >= g.due) cls = "goal-row__due--soon";
+    return '<span class="goal-row__due ' + cls + '" title="From the plan: ' + TRACK_NAME[g.dueTrack] + ' days, split equally in the All-goals order">' + text + '</span>';
+  }
+
+  function renderQuarterSeries(data, due) {
+    var box = $("#quarterSeries");
+    if (!data || !due) { box.hidden = true; return; }
+    var keys = TRACK_KEYS.filter(function (k) { return due.stretches[k]; });
+    if (!due.days.length || !keys.length) { box.hidden = true; return; }
+    var anyTrack = data.categories.some(function (c) { return c.trackKey; });
+    var dayName = function (d) { return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; };
+    box.innerHTML = '<span>In series:</span>' + keys.map(function (k) {
+      var s = due.stretches[k];
+      return '<span class="quarter-series__chip"><i class="quarter-series__dot" style="background:' + TRACK_COLOR[k] + '"></i>' +
+        TRACK_NAME[k] + ' ' + fmtDayMonth(s.from) + (s.from === s.to ? '' : ' → ' + fmtDayMonth(s.to)) + '</span>';
+    }).join("") +
+      '<span class="quarter-series__hint">' + due.days.length + ' working days · weekend ' + (due.weekend.length ? due.weekend.map(dayName).join(", ") : "none") +
+      (anyTrack ? '' : ' · set each category\'s track in Edit quarter to get due dates') + '</span>';
+    box.hidden = false;
+  }
+
   function goalRowHtml(g, opts) {
     opts = opts || {};
     var pct = goalPct(g);
@@ -1998,6 +2098,7 @@
         (opts.draggable || opts.handle ? '<span class="goal-row__handle" title="Drag to reorder">⠿</span>' : '') +
         (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
+        dueChipHtml(g) +
         '<span class="goal-row__pct">' + pct + '%</span>' +
         (opts.draggable ? '<button type="button" class="iconbtn iconbtn--hide" title="Hide from this view">🙈</button>' : '') +
         '<button type="button" class="iconbtn iconbtn--copy" title="Add to today\'s to-do">📋</button>' +
@@ -2311,6 +2412,20 @@
     category.goals = ids.map(function (id) { return byId[id]; }).filter(Boolean);
 
     api("/api/goals?reorder=1", { method: "PATCH", body: { ids: globalIds } })
+      .then(function () { renderQuarter(data); }) // the due dates follow the new order
+      .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
+  }
+
+  // the flat list: the new order is the global order; the due dates follow it
+  function reorderGoalsFlat(ids) {
+    var data = state.quarterDetail;
+    if (!data) return;
+    var byId = {};
+    data.categories.forEach(function (c) { (c.goals || []).forEach(function (g) { byId[g.id] = g; }); });
+    ids.forEach(function (id, i) { if (byId[id]) byId[id].position = i; });
+    data.categories.forEach(function (c) { (c.goals || []).sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); }); });
+    api("/api/goals?reorder=1", { method: "PATCH", body: { ids: ids } })
+      .then(function () { renderQuarter(data); })
       .catch(function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); });
   }
 
@@ -2339,6 +2454,8 @@
     $("#btnCopyCategories").hidden = !data || !data.categories.length;
     $("#quarterDetailName").textContent = data ? data.quarter.name : "";
     $("#quarterDetailDates").textContent = data ? (fmtDate(data.quarter.start_date) + " – " + fmtDate(data.quarter.end_date)) : "";
+    var due = computeDueDates(data);
+    renderQuarterSeries(data, due);
     renderAnalytics(data);
 
     var quarterBarBox = $("#quarterOverallBar");
@@ -2378,6 +2495,10 @@
         (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
           '<button type="button" class="iconbtn iconbtn--edit category-card__copy" title="Copy to another quarter" aria-label="Copy ' + esc(c.name) + ' to another quarter">⧉</button>' +
         '</div>' +
+        (c.trackKey && due && due.stretches[c.trackKey]
+          ? '<div class="category-card__track"><i class="quarter-series__dot" style="background:' + TRACK_COLOR[c.trackKey] + '"></i>' +
+            TRACK_NAME[c.trackKey] + ' days · ' + fmtDayMonth(due.stretches[c.trackKey].from) + ' → ' + fmtDayMonth(due.stretches[c.trackKey].to) + '</div>'
+          : '') +
         (hasHours ?
           '<div class="category-card__stats">' +
             '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
@@ -2445,8 +2566,7 @@
         api("/api/goals?id=" + g.id, { method: "PATCH", body: { hidden: true } })
           .then(function () {
             g.hidden = true;
-            row.hidden = true;
-            updateGoalsHiddenBanner();
+            renderQuarter(state.quarterDetail); // the hidden goal gives its days to the rest
           })
           .catch(function (e) { toast(e.message, true); });
       });
@@ -2494,8 +2614,7 @@
         state.quarterDetail.categories.forEach(function (c) {
           (c.goals || []).forEach(function (g) { g.hidden = false; });
         });
-        document.querySelectorAll("#goalsFlatList .goal-row[hidden]").forEach(function (row) { row.hidden = false; });
-        updateGoalsHiddenBanner();
+        renderQuarter(state.quarterDetail);
       })
       .catch(function (e) { toast(e.message, true); });
   });
@@ -2505,8 +2624,7 @@
     rowSelector: ".goal-row",
     handleSelector: ".goal-row__handle",
     draggingClass: "goal-row--dragging",
-    apiUrl: "/api/goals?reorder=1",
-    onError: function (e) { toast(e.message, true); loadQuarterDetail(state.selectedQuarterId); },
+    onReorder: reorderGoalsFlat,
   });
 
   $("#btnAddCategoryRow").addEventListener("click", function () { addCategoryRow(); });
@@ -2591,10 +2709,22 @@
     row.className = "category-row";
     if (cat && cat.id) row.dataset.id = cat.id;
     var hoursVal = cat && cat.weekly_hours != null ? Number(cat.weekly_hours) : "";
+    var track = cat ? (cat.track || guessTrack(cat.name)) : "";
     row.innerHTML =
       '<input name="cat_name" placeholder="Category (e.g. Deep work)" value="' + esc(cat ? cat.name : "") + '" required />' +
       '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="h/week (optional)" value="' + hoursVal + '" />' +
+      // which of the plan's four tracks it belongs to: its goals' due dates come from that track's stretch
+      '<select name="cat_track" title="Track in the plan" aria-label="Track in the plan">' +
+        '<option value="">— track —</option>' +
+        TRACK_KEYS.map(function (k) { return '<option value="' + k + '"' + (track === k ? ' selected' : '') + '>' + TRACK_NAME[k] + '</option>'; }).join("") +
+      '</select>' +
       '<button type="button" class="iconbtn category-row__remove" title="Remove category">✕</button>';
+    // a fresh row guesses its track as the name is typed, until a track is picked by hand
+    row.querySelector("[name=cat_name]").addEventListener("input", function () {
+      var sel = row.querySelector("[name=cat_track]");
+      if (!sel.dataset.touched) sel.value = guessTrack(this.value);
+    });
+    row.querySelector("[name=cat_track]").addEventListener("change", function () { this.dataset.touched = "1"; });
     row.querySelector(".category-row__remove").addEventListener("click", function () { row.remove(); });
     $("#categoryRows").appendChild(row);
     syncCopyFrom();
@@ -2799,6 +2929,7 @@
         id: row.dataset.id ? Number(row.dataset.id) : undefined,
         name: row.querySelector("[name=cat_name]").value.trim(),
         weekly_hours: hoursVal ? Number(hoursVal) : null,
+        track: row.querySelector("[name=cat_track]").value || null,
       };
     }).filter(function (c) { return c.name; });
     var body = {
@@ -3731,8 +3862,25 @@
      in Cairo wherever he is. A running block is kept by the clock it ends on,
      not by a counter, so a locked phone or a reloaded page never loses time. */
 
-  var POMO_TARGET = 10;
+  var POMO_TARGET = 10; // the day's blocks when no hours are typed
   var POMO_MINUTES = 25;
+
+  /* The hours typed decide the blocks, counted the way the plan counts them:
+     25 on, 5 off, 5, 5, then a 15-minute break after every fourth. 12 hours is
+     22 blocks, not 28 (owner, 2026-10-21: "I write hours, you do that"). The
+     durations are the timer's own, if they were changed on this device. */
+  function pomoRhythm() {
+    var d = typeof loadPomodoroDurations === "function" ? loadPomodoroDurations() : { work: 25, short: 5, long: 15 };
+    return { work: d.work || 25, short: d.short || 5, long: d.long || 15, rounds: 4 };
+  }
+  function pomosInHours(hours) {
+    var r = pomoRhythm(), left = hours * 60, n = 0;
+    while (left >= r.work) { n++; left -= r.work; left -= (n % r.rounds === 0 ? r.long : r.short); }
+    return n;
+  }
+  function pomoBreakAfter(slot) { var r = pomoRhythm(); return slot % r.rounds === 0 ? r.long : r.short; }
+  function pomoTarget() { return pomo.hours > 0 ? Math.max(1, pomosInHours(pomo.hours)) : POMO_TARGET; }
+  function fmtMins(m) { var h = Math.floor(m / 60), r = m % 60; return (h ? h + "h " : "") + (r || !h ? r + "m" : "").trim(); }
   // the postures, in the order he asked for; after the third it starts again
   var POMO_MODES = [
     { glyph: "🪑", name: "Sitting" },
@@ -3763,7 +3911,7 @@
     return "Resets in " + (h ? h + "h " : "") + m + "m · Cairo";
   }
 
-  var pomo = { date: null, done: {}, extra: 0, history: [], run: null };
+  var pomo = { date: null, done: {}, extra: 0, history: [], run: null, hours: Number(recall("pomo-hours", "12")) || 0 };
   // a block left running when the page was closed picks up where it was
   var pomoSaved = recallJSON("pomo-run", null);
   if (pomoSaved && pomoSaved.slot) pomo.run = pomoSaved;
@@ -3771,7 +3919,7 @@
   function pomoSlots() {
     var highest = 0;
     Object.keys(pomo.done).forEach(function (s) { highest = Math.max(highest, Number(s)); });
-    return Math.max(POMO_TARGET, highest, POMO_TARGET + pomo.extra);
+    return Math.max(pomoTarget(), highest, pomoTarget() + pomo.extra);
   }
 
   function loadPomodoros() {
@@ -3790,17 +3938,23 @@
     var total = pomoSlots();
     var done = Object.keys(pomo.done).length;
     $("#pomoDone").textContent = done;
-    $("#pomoTarget").textContent = POMO_TARGET;
-    $("#pomoFill").style.width = Math.min(100, Math.round((done / POMO_TARGET) * 100)) + "%";
-    $("#pomoFill").classList.toggle("goal-row__fill--done", done >= POMO_TARGET);
+    $("#pomoTarget").textContent = pomoTarget();
+    $("#pomoFill").style.width = Math.min(100, Math.round((done / pomoTarget()) * 100)) + "%";
+    $("#pomoFill").classList.toggle("goal-row__fill--done", done >= pomoTarget());
     $("#pomoReset").textContent = cairoLeft();
-    $("#pomoSay").textContent = done >= POMO_TARGET
-      ? "Ten done — that is the day's work 🎉"
-      : done === 0 ? "Ten blocks waiting. Press ▶ on the first one."
-        : (POMO_TARGET - done) + " to go. " + pomoMode(done + 1).glyph + " " + pomoMode(done + 1).name + " is next.";
+    var target = pomoTarget(), r = pomoRhythm();
+    var hoursIn = $("#pomoHours"); if (document.activeElement !== hoursIn) hoursIn.value = pomo.hours || "";
+    $("#pomoSay").textContent = done >= target
+      ? (target === 10 ? "Ten" : target) + " done — that is the day's work 🎉"
+      : done === 0 ? (target === 10 ? "Ten" : target) + " blocks waiting. Press ▶ on the first one."
+        : (target - done) + " to go. " + pomoMode(done + 1).glyph + " " + pomoMode(done + 1).name + " is next.";
     var mins = 0;
     Object.keys(pomo.done).forEach(function (s) { mins += Number(pomo.done[s].minutes) || 0; });
-    $("#pomoMinutes").textContent = mins ? mins + (mins === 1 ? " minute" : " minutes") + " of focus logged today" : "";
+    // what the hours become: the blocks, the focus in them, and the clock time with the breaks
+    var focusMin = target * r.work, withBreaks = focusMin;
+    for (var b = 1; b < target; b++) withBreaks += pomoBreakAfter(b);
+    $("#pomoMinutes").textContent = (pomo.hours ? pomo.hours + "h → " : "") + target + " × " + r.work + " min = " + fmtMins(focusMin) + " of focus, " + fmtMins(withBreaks) + " with the breaks" +
+      (mins ? " · " + fmtMins(mins) + " logged today" : "");
 
     var list = $("#pomoList");
     list.innerHTML = "";
@@ -3810,7 +3964,7 @@
       var isDone = !!pomo.done[slot];
       var isRunning = pomo.run && pomo.run.slot === slot;
       row.className = "pomo-row" + (isDone ? " pomo-row--done" : "") + (isRunning ? " pomo-row--running" : "") +
-        (slot > POMO_TARGET ? " pomo-row--extra" : "");
+        (slot > pomoTarget() ? " pomo-row--extra" : "");
       row.dataset.slot = slot;
       row.innerHTML =
         '<button type="button" class="pomo-row__check" aria-pressed="' + isDone + '" ' +
@@ -3821,6 +3975,13 @@
         '<button type="button" class="btn btn--ghost btn--sm pomo-row__go">' +
           (isRunning ? "Running…" : isDone ? "Again" : "▶ Start") + '</button>';
       list.appendChild(row);
+      // the break that follows: 5 minutes, or 15 after every fourth block
+      if (slot < total) {
+        var br = pomoBreakAfter(slot), gap = document.createElement("div");
+        gap.className = "pomo-break" + (br >= pomoRhythm().long ? " pomo-break--long" : "") + (isDone ? " pomo-break--done" : "");
+        gap.textContent = (br >= pomoRhythm().long ? "🛋 " : "☕ ") + br + " min break";
+        list.appendChild(gap);
+      }
     }
     renderPomoHistory();
   }
@@ -3834,9 +3995,9 @@
       var d = addDays(pomo.date || cairoToday(), -i);
       var n = byDate[d] || 0;
       var cell = document.createElement("div");
-      cell.className = "pomo-day" + (n >= POMO_TARGET ? " pomo-day--full" : n ? " pomo-day--some" : "");
-      cell.style.setProperty("--fill", Math.min(100, Math.round((n / POMO_TARGET) * 100)) + "%");
-      cell.title = fmtDate(d) + " — " + n + " of " + POMO_TARGET;
+      cell.className = "pomo-day" + (n >= pomoTarget() ? " pomo-day--full" : n ? " pomo-day--some" : "");
+      cell.style.setProperty("--fill", Math.min(100, Math.round((n / pomoTarget()) * 100)) + "%");
+      cell.title = fmtDate(d) + " — " + n + " of " + pomoTarget();
       cell.innerHTML = '<span class="pomo-day__n">' + (n || "") + "</span>";
       box.appendChild(cell);
     }
@@ -3926,7 +4087,7 @@
       }
       if (window.Go) window.Go.play("success");
       var done = Object.keys(pomo.done).length;
-      toast(done >= POMO_TARGET ? "Ten blocks done today 🎉" : "Block " + run.slot + " done — " + (POMO_TARGET - done) + " to go");
+      toast(done >= pomoTarget() ? "Ten blocks done today 🎉" : "Block " + run.slot + " done — " + (pomoTarget() - done) + " to go");
     }).catch(function (e) { toast(e.message, true); });
   }
 
@@ -3982,6 +4143,12 @@
     finishPomodoro();
   });
   $("#pomoStop").addEventListener("click", function () { stopPomodoro(); });
+  $("#pomoHours").addEventListener("change", function () {
+    var v = Math.max(0, Math.min(18, Math.round((Number(this.value) || 0) * 2) / 2));
+    pomo.hours = v; remember("pomo-hours", v ? String(v) : null); pomo.extra = 0;
+    renderPomodoros();
+    if (window.Go) window.Go.play("tap");
+  });
   $("#pomoAddOne").addEventListener("click", function () {
     pomo.extra++;
     renderPomodoros();

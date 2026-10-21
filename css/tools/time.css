@@ -591,7 +591,37 @@
 .category-row { display: flex; gap: 8px; align-items: center; }
 .category-row input[name="cat_name"] { flex: 1; }
 .category-row input[name="cat_hours"] { width: 100px; flex: none; }
+.category-row select[name="cat_track"] { width: 120px; flex: none; }
 .category-row__remove { flex: none; }
+@media (max-width: 560px) { .category-row { flex-wrap: wrap; } .category-row input[name="cat_name"] { flex-basis: 100%; } }
+
+/* ---------- due dates from the plan's stretches ---------- */
+.pomo-top__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pomo-hours { display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
+.pomo-hours input {
+  width: 72px; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 5px 8px; font: 600 0.9rem var(--font-ui); text-align: center; outline: none;
+}
+.pomo-hours input:focus { border-color: var(--blue); }
+.pomo-break {
+  display: flex; align-items: center; gap: 8px; padding: 2px 0 2px 58px; font-size: 0.76rem; color: var(--faint);
+}
+.pomo-break::before { content: ""; width: 14px; height: 1px; background: var(--glass-brd); }
+.pomo-break--long { color: var(--muted); }
+.pomo-break--done { color: #1fa876; }
+.quarter-series { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 14px; font-size: 0.8rem; color: var(--muted); }
+.quarter-series__chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--glass-brd); background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+.quarter-series__dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.quarter-series__hint { font-size: 0.78rem; }
+.category-card__track { font-size: 0.72rem; color: var(--muted); margin: -4px 0 8px; display: flex; align-items: center; gap: 6px; }
+.goal-row__due {
+  flex: none; font-size: 0.7rem; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 6px; padding: 2px 7px;
+  color: var(--muted); background: var(--wash); border: 1px solid var(--glass-brd);
+}
+.goal-row__due--soon { color: #b7791f; background: rgba(217, 154, 0, 0.14); border-color: rgba(217, 154, 0, 0.4); }
+.goal-row__due--late { color: #e2586a; background: rgba(226, 88, 106, 0.12); border-color: rgba(226, 88, 106, 0.4); }
+.goal-row__due--done { color: #1fa876; background: rgba(31, 168, 118, 0.12); border-color: rgba(31, 168, 118, 0.4); }
+@media (max-width: 480px) { .goal-row__top { flex-wrap: wrap; } .goal-row__due { order: 9; } }
 
 /* ---------- category progress cards ---------- */
 .category-cards { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }

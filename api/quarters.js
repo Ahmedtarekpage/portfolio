@@ -1,8 +1,9 @@
 // Quarterly goals: a date range + per-category weekly-hour targets.
 //   GET    /api/quarters          -> [{id, name, start_date, end_date}], newest first
 //   GET    /api/quarters?id=N     -> quarter + categories (each with computed progress)
-//   POST   /api/quarters          -> { name, start_date, end_date, anti_perfectionist?, categories: [{name, weekly_hours}, ...] }
-//   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, anti_perfectionist?, categories?: [{id?, name, weekly_hours}, ...] }
+//   POST   /api/quarters          -> { name, start_date, end_date, anti_perfectionist?, categories: [{name, weekly_hours, track?}, ...] }
+//   PATCH  /api/quarters?id=N     -> { name?, start_date?, end_date?, anti_perfectionist?, categories?: [{id?, name, weekly_hours, track?}, ...] }
+//          track is one of biz | brand | job | learn (the plan's four tracks) or null
 //   PATCH  /api/quarters?reorder_categories=1 -> { ids: [id, ...] }: persist new drag order
 //   POST   /api/quarters?copy_categories=1 -> { to_quarter_id, category_ids, keep_progress?, log_date? }
 //          copy categories and their goals into another quarter -> { categories_added, categories_merged, goals_added }
@@ -14,6 +15,9 @@ import { categoryProgress } from "./_lib/quarter.js";
 function isDate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
 }
+
+const TRACKS = new Set(["biz", "brand", "job", "learn"]);
+const trackOf = (c) => (TRACKS.has(c.track) ? c.track : null);
 
 async function saveCategories(sql, quarterId, categories) {
   // weekly_hours is optional — a category can be goals-only, with no hour target
@@ -29,10 +33,10 @@ async function saveCategories(sql, quarterId, categories) {
     if (c.id && existingIds.has(Number(c.id))) {
       keepIds.add(Number(c.id));
       await sql`UPDATE quarter_categories SET name = ${String(c.name).trim()}, weekly_hours = ${weeklyHours},
-        position = ${i} WHERE id = ${Number(c.id)}`;
+        position = ${i}, track = ${trackOf(c)} WHERE id = ${Number(c.id)}`;
     } else {
-      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours, position)
-        VALUES (${quarterId}, ${String(c.name).trim()}, ${weeklyHours}, ${i}) RETURNING id`;
+      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours, position, track)
+        VALUES (${quarterId}, ${String(c.name).trim()}, ${weeklyHours}, ${i}, ${trackOf(c)}) RETURNING id`;
       keepIds.add(row.id);
     }
   }
@@ -63,8 +67,8 @@ async function copyCategories(sql, toId, ids, keepProgress, logDate) {
     if (catId) {
       out.categories_merged++;
     } else {
-      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours, position)
-        VALUES (${toId}, ${src.name}, ${src.weekly_hours}, ${nextPos++}) RETURNING id`;
+      const [row] = await sql`INSERT INTO quarter_categories (quarter_id, name, weekly_hours, position, track)
+        VALUES (${toId}, ${src.name}, ${src.weekly_hours}, ${nextPos++}, ${src.track ?? null}) RETURNING id`;
       catId = row.id;
       byName.set(key, catId);
       out.categories_added++;

@@ -197,6 +197,10 @@ async function migrate(sql) {
   // everything) — stored server-side so it's the same on every device, not
   // just the browser that clicked "hide"
   await sql`ALTER TABLE goals ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT false`;
+  // which of the plan's four tracks a category belongs to (biz | brand | job |
+  // learn), so the quarter can hand its goals due dates from the plan's
+  // "in series" stretches (owner, 2026-10-21). Null: guessed from the name.
+  await sql`ALTER TABLE quarter_categories ADD COLUMN IF NOT EXISTS track TEXT`;
   // A goal row only holds its value now; this holds what it was on each day,
   // so the Days graph can draw goals reached over time beside execution. One
   // row per goal per day — a day's last change wins.

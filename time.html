@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tools/app.css?v=13" />
-  <link rel="stylesheet" href="css/tools/time.css?v=47" />
+  <link rel="stylesheet" href="css/tools/time.css?v=48" />
   <link rel="stylesheet" href="css/tools/go.css?v=16" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
@@ -454,7 +454,10 @@
           </div>
         </div>
         <h2 id="quarterDetailName" style="margin:2px 0 2px"></h2>
-        <p class="muted" id="quarterDetailDates" style="margin:0 0 14px"></p>
+        <p class="muted" id="quarterDetailDates" style="margin:0 0 6px"></p>
+        <!-- the plan's four tracks in series across this quarter: each category's
+             goals get due dates from its track's stretch (owner, 2026-10-21) -->
+        <p class="quarter-series" id="quarterSeries" hidden></p>
 
         <div id="quarterOverallBar"></div>
 
@@ -502,7 +505,14 @@
           </div>
 
           <div class="pomo-top">
-            <div class="pomo-top__count"><b id="pomoDone">0</b> of <b id="pomoTarget">10</b> today</div>
+            <div class="pomo-top__row">
+              <div class="pomo-top__count"><b id="pomoDone">0</b> of <b id="pomoTarget">10</b> today</div>
+              <!-- the hours decide the blocks, the way the plan counts them: 25 on,
+                   5 off, a 15-minute break after every fourth (owner, 2026-10-21) -->
+              <label class="pomo-hours">Hours today
+                <input type="number" id="pomoHours" min="0.5" max="18" step="0.5" inputmode="decimal" aria-label="Hours of focus today" />
+              </label>
+            </div>
             <div class="goal-row__bar"><div class="goal-row__fill" id="pomoFill" style="width:0%"></div></div>
             <p class="pomo-top__say muted" id="pomoSay"></p>
           </div>
@@ -756,6 +766,6 @@
   <script src="js/tools/theme.js?v=2"></script>
   <script src="js/tools/go.js?v=3"></script>
   <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=73"></script>
+  <script src="js/tools/time.js?v=74"></script>
 </body>
 </html>

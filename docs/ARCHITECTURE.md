@@ -265,6 +265,28 @@ pomodoros of each and the days two stretches share spelled out. The stretches
 are also listed under the table, and the inputs are saved with the plan
 (`state.series`).
 
+**Due dates on the quarter's goals.** Each quarter category belongs to one of
+the plan's four tracks (`quarter_categories.track`: biz | brand | job |
+learn, set in Edit quarter, guessed from the name when unset). The quarter
+runs the tracks in series across its own dates — the same stretches as the
+popup, with the hours a day and the weekend of the plan's current phase (its
+"in series" override if set) — and inside a track's stretch the goals of its
+categories, the ones not hidden and in the All-goals order, split the working
+days equally; each goal is due on the day its share ends (owner, 2026-10-21).
+The due date sits as a label on the goal row in both views: amber within two
+days, red when late, green when the goal is reached. Hiding a goal, showing
+them again, or dragging the order recomputes the dates; the stretches are
+shown under the quarter's dates, and each category card names its track's
+days. Nothing is stored: a due date is derived on the client from the
+quarter, the tracks, the order and the plan.
+
+**The Focus tab counts its blocks from hours.** *Hours today* (default 12,
+kept per device as `time-pomo-hours`) becomes the day's blocks the way the
+plan counts pomodoros — 25 on, 5 off, 15 after every fourth, the timer's own
+durations if changed — so 12 hours is 22 blocks, and the break that follows
+each block is written between the rows. The line under the list does the
+sums: focus minutes, and the clock time with the breaks.
+
 Three things were changed from the original: Chart.js is served from `/vendor`
 rather than a CDN; the page reads the shared `tools-theme` key, and the tab
 tells it when the theme flips; and the ticks and numbers are saved on the
