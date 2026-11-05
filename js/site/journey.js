@@ -402,6 +402,7 @@ const JOBS = [
     place: "UAE · Remote",
     role: "Python Developer & Product Consultant",
     company: "Awasis.ai",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "AI Education & Robotics",
     what: "A portfolio of B2B/B2C digital products — AI education platforms, e-commerce, mobile apps and VR — delivered for international clients at Top Rated Plus (Upwork top 3%).",
     built: [
@@ -518,6 +519,7 @@ const EDUCATOR = [
     place: "Dubai, UAE",
     role: "STEAM & Robotics Instructor",
     company: "Alpha M Educational Services",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "Robotics · Top Schools",
     what: "Taught robotics and programming to teenagers in Dubai's top-tier schools — American School of Dubai (ASD), JESS and Kings' Schools.",
     built: [
@@ -552,6 +554,7 @@ const EDUCATOR = [
     place: "Global · Remote",
     role: "Super Tutor & Python Instructor",
     company: "Preply · almentor · Robokids",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "Tutoring at Scale",
     what: "Independent teaching across leading platforms — 1,000+ tutoring hours on Preply, 650+ students on almentor, and LEGO robotics coaching for WRO competitions.",
     built: [
@@ -573,6 +576,7 @@ const BUILDER = [
     place: "Worldwide · Remote",
     role: "Senior Software Engineer → Product Manager",
     company: "Upwork",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "Top 3% Worldwide",
     what: "Started as a senior software engineer building AI-integrated EdTech products for global clients, then grew into a product manager role — owning roadmaps and leading development teams to ship scalable, custom learning solutions and automation tools.",
     built: [
@@ -592,6 +596,7 @@ const BUILDER = [
     place: "Saudi Arabia · Remote",
     role: "Senior Python Developer",
     company: "Modernint (Linker)",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "Automation Product",
     what: "Built 'Linker' — a Python SaaS tool that automatically applies to LinkedIn job postings, streamlining the job-search workflow end to end.",
     built: [
@@ -607,6 +612,7 @@ const BUILDER = [
     place: "USA · Remote",
     role: "Senior Python Developer",
     company: "Peakregroup",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "Data Engineering",
     what: "Built a real-estate data product scraping U.S. state listings, then cleaning and structuring the data into usable, accurate datasets.",
     built: [
@@ -736,7 +742,8 @@ function renderInto(id, list) {
 function renderCards() {
   renderInto("eduTimeline", EDUCATOR);
   renderInto("buildTimeline", BUILDER);
-  renderInto("timeline", JOBS);
+  // /product shows only what is on the CV; /full keeps the whole story
+  renderInto("timeline", VIEW === "product" ? JOBS.filter((j) => !j.notOnCv) : JOBS);
   const skillsGrid = document.getElementById("skillsGrid");
   if (skillsGrid) {
     skillsGrid.innerHTML = SKILLS.map(
