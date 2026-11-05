@@ -252,9 +252,9 @@ const STATIC = {
     "nav.platform": "Platform", "nav.help": "How I can help",
     "nav.mystory": "My story", "nav.myjourney": "My journey",
     "nav.jpm": "Product Manager",
-    "hero.eyebrow": "EDUCATOR · ENGINEER · AI PRODUCT MANAGER",
+    "hero.eyebrow": "PRODUCT MANAGER · EDUCATOR · ENGINEER",
     "hero.name": "Ahmed", "hero.surname": "Tarek",
-    "hero.sub": "Ten years turning technology into impact — from teaching kids to build <strong>robots</strong>, to engineering <strong>EdTech</strong> tools, to leading <strong>AI-powered products</strong> end-to-end. Same curiosity, bigger canvas. This is that journey.",
+    "hero.sub": "Product Manager in Dubai with 7+ years owning consumer, B2B and government products end to end. Led a team of 11 on a Saudi government digitization programme, and grew GoBachaloria to 380 students with 10% paying and zero ad spend. Before product, ten years teaching STEAM, robotics and computer science to 3,000+ students.",
     "hero.btnPrimary": "Read my story", "hero.btnGhost": "Get in touch",
     "persona.label": "What are you hiring for? Jump straight to it →",
     "persona.pm": "Product Manager", "persona.pmSub": "AI · SaaS · B2B/B2C",
@@ -298,9 +298,9 @@ const STATIC = {
     "nav.platform": "المنصة", "nav.help": "كيف أساعدك",
     "nav.mystory": "قصتي", "nav.myjourney": "رحلتي",
     "nav.jpm": "مدير المنتج",
-    "hero.eyebrow": "مُعلّم · مهندس · مدير منتج ذكاء اصطناعي",
+    "hero.eyebrow": "مدير منتج · مُعلّم · مهندس",
     "hero.name": "أحمد", "hero.surname": "طارق",
-    "hero.sub": "عشر سنوات في تحويل التقنية إلى أثر — من تعليم الأطفال بناء <strong>الروبوتات</strong>، إلى هندسة أدوات <strong>التعليم التقني</strong>، إلى قيادة <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية. الفضول نفسه، ومساحة أكبر. هذه هي الرحلة.",
+    "hero.sub": "مدير منتج في دبي بخبرة 7+ سنوات في منتجات B2C وB2B وحكومية من البداية للنهاية. قدت فريقًا من 11 شخصًا في برنامج رقمنة حكومي سعودي، ونمّيت GoBachaloria إلى 380 طالبًا مع 10% مشتركين مدفوعين وبدون إعلانات. قبل المنتج: عشر سنوات تدريس STEAM والروبوتات والبرمجة لأكثر من 3000 طالب.",
     "hero.btnPrimary": "اقرأ قصتي", "hero.btnGhost": "تواصل معي",
     "persona.label": "عمّن تبحث للتوظيف؟ انتقل مباشرةً →",
     "persona.pm": "مدير منتج", "persona.pmSub": "ذكاء اصطناعي · SaaS · B2B/B2C",
@@ -767,17 +767,17 @@ const VIEW = (() => {
 const VIEW_TEXT = {
   product: {
     en: {
-      "hero.eyebrow": "AI PRODUCT MANAGER · SAAS · GOVTECH",
-      "hero.sub": "I build and lead <strong>AI-powered products</strong> end-to-end — from <strong>SaaS platforms</strong> to <strong>government products</strong> — turning strategy into shipped, measurable outcomes. These are the products I've owned, and where to see them live.",
+      "hero.eyebrow": "PRODUCT MANAGER · DUBAI · AI · SAAS · GOVTECH",
+      "hero.sub": "7+ years owning <strong>consumer, B2B and government</strong> products end to end: discovery, PRDs, roadmap, delivery and metrics. I led a team of 11 on a Saudi government digitization programme, and led product at <strong>GoBachaloria</strong>, an AI learning platform: 380 registered students, 38 paying (10%) with zero ad spend, through SEO and GEO. Available immediately in Dubai.",
       "hero.btnPrimary": "See the products",
-      "work.index": "THE PRODUCTS", "work.title": "AI products I've shipped",
-      "work.lead": "Not a list of job titles — the actual products I built, the problem each solved, and where you can go see them for yourself.",
+      "work.index": "THE PRODUCTS", "work.title": "Products I've shipped and led",
+      "work.lead": "For each one: the problem it solved, what I owned, and the result.",
       "build.index": "FOUNDATION · ENGINEERING", "build.title": "I build what I manage",
       "edu.index": "FOUNDATION · TEACHING", "edu.title": "Where the product sense started",
     },
     ar: {
-      "hero.eyebrow": "مدير منتج ذكاء اصطناعي · SAAS · تقنية حكومية",
-      "hero.sub": "أبني وأقود <strong>منتجات مدعومة بالذكاء الاصطناعي</strong> من البداية للنهاية — من <strong>منصات SaaS</strong> إلى <strong>منتجات حكومية</strong> — محوّلًا الاستراتيجية إلى نتائج مُطلَقة وقابلة للقياس. هذه هي المنتجات التي امتلكتها، وأين تراها مباشرةً.",
+      "hero.eyebrow": "مدير منتج · دبي · ذكاء اصطناعي · SaaS · تقنية حكومية",
+      "hero.sub": "أكثر من 7 سنوات في إدارة منتجات B2C وB2B وحكومية من البداية للنهاية. قدت فريقًا من 11 شخصًا في برنامج رقمنة حكومي سعودي، وقدت المنتج في GoBachaloria: 380 طالبًا مسجلًا، و38 مشتركًا مدفوعًا (10%) بدون إعلانات، عبر SEO وGEO. متاح فورًا في دبي.",
       "hero.btnPrimary": "شاهد المنتجات",
       "work.index": "المنتجات", "work.title": "منتجات ذكاء اصطناعي أطلقتها",
       "work.lead": "ليست قائمة مسمّيات وظيفية — بل المنتجات الحقيقية التي بنيتها، والمشكلة التي حلّها كلٌّ منها، وأين يمكنك رؤيتها بنفسك.",
@@ -819,8 +819,8 @@ const VIEW_TEXT = {
 const VIEW_META = {
   product: {
     path: "/product",
-    title: "Ahmed Tarek — AI Product Manager for AI, SaaS & EdTech",
-    description: "The AI and EdTech products I have owned end to end — discovery, roadmap, delivery, launch — including government platforms and EdTech reaching 10,000+ users. Dubai, working globally.",
+    title: "Ahmed Tarek — Product Manager, Dubai (AI, SaaS, GovTech)",
+    description: "Product Manager in Dubai, 7+ years: led a team of 11 on a Saudi government programme, and grew GoBachaloria to 380 students (10% paying) with zero ad spend through SEO and GEO. Available immediately.",
   },
   educator: {
     path: "/educator",
@@ -829,8 +829,8 @@ const VIEW_META = {
   },
   full: {
     path: "/full",
-    title: "Ahmed Tarek — Educator, Engineer & AI Product Manager",
-    description: "The whole story: RoboCup champion at 16, 3,000+ students taught across four countries, Python engineer in the top 3% on Upwork, then AI product manager in Dubai leading EdTech and government products.",
+    title: "Ahmed Tarek — Product Manager, Dubai",
+    description: "Product Manager in Dubai with 7+ years in consumer, B2B and government products, plus a decade of teaching STEAM and computer science to 3,000+ students. Full story and CV.",
   },
 };
 
