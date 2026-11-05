@@ -346,7 +346,24 @@ const STATIC = {
 // `link.url = null` renders a disabled "Link coming soon" chip — fill these in.
 const JOBS = [
   {
-    date: "Jun 2025 — Present",
+    date: "Aug 2025 — Oct 2026",
+    place: "Dubai, UAE · On-site",
+    role: "Product Manager (Full-time)",
+    company: "GoBachaloria",
+    kind: "AI Learning Platform",
+    what: "An AI learning platform for Egypt's new secondary-school track: student app, teacher platform, admin dashboard and an AI video generator.",
+    built: [
+      "Owned product strategy, roadmap and delivery from launch in Nov 2025.",
+      "Ran weekly interviews with students and teachers and turned them into a prioritised backlog.",
+      "Built a 22-agent Claude operations system that reads live platform data and drafts daily priorities.",
+    ],
+    impact: ["380 registered students", "10% paying", "Zero ad spend"],
+    tags: ["AI", "EdTech", "SEO / GEO", "Product Strategy"],
+    images: [],
+    links: [{ url: "https://gobachaloria.com", label: "Visit GoBachaloria" }],
+  },
+  {
+    date: "Jun 2025 — Oct 2025",
     place: "Remote · Part-Time",
     role: "Founder & AI Product Lead",
     company: "Ashrhly.com",
@@ -364,9 +381,9 @@ const JOBS = [
     featured: true,
   },
   {
-    date: "Jul 2025 — Present",
-    place: "Estonia · Remote",
-    role: "Product Manager",
+    date: "Jan 2024 — Jul 2025",
+    place: "Dubai, UAE (HQ Estonia) · On-site",
+    role: "Product Manager (Contract)",
     company: "Inkrypt Videos",
     kind: "Video-Security SaaS",
     what: "A platform that protects video content with encryption — including live-stream protection — and helps creators publish on schedule.",
@@ -397,10 +414,10 @@ const JOBS = [
     video: { id: "TAHexuZxpxA", poster: "https://img.youtube.com/vi/TAHexuZxpxA/maxresdefault.jpg" },
   },
   {
-    date: "Jan 2023 — Dec 2023",
+    date: "Jul 2020 — Jun 2021",
     place: "Dubai, UAE · Hybrid",
     role: "Product Manager",
-    company: "SAKINA",
+    company: "SakeenahTours",
     kind: "B2B Travel Platform",
     what: "A B2B Islamic tourism platform managing VIP travel experiences through a cloud-based dynamic dashboard.",
     built: [
@@ -414,7 +431,7 @@ const JOBS = [
     links: [{ url: "https://sakeenahtours.com/", label: "Visit Sakeenah Tours" }],
   },
   {
-    date: "Jul 2021 — Dec 2022",
+    date: "Jan 2019 — Jun 2020",
     place: "Cairo, Egypt · Hybrid",
     role: "Associate Product Manager",
     company: "AlaFein · Gazebo Productions",
@@ -434,9 +451,9 @@ const JOBS = [
     ],
   },
   {
-    date: "Jan 2024 — Jun 2025",
-    place: "Saudi Arabia · Remote",
-    role: "Product Manager",
+    date: "Jul 2021 — Dec 2023",
+    place: "Saudi Arabia · Remote (from Dubai)",
+    role: "Product Manager (Full-time)",
     company: "Fira.Ai — Government Project",
     kind: "GovTech · Confidential",
     what: "A confidential government project for Saudi Arabia — a custom web application built around Matterport 3D-capture technology, delivered under strict compliance requirements. Details are protected under NDA.",
@@ -454,7 +471,7 @@ const JOBS = [
 /* ---- CHAPTER ONE — The Educator (STEAM / robotics / CS teaching) ---- */
 const EDUCATOR = [
   {
-    date: "2017",
+    date: "Jul — Aug 2017",
     place: "Nagoya, Japan",
     role: "Contestant — 1st Place, RoboCup Junior Egypt",
     company: "RoboCup Federation",
@@ -513,9 +530,9 @@ const EDUCATOR = [
     links: [],
   },
   {
-    date: "2016 — 2020",
+    date: "Jul 2016 — Jul 2018",
     place: "Alexandria, Egypt",
-    role: "ICT & Robotics Instructor",
+    role: "ICT & STEAM Instructor",
     company: "AWASIS Science",
     kind: "Makerspace · Roots",
     what: "The foundation years — teaching ICT and science through inquiry-based, hands-on STEAM: Python, robotics, electronics and AI in a makerspace setting.",
