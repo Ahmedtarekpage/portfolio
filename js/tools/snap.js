@@ -122,7 +122,7 @@
     again.type = "button";
     again.textContent = tr("Allow camera", "اسمح بالكاميرا");
     again.style.cssText = "margin-inline-start:8px;padding:4px 12px;border-radius:999px;border:1px solid currentColor;background:none;color:inherit;font:inherit;font-weight:700;cursor:pointer";
-    again.addEventListener("click", function () { ask().then(function (yes) { gate(!yes); }); });
+    again.addEventListener("click", function () { ask().then(function (yes) { remember(yes); gate(!yes); }); });
     note.appendChild(document.createTextNode(tr(
       "📷 Allow the camera to sign in. If you blocked it, turn it back on in the browser's site settings.",
       "📷 لازم تسمح بالكاميرا عشان تدخل. لو قفلتها قبل كده، افتحها من إعدادات الموقع في المتصفح.")));
@@ -130,11 +130,27 @@
     btn.parentNode.insertBefore(note, btn.nextSibling);
   }
 
+  // Already allowed? Then leave the camera alone: it is opened only when a
+  // sign-in or PIN actually fails. The browser's own record is asked first;
+  // where it cannot say (Safari, Firefox), a note left after the last "yes".
+  var OK_KEY = "tools.cam";
+  function remembered() { try { return localStorage.getItem(OK_KEY) === "1"; } catch (e) { return false; } }
+  function remember(yes) { try { if (yes) localStorage.setItem(OK_KEY, "1"); else localStorage.removeItem(OK_KEY); } catch (e) { /* nothing to keep it in */ } }
+  function state() {
+    if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve(remembered() ? "granted" : "prompt");
+    return navigator.permissions.query({ name: "camera" }).then(function (p) { return p.state; })
+      .catch(function () { return remembered() ? "granted" : "prompt"; });
+  }
+
   function prime() {
     hasCamera().then(function (cam) {
-      if (!cam) return;          // nothing to allow on this device
-      gate(true);                // locked until the answer comes back
-      ask().then(function (yes) { gate(!yes); });
+      if (!cam) return;                      // nothing to allow on this device
+      state().then(function (st) {
+        if (st === "granted") return;        // allowed before: do not touch the camera now
+        gate(true);                          // locked until the answer is yes
+        if (st === "denied") return;         // the browser will not ask again; the note says how to turn it on
+        ask().then(function (yes) { remember(yes); gate(!yes); });
+      });
     });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", prime);
