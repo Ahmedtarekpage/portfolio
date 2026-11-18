@@ -29,6 +29,14 @@
     .snap b { display: block; }
     .snap small { display: block; color: var(--mute); overflow-wrap: anywhere; unicode-bidi: plaintext; }
     .tag { display: inline-block; font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); margin-bottom: 4px; }
+    .snap .acts { margin-top: 8px; }
+    .snap .acts .btn, #blocks .btn { padding: 4px 12px; font-size: .85rem; }
+    .you { color: var(--ok); font-weight: 700; }
+    #blocks { margin-bottom: 18px; }
+    #blocks h2 { font-size: 1rem; margin: 0 0 8px; }
+    #blocks ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+    #blocks li { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
+    #blocks code { direction: ltr; unicode-bidi: isolate; }
     .empty { padding: 40px 16px; text-align: center; color: var(--mute); border: 1px dashed var(--line); border-radius: 16px; }
   </style>
 </head>
@@ -39,13 +47,14 @@
     <h1 data-ar="سجل الأمان">Security log</h1>
     <button class="btn danger" id="clear" type="button" hidden data-ar="امسح السجل">Clear log</button>
   </header>
-  <p class="sub" data-ar="أي محاولة دخول أو رقم سري غلط مرتين بتتسجل هنا، ومعاها صورة لو المتصفح سمح بالكاميرا. بنحتفظ بآخر 60 محاولة.">Two failed logins, or two wrong PINs, are recorded here, with a photo when the browser allowed the camera. The newest 60 are kept.</p>
+  <p class="sub" data-ar="أي محاولة دخول أو رقم سري غلط مرتين بتتسجل هنا: الوقت، الصورة، وعنوان الـIP. تقدر تحظر أي عنوان من الدخول. بنحتفظ بآخر 60 محاولة.">Two failed logins, or two wrong PINs, are recorded here: the time, the photo and the IP address. You can block any address from signing in. The newest 60 are kept.</p>
+  <div id="blocks"></div>
   <div id="list" class="grid"></div>
 </main>
 <script>
 (function () {
   "use strict";
-  var list = document.getElementById("list"), clearBtn = document.getElementById("clear");
+  var list = document.getElementById("list"), clearBtn = document.getElementById("clear"), blocksEl = document.getElementById("blocks");
   var KIND = { login: T("Failed login", "دخول فاشل"), pin: T("Wrong finance PIN", "رقم سري غلط في الفلوس") };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
   function empty(msg) { list.className = ""; list.innerHTML = '<div class="empty">' + esc(msg) + "</div>"; }
@@ -56,7 +65,11 @@
       return r.json();
     }).then(function (d) {
       if (!d) return;
-      var snaps = d.snaps || [];
+      var snaps = d.snaps || [], blocks = d.blocks || [], you = d.you || "", blocked = {};
+      blocks.forEach(function (b) { blocked[b.ip] = true; });
+      blocksEl.innerHTML = blocks.length ? "<h2>" + esc(T("Blocked addresses", "العناوين المحظورة")) + "</h2><ul>" + blocks.map(function (b) {
+        return "<li><code>" + esc(b.ip) + '</code><button class="btn" type="button" data-unblock="' + esc(b.ip) + '">' + esc(T("Unblock", "فك الحظر")) + "</button></li>";
+      }).join("") + "</ul>" : "";
       clearBtn.hidden = !snaps.length;
       if (!snaps.length) return empty(T("Nothing recorded. No one has failed to get in.", "مفيش حاجة متسجلة. محدش حاول يدخل وفشل."));
       list.className = "grid";
@@ -68,13 +81,27 @@
           (ok ? '<img alt="" src="' + esc(s.photo) + '">' : '<div class="none">' + esc(T("No photo — the camera was not allowed", "مفيش صورة — الكاميرا ما اتسمحش بيها")) + "</div>") +
           '<div class="meta"><span class="tag">' + esc(KIND[s.kind] || s.kind) + "</span><b>" + esc(when) + "</b>" +
           "<small>" + esc(s.page || "") + (s.note ? " · " + esc(s.note) : "") + "</small>" +
-          "<small>" + esc(s.ip || "") + "</small><small>" + esc(s.ua || "") + "</small></div></article>";
+          "<small>" + esc(T("IP address", "عنوان الـIP")) + ": " + esc(s.ip || "—") + (s.ip && s.ip === you ? ' <span class="you">(' + esc(T("this is you now", "ده إنت دلوقتي")) + ")</span>" : "") + "</small>" +
+          "<small>" + esc(s.ua || "") + "</small>" +
+          (s.ip && s.ip !== you ? '<div class="acts">' + (blocked[s.ip]
+            ? '<button class="btn" type="button" data-unblock="' + esc(s.ip) + '">' + esc(T("Blocked — unblock", "محظور — فك الحظر")) + "</button>"
+            : '<button class="btn danger" type="button" data-block="' + esc(s.ip) + '">' + esc(T("Block this IP", "احظر الـIP ده")) + "</button>") + "</div>" : "") +
+          "</div></article>";
       }).join("");
     }).catch(function () { empty(T("Could not load the log.", "السجل ما اتحمّلش.")); });
   }
   clearBtn.addEventListener("click", function () {
     if (!confirm(T("Delete every entry and photo in the log? This cannot be undone.", "تمسح كل المحاولات والصور من السجل؟ مش هينفع ترجّعها."))) return;
     fetch("/api/auth?action=snaps-clear", { method: "POST" }).then(load);
+  });
+  // block / unblock: a blocked address is refused at every sign-in step
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-block],[data-unblock]") : null;
+    if (!b) return;
+    var on = b.hasAttribute("data-block"), ip = b.getAttribute(on ? "data-block" : "data-unblock");
+    if (on && !confirm(T("Block " + ip + " from signing in? You can undo this here.", "تحظر " + ip + " من الدخول؟ تقدر تفكه من هنا."))) return;
+    fetch("/api/auth?action=block", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ip: ip, on: on }) })
+      .then(function (r) { if (r.status === 409) alert(T("That is the address you are using right now, so it was not blocked.", "ده العنوان اللي إنت داخل منه دلوقتي، فما اتحظرش.")); load(); });
   });
   load();
 })();

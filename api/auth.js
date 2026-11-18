@@ -9,6 +9,10 @@
 //   POST /api/auth?action=snap             -> record a failed attempt (+ camera frame); open to anyone, see _lib/intruder.js
 //   GET  /api/auth?action=snaps            -> the security log (owner only)
 //   POST /api/auth?action=snaps-clear      -> empty it (owner only)
+//   POST /api/auth?action=block            -> { ip, on } block or unblock an address (owner only)
+//
+// A blocked address is refused by every sign-in step below (403), so it cannot
+// even be offered a passkey prompt.
 //
 // Registration is first-device-only: once one passkey exists, registration is
 // permanently closed (enforced with a guarded INSERT). To reset, delete the
@@ -28,7 +32,7 @@ import {
   withErrors, json, rp, sign, verifyToken, parseCookies, setCookie, clearCookie,
   createSession, destroySession, isAuthed, safeEqual,
 } from "./_lib/util.js";
-import { snapSave, snapList, snapClear } from "./_lib/intruder.js";
+import { snapSave, snapList, snapClear, blockSet, isBlocked } from "./_lib/intruder.js";
 
 const RP_NAME = "Ahmed Tarek — Admin";
 const CHALLENGE_COOKIE = "wa_challenge";
@@ -68,6 +72,7 @@ export default withErrors(async (req, res) => {
 
   if (action === "snap") return snapSave(req, res, await db());
   if (action === "snaps-clear") return snapClear(req, res, await db());
+  if (action === "block") return blockSet(req, res, await db());
 
   if (action === "logout") {
     destroySession(res);
@@ -86,6 +91,10 @@ export default withErrors(async (req, res) => {
     await sql`DELETE FROM wa_credentials`;
     destroySession(res);
     return json(res, 200, { ok: true, message: "Passkeys wiped — first-time setup is open again" });
+  }
+
+  if (["login-options", "login-verify", "register-options", "register-verify"].includes(action) && await isBlocked(req, await db())) {
+    return json(res, 403, { error: "This address has been blocked" });
   }
 
   if (action === "login-options") {

@@ -960,7 +960,7 @@ $('#pinForm').addEventListener('submit', e => {
   e.preventDefault();
   if (norm(pinIn.value).trim() === String(S.pin || '')) { sfx.ok(); window.Snap?.ok('pin'); return closePin(true); }
   window.Snap?.fail('pin'); // على الموقع: تاني غلطة بتتسجل في سجل الأمان ومعاها صورة لو الكاميرا مسموحة
-  sfx.err(); $('#pinErr').textContent = pick(PIN_BAD()); pinIn.value = '';
+  sfx.err(); $('#pinErr').textContent = HOSTED && FILE.missing ? L('مفيش بيانات على الموقع لسه، فالرقم المؤقت 0000. استورد ملفك من 📥 عشان رقمك يشتغل.', 'There is no data on the site yet, so the temporary PIN is 0000. Import your file with 📥 and your own PIN will work.') : pick(PIN_BAD()); pinIn.value = '';
   const f = $('#pinForm'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake');
 });
 pinEl.addEventListener('click', e => { if (e.target === pinEl || e.target.closest('[data-cancel]')) closePin(false); });
@@ -1434,11 +1434,25 @@ $('#impFile').onchange = async e => {
   try {
     const j = JSON.parse(await f.text());
     if (!j || !Array.isArray(j.tx) || !Array.isArray(j.essentials)) throw new Error('shape');
-    S = { ...seed(), ...j }; sfx.on = S.sound !== false; save(); render();
+    S = { ...seed(), ...j }; sfx.on = S.sound !== false; save(); render(); $('#first')?.remove();
     toast(L('اتستوردت البيانات ✅', 'Data imported ✅')); sfx.ok();
   } catch { toast(L('الملف ده مش ملف بيانات فلوسي 😅', 'That file is not a Floosy data file 😅')); sfx.err(); }
 };
-if (HOSTED && FILE.missing) toast(L('أول مرة هنا 👋 دوس 📥 فوق عشان تستورد data.json من جهازك', 'First time here 👋 Press 📥 above to import data.json from your computer'));
+// أول مرة على الموقع: مفيش بيانات ولا رقم سري حقيقي لسه، فبنقولها بوضوح بدل ما الرقم السري يتقال عليه غلط
+function firstRun() {
+  const o = document.createElement('div'); o.className = 'pin'; o.id = 'first';
+  o.innerHTML = `<form class="glass"><b>${L('👋 بياناتك لسه مش على الموقع', '👋 Your data is not on the site yet')}</b>
+    <small>${L('النسخة دي فاضية، عشان كده رقمك السري مش شغال هنا. استورد ملف <b dir="ltr">data.json</b> من فولدر floosy على جهازك، وكل حاجة (ورقمك السري) هتتنقل.', 'This copy is empty, which is why your PIN does not work here. Import <b dir="ltr">data.json</b> from the floosy folder on your computer and everything (your PIN included) moves over.')}</small>
+    <div class="pin-btns"><button class="btn primary" type="button" data-imp>${L('📥 استورد ملفي', '📥 Import my file')}</button><button class="btn ghost" type="button" data-skip>${L('ابدأ من الصفر', 'Start empty')}</button></div>
+    <small data-note hidden>${L('هتبدأ فاضي. الرقم السري المؤقت: 0000', 'You will start empty. Temporary PIN: 0000')}</small></form>`;
+  o.addEventListener('submit', e => e.preventDefault());
+  o.addEventListener('click', e => {
+    if (e.target.closest('[data-imp]')) $('#impFile').click();
+    else if (e.target.closest('[data-skip]')) { const n = o.querySelector('[data-note]'); if (n.hidden) { n.hidden = false; } else o.remove(); }
+  });
+  document.body.appendChild(o);
+}
+if (HOSTED && FILE.missing) firstRun();
 document.addEventListener('visibilitychange', syncFile); window.addEventListener('focus', syncFile); setInterval(syncFile, 20000);
 menu();
 loadRates(); setInterval(loadRates, 60 * 1000);

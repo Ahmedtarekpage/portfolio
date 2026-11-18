@@ -77,5 +77,68 @@
 
   function ok(kind) { fails[kind] = 0; }
 
-  window.Snap = { take: take, fail: fail, ok: ok };
+  // ---- Camera first -------------------------------------------------------
+  // The owner asked for the camera to be allowed as soon as a tool page opens,
+  // not only once something has gone wrong: a prompt that first appears after
+  // two failures is a prompt an intruder simply declines. So the page asks on
+  // load, and the sign-in button stays locked until the answer is yes.
+  //
+  // The lock applies only where a camera exists. A desktop with no camera
+  // must still be able to sign in (it uses the phone's passkey by QR code),
+  // so "no camera here" is not treated as a refusal.
+  var tr = function (en, ar) { return window.T ? window.T(en, ar) : en; };
+
+  function hasCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !navigator.mediaDevices.enumerateDevices) return Promise.resolve(false);
+    return navigator.mediaDevices.enumerateDevices().then(function (list) {
+      for (var i = 0; i < list.length; i++) if (list[i].kind === "videoinput") return true;
+      return false;
+    }).catch(function () { return false; });
+  }
+
+  function ask() {
+    // open and close straight away: the point is the permission, not a picture
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false }).then(function (stream) {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      return true;
+    }).catch(function () { return false; });
+  }
+
+  function gate(locked) {
+    var btn = document.getElementById("btnLogin");
+    if (!btn) return;
+    var note = document.getElementById("camGate");
+    if (!locked) {
+      btn.disabled = false;
+      if (note) note.parentNode.removeChild(note);
+      return;
+    }
+    btn.disabled = true;
+    if (note) return;
+    note = document.createElement("p");
+    note.id = "camGate";
+    note.style.cssText = "margin:12px 0 0;font-size:.9rem;line-height:1.5";
+    var again = document.createElement("button");
+    again.type = "button";
+    again.textContent = tr("Allow camera", "اسمح بالكاميرا");
+    again.style.cssText = "margin-inline-start:8px;padding:4px 12px;border-radius:999px;border:1px solid currentColor;background:none;color:inherit;font:inherit;font-weight:700;cursor:pointer";
+    again.addEventListener("click", function () { ask().then(function (yes) { gate(!yes); }); });
+    note.appendChild(document.createTextNode(tr(
+      "📷 Allow the camera to sign in. If you blocked it, turn it back on in the browser's site settings.",
+      "📷 لازم تسمح بالكاميرا عشان تدخل. لو قفلتها قبل كده، افتحها من إعدادات الموقع في المتصفح.")));
+    note.appendChild(again);
+    btn.parentNode.insertBefore(note, btn.nextSibling);
+  }
+
+  function prime() {
+    hasCamera().then(function (cam) {
+      if (!cam) return;          // nothing to allow on this device
+      gate(true);                // locked until the answer comes back
+      ask().then(function (yes) { gate(!yes); });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", prime);
+  else prime();
+
+  window.Snap = { take: take, fail: fail, ok: ok, prime: prime };
 })();
