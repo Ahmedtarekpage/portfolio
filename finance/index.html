@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<!-- Private money planner. Static shell only: every number comes from /api/ideas?finance=data, which needs the admin passkey session. -->
+<base href="/finance/">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فلوسي — مدير فلوسك</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="first">
+<div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<main class="app">
+  <nav class="nav glass" id="nav" aria-label="التنقل">
+    <a class="back" href="/admin" aria-label="Admin" title="Admin">←</a>
+    <b class="logo">🪙 فلوسي</b>
+    <div class="tabs"><button type="button" data-page="home" class="on">🏠 الرئيسية</button><button type="button" data-page="stats">📊 التحليلات</button></div>
+    <button type="button" id="lang" class="lang" aria-label="اللغة">English</button>
+  </nav>
+  <aside class="chat glass" id="chat">
+    <header class="chat-head">
+      <div class="avatar">🪙</div>
+      <div class="grow"><b>فلوسي</b><small id="rateInfo">بجيب الأسعار…</small><small id="saveInfo"></small></div>
+      <button id="imp" class="pill" type="button" aria-label="استيراد البيانات" title="استيراد البيانات">📥</button>
+      <button id="exp" class="pill" type="button" aria-label="تصدير البيانات" title="تصدير البيانات">📤</button>
+      <input id="impFile" type="file" accept="application/json,.json" hidden>
+      <button id="mute" class="pill" type="button" aria-label="الصوت" title="الصوت">🔊</button>
+    </header>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="chips" id="chips"></div>
+    <form class="say" id="say" autocomplete="off">
+      <input id="sayIn" inputmode="text" placeholder="اكتب هنا… مثال: 2000 أو 500 جنيه" aria-label="اكتب ردّك">
+      <button aria-label="ابعت">➤</button>
+    </form>
+  </aside>
+
+  <section class="col">
+    <div class="stage glass" id="stage">
+      <div class="view" id="view">
+        <canvas id="gl"></canvas>
+        <div class="stage-top">
+          <div class="brand"><h1>فلوسي</h1><span class="cyc" id="cycle"></span></div>
+          <div class="total"><div class="trow"><button id="eye" class="eye" type="button" aria-label="إظهار أو إخفاء الأرقام" title="إظهار أو إخفاء الأرقام">🙈</button><small>إجمالي اللي معاك</small></div><b><span id="total">0</span> <span class="sym">Đ</span></b><em id="totalAlt"></em></div>
+        </div>
+        <div id="labels"></div>
+        <div id="fx" aria-hidden="true"></div>
+        <div id="why" class="pop" hidden></div>
+      </div>
+      <div class="foot" id="foot"></div>
+    </div>
+    <div id="cards"></div>
+    <div id="stats" class="stats-page" hidden></div>
+  </section>
+</main>
+
+<div id="pin" class="pin" hidden>
+  <form id="pinForm" class="glass" autocomplete="off">
+    <b id="pinMsg">اكتب الرقم السري</b>
+    <input id="pinIn" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-label="الرقم السري">
+    <small id="pinErr"></small>
+    <div class="pin-btns"><button class="btn primary">تمام</button><button class="btn ghost" type="button" data-cancel>إلغاء</button></div>
+  </form>
+</div>
+<div id="tip" class="tip" hidden></div>
+<div id="toast" class="toast" role="status"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

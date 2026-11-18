@@ -4,12 +4,19 @@
 //   PATCH  /api/ideas?reorder=1     -> { ids: [id, ...] }: persist new drag order
 //   PATCH  /api/ideas?id=N          -> { text }
 //   DELETE /api/ideas?id=N
+//
+// Also carries the finance planner's storage (?finance=data|fx) — see _lib/finance.js.
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
+import { finance } from "./_lib/finance.js";
 
 export default withErrors(async (req, res) => {
   if (!requireAuth(req, res)) return;
   const sql = await db();
+
+  // The finance planner at /finance borrows this function: api/ is at the
+  // 12-function limit, so it cannot have one of its own. See _lib/finance.js.
+  if (req.query.finance) return finance(req, res, sql);
 
   if (req.method === "GET") {
     const ideas = await sql`SELECT * FROM ideas ORDER BY position, created_at`;

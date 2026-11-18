@@ -203,6 +203,7 @@ Special cases worth knowing:
 | `/admin` | Clients, hour packages, sessions, payment proofs, and a balance chart that rises on purchase, falls per session and drops on expiry |
 | `/dashboard` | Editing the public pages, the media library, and writing/sending the newsletter |
 | `/time` | Days, tasks, quarterly categories, goals and the hours behind them |
+| `/finance` | A money planner: splits each income across essentials, growth, safety and fun, and tracks debt, the emergency fund and goals. Arabic and English. Its state is one JSON document, stored through `api/ideas.js?finance=data` ([`api/_lib/finance.js`](api/_lib/finance.js)) |
 | `/c/:token` | What a client sees: their own hours, no notes, no contact details |
 
 The hours arithmetic — balances, expiry, which package a session consumes —

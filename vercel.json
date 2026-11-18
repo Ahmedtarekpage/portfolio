@@ -25,6 +25,10 @@
       "destination": "/time.html"
     },
     {
+      "source": "/finance",
+      "destination": "/finance/index.html"
+    },
+    {
       "source": "/c/:token",
       "destination": "/share.html"
     },
@@ -115,7 +119,7 @@
       ]
     },
     {
-      "source": "/(admin|dashboard|time|plan)",
+      "source": "/(admin|dashboard|time|plan|finance)",
       "headers": [
         {
           "key": "Cache-Control",

@@ -19,6 +19,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -28,6 +29,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -37,6 +39,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -46,6 +49,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -55,6 +59,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -64,6 +69,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -73,6 +79,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -82,6 +89,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -91,6 +99,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -100,6 +109,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -109,6 +119,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -118,6 +129,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
+Disallow: /finance
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
