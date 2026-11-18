@@ -6,7 +6,7 @@
 //   POST   /api/tasks                        -> { task_date, title, category_id?, planned_hours?, icon?, estimated? }
 //   PATCH  /api/tasks?estimate=1          -> { from, to, estimated? }: mark (or unmark) a stretch of days as written in afterwards
 //   PATCH  /api/tasks?reorder=1             -> { ids: [id, ...] }: persist new drag order for those tasks
-//   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, actual_hours?, icon? }
+//   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, half?, actual_hours?, completed_at?, icon? }
 //   DELETE /api/tasks?date=YYYY-MM-DD        -> delete every task on that day
 //   DELETE /api/tasks?ids=1,2,3              -> delete a hand-picked set in one go -> { count }
 //   DELETE /api/tasks?id=N
@@ -77,7 +77,7 @@ export default withErrors(async (req, res) => {
   if (req.query.plan) return handlePlan(req, res, sql);
 
   if (req.method === "GET" && req.query.totals) {
-    const [row] = await sql`SELECT COUNT(*) FILTER (WHERE done)::int AS "totalDone",
+    const [row] = await sql`SELECT (COUNT(*) FILTER (WHERE done) + COUNT(*) FILTER (WHERE half) * 0.5)::float8 AS "totalDone",
         COUNT(*)::int AS "totalTasks"
       FROM tasks`;
     return json(res, 200, row);
@@ -88,7 +88,7 @@ export default withErrors(async (req, res) => {
     const to = String(req.query.to || "").slice(0, 10);
     if (!isDate(from) || !isDate(to)) return json(res, 400, { error: "from/to must be YYYY-MM-DD" });
     const rows = await sql`SELECT task_date::text AS date, COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE done)::int AS done,
+        (COUNT(*) FILTER (WHERE done) + COUNT(*) FILTER (WHERE half) * 0.5)::float8 AS done,
         bool_and(estimated) AS estimated
       FROM tasks WHERE task_date BETWEEN ${from}::date AND ${to}::date
       GROUP BY task_date ORDER BY task_date`;
@@ -186,7 +186,11 @@ export default withErrors(async (req, res) => {
     const [existing] = await sql`SELECT * FROM tasks WHERE id = ${id}`;
     if (!existing) return json(res, 404, { error: "Task not found" });
 
-    const done = b.done != null ? !!b.done : existing.done;
+    let done = b.done != null ? !!b.done : existing.done;
+    let half = b.half != null ? !!b.half : existing.half;
+    // a task is done, half done or neither — whichever was just set wins
+    if (b.done != null && done) half = false;
+    if (b.half != null && half) done = false;
     const categoryId = b.category_id !== undefined ? (b.category_id ? Number(b.category_id) : null) : existing.category_id;
     const plannedHours = b.planned_hours !== undefined
       ? (b.planned_hours != null && b.planned_hours !== "" ? Number(b.planned_hours) : null)
@@ -200,8 +204,15 @@ export default withErrors(async (req, res) => {
     // stamp the moment a task is marked done (for the "completed by hour" chart);
     // clear it if unmarked so re-completing it later gets a fresh timestamp
     let completedAt = existing.completed_at;
-    if (done && !existing.done) completedAt = new Date().toISOString();
-    if (!done) completedAt = null;
+    // (a half counts there too, at half weight)
+    if ((done && !existing.done) || (half && !existing.half)) completedAt = new Date().toISOString();
+    if (!done && !half) completedAt = null;
+    // set by hand from the row's clock, for when it was really done earlier
+    if (b.completed_at && (done || half)) {
+      const at = new Date(b.completed_at);
+      if (Number.isNaN(at.getTime())) return json(res, 400, { error: "completed_at must be a date-time" });
+      completedAt = at.toISOString();
+    }
 
     const [task] = await sql`UPDATE tasks SET
         title = COALESCE(${b.title ?? null}, title),
@@ -210,6 +221,7 @@ export default withErrors(async (req, res) => {
         actual_hours = ${actualHours},
         icon = ${icon},
         done = ${done},
+        half = ${half},
         completed_at = ${completedAt}
       WHERE id = ${id} RETURNING *`;
     return json(res, 200, { task });

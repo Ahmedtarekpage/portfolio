@@ -85,6 +85,17 @@ try {
   else if (r.status === 404 && isApi) { FILE.ok = true; FILE.missing = true; } // السيرفر شغال والملف لسه ما اتعملش
   else if (r.status === 401 && HOSTED) { location.replace('/admin'); await new Promise(() => {}); } // مش داخل: روح سجّل دخول
 } catch {}
+const PENDING = 'floosy.pending';
+if (HOSTED) try {
+  const p = JSON.parse(sessionStorage.getItem(PENDING) || 'null'); sessionStorage.removeItem(PENDING);
+  // نرجّع التعديل بس لو مفيش حد حفظ نسخة أحدث على الموقع في الوقت ده
+  if (p && FILE.ok && p.rev === FILE.rev && p.data && Array.isArray(p.data.tx)) { S = { ...seed(), ...p.data }; FILE.resume = true; }
+} catch {}
+function expired() {
+  if (expired.done) return; expired.done = true;
+  try { sessionStorage.setItem(PENDING, JSON.stringify({ rev: FILE.rev, data: S })); } catch {}
+  location.replace('/admin');
+}
 function setSaveInfo(ok) {
   $('#saveInfo').textContent = !FILE.ok ? (HOSTED ? L('☁️ لسه ما اتحفظش على الموقع', '☁️ Not saved to the site yet') : L('💾 محفوظ في المتصفح بس (شغّل server.py)', '💾 Saved in the browser only (run server.py)')) : ok ? (HOSTED ? L('☁️ محفوظ على الموقع', '☁️ Saved to the site') : L('💾 محفوظ في data.json', '💾 Saved to data.json')) : L('⚠️ الحفظ في الملف فشل', '⚠️ Saving to the file failed');
 }
@@ -92,6 +103,7 @@ function pushFile() {
   if (!FILE.ok) return setSaveInfo(false);
   fetch(API.data, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'If-Match': FILE.rev }, body: JSON.stringify(S) })
     .then(async r => {
+      if (r.status === 401 && HOSTED) return expired();
       if (r.status === 409) return adopt(await r.json(), r.headers.get('X-Rev'), true); // نافذة تانية حفظت قبلنا
       if (r.ok) { FILE.rev = r.headers.get('X-Rev') || FILE.rev; FILE.missing = false; }
       setSaveInfo(r.ok);
@@ -110,6 +122,7 @@ async function syncFile() {
   if (!FILE.ok || document.hidden) return;
   try {
     const r = await fetch(API.data, { cache: 'no-store' });
+    if (r.status === 401 && HOSTED) return expired();
     const rev = r.headers.get('X-Rev') || '';
     if (r.ok && rev && rev !== FILE.rev && !document.activeElement?.classList?.contains('ed')) adopt(await r.json(), rev, false);
   } catch {}
@@ -945,7 +958,8 @@ function askPin(msg) {
 function closePin(ok) { pinEl.hidden = true; pinIn.value = ''; const r = pinRes; pinRes = null; r?.(ok); }
 $('#pinForm').addEventListener('submit', e => {
   e.preventDefault();
-  if (norm(pinIn.value).trim() === String(S.pin || '')) { sfx.ok(); return closePin(true); }
+  if (norm(pinIn.value).trim() === String(S.pin || '')) { sfx.ok(); window.Snap?.ok('pin'); return closePin(true); }
+  window.Snap?.fail('pin'); // على الموقع: تاني غلطة بتتسجل في سجل الأمان ومعاها صورة لو الكاميرا مسموحة
   sfx.err(); $('#pinErr').textContent = pick(PIN_BAD()); pinIn.value = '';
   const f = $('#pinForm'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake');
 });
@@ -1404,7 +1418,7 @@ document.addEventListener('click', e => { if (e.target.closest('button, summary,
 document.body.classList.add('locked');
 render();
 if (HOSTED && FILE.missing) $('#saveInfo').textContent = L('☁️ لسه مفيش بيانات على الموقع', '☁️ No data on the site yet'); // أول مرة على الموقع: ما نحفظش بيانات فاضية، استنى الاستيراد أو أول معاملة
-else if (FILE.missing || !FILE.ok) pushFile(); else setSaveInfo(true);
+else if (FILE.missing || !FILE.ok || FILE.resume) pushFile(); else setSaveInfo(true);
 // استيراد وتصدير البيانات كملف (عشان تنقل data.json بين الجهاز والموقع)
 $('#exp').onclick = () => {
   const a = document.createElement('a');

@@ -155,6 +155,9 @@ async function migrate(sql) {
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated BOOLEAN NOT NULL DEFAULT false`;
   // stamped when a task is marked done -- powers the "completed by hour" chart
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`;
+  // half done: counts as 0.5 of a task in the day's % (owner, 2026-11-04);
+  // never true together with done — PATCH clears one when the other is set
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS half BOOLEAN NOT NULL DEFAULT false`;
   // the abandoned rebuild also re-pointed tasks.category_id at its new "categories"
   // table -- re-point it back at quarter_categories, nulling out any rows whose
   // id no longer resolves (those two tables use unrelated id sequences)

@@ -1139,3 +1139,94 @@ tr.rowlink:hover td { background: var(--go-blue-tint); }
   background: var(--wash-amber); border-color: var(--coin-amber); box-shadow: none;
 }
 :root[data-theme="dark"] .badge-chip--unlocked { background: rgba(255, 176, 32, 0.14); }
+
+/* ==========================================================================
+   RTL (Arabic) overrides — active only under <html dir="rtl">, which
+   js/tools/i18n.js sets when the tools are switched to Arabic.
+
+   Why this block is appended instead of merged into the rules above: every
+   rule above stays byte-for-byte as it was, so English (LTR) cannot regress.
+   Each override repeats the original selector with [dir="rtl"] in front, so
+   it wins on specificity, and keeps the original's media query. The shared
+   font, letter-spacing, chart and input rules live in app.css's RTL block.
+   ========================================================================== */
+
+/* -- Arabic type: this file re-points --font-ui / --font-display after
+      app.css, so the Arabic stack has to be re-pointed here too. Arabic fonts
+      lead; Quicksand / Bricolage stay in the stack for digits and English. -- */
+:root[dir="rtl"],
+:root[dir="rtl"][data-theme="light"],
+:root[dir="rtl"][data-theme="dark"] {
+  --font-ui: "Cairo", "Noto Sans Arabic", "Geeza Pro", "Quicksand", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --font-display: "Cairo", "Noto Sans Arabic", "Geeza Pro", "Bricolage Grotesque", "Quicksand", "Segoe UI", Tahoma, system-ui, sans-serif;
+}
+/* Arabic headings need more room than Bricolage's tight 1.15 */
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] .go-display { line-height: 1.35; }
+
+/* -- things that must not mirror: clocks and counters read left to right -- */
+[dir="rtl"] .countdown__value, [dir="rtl"] .pomo-run__clock, [dir="rtl"] .countdown__year-input { direction: ltr; unicode-bidi: isolate; }
+[dir="rtl"] .cal-dialog__row input { direction: ltr; text-align: left; }
+/* the 14-day focus history is a timeline: oldest stays on the left */
+[dir="rtl"] .pomo-history__row { direction: ltr; }
+
+/* -- forms and the wizard -- */
+[dir="rtl"] .form input[type="file"]::file-selector-button { margin-right: 0; margin-left: 10px; }
+[dir="rtl"] .go-pick { text-align: right; }
+[dir="rtl"] .go-tag { margin-left: 0; margin-right: 8px; }
+[dir="rtl"] .go-wiz__nav .go-wiz__next, [dir="rtl"] .go-wiz__nav .go-wiz__send { margin-left: 0; margin-right: auto; }
+/* "next" slides in from the far side: the step travels the other way */
+@keyframes go-step-rtl { from { opacity: 0; transform: translateX(calc(var(--go-step-from, 36px) * -1)) scale(0.98); } to { opacity: 1; transform: none; } }
+[dir="rtl"] .go-wiz__step.is-in { animation-name: go-step-rtl; }
+
+/* -- home banner and tiles -- */
+[dir="rtl"] .go-hero__glyph { right: auto; left: 22px; }
+[dir="rtl"] .go-hero h1 { padding-right: 0; padding-left: 64px; }
+[dir="rtl"] .go-hero__bar { transform-origin: right; }
+[dir="rtl"] .go-doodles i:nth-child(1) { left: auto; right: 55%; }
+[dir="rtl"] .go-doodles i:nth-child(2) { left: auto; right: 70%; }
+[dir="rtl"] .go-doodles i:nth-child(3) { left: auto; right: 82%; }
+[dir="rtl"] .go-doodles i:nth-child(4) { left: auto; right: 46%; }
+[dir="rtl"] .go-doodles i:nth-child(5) { left: auto; right: 92%; }
+[dir="rtl"] .go-doodles i:nth-child(6) { left: auto; right: 63%; }
+[dir="rtl"] .go-home__tile { text-align: right; }
+[dir="rtl"] .go-home__tile:hover .go-home__go { transform: translateX(-4px); }
+
+/* -- meetings: the coloured edge sits on the leading (right) side -- */
+[dir="rtl"] .meet::before { left: auto; right: 0; }
+[dir="rtl"] .meet__actions { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .cal-dialog__url { text-align: right; }
+[dir="rtl"] .cal-dialog__note { text-align: right; }
+
+/* -- purchases and sessions rows -- */
+[dir="rtl"] #packagesTable tr, [dir="rtl"] #sessionsTable tr { padding: 12px 14px 12px 52px; }
+[dir="rtl"] #sessionsTable tr { padding-right: 14px; padding-left: 96px; }
+[dir="rtl"] #packagesTable td, [dir="rtl"] #sessionsTable td { text-align: right; }
+[dir="rtl"] #packagesTable td.row-act, [dir="rtl"] #sessionsTable td.row-act { right: auto; left: 6px; }
+[dir="rtl"] .meet-grid .meet__actions { margin-right: 0; }
+
+/* -- client cards -- */
+[dir="rtl"] .flag-sticker { right: auto; left: -6px; }
+[dir="rtl"] .client-card__end { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .client-card__end .client-card__type { margin-right: 0; }
+
+/* -- /time countdowns -- */
+[dir="rtl"] .countdown__year-input { margin-left: 0; margin-right: 4px; }
+@media (min-width: 720px) {
+  [dir="rtl"] .countdown--quarter .countdown__head { text-align: right; }
+  [dir="rtl"] .countdown--quarter .countdown__label { text-align: right; }
+}
+
+/* -- files, scrolling lists, quarter cards -- */
+[dir="rtl"] .file-chip { padding: 7px 8px 7px 12px; text-align: right; }
+[dir="rtl"] #meetingsUpcoming:not(:empty) { padding-right: 0; padding-left: 4px; }
+[dir="rtl"] .cycle-pick { padding: 10px 10px 10px 14px; text-align: right; }
+[dir="rtl"] .cycle-pick__now { right: auto; left: 10px; }
+[dir="rtl"] .day-tile__estimated { left: auto; right: 0; border-radius: 0 0 0 var(--radius-md); }
+[dir="rtl"] .fill-sheet { text-align: right; }
+
+/* -- goals and achievements -- */
+@media (max-width: 560px) {
+  [dir="rtl"] .goal-row__top .iconbtn:first-of-type { margin-left: 0; margin-right: auto; }
+}
+[dir="rtl"] .gamify__badges-head .btn { margin-left: 0; margin-right: auto; }
+/* ============================ end RTL overrides ============================ */

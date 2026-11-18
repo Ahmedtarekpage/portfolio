@@ -37,7 +37,7 @@
       return r.json().catch(function () { return {}; }).then(function (data) {
         if (!r.ok) {
           if (r.status === 401 && path.indexOf("action=me") === -1) { show("view-login"); }
-          throw new Error(data.error || ("Request failed (" + r.status + ")"));
+          throw new Error(data.error || T("Request failed (" + r.status + ")", "الطلب فشل (" + r.status + ")"));
         }
         return data;
       });
@@ -60,12 +60,12 @@
   function fmtDate(iso) {
     if (!iso) return "—";
     var d = new Date(String(iso).slice(0, 10) + "T00:00:00Z");
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    return d.toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   }
 
   function fmtH(n) {
     n = Number(n) || 0;
-    return (Number.isInteger(n) ? n : n.toFixed(1)) + "h";
+    return (Number.isInteger(n) ? n : n.toFixed(1)) + T("h", " س");
   }
 
   function todayISO() {
@@ -97,7 +97,7 @@
   // API is a few tens of KB however large the original was
   function squarePhoto(file, size, quality) {
     return new Promise(function (resolve, reject) {
-      if (!/^image\//.test(file.type)) { reject(new Error("That file is not an image")); return; }
+      if (!/^image\//.test(file.type)) { reject(new Error(T("That file is not an image", "الملف ده مش صورة"))); return; }
       var url = URL.createObjectURL(file);
       var img = new Image();
       img.onload = function () {
@@ -112,7 +112,7 @@
         URL.revokeObjectURL(url);
         resolve(canvas.toDataURL("image/jpeg", quality));
       };
-      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("Could not read that image")); };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error(T("Could not read that image", "مش قادر أقرأ الصورة دي"))); };
       img.src = url;
     });
   }
@@ -159,9 +159,13 @@
       .then(function (response) {
         return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } });
       })
-      .then(function () { loadClients(); })
+      .then(function () { if (window.Snap) Snap.ok("login"); loadClients(); })
       .catch(function (e) {
-        if (e.name !== "NotAllowedError") showErr("#loginError", e.message || "Sign-in failed");
+        // a second failed sign-in is recorded for the security log, with a camera
+        // frame if the browser allows one (js/tools/snap.js). A cancelled passkey
+        // prompt counts: that is what someone without the passkey ends up doing.
+        if (window.Snap) Snap.fail("login", e && e.name);
+        if (e.name !== "NotAllowedError") showErr("#loginError", e.message || T("Sign-in failed", "الدخول فشل"));
       })
       .finally(function () { busy(btn, false); });
   });
@@ -180,10 +184,10 @@
           body: { response: response, label: "admin device" },
         });
       })
-      .then(function () { toast("Passkey registered ✓ — this device is now the only key"); loadClients(); })
+      .then(function () { toast(T("Passkey registered ✓ — this device is now the only key", "مفتاح الدخول اتسجل ✓ — الجهاز ده بقى المفتاح الوحيد")); loadClients(); })
       .catch(function (e) {
-        if (e.name === "InvalidStateError") showErr("#setupError", "This device already holds the passkey — reload and sign in.");
-        else if (e.name !== "NotAllowedError") showErr("#setupError", e.message || "Setup failed");
+        if (e.name === "InvalidStateError") showErr("#setupError", T("This device already holds the passkey — reload and sign in.", "الجهاز ده عليه مفتاح الدخول بالفعل — حدّث الصفحة وادخل."));
+        else if (e.name !== "NotAllowedError") showErr("#setupError", e.message || T("Setup failed", "الإعداد فشل"));
       })
       .finally(function () { busy(btn, false); });
   });
@@ -234,14 +238,15 @@
   function renderHome() {
     var now = new Date();
     var hour = Number(Meet.fmt(now, myZone(), { hour: "numeric", hourCycle: "h23" }));
-    $("#homeHello").textContent = (hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening") + ", Ahmed";
+    $("#homeHello").textContent = T((hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening") + ", Ahmed",
+      (hour < 12 ? "صباح الخير" : hour < 18 ? "نهارك سعيد" : "مساء الخير") + " يا أحمد");
     $("#homeDate").textContent = Meet.fmt(now, myZone(), { weekday: "long", day: "numeric", month: "long" });
-    var facts = ['<span class="go-home__fact">' + state.clients.length + " client" + (state.clients.length === 1 ? "" : "s") + "</span>"];
+    var facts = ['<span class="go-home__fact">' + I18N.N(state.clients.length, "client", "clients", ["عميل واحد", "عميلين", "عملاء", "عميل"]) + "</span>"];
     var left = state.clients.reduce(function (sum, c) { return sum + Math.max(0, Number(c.totals && c.totals.available) || 0); }, 0);
-    if (left > 0) facts.push('<span class="go-home__fact">' + esc(fmtH(left)) + " left in all</span>");
+    if (left > 0) facts.push('<span class="go-home__fact">' + T(esc(fmtH(left)) + " left in all", "فاضل " + esc(fmtH(left)) + " في الإجمالي") + "</span>");
     var next = state.agenda.filter(function (m) { return Meet.status(m, now) !== "past"; })[0];
     if (next) {
-      facts.push('<span class="go-home__fact go-home__fact--blue">Next: ' + esc(firstName(next.client_name) || "a meeting") + " · " +
+      facts.push('<span class="go-home__fact go-home__fact--blue">' + T("Next: ", "الجاي: ") + esc(firstName(next.client_name) || T("a meeting", "اجتماع")) + " · " +
         esc(Meet.dayLabel(new Date(next.starts_at), now, myZone()) + " " + Meet.fmtTime(new Date(next.starts_at), myZone())) + "</span>");
     }
     $("#homeClientFacts").innerHTML = facts.join("");
@@ -286,25 +291,25 @@
       var live = Meet.status(next, now) === "live";
       var d = Meet.dayDiff(new Date(next.starts_at), now, myZone());
       var tone = live ? "live" : d === 0 ? "today" : d === 1 ? "tomorrow" : "later";
-      chips += '<span class="pill pill--' + tone + '">' + (live ? '<i class="pill__dot"></i>Now' :
+      chips += '<span class="pill pill--' + tone + '">' + (live ? '<i class="pill__dot"></i>' + T("Now", "دلوقتي") :
         esc(Meet.dayLabel(new Date(next.starts_at), now, myZone()) + " " + Meet.fmtTime(new Date(next.starts_at), myZone()))) + "</span>";
     }
     if (t.nextExpiry && t.nextExpiry.hours > 0) {
       var days = Math.round((new Date(t.nextExpiry.date) - new Date(todayISO())) / 86400000);
-      if (days <= 7) chips += '<span class="badge badge--warn">' + fmtH(t.nextExpiry.hours) + " expire in " + days + "d</span>";
+      if (days <= 7) chips += '<span class="badge badge--warn">' + T(fmtH(t.nextExpiry.hours) + " expire in " + days + "d", fmtH(t.nextExpiry.hours) + " تنتهي خلال " + days + " يوم") + "</span>";
     }
-    if (t.overdraft > 0) chips += '<span class="badge badge--danger">unpaid ' + fmtH(t.overdraft) + "</span>";
+    if (t.overdraft > 0) chips += '<span class="badge badge--danger">' + T("unpaid " + fmtH(t.overdraft), "مش مدفوع " + fmtH(t.overdraft)) + "</span>";
     var where = Country.of(c);
 
     return '<button type="button" class="client-card" data-id="' + Number(c.id) + '">' +
       '<span class="client-card__head"><span class="client-card__pic">' + avatarHtml(c, "avatar--md") +
         (where ? '<span class="flag-sticker" title="' + esc(where.name) + '" aria-hidden="true">' + where.flag + "</span>" : "") + "</span>" +
         '<span class="client-card__id"><strong>' + esc(c.name) + "</strong>" +
-        '<span class="muted">' + esc([c.phone, c.email].filter(Boolean)[0] || c.nationality || "No contact details") + "</span></span>" +
-        '<span class="client-card__hours' + (Number(t.available) > 0 ? "" : " client-card__hours--none") + '"><b>' + fmtH(t.available) + "</b><span>left</span></span>" +
+        '<span class="muted">' + esc([c.phone, c.email].filter(Boolean)[0] || c.nationality || T("No contact details", "مفيش بيانات تواصل")) + "</span></span>" +
+        '<span class="client-card__hours' + (Number(t.available) > 0 ? "" : " client-card__hours--none") + '"><b>' + fmtH(t.available) + "</b><span>" + T("left", "فاضل") + "</span></span>" +
       "</span>" +
       '<span class="client-card__foot">' +
-        (chips || '<span class="muted">' + (t.nextExpiry ? "Expires " + fmtDate(t.nextExpiry.date) : "No meeting scheduled") + "</span>") +
+        (chips || '<span class="muted">' + (t.nextExpiry ? T("Expires " + fmtDate(t.nextExpiry.date), "ينتهي " + fmtDate(t.nextExpiry.date)) : T("No meeting scheduled", "مفيش اجتماع محدد")) + "</span>") +
         '<span class="client-card__end">' +
           (where ? '<span class="country-chip"><span aria-hidden="true">' + where.flag + "</span>" + esc(where.name) + "</span>" : "") +
           (c.transaction_type ? '<span class="client-card__type">' + esc(c.transaction_type) + "</span>" : "") +
@@ -332,12 +337,12 @@
      filter"). Weeks run Monday to Sunday on your own calendar. */
   var AGENDA_LIMIT = 12;
   var AGENDA_EMPTY = {
-    today: "Nothing left today 🎉 Enjoy the free time.",
-    tomorrow: "Nothing tomorrow yet.",
-    week: "Nothing more this week.",
-    next: "Nothing booked for next week yet.",
-    month: "Nothing more this month.",
-    all: "Nothing scheduled.",
+    today: T("Nothing left today 🎉 Enjoy the free time.", "مفيش حاجة تانية النهارده 🎉 استمتع بوقتك."),
+    tomorrow: T("Nothing tomorrow yet.", "مفيش حاجة بكرة لسه."),
+    week: T("Nothing more this week.", "مفيش حاجة تانية الأسبوع ده."),
+    next: T("Nothing booked for next week yet.", "مفيش حاجة محجوزة الأسبوع الجاي لسه."),
+    month: T("Nothing more this month.", "مفيش حاجة تانية الشهر ده."),
+    all: T("Nothing scheduled.", "مفيش مواعيد."),
   };
 
   function agendaTest(range, now) {
@@ -356,12 +361,12 @@
   }
 
   function meetingTitle(m, name) {
-    return (m.topic ? m.topic + " · " : "Meeting · ") + name;
+    return (m.topic ? m.topic + " · " : T("Meeting · ", "اجتماع · ")) + name;
   }
 
   function googleButton(m, name) {
-    return '<a class="btn btn--ghost btn--sm" data-sound="open" target="_blank" rel="noopener" title="Add this one meeting to Google Calendar" href="' +
-      esc(Meet.googleUrl(m, meetingTitle(m, name), "With " + name + ".")) + '">📅 Google</a>';
+    return '<a class="btn btn--ghost btn--sm" data-sound="open" target="_blank" rel="noopener" title="' + T("Add this one meeting to Google Calendar", "ضيف الاجتماع ده بس لتقويم Google") + '" href="' +
+      esc(Meet.googleUrl(m, meetingTitle(m, name), T("With " + name + ".", "مع " + name + "."))) + '">📅 Google</a>';
   }
 
   function renderAgenda(animate) {
@@ -381,8 +386,8 @@
     $("#agendaEmpty").hidden = all.length > 0;
     $("#agendaEmpty").textContent = AGENDA_EMPTY[state.agendaRange] || "";
     $("#agendaMore").hidden = all.length <= list.length;
-    $("#agendaMore").textContent = "Show all " + all.length;
-    $("#agendaZone").textContent = "Times in " + Meet.zoneLabel(myZone());
+    $("#agendaMore").textContent = T("Show all " + all.length, "اعرض الكل (" + all.length + ")");
+    $("#agendaZone").textContent = T("Times in ", "المواعيد بتوقيت ") + Meet.zoneLabel(myZone());
     $("#agendaList").innerHTML = list.map(function (m) {
       var c = byId[m.client_id] || { name: m.client_name, photo: m.client_photo, gender: m.client_gender };
       return Meet.cardHtml(m, now, {
@@ -390,12 +395,12 @@
         otherTz: m.timezone,
         otherName: firstName(c.name),
         who: { name: c.name, avatarHtml: avatarHtml(c, "avatar--sm") },
-        noLinkText: "No link yet",
+        noLinkText: T("No link yet", "مفيش لينك لسه"),
         actions: function (mm, st) {
           if (st === "past") return "";
           return googleButton(mm, c.name) +
-            '<button type="button" class="btn btn--ghost btn--sm" data-act="reschedule">↻ Reschedule</button>' +
-            '<button type="button" class="btn btn--danger btn--sm" data-act="cancel">✕ Cancel</button>';
+            '<button type="button" class="btn btn--ghost btn--sm" data-act="reschedule">' + T("↻ Reschedule", "↻ تغيير الميعاد") + '</button>' +
+            '<button type="button" class="btn btn--danger btn--sm" data-act="cancel">' + T("✕ Cancel", "✕ إلغاء") + '</button>';
         },
       });
     }).join("");
@@ -443,14 +448,14 @@
     }) : [];
     var when = Meet.dayLabel(new Date(m.starts_at), new Date(), myZone()) + " " + Meet.fmtTime(new Date(m.starts_at), myZone());
     var choice = rest.length
-      ? ask("Cancel " + when + "?", "It is part of a repeating series. The client will no longer see what you cancel, and it leaves your calendar on its next refresh.", [
-          { value: "one", label: "Only this one", cls: "btn--danger" },
-          { value: "following", label: "This and the " + rest.length + " after it", cls: "btn--danger" },
-          { value: "cancel", label: "Keep them" },
+      ? ask(T("Cancel " + when + "?", "تلغي " + when + "؟"), T("It is part of a repeating series. The client will no longer see what you cancel, and it leaves your calendar on its next refresh.", "ده جزء من سلسلة متكررة. العميل مش هيشوف اللي تلغيه، وهيتشال من التقويم بتاعك في التحديث الجاي."), [
+          { value: "one", label: T("Only this one", "ده بس"), cls: "btn--danger" },
+          { value: "following", label: T("This and the " + rest.length + " after it", "ده والـ " + rest.length + " اللي بعده"), cls: "btn--danger" },
+          { value: "cancel", label: T("Keep them", "سيبهم") },
         ])
-      : ask("Cancel " + when + "?", "The client will no longer see it, and it leaves your calendar on its next refresh.", [
-          { value: "one", label: "Yes, cancel it", cls: "btn--danger" },
-          { value: "cancel", label: "Keep it" },
+      : ask(T("Cancel " + when + "?", "تلغي " + when + "؟"), T("The client will no longer see it, and it leaves your calendar on its next refresh.", "العميل مش هيشوفه تاني، وهيتشال من التقويم بتاعك في التحديث الجاي."), [
+          { value: "one", label: T("Yes, cancel it", "أيوه، الغيه"), cls: "btn--danger" },
+          { value: "cancel", label: T("Keep it", "سيبه") },
         ]);
     return choice.then(function (scope) {
       if (!scope) return;
@@ -458,7 +463,7 @@
         .then(function (r) {
           var gone = r.deleted || [m.id];
           done(gone);
-          toast(gone.length > 1 ? gone.length + " meetings cancelled" : "Meeting cancelled");
+          toast(gone.length > 1 ? T(gone.length + " meetings cancelled", "اتلغى " + gone.length + " اجتماعات") : T("Meeting cancelled", "الاجتماع اتلغى"));
         });
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -496,7 +501,8 @@
     var here = Meet.deviceZone();
     Meet.fillZoneSelect(form.elements.timezone, s.timezone || "auto", [here], {
       value: "auto",
-      label: "Automatic, from this device's location (" + Meet.city(here) + ", " + Meet.offsetLabel(here) + ")",
+      label: T("Automatic, from this device's location (" + Meet.city(here) + ", " + Meet.offsetLabel(here) + ")",
+        "تلقائي، من مكان الجهاز ده (" + Meet.city(here) + "، " + Meet.offsetLabel(here) + ")"),
     });
     form.elements.default_link.value = s.default_link || "";
     form.elements.notify_email.value = s.notify_email || "";
@@ -507,8 +513,8 @@
     note.hidden = !s.reminders_enabled;
     note.className = "span2 form__note " + (s.mail_configured ? "form__note--ok" : "form__note--warn");
     note.textContent = s.mail_configured
-      ? "Reminder emails are on: you and the client each get one a day before and one 2 hours before."
-      : "Reminder emails are not being sent yet. No email service key is set on the server (BREVO_API_KEY or RESEND_API_KEY in Vercel). Meetings still show on the client's page.";
+      ? T("Reminder emails are on: you and the client each get one a day before and one 2 hours before.", "إيميلات التذكير شغالة: إنت والعميل كل واحد بيوصله إيميل قبلها بيوم وإيميل قبلها بساعتين.")
+      : T("Reminder emails are not being sent yet. No email service key is set on the server (BREVO_API_KEY or RESEND_API_KEY in Vercel). Meetings still show on the client's page.", "إيميلات التذكير لسه مش بتتبعت. مفيش مفتاح خدمة إيميل على السيرفر (BREVO_API_KEY أو RESEND_API_KEY في Vercel). الاجتماعات لسه بتظهر في صفحة العميل.");
   }
 
   $("#btnZone").addEventListener("click", function () { openSettings($("#settingsCard").hidden); });
@@ -533,7 +539,7 @@
         renderAgenda();
         renderClientGrid();
         openSettings(false);
-        toast("Settings saved ✓");
+        toast(T("Settings saved ✓", "الإعدادات اتحفظت ✓"));
       })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
@@ -551,7 +557,7 @@
         if (photo) b.photo = photo;
         return api("/api/clients", { method: "POST", body: b });
       })
-      .then(function () { form.reset(); $("#addClientBox").open = false; toast("Client added ✓"); state.route = "clients"; return loadClients(); })
+      .then(function () { form.reset(); $("#addClientBox").open = false; toast(T("Client added ✓", "العميل اتضاف ✓")); state.route = "clients"; return loadClients(); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
@@ -628,7 +634,7 @@
     var c = data.client, t = data.totals;
     $("#btnRevokeShare").hidden = !c.share_token;
     $("#cAvatar").outerHTML = avatarHtml(c, "avatar--lg").replace('class="', 'id="cAvatar" class="');
-    $("#btnPhoto").title = c.photo ? "Change photo" : "Upload a photo";
+    $("#btnPhoto").title = c.photo ? T("Change photo", "غيّر الصورة") : T("Upload a photo", "ارفع صورة");
     $("#btnPhoto").setAttribute("aria-label", $("#btnPhoto").title);
     $("#btnRemovePhoto").hidden = !c.photo;
     $("#cName").textContent = c.name;
@@ -640,7 +646,7 @@
       ["💳", c.transaction_type], ["📝", c.notes]]
       .filter(function (x) { return x[1]; })
       .map(function (x, i) { return '<span class="client-chip' + (i === 0 && where ? " client-chip--country" : "") + '"><span aria-hidden="true">' + x[0] + "</span>" + esc(x[1]) + "</span>"; });
-    $("#cMeta").innerHTML = chips.join("") || '<span class="client-chip client-chip--empty">No contact details yet</span>';
+    $("#cMeta").innerHTML = chips.join("") || '<span class="client-chip client-chip--empty">' + T("No contact details yet", "مفيش بيانات تواصل لسه") + '</span>';
     $("#editClientForm").hidden = true;
     state.editingMeetingId = null;
     $("#meetingForm").hidden = true;
@@ -648,12 +654,12 @@
     $("#linkAllForm").hidden = true;
 
     var tiles = [
-      { label: "Available now", value: fmtH(t.available), cls: "tile--accent", sub: t.nextExpiry ? fmtH(t.nextExpiry.hours) + " expire " + fmtDate(t.nextExpiry.date) : "" },
-      { label: "Purchased", value: fmtH(t.purchased), sub: "" },
-      { label: "Used", value: fmtH(t.used), sub: data.sessions.length + " session" + (data.sessions.length === 1 ? "" : "s") },
-      { label: "Expired", value: fmtH(t.expired), cls: t.expired > 0 ? "tile--warn" : "", sub: "" },
+      { label: T("Available now", "المتاح دلوقتي"), value: fmtH(t.available), cls: "tile--accent", sub: t.nextExpiry ? T(fmtH(t.nextExpiry.hours) + " expire " + fmtDate(t.nextExpiry.date), fmtH(t.nextExpiry.hours) + " تنتهي " + fmtDate(t.nextExpiry.date)) : "" },
+      { label: T("Purchased", "المشتراة"), value: fmtH(t.purchased), sub: "" },
+      { label: T("Used", "المستخدمة"), value: fmtH(t.used), sub: I18N.N(data.sessions.length, "session", "sessions", ["جلسة واحدة", "جلستين", "جلسات", "جلسة"]) },
+      { label: T("Expired", "المنتهية"), value: fmtH(t.expired), cls: t.expired > 0 ? "tile--warn" : "", sub: "" },
     ];
-    if (t.overdraft > 0) tiles.push({ label: "Unpaid hours", value: fmtH(t.overdraft), cls: "tile--danger", sub: "sessions beyond balance" });
+    if (t.overdraft > 0) tiles.push({ label: T("Unpaid hours", "ساعات مش مدفوعة"), value: fmtH(t.overdraft), cls: "tile--danger", sub: T("sessions beyond balance", "جلسات فوق الرصيد") });
 
     // total paid, grouped by currency (admin-only — never sent to the share page)
     var paidTotals = {};
@@ -665,7 +671,7 @@
     var paidCurs = Object.keys(paidTotals).sort(function (a, b) { return paidTotals[b] - paidTotals[a]; });
     if (paidCurs.length) {
       tiles.push({
-        label: "Total paid",
+        label: T("Total paid", "إجمالي المدفوع"),
         value: paidTotals[paidCurs[0]].toLocaleString() + " " + paidCurs[0],
         cls: "tile--good",
         sub: paidCurs.slice(1).map(function (c) { return "+ " + paidTotals[c].toLocaleString() + " " + c; }).join("  ·  "),
@@ -683,16 +689,16 @@
     data.packages.forEach(function (p) {
       var expired = String(p.expires_at).slice(0, 10) < todayISO();
       var paid = p.amount_paid != null ? Number(p.amount_paid).toLocaleString() + " " + esc(p.currency || "") : "—";
-      if (p.has_proof) paid += ' <a href="/api/pdf?proof=' + p.id + '" target="_blank" rel="noopener" title="Payment proof">📷</a>';
+      if (p.has_proof) paid += ' <a href="/api/pdf?proof=' + p.id + '" target="_blank" rel="noopener" title="' + T("Payment proof", "إثبات الدفع") + '">📷</a>';
       var tr = document.createElement("tr");
       tr.innerHTML =
-        '<td data-label="Bought">' + fmtDate(p.purchased_at) + (p.note ? '<div class="muted" style="font-size:.78rem">' + esc(p.note) + "</div>" : "") + "</td>" +
-        '<td class="num" data-label="Hours"><strong>' + fmtH(p.hours) + "</strong></td>" +
-        '<td class="num muted" data-label="Paid">' + paid + "</td>" +
-        '<td class="muted" data-label="Expires">' + fmtDate(p.expires_at) + (expired ? ' <span class="badge badge--warn">expired</span>' : "") + "</td>" +
-        '<td class="row-act"><button class="iconbtn" title="Delete purchase" aria-label="Delete purchase">✕</button></td>';
+        '<td data-label="' + T("Bought", "اتشترى") + '">' + fmtDate(p.purchased_at) + (p.note ? '<div class="muted" style="font-size:.78rem">' + esc(p.note) + "</div>" : "") + "</td>" +
+        '<td class="num" data-label="' + T("Hours", "الساعات") + '"><strong>' + fmtH(p.hours) + "</strong></td>" +
+        '<td class="num muted" data-label="' + T("Paid", "المدفوع") + '">' + paid + "</td>" +
+        '<td class="muted" data-label="' + T("Expires", "ينتهي") + '">' + fmtDate(p.expires_at) + (expired ? ' <span class="badge badge--warn">' + T("expired", "منتهي") + '</span>' : "") + "</td>" +
+        '<td class="row-act"><button class="iconbtn" title="' + T("Delete purchase", "مسح الشراء") + '" aria-label="' + T("Delete purchase", "مسح الشراء") + '">✕</button></td>';
       tr.querySelector(".iconbtn").addEventListener("click", function () {
-        if (!confirm("Delete this " + fmtH(p.hours) + " purchase? This changes the balance history.")) return;
+        if (!confirm(T("Delete this " + fmtH(p.hours) + " purchase? This changes the balance history.", "تمسح الشراء ده (" + fmtH(p.hours) + ")؟ ده هيغيّر سجل الرصيد."))) return;
         api("/api/packages?id=" + p.id, { method: "DELETE" })
           .then(function () { return openClient(state.clientId); })
           .catch(function (e) { toast(e.message, true); });
@@ -706,13 +712,13 @@
     data.sessions.forEach(function (s) {
       var tr = document.createElement("tr");
       tr.innerHTML =
-        '<td data-label="Date">' + fmtDate(s.session_date) + "</td>" +
-        '<td class="num" data-label="Hours"><strong>' + fmtH(s.hours) + "</strong></td>" +
-        '<td class="row-wide" data-label="Topic">' + esc(s.topic || "—") + "</td>" +
+        '<td data-label="' + T("Date", "التاريخ") + '">' + fmtDate(s.session_date) + "</td>" +
+        '<td class="num" data-label="' + T("Hours", "الساعات") + '"><strong>' + fmtH(s.hours) + "</strong></td>" +
+        '<td class="row-wide" data-label="' + T("Topic", "الموضوع") + '">' + esc(s.topic || "—") + "</td>" +
         '<td class="row-file">' + (s.has_pdf ? fileChip(s) : "") + "</td>" +
         '<td class="num row-act">' +
-          '<button class="iconbtn iconbtn--edit" title="Edit session">✎</button>' +
-          '<button class="iconbtn iconbtn--del" title="Delete session">✕</button></td>';
+          '<button class="iconbtn iconbtn--edit" title="' + T("Edit session", "تعديل الجلسة") + '">✎</button>' +
+          '<button class="iconbtn iconbtn--del" title="' + T("Delete session", "مسح الجلسة") + '">✕</button></td>';
       tr.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditSession(s); });
       var chip = tr.querySelector("[data-file]");
       if (chip) chip.addEventListener("click", function () {
@@ -722,7 +728,7 @@
           .then(function () { chip.classList.remove("is-busy"); });
       });
       tr.querySelector(".iconbtn--del").addEventListener("click", function () {
-        if (!confirm("Delete this session record?")) return;
+        if (!confirm(T("Delete this session record?", "تمسح سجل الجلسة دي؟"))) return;
         api("/api/sessions?id=" + s.id, { method: "DELETE" })
           .then(function () { return openClient(state.clientId); })
           .catch(function (e) { toast(e.message, true); });
@@ -741,9 +747,9 @@
   // a session's minutes or slides: an icon for the kind, its name and size
   function fileChip(s) {
     var k = Files.kind(s.pdf_name);
-    return '<button type="button" class="file-chip file-chip--' + k.tone + '" data-file="' + Number(s.id) + '" title="Open ' + esc(s.pdf_name || "the file") + '">' +
+    return '<button type="button" class="file-chip file-chip--' + k.tone + '" data-file="' + Number(s.id) + '" title="' + esc(T("Open " + (s.pdf_name || "the file"), "افتح " + (s.pdf_name || "الملف"))) + '">' +
       '<span class="file-chip__icon" aria-hidden="true">' + k.glyph + "</span>" +
-      '<span class="file-chip__text"><b>' + esc(s.pdf_name || "File") + "</b><small>" + esc(k.label + (s.file_size ? " · " + Files.size(s.file_size) : "")) + "</small></span></button>";
+      '<span class="file-chip__text"><b>' + esc(s.pdf_name || T("File", "ملف")) + "</b><small>" + esc(k.label + (s.file_size ? " · " + Files.size(s.file_size) : "")) + "</small></span></button>";
   }
 
   function startEditSession(s) {
@@ -754,9 +760,9 @@
     form.elements.topic.value = s.topic || "";
     form.elements.pdf.value = "";
     // the drop box says which file is there now; a new one replaces it
-    form.elements.pdf.setAttribute("data-current", s.has_pdf ? (s.pdf_name || "a file") : "");
+    form.elements.pdf.setAttribute("data-current", s.has_pdf ? (s.pdf_name || T("a file", "ملف")) : "");
     Go.sync(form);
-    $("#btnSessionSubmit").textContent = "Update session";
+    $("#btnSessionSubmit").textContent = T("Update session", "حدّث الجلسة");
     $("#btnCancelEdit").hidden = false;
     Go.wizard.review(form);
     form.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -768,7 +774,7 @@
     form.reset();
     form.elements.session_date.value = todayISO();
     form.elements.pdf.setAttribute("data-current", "");
-    $("#btnSessionSubmit").textContent = "Record session";
+    $("#btnSessionSubmit").textContent = T("Record session", "سجّل الجلسة");
     $("#btnCancelEdit").hidden = true;
   }
 
@@ -801,17 +807,17 @@
       seriesOf: function (m) { return seriesPos[m.id] || null; },
       copy: true,
       reminders: !!(state.settings && state.settings.reminders_enabled),
-      noLinkText: "No link yet",
+      noLinkText: T("No link yet", "لسه مفيش لينك"),
       actions: function (m, st) {
         if (st === "past") {
-          return '<button type="button" class="btn btn--ghost btn--sm" data-act="record">Record as session</button>' +
-            '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="Edit meeting" aria-label="Edit meeting">✎</button>' +
-            '<button type="button" class="iconbtn iconbtn--del" data-act="delete" title="Delete meeting" aria-label="Delete meeting">✕</button>';
+          return '<button type="button" class="btn btn--ghost btn--sm" data-act="record">' + T("Record as session", "سجّله كجلسة") + '</button>' +
+            '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="' + T("Edit meeting", "تعديل الاجتماع") + '" aria-label="' + T("Edit meeting", "تعديل الاجتماع") + '">✎</button>' +
+            '<button type="button" class="iconbtn iconbtn--del" data-act="delete" title="' + T("Delete meeting", "مسح الاجتماع") + '" aria-label="' + T("Delete meeting", "مسح الاجتماع") + '">✕</button>';
         }
         return googleButton(m, data.client.name) +
-          '<button type="button" class="btn btn--ghost btn--sm" data-act="reschedule">↻ Reschedule</button>' +
-          '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="Edit link, topic or length" aria-label="Edit meeting">✎</button>' +
-          '<button type="button" class="btn btn--danger btn--sm" data-act="delete">✕ Cancel</button>';
+          '<button type="button" class="btn btn--ghost btn--sm" data-act="reschedule">' + T("↻ Reschedule", "↻ غيّر الميعاد") + '</button>' +
+          '<button type="button" class="iconbtn iconbtn--edit" data-act="edit" title="' + T("Edit link, topic or length", "عدّل اللينك أو الموضوع أو المدة") + '" aria-label="' + T("Edit meeting", "تعديل الاجتماع") + '">✎</button>' +
+          '<button type="button" class="btn btn--danger btn--sm" data-act="delete">' + T("✕ Cancel", "✕ إلغاء") + '</button>';
       },
     };
     var card = function (m) { opts.otherTz = m.timezone; return Meet.cardHtml(m, now, opts); };
@@ -820,7 +826,7 @@
     $("#btnLinkAll").hidden = ahead.length === 0 || !$("#linkAllForm").hidden;
     $("#meetingsEmpty").hidden = ahead.length > 0 || !$("#meetingForm").hidden || !$("#linkAllForm").hidden;
     $("#meetingsPastBox").hidden = past.length === 0;
-    $("#meetingsPastSummary").textContent = "Earlier meetings (" + past.length + ")";
+    $("#meetingsPastSummary").textContent = T("Earlier meetings (" + past.length + ")", "اجتماعات فاتت (" + past.length + ")");
   }
 
   function meetingById(id) {
@@ -839,11 +845,11 @@
       var label = Meet.dayLabel(start, now, zone);
       // further out the label is already the date; nearer, "Tomorrow" wants one beside it
       var day = /\d/.test(label) ? label : label + ", " + Meet.fmt(start, zone, { day: "numeric", month: "short" });
-      return day + " at " + Meet.fmtTime(start, zone) + " (" + Meet.zoneLabel(zone, start) + ")";
+      return day + T(" at ", " الساعة ") + Meet.fmtTime(start, zone) + " (" + Meet.zoneLabel(zone, start) + ")";
     };
-    var html = "<b>For you:</b> " + esc(line(mine));
-    if (tz !== mine) html += "<br /><b>For " + esc(firstName(state.detail.client.name) || "the client") + ":</b> " + esc(line(tz));
-    if (start < now) html += '<br /><span class="meet-preview__warn">That time has already passed.</span>';
+    var html = "<b>" + T("For you:", "عندك:") + "</b> " + esc(line(mine));
+    if (tz !== mine) html += "<br /><b>" + T("For " + esc(firstName(state.detail.client.name) || "the client") + ":", "عند " + esc(firstName(state.detail.client.name) || "العميل") + ":") + "</b> " + esc(line(tz));
+    if (start < now) html += '<br /><span class="meet-preview__warn">' + T("That time has already passed.", "الميعاد ده فات خلاص.") + '</span>';
     box.innerHTML = html;
     box.hidden = false;
   }
@@ -862,7 +868,7 @@
       form.elements.time.value = f.time;
       form.elements.duration_min.value = String(m.duration_min);
       if (form.elements.duration_min.value !== String(m.duration_min)) {
-        form.elements.duration_min.insertAdjacentHTML("beforeend", '<option value="' + Number(m.duration_min) + '">' + Number(m.duration_min) + " minutes</option>");
+        form.elements.duration_min.insertAdjacentHTML("beforeend", '<option value="' + Number(m.duration_min) + '">' + Number(m.duration_min) + T(" minutes", " دقيقة") + "</option>");
         form.elements.duration_min.value = String(m.duration_min);
       }
       form.elements.link.value = m.link || "";
@@ -876,7 +882,7 @@
     state.daysTouched = false;
     state.seriesPlan = null;
     syncRepeatFields();
-    $("#btnMeetingSubmit").textContent = reschedule ? "Save the new time ✓" : m ? "Update meeting" : "Schedule meeting";
+    $("#btnMeetingSubmit").textContent = reschedule ? T("Save the new time ✓", "احفظ الميعاد الجديد ✓") : m ? T("Update meeting", "حدّث الاجتماع") : T("Schedule meeting", "احجز الاجتماع");
     form.hidden = false;
     $("#btnNewMeeting").hidden = true;
     $("#meetingsEmpty").hidden = true;
@@ -912,8 +918,8 @@
     if (!link) { box.hidden = true; return; }
     var app = Meet.platform(link);
     var ok = /^https?:\/\/\S+$/i.test(link);
-    box.innerHTML = !ok ? '<span class="meet-preview__warn">A link starts with https://</span>'
-      : app ? "That is a <b>" + esc(app) + "</b> link." : "The join button will say <b>Join meeting</b>.";
+    box.innerHTML = !ok ? '<span class="meet-preview__warn">' + T("A link starts with https://", "اللينك لازم يبدأ بـ https://") + '</span>'
+      : app ? T("That is a <b>" + esc(app) + "</b> link.", "ده لينك <b>" + esc(app) + "</b>.") : T("The join button will say <b>Join meeting</b>.", "زرار الدخول هيبقى مكتوب عليه <b>ادخل الاجتماع</b>.");
     box.hidden = false;
   }
 
@@ -927,8 +933,10 @@
     var common = Object.keys(links).sort(function (a, b) { return links[b] - links[a]; })[0] || "";
     form.reset();
     form.elements.link.value = common || ((state.settings && state.settings.default_link) || "");
-    $("#linkAllTitle").textContent = "New link for " + (list.length === 1 ? "the upcoming meeting" : "all " + list.length + " upcoming meetings");
-    $("#btnLinkAllSubmit").textContent = "Change the link on " + list.length + " meeting" + (list.length === 1 ? "" : "s") + " ✓";
+    $("#linkAllTitle").textContent = T("New link for " + (list.length === 1 ? "the upcoming meeting" : "all " + list.length + " upcoming meetings"),
+      list.length === 1 ? "لينك جديد للاجتماع الجاي" : "لينك جديد لكل الاجتماعات الجاية (" + list.length + ")");
+    $("#btnLinkAllSubmit").textContent = T("Change the link on " + list.length + " meeting" + (list.length === 1 ? "" : "s") + " ✓",
+      "غيّر اللينك في " + I18N.N(list.length, "meeting", "meetings", ["اجتماع واحد", "اجتماعين", "اجتماعات", "اجتماع"]) + " ✓");
     showLinkAllApp();
     form.hidden = false;
     $("#btnLinkAll").hidden = true;
@@ -965,8 +973,10 @@
           : Promise.resolve();
         return next.then(function () {
           toast(link
-            ? "Link changed on " + r.changed + " meeting" + (r.changed === 1 ? "" : "s") + (saveDefault ? ", and saved as your usual one ✓" : " ✓")
-            : "Link removed from " + r.changed + " meeting" + (r.changed === 1 ? "" : "s"));
+            ? T("Link changed on " + r.changed + " meeting" + (r.changed === 1 ? "" : "s") + (saveDefault ? ", and saved as your usual one ✓" : " ✓"),
+              "اللينك اتغيّر في " + I18N.N(r.changed, "meeting", "meetings", ["اجتماع واحد", "اجتماعين", "اجتماعات", "اجتماع"]) + (saveDefault ? "، واتحفظ كلينكك المعتاد ✓" : " ✓"))
+            : T("Link removed from " + r.changed + " meeting" + (r.changed === 1 ? "" : "s"),
+              "اللينك اتشال من " + I18N.N(r.changed, "meeting", "meetings", ["اجتماع واحد", "اجتماعين", "اجتماعات", "اجتماع"])));
           Go.play("success");
           closeLinkAll();
         });
@@ -984,7 +994,7 @@
 
   /* ---------------- repeating: every Tuesday until the credit runs out ---------------- */
 
-  var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var DAY_NAMES = [T("Sunday", "الأحد"), T("Monday", "الاتنين"), T("Tuesday", "التلات"), T("Wednesday", "الأربع"), T("Thursday", "الخميس"), T("Friday", "الجمعة"), T("Saturday", "السبت")];
 
   function chosenDays() {
     return Array.prototype.filter.call($("#dayChips").children, function (c) {
@@ -1036,7 +1046,7 @@
     if (!repeating) {
       state.seriesPlan = null;
       $("#seriesPreview").hidden = true;
-      $("#btnMeetingSubmit").textContent = state.editingMeetingId ? "Update meeting" : "Schedule meeting";
+      $("#btnMeetingSubmit").textContent = state.editingMeetingId ? T("Update meeting", "حدّث الاجتماع") : T("Schedule meeting", "احجز الاجتماع");
       $("#btnMeetingSubmit").disabled = false;
       return;
     }
@@ -1050,7 +1060,7 @@
     if (error) {
       box.className = "span2 series series--error";
       box.textContent = error;
-      btn.textContent = "Schedule meetings";
+      btn.textContent = T("Schedule meetings", "احجز الاجتماعات");
       btn.disabled = true;
       return;
     }
@@ -1058,24 +1068,25 @@
     var rule = repeatRule() || { days: [], interval: 1 };
     var days = rule.days.slice().sort(function (a, b) { return ((a + 6) % 7) - ((b + 6) % 7); })
       .map(function (d) { return DAY_NAMES[d]; });
-    var every = (rule.interval === 2 ? "every 2 weeks on " : "every ") + days.join(" and ");
+    var every = T((rule.interval === 2 ? "every 2 weeks on " : "every ") + days.join(" and "),
+      (rule.interval === 2 ? "كل أسبوعين يوم " : "كل يوم ") + days.join(" و"));
     var list = plan.occurrences;
     var first = new Date(list[0].starts_at), last = new Date(list[list.length - 1].starts_at);
     var span = list.length > 1
-      ? Meet.fmt(first, tz, { day: "numeric", month: "short" }) + " to " + Meet.fmt(last, tz, { day: "numeric", month: "short", year: "numeric" })
+      ? Meet.fmt(first, tz, { day: "numeric", month: "short" }) + T(" to ", " لحد ") + Meet.fmt(last, tz, { day: "numeric", month: "short", year: "numeric" })
       : Meet.fmt(first, tz, { day: "numeric", month: "short", year: "numeric" });
     box.className = "span2 series";
     box.innerHTML =
-      '<div class="series__head"><b>' + list.length + " session" + (list.length === 1 ? "" : "s") + "</b>" +
+      '<div class="series__head"><b>' + T(list.length + " session" + (list.length === 1 ? "" : "s"), I18N.N(list.length, "session", "sessions", ["جلسة واحدة", "جلستين", "جلسات", "جلسة"])) + "</b>" +
       '<span class="muted">' + esc(every + " · " + span) + "</span></div>" +
       '<ol class="series__list">' + list.map(function (o) {
         var d = new Date(o.starts_at);
         return "<li>" + esc(Meet.fmt(d, tz, { weekday: "short", day: "numeric", month: "short" })) +
           '<span class="muted">' + esc(Meet.fmtTime(d, tz)) + "</span>" +
-          (o.covered ? "" : '<span class="badge badge--warn">no credit</span>') + "</li>";
+          (o.covered ? "" : '<span class="badge badge--warn">' + T("no credit", "مفيش رصيد") + '</span>') + "</li>";
       }).join("") + "</ol>" +
       '<p class="series__note">' + esc(plan.series.note || "") + "</p>";
-    btn.textContent = "Schedule " + list.length + " meeting" + (list.length === 1 ? "" : "s");
+    btn.textContent = T("Schedule " + list.length + " meeting" + (list.length === 1 ? "" : "s"), "احجز " + I18N.N(list.length, "meeting", "meetings", ["اجتماع واحد", "اجتماعين", "اجتماعات", "اجتماع"]));
     btn.disabled = false;
   }
 
@@ -1093,8 +1104,8 @@
       $("#seriesPreview").hidden = true;
       return;
     }
-    if (!rule.days.length) return renderSeries(null, "Pick at least one day of the week.");
-    if (rule.until === "date" && !rule.until_date) return renderSeries(null, "Pick the last date of the series.");
+    if (!rule.days.length) return renderSeries(null, T("Pick at least one day of the week.", "اختار يوم واحد على الأقل من الأسبوع."));
+    if (rule.until === "date" && !rule.until_date) return renderSeries(null, T("Pick the last date of the series.", "اختار آخر تاريخ في السلسلة."));
     seriesTimer = setTimeout(function () {
       var body = meetingBody();
       body.repeat = rule;
@@ -1178,8 +1189,8 @@
           .filter(function (m) { return ids.indexOf(m.id) === -1; })
           .concat(made);
         state.detail.client.timezone = made[0].timezone;
-        toast(editingId ? "Meeting updated ✓"
-          : made.length > 1 ? made.length + " meetings scheduled ✓" : "Meeting scheduled ✓");
+        toast(editingId ? T("Meeting updated ✓", "الاجتماع اتحدّث ✓")
+          : made.length > 1 ? T(made.length + " meetings scheduled ✓", I18N.N(made.length, "meeting", "meetings", ["اجتماع واحد", "اجتماعين", "اجتماعات", "اجتماع"]) + " اتحجزوا ✓") : T("Meeting scheduled ✓", "الاجتماع اتحجز ✓"));
         closeMeetingForm();
       })
       .catch(function (e) { toast(e.message, true); })
@@ -1196,8 +1207,8 @@
     if (act === "reschedule") return openMeetingForm(m, true);
     if (act === "copy") {
       return navigator.clipboard.writeText(m.link).then(
-        function () { toast("Meeting link copied ✓"); },
-        function () { prompt("Copy the meeting link:", m.link); }
+        function () { toast(T("Meeting link copied ✓", "لينك الاجتماع اتنسخ ✓")); },
+        function () { prompt(T("Copy the meeting link:", "انسخ لينك الاجتماع:"), m.link); }
       );
     }
     if (act === "record") {
@@ -1237,8 +1248,8 @@
         state.detail.client.share_token = r.token;
         $("#btnRevokeShare").hidden = false;
         return navigator.clipboard.writeText(url).then(
-          function () { toast("Read-only link copied — send it to the client ✓"); },
-          function () { prompt("Copy this read-only link:", url); }
+          function () { toast(T("Read-only link copied — send it to the client ✓", "لينك المشاهدة اتنسخ — ابعته للعميل ✓")); },
+          function () { prompt(T("Copy this read-only link:", "انسخ لينك المشاهدة ده:"), url); }
         );
       })
       .catch(function (e) { toast(e.message, true); })
@@ -1246,14 +1257,14 @@
   });
 
   $("#btnRevokeShare").addEventListener("click", function () {
-    if (!confirm("Disable the shared link? The client will lose access until you share a new one.")) return;
+    if (!confirm(T("Disable the shared link? The client will lose access until you share a new one.", "توقف لينك المشاركة؟ العميل مش هيقدر يدخل لحد ما تشارك لينك جديد."))) return;
     var btn = this;
     busy(btn, true);
     api("/api/clients?id=" + state.clientId + "&share=revoke", { method: "POST", body: {} })
       .then(function () {
         state.detail.client.share_token = null;
         $("#btnRevokeShare").hidden = true;
-        toast("Share link disabled");
+        toast(T("Share link disabled", "لينك المشاركة اتوقف"));
       })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
@@ -1276,7 +1287,7 @@
         return api("/api/clients?id=" + state.clientId, { method: "PATCH", body: { photo: photo } });
       })
       .then(function () {
-        toast("Photo saved ✓");
+        toast(T("Photo saved ✓", "الصورة اتحفظت ✓"));
         // the new picture arrives with a little party around it
         var r = btn.getBoundingClientRect();
         Go.burst(r.left + r.width / 2, r.top + r.height / 2, 18, ["📸", "✨"]);
@@ -1287,11 +1298,11 @@
   });
 
   $("#btnRemovePhoto").addEventListener("click", function () {
-    if (!confirm("Remove this client's photo?")) return;
+    if (!confirm(T("Remove this client's photo?", "تشيل صورة العميل ده؟"))) return;
     var btn = this;
     busy(btn, true);
     api("/api/clients?id=" + state.clientId, { method: "PATCH", body: { photo: "" } })
-      .then(function () { toast("Photo removed"); return openClient(state.clientId); })
+      .then(function () { toast(T("Photo removed", "الصورة اتشالت")); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
@@ -1315,16 +1326,16 @@
     var btn = this.querySelector("button[type=submit]");
     busy(btn, true);
     api("/api/clients?id=" + state.clientId, { method: "PATCH", body: formData(this) })
-      .then(function () { toast("Saved ✓"); return openClient(state.clientId); })
+      .then(function () { toast(T("Saved ✓", "اتحفظ ✓")); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
 
   $("#btnDeleteClient").addEventListener("click", function () {
     var c = state.detail.client;
-    if (!confirm('Delete "' + c.name + '" and ALL their purchases, sessions and scheduled meetings? This cannot be undone.')) return;
+    if (!confirm(T('Delete "' + c.name + '" and ALL their purchases, sessions and scheduled meetings? This cannot be undone.', 'تمسح "' + c.name + '" وكل مشترياته وجلساته واجتماعاته المحجوزة؟ مفيش رجوع في ده.'))) return;
     api("/api/clients?id=" + state.clientId, { method: "DELETE" })
-      .then(function () { toast("Client deleted"); return nav({ name: "clients" }, true, true); })
+      .then(function () { toast(T("Client deleted", "العميل اتمسح")); return nav({ name: "clients" }, true, true); })
       .catch(function (e) { toast(e.message, true); });
   });
 
@@ -1339,7 +1350,7 @@
 
     var ready = Promise.resolve();
     if (file) {
-      if (file.size > 3 * 1024 * 1024) { toast("Attachment is too large (max 3 MB)", true); return; }
+      if (file.size > 3 * 1024 * 1024) { toast(T("Attachment is too large (max 3 MB)", "المرفق كبير أوي (الحد الأقصى 3 ميجا)"), true); return; }
       ready = readFileB64(file).then(function (b64) {
         b.proof_base64 = b64;
         b.proof_name = file.name;
@@ -1349,7 +1360,7 @@
     busy(btn, true);
     ready
       .then(function () { return api("/api/packages", { method: "POST", body: b }); })
-      .then(function () { form.reset(); toast("Hours added ✓"); return openClient(state.clientId); })
+      .then(function () { form.reset(); toast(T("Hours added ✓", "الساعات اتضافت ✓")); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
@@ -1370,10 +1381,10 @@
       var problem = Files.check(file);
       if (problem) { toast(problem, true); return; }
       // sent ahead in pieces, so slides bigger than one request still go
-      ready = Files.upload(file, function (p) { btn.textContent = "Uploading " + p + "%…"; }).then(function (id) {
+      ready = Files.upload(file, function (p) { btn.textContent = T("Uploading " + p + "%…", "بيترفع " + p + "%…"); }).then(function (id) {
         b.file_upload_id = id;
         b.file_name = file.name;
-        btn.textContent = "Saving…";
+        btn.textContent = T("Saving…", "بيتحفظ…");
       });
     }
     busy(btn, true);
@@ -1383,9 +1394,9 @@
           ? api("/api/sessions?id=" + editingId, { method: "PATCH", body: b })
           : api("/api/sessions", { method: "POST", body: b });
       })
-      .then(function () { toast(editingId ? "Session updated ✓" : "Session recorded ✓"); return openClient(state.clientId); })
+      .then(function () { toast(editingId ? T("Session updated ✓", "الجلسة اتحدّثت ✓") : T("Session recorded ✓", "الجلسة اتسجّلت ✓")); return openClient(state.clientId); })
       .catch(function (e) { toast(e.message, true); })
-      .finally(function () { busy(btn, false); if (/Uploading|Saving/.test(btn.textContent)) btn.textContent = label; });
+      .finally(function () { busy(btn, false); if (/Uploading|Saving|بيترفع|بيتحفظ/.test(btn.textContent)) btn.textContent = label; });
   });
 
   /* ---------------- balance chart (shared renderer in chart.js) ---------------- */
@@ -1415,35 +1426,36 @@
 
   function showPointDetail(p) {
     var rows = [
-      detailRow("Date", fmtDate(p.date) + (p.future ? ' <span class="badge badge--warn">upcoming</span>' : "")),
-      detailRow("Event", esc(p.label)),
-      detailRow("Change", (p.delta > 0 ? "+" : "−") + fmtH(Math.abs(p.delta))),
-      detailRow("Balance after", "<strong>" + fmtH(p.balance) + "</strong>"),
+      detailRow(T("Date", "التاريخ"), fmtDate(p.date) + (p.future ? ' <span class="badge badge--warn">' + T("upcoming", "جاي") + '</span>' : "")),
+      detailRow(T("Event", "الحدث"), esc(p.label)),
+      detailRow(T("Change", "التغيير"), (p.delta > 0 ? "+" : "−") + fmtH(Math.abs(p.delta))),
+      detailRow(T("Balance after", "الرصيد بعدها"), "<strong>" + fmtH(p.balance) + "</strong>"),
     ];
-    if (p.uncovered > 0) rows.push(detailRow("Not covered", '<span style="color:#ff9aa7">' + fmtH(p.uncovered) + "</span>"));
+    if (p.uncovered > 0) rows.push(detailRow(T("Not covered", "من غير رصيد"), '<span style="color:#ff9aa7">' + fmtH(p.uncovered) + "</span>"));
 
     if (p.kind === "purchase" || p.kind === "expiry") {
       var pkg = (state.detail.packages || []).filter(function (x) { return x.id === p.packageId; })[0];
       if (pkg) {
         if (p.kind === "purchase") {
-          var paid = pkg.amount_paid != null ? Number(pkg.amount_paid).toLocaleString() + " " + esc(pkg.currency || "") : "—";
-          if (pkg.has_proof) paid += ' <a href="/api/pdf?proof=' + pkg.id + '" target="_blank" rel="noopener">📷 proof</a>';
-          rows.push(detailRow("Amount paid", paid));
+          var paid = pkg.amount_paid != null ? Number(pkg.amount_paid).toLocaleString(I18N.ar ? I18N.loc() : undefined) + " " + esc(pkg.currency || "") : "—";
+          if (pkg.has_proof) paid += ' <a href="/api/pdf?proof=' + pkg.id + '" target="_blank" rel="noopener">' + T("📷 proof", "📷 الإثبات") + '</a>';
+          rows.push(detailRow(T("Amount paid", "المبلغ المدفوع"), paid));
         }
-        rows.push(detailRow("Package", fmtH(pkg.hours) + " bought " + fmtDate(pkg.purchased_at) + ", expires " + fmtDate(pkg.expires_at)));
-        if (pkg.note) rows.push(detailRow("Note", esc(pkg.note)));
+        rows.push(detailRow(T("Package", "الباقة"), T(fmtH(pkg.hours) + " bought " + fmtDate(pkg.purchased_at) + ", expires " + fmtDate(pkg.expires_at),
+          fmtH(pkg.hours) + " اتشترت " + fmtDate(pkg.purchased_at) + "، تنتهي " + fmtDate(pkg.expires_at))));
+        if (pkg.note) rows.push(detailRow(T("Note", "ملاحظة"), esc(pkg.note)));
       }
     }
     if (p.kind === "session") {
       var s = (state.detail.sessions || []).filter(function (x) { return x.id === p.sessionId; })[0];
       if (s) {
-        if (s.topic) rows.push(detailRow("Topic", esc(s.topic)));
-        if (s.has_pdf) rows.push(detailRow("Minutes", '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>'));
+        if (s.topic) rows.push(detailRow(T("Topic", "الموضوع"), esc(s.topic)));
+        if (s.has_pdf) rows.push(detailRow(T("Minutes", "المحضر"), '<a href="/api/pdf?id=' + s.id + '" target="_blank" rel="noopener">📄 PDF</a>'));
       }
     }
 
     var box = $("#chartDetail");
-    box.innerHTML = '<button type="button" class="chart-detail__close" aria-label="Close">✕</button>' +
+    box.innerHTML = '<button type="button" class="chart-detail__close" aria-label="' + T("Close", "قفل") + '">✕</button>' +
       '<div class="chart-detail__grid">' + rows.join("") + "</div>";
     box.querySelector(".chart-detail__close").addEventListener("click", hidePointDetail);
     box.hidden = false;
@@ -1491,12 +1503,12 @@
     calendarSetting("create").then(function () { Go.play("coin"); }).catch(function (e) { toast(e.message, true); }).finally(function () { busy(btn, false); });
   });
   $("#calRotate").addEventListener("click", function () {
-    if (!confirm("Make a new calendar link? The old one stops working, and calendars subscribed to it stop updating.")) return;
-    calendarSetting("rotate").then(function () { toast("New calendar link ✓ Subscribe again with it."); }).catch(function (e) { toast(e.message, true); });
+    if (!confirm(T("Make a new calendar link? The old one stops working, and calendars subscribed to it stop updating.", "تعمل لينك تقويم جديد؟ القديم هيقف، والتقويمات المشتركة فيه مش هتتحدّث تاني."))) return;
+    calendarSetting("rotate").then(function () { toast(T("New calendar link ✓ Subscribe again with it.", "لينك تقويم جديد ✓ اشترك بيه من تاني.")); }).catch(function (e) { toast(e.message, true); });
   });
   $("#calCopy").addEventListener("click", function () {
     var url = $("#calUrl").value;
-    navigator.clipboard.writeText(url).then(function () { toast("Calendar link copied ✓"); }, function () { $("#calUrl").select(); });
+    navigator.clipboard.writeText(url).then(function () { toast(T("Calendar link copied ✓", "لينك التقويم اتنسخ ✓")); }, function () { $("#calUrl").select(); });
   });
 
   /* ---------------- go ---------------- */

@@ -30,12 +30,13 @@
       } catch (e) {}
     })();
   </script>
+  <script src="js/tools/i18n.js?v=1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=13" />
-  <link rel="stylesheet" href="css/tools/time.css?v=49" />
-  <link rel="stylesheet" href="css/tools/go.css?v=16" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tools/app.css?v=14" />
+  <link rel="stylesheet" href="css/tools/time.css?v=53" />
+  <link rel="stylesheet" href="css/tools/go.css?v=17" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -51,7 +52,7 @@
           <path class="go-loader__climb" d="M20 94 L60 26"></path>
           <circle class="go-loader__peak" cx="60" cy="26" r="9.5"></circle>
         </svg>
-        <p class="go-loader__text">Loading…</p>
+        <p class="go-loader__text" data-ar="بيحمّل…">Loading…</p>
       </div>
     </section>
 
@@ -59,10 +60,10 @@
     <section id="view-login" class="view" hidden>
       <div class="card card--center login-card">
         <div class="lock-icon" aria-hidden="true">🔐</div>
-        <h1>Time</h1>
-        <p class="muted">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
+        <h1 data-ar="الوقت">Time</h1>
+        <p class="muted" data-ar-html="ادخل بمفتاح الدخول. على الآيفون بيستخدم Face&nbsp;ID؛ ومن الكمبيوتر المتصفح هيعرض QR code تمسحه بالآيفون.">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
         from a computer your browser will show a QR code to scan with the iPhone.</p>
-        <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
+        <button id="btnLogin" class="btn btn--primary" data-ar="ادخل بمفتاح الدخول">Sign in with passkey</button>
         <p id="loginError" class="error" hidden></p>
       </div>
     </section>
@@ -71,12 +72,12 @@
     <section id="view-setup" class="view" hidden>
       <div class="card card--center login-card">
         <div class="lock-icon" aria-hidden="true">📱</div>
-        <h1>Register your iPhone</h1>
-        <p class="muted">One device only — after this, setup locks forever and only your iPhone can sign in.</p>
-        <p class="muted"><strong>On a computer:</strong> tap the button below and your browser will show a
+        <h1 data-ar="سجّل الآيفون بتاعك">Register your iPhone</h1>
+        <p class="muted" data-ar="جهاز واحد بس — بعد كده التسجيل بيتقفل للأبد والآيفون بتاعك بس اللي يقدر يدخل.">One device only — after this, setup locks forever and only your iPhone can sign in.</p>
+        <p class="muted" data-ar-html="<strong>على الكمبيوتر:</strong> دوس على الزرار اللي تحت والمتصفح هيعرض <strong>QR code</strong> — امسحه بكاميرا الآيفون وبعدين أكّد بـ Face&nbsp;ID.<br /><br /><strong>على الآيفون نفسه:</strong> دوس على الزرار وأكّد بـ Face&nbsp;ID."><strong>On a computer:</strong> tap the button below and your browser will show a
         <strong>QR code</strong> — scan it with the iPhone camera, then confirm with Face&nbsp;ID.<br /><br />
         <strong>On the iPhone itself:</strong> just tap the button and confirm with Face&nbsp;ID.</p>
-        <button id="btnSetup" class="btn btn--primary">Create passkey</button>
+        <button id="btnSetup" class="btn btn--primary" data-ar="اعمل مفتاح دخول">Create passkey</button>
         <p id="setupError" class="error" hidden></p>
       </div>
     </section>
@@ -84,48 +85,48 @@
     <!-- ================= APP ================= -->
     <section id="view-app" class="view" hidden>
       <header class="topbar">
-        <h1>Time</h1>
+        <h1 data-ar="الوقت">Time</h1>
         <div class="topbar__actions">
-          <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">🌙</button>
-          <a class="btn btn--ghost btn--sm" href="/admin" data-sound="page">← Home</a>
-          <button id="btnLogout" class="btn btn--ghost btn--sm">Log out</button>
+          <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme" data-ar-title="غيّر الثيم فاتح/غامق">🌙</button>
+          <a class="btn btn--ghost btn--sm" href="/admin" data-sound="page" data-ar="→ الرئيسية">← Home</a>
+          <button id="btnLogout" class="btn btn--ghost btn--sm" data-ar="خروج">Log out</button>
         </div>
       </header>
 
       <div class="countdown-row">
         <div class="countdown" id="ageCounter">
-          <span class="countdown__label">🎂 Your age</span>
+          <span class="countdown__label" data-ar="🎂 عمرك">🎂 Your age</span>
           <div class="countdown__units">
-            <div class="countdown__unit"><span class="countdown__value" id="ageYears">00</span><span class="countdown__unit-label">yrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="ageMonths">00</span><span class="countdown__unit-label">mo</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="ageDays">00</span><span class="countdown__unit-label">days</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="ageHours">00</span><span class="countdown__unit-label">hrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="ageMinutes">00</span><span class="countdown__unit-label">min</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="ageSeconds">00</span><span class="countdown__unit-label">sec</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="ageYears">00</span><span class="countdown__unit-label" data-ar="سنة">yrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="ageMonths">00</span><span class="countdown__unit-label" data-ar="شهر">mo</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="ageDays">00</span><span class="countdown__unit-label" data-ar="يوم">days</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="ageHours">00</span><span class="countdown__unit-label" data-ar="ساعة">hrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="ageMinutes">00</span><span class="countdown__unit-label" data-ar="دقيقة">min</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="ageSeconds">00</span><span class="countdown__unit-label" data-ar="ثانية">sec</span></div>
           </div>
         </div>
 
         <div class="countdown" id="goalCounter">
-          <span class="countdown__label">💰 Time left to hit $500K/yr by age <input type="number" id="goalAgeInput" class="countdown__year-input" min="1" max="149" step="1" title="Target age" /></span>
+          <span class="countdown__label"><span data-ar="💰 الوقت الباقي عشان توصل $500K في السنة عند سن">💰 Time left to hit $500K/yr by age</span> <input type="number" id="goalAgeInput" class="countdown__year-input" min="1" max="149" step="1" title="Target age" data-ar-title="السن المستهدف" /></span>
           <div class="countdown__units">
-            <div class="countdown__unit"><span class="countdown__value" id="goalYears">00</span><span class="countdown__unit-label">yrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="goalMonths">00</span><span class="countdown__unit-label">mo</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="goalDays">00</span><span class="countdown__unit-label">days</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="goalHours">00</span><span class="countdown__unit-label">hrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="goalMinutes">00</span><span class="countdown__unit-label">min</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="goalSeconds">00</span><span class="countdown__unit-label">sec</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="goalYears">00</span><span class="countdown__unit-label" data-ar="سنة">yrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="goalMonths">00</span><span class="countdown__unit-label" data-ar="شهر">mo</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="goalDays">00</span><span class="countdown__unit-label" data-ar="يوم">days</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="goalHours">00</span><span class="countdown__unit-label" data-ar="ساعة">hrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="goalMinutes">00</span><span class="countdown__unit-label" data-ar="دقيقة">min</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="goalSeconds">00</span><span class="countdown__unit-label" data-ar="ثانية">sec</span></div>
           </div>
         </div>
 
         <div class="countdown" id="nextMilestoneCounter">
           <span class="countdown__label" id="nextMilestoneLabel">💰 Time left to hit $977</span>
           <div class="countdown__units">
-            <div class="countdown__unit"><span class="countdown__value" id="nextMsYears">00</span><span class="countdown__unit-label">yrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="nextMsMonths">00</span><span class="countdown__unit-label">mo</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="nextMsDays">00</span><span class="countdown__unit-label">days</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="nextMsHours">00</span><span class="countdown__unit-label">hrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="nextMsMinutes">00</span><span class="countdown__unit-label">min</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="nextMsSeconds">00</span><span class="countdown__unit-label">sec</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="nextMsYears">00</span><span class="countdown__unit-label" data-ar="سنة">yrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="nextMsMonths">00</span><span class="countdown__unit-label" data-ar="شهر">mo</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="nextMsDays">00</span><span class="countdown__unit-label" data-ar="يوم">days</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="nextMsHours">00</span><span class="countdown__unit-label" data-ar="ساعة">hrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="nextMsMinutes">00</span><span class="countdown__unit-label" data-ar="دقيقة">min</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="nextMsSeconds">00</span><span class="countdown__unit-label" data-ar="ثانية">sec</span></div>
           </div>
         </div>
 
@@ -136,47 +137,47 @@
             <span class="countdown__bar" aria-hidden="true"><i id="countdownBar"></i></span>
           </div>
           <div class="countdown__units">
-            <div class="countdown__unit"><span class="countdown__value" id="cdDays">00</span><span class="countdown__unit-label">days</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="cdHours">00</span><span class="countdown__unit-label">hrs</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="cdMinutes">00</span><span class="countdown__unit-label">min</span></div>
-            <div class="countdown__unit"><span class="countdown__value" id="cdSeconds">00</span><span class="countdown__unit-label">sec</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="cdDays">00</span><span class="countdown__unit-label" data-ar="يوم">days</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="cdHours">00</span><span class="countdown__unit-label" data-ar="ساعة">hrs</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="cdMinutes">00</span><span class="countdown__unit-label" data-ar="دقيقة">min</span></div>
+            <div class="countdown__unit"><span class="countdown__value" id="cdSeconds">00</span><span class="countdown__unit-label" data-ar="ثانية">sec</span></div>
           </div>
         </div>
       </div>
 
       <div class="card">
         <details class="section-collapse milestone-ladder">
-          <summary>🪜 Milestones to $500K/yr</summary>
+          <summary data-ar="🪜 الخطوات لحد $500K في السنة">🪜 Milestones to $500K/yr</summary>
           <div class="section-collapse__body">
             <!-- the pace line is written by the script: the steps are spread
                  between today and the age target above (owner, 2026-10-17) -->
             <p class="muted" id="milestonePace" style="margin:0 0 10px"></p>
-            <p class="milestone-total muted">💵 Total entered across all milestones: <b id="milestoneTotalAmount">$0</b></p>
+            <p class="milestone-total muted"><span data-ar="💵 إجمالي اللي دخل في كل الخطوات:">💵 Total entered across all milestones:</span> <b id="milestoneTotalAmount">$0</b></p>
             <div class="milestone-list" id="milestoneList"></div>
           </div>
         </details>
       </div>
 
       <nav class="tabbar" id="tabbar">
-        <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label">Today</span></button>
-        <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label">Quarter</span></button>
-        <button type="button" class="tab" data-tab="focus"><span class="tab__icon">🍅</span><span class="tab__label">Focus</span></button>
-        <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label">Days</span></button>
-        <button type="button" class="tab" data-tab="ideas"><span class="tab__icon">💡</span><span class="tab__label">Ideas</span></button>
-        <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label">Analytics</span></button>
-        <button type="button" class="tab" data-tab="plan"><span class="tab__icon">🗺️</span><span class="tab__label">Plan</span></button>
+        <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label" data-ar="النهارده">Today</span></button>
+        <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label" data-ar="ربع السنة">Quarter</span></button>
+        <button type="button" class="tab" data-tab="focus"><span class="tab__icon">🍅</span><span class="tab__label" data-ar="تركيز">Focus</span></button>
+        <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label" data-ar="الأيام">Days</span></button>
+        <button type="button" class="tab" data-tab="ideas"><span class="tab__icon">💡</span><span class="tab__label" data-ar="الأفكار">Ideas</span></button>
+        <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label" data-ar="التحليلات">Analytics</span></button>
+        <button type="button" class="tab" data-tab="plan"><span class="tab__icon">🗺️</span><span class="tab__label" data-ar="الخطة">Plan</span></button>
       </nav>
 
       <!-- ---- Today ---- -->
       <section class="tabpanel" data-tabpanel="today">
       <div class="card">
         <div class="card__head">
-          <h2>Today's to-do</h2>
+          <h2 data-ar="مهام النهارده">Today's to-do</h2>
           <div class="day-nav">
-            <button id="btnPrevDay" class="iconbtn" aria-label="Previous day">←</button>
+            <button id="btnPrevDay" class="iconbtn" aria-label="Previous day" data-ar-aria-label="اليوم اللي قبله" data-ar="→">←</button>
             <input type="date" id="dayPicker" />
-            <button id="btnNextDay" class="iconbtn" aria-label="Next day">→</button>
-            <button id="btnToday" class="btn btn--ghost btn--sm">Today</button>
+            <button id="btnNextDay" class="iconbtn" aria-label="Next day" data-ar-aria-label="اليوم اللي بعده" data-ar="←">→</button>
+            <button id="btnToday" class="btn btn--ghost btn--sm" data-ar="النهارده">Today</button>
           </div>
         </div>
 
@@ -190,7 +191,7 @@
           </div>
           <div class="mascot__bubble">
             <div class="mascot__caption" id="mascotCaption">Let's get started! 💪</div>
-            <div class="mascot__streak" id="mascotStreak" hidden>🔥 <span id="streakCount">0</span> day streak</div>
+            <div class="mascot__streak" id="mascotStreak" hidden>🔥 <span id="streakCount">0</span> <span data-ar="يوم ورا بعض">day streak</span></div>
           </div>
         </div>
 
@@ -198,9 +199,9 @@
           <div class="gamify__level">
             <span class="gamify__level-badge" id="gamifyLevelBadge">1</span>
             <div class="gamify__xp">
-              <div class="gamify__xp-top"><span>🗓️ 5-month commitment</span><span id="gamifyXpText">Day 0 / 152</span></div>
+              <div class="gamify__xp-top"><span data-ar="🗓️ التزام 5 شهور">🗓️ 5-month commitment</span><span id="gamifyXpText">Day 0 / 152</span></div>
               <div class="goal-row__bar"><div class="goal-row__fill" id="gamifyXpFill" style="width:0%"></div></div>
-              <div class="gamify__start-row">Started <input type="date" id="gamifyStartInput" /></div>
+              <div class="gamify__start-row"><span data-ar="بدأت">Started</span> <input type="date" id="gamifyStartInput" /></div>
             </div>
           </div>
           <div class="gamify__divider"></div>
@@ -208,9 +209,9 @@
             <!-- each badge is one glyph with how far along it is; the count and
                  the reset sit in the heading (owner, 2026-10-17) -->
             <div class="gamify__badges-head">
-              <span class="goals__label">🏅 Achievements</span>
+              <span class="goals__label" data-ar="🏅 الإنجازات">🏅 Achievements</span>
               <span class="gamify__badges-count" id="gamifyBadgeCount"></span>
-              <button type="button" class="btn btn--ghost btn--sm" id="btnGamifyReset" title="Restart the commitment and every badge from today">↺ Reset all</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnGamifyReset" data-ar="↺ ابدأ الكل من جديد" title="Restart the commitment and every badge from today" data-ar-title="ابدأ الالتزام وكل الشارات من النهارده">↺ Reset all</button>
             </div>
             <div class="gamify__badges" id="gamifyBadges"></div>
             <!-- a badge, clicked: set its goal, or restart it from today (owner, 2026-10-21) -->
@@ -223,15 +224,15 @@
                 </div>
               </div>
               <div class="badge-tune__row">
-                <label for="badgeTuneGoal">Goal</label>
+                <label for="badgeTuneGoal" data-ar="الهدف">Goal</label>
                 <input type="number" id="badgeTuneGoal" min="1" step="1" />
                 <span id="badgeTuneUnit"></span>
-                <button type="button" class="btn btn--sm" id="badgeTuneSave">Save goal</button>
+                <button type="button" class="btn btn--sm" id="badgeTuneSave" data-ar="احفظ الهدف">Save goal</button>
               </div>
               <div class="badge-tune__row">
-                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneRestart">↺ Restart this one from today</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneDefault">Back to default</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneClose">Close</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneRestart" data-ar="↺ ابدأ دي من النهارده">↺ Restart this one from today</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneDefault" data-ar="رجّع الافتراضي">Back to default</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="badgeTuneClose" data-ar="قفل">Close</button>
               </div>
             </div>
             <p class="muted gamify__next" id="gamifyNext"></p>
@@ -239,51 +240,51 @@
         </div>
 
         <details class="section-collapse" open>
-          <summary>📝 Add task</summary>
+          <summary data-ar="📝 إضافة مهمة">📝 Add task</summary>
           <div class="section-collapse__body">
             <form id="addTaskForm" class="form form--grid">
-              <label class="span2">Task<input name="title" required placeholder="What are you doing?" /></label>
-              <label>Icon
+              <label class="span2"><span data-ar="المهمة">Task</span><input name="title" required placeholder="What are you doing?" data-ar-placeholder="بتعمل إيه؟" /></label>
+              <label><span data-ar="الأيقونة">Icon</span>
                 <select name="icon">
-                  <option value="">— none —</option>
-                  <option value="📝">📝 Task</option>
-                  <option value="💻">💻 Work</option>
-                  <option value="💪">💪 Fitness</option>
-                  <option value="📚">📚 Learning</option>
-                  <option value="💰">💰 Finance</option>
-                  <option value="🎨">🎨 Creative</option>
-                  <option value="🧹">🧹 Chores</option>
-                  <option value="🩺">🩺 Health</option>
-                  <option value="🗣️">🗣️ Meeting</option>
-                  <option value="🛠️">🛠️ Build</option>
-                  <option value="🧘">🧘 Rest</option>
-                  <option value="📞">📞 Call</option>
-                  <option value="✈️">✈️ Travel</option>
-                  <option value="🍳">🍳 Cook</option>
-                  <option value="🛒">🛒 Errand</option>
-                  <option value="🎯">🎯 Focus</option>
-                  <option value="😴">😴 Sleep</option>
+                  <option value="" data-ar="— من غير —">— none —</option>
+                  <option value="📝" data-ar="📝 مهمة">📝 Task</option>
+                  <option value="💻" data-ar="💻 شغل">💻 Work</option>
+                  <option value="💪" data-ar="💪 رياضة">💪 Fitness</option>
+                  <option value="📚" data-ar="📚 تعلّم">📚 Learning</option>
+                  <option value="💰" data-ar="💰 فلوس">💰 Finance</option>
+                  <option value="🎨" data-ar="🎨 إبداع">🎨 Creative</option>
+                  <option value="🧹" data-ar="🧹 شغل البيت">🧹 Chores</option>
+                  <option value="🩺" data-ar="🩺 صحة">🩺 Health</option>
+                  <option value="🗣️" data-ar="🗣️ اجتماع">🗣️ Meeting</option>
+                  <option value="🛠️" data-ar="🛠️ بناء">🛠️ Build</option>
+                  <option value="🧘" data-ar="🧘 راحة">🧘 Rest</option>
+                  <option value="📞" data-ar="📞 مكالمة">📞 Call</option>
+                  <option value="✈️" data-ar="✈️ سفر">✈️ Travel</option>
+                  <option value="🍳" data-ar="🍳 طبخ">🍳 Cook</option>
+                  <option value="🛒" data-ar="🛒 مشوار">🛒 Errand</option>
+                  <option value="🎯" data-ar="🎯 تركيز">🎯 Focus</option>
+                  <option value="😴" data-ar="😴 نوم">😴 Sleep</option>
                 </select>
               </label>
-              <label>Category
+              <label><span data-ar="التصنيف">Category</span>
                 <select name="category_id"><option value="">— none —</option></select>
               </label>
-              <label>Planned hours<input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
-              <label id="actualHoursField" hidden>Actual hours<input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" /></label>
+              <label><span data-ar="الساعات المخططة">Planned hours</span><input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" data-ar-placeholder="اختياري" /></label>
+              <label id="actualHoursField" hidden><span data-ar="الساعات الفعلية">Actual hours</span><input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" data-ar-placeholder="اختياري" /></label>
               <div class="span2">
-                <button type="submit" class="btn btn--primary" id="btnTaskSubmit">Add task</button>
-                <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden>Cancel edit</button>
+                <button type="submit" class="btn btn--primary" id="btnTaskSubmit" data-ar="إضافة مهمة">Add task</button>
+                <button type="button" class="btn btn--ghost" id="btnCancelTaskEdit" hidden data-ar="إلغاء التعديل">Cancel edit</button>
               </div>
             </form>
           </div>
         </details>
 
         <details class="section-collapse" open>
-          <summary>🍅 Pomodoro</summary>
+          <summary data-ar="🍅 بومودورو">🍅 Pomodoro</summary>
           <div class="section-collapse__body">
             <div class="pomodoro-launcher" id="pomodoroLauncher">
-              <input type="text" id="pomodoroFocusInput" placeholder="What are you focusing on?" maxlength="140" />
-              <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroLaunch">🍅 Start focus session</button>
+              <input type="text" id="pomodoroFocusInput" placeholder="What are you focusing on?" data-ar-placeholder="بتركّز على إيه؟" maxlength="140" />
+              <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroLaunch" data-ar="🍅 ابدأ جلسة تركيز">🍅 Start focus session</button>
             </div>
             <div class="pomodoro-status" id="pomodoroStatus" hidden>
               <div class="pomodoro-status__info">
@@ -291,23 +292,23 @@
                 <span class="pomodoro-status__focus" id="pomodoroStatusFocus"></span>
               </div>
               <span class="pomodoro-status__time" id="pomodoroStatusTime">25:00</span>
-              <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReopen">Open</button>
-              <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroEnd">End</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReopen" data-ar="افتح">Open</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroEnd" data-ar="إنهاء">End</button>
             </div>
             <div class="pomodoro__settings">
-              <label>Focus <input type="number" id="pomodoroWorkMin" min="1" max="180" />m</label>
-              <label>Short break <input type="number" id="pomodoroShortMin" min="1" max="60" />m</label>
-              <label>Long break <input type="number" id="pomodoroLongMin" min="1" max="120" />m</label>
+              <label><span data-ar="تركيز">Focus</span> <input type="number" id="pomodoroWorkMin" min="1" max="180" /><span data-ar="د">m</span></label>
+              <label><span data-ar="راحة قصيرة">Short break</span> <input type="number" id="pomodoroShortMin" min="1" max="60" /><span data-ar="د">m</span></label>
+              <label><span data-ar="راحة طويلة">Long break</span> <input type="number" id="pomodoroLongMin" min="1" max="120" /><span data-ar="د">m</span></label>
             </div>
           </div>
         </details>
 
         <details class="section-collapse" open>
-          <summary>📊 Percent</summary>
+          <summary data-ar="📊 النسبة">📊 Percent</summary>
           <div class="section-collapse__body">
             <div class="tiles">
               <div class="tile tile--accent">
-                <div class="tile__label">Completed</div>
+                <div class="tile__label" data-ar="خلصت">Completed</div>
                 <div class="tile__value" id="dayPercent">0%</div>
                 <div class="tile__sub" id="dayCount">0 of 0 tasks</div>
               </div>
@@ -316,9 +317,9 @@
         </details>
 
         <details class="section-collapse" open>
-          <summary>📈 Graph</summary>
+          <summary data-ar="📈 الرسم">📈 Graph</summary>
           <div class="section-collapse__body">
-            <p id="todayChartEmpty" class="muted center" hidden>Add a task to see today's pace here.</p>
+            <p id="todayChartEmpty" class="muted center" hidden data-ar="ضيف مهمة عشان تشوف سرعة النهارده هنا.">Add a task to see today's pace here.</p>
             <div class="chart-tip-wrap">
               <div class="chart" id="todayChart" style="min-height:190px"></div>
               <div id="todayChartTip" class="tooltip" hidden></div>
@@ -327,34 +328,37 @@
         </details>
 
         <details class="section-collapse" open>
-          <summary>✅ To-do list</summary>
+          <summary data-ar="✅ قائمة المهام">✅ To-do list</summary>
           <div class="section-collapse__body">
             <!-- Select mode: each row's checkbox already means "done", so picking
                  tasks to delete is its own mode rather than a second checkbox -->
             <div class="task-select" id="taskSelect" hidden>
-              <button type="button" id="btnSelectTasks" class="btn btn--ghost btn--sm">Select</button>
+              <button type="button" id="btnSelectTasks" class="btn btn--ghost btn--sm" data-ar="اختيار">Select</button>
               <div class="task-select__bar" id="taskSelectBar" hidden>
-                <button type="button" id="btnSelectAll" class="btn btn--ghost btn--sm">Select all</button>
-                <span class="task-select__count" id="taskSelectCount" aria-live="polite">0 selected</span>
-                <button type="button" id="btnDeleteSelected" class="btn btn--danger btn--sm" disabled>Delete</button>
-                <button type="button" id="btnCancelSelect" class="btn btn--ghost btn--sm">Done</button>
+                <button type="button" id="btnSelectAll" class="btn btn--ghost btn--sm" data-ar="اختار الكل">Select all</button>
+                <span class="task-select__count" id="taskSelectCount" aria-live="polite" data-ar="0 متختار">0 selected</span>
+                <button type="button" id="btnDeleteSelected" class="btn btn--danger btn--sm" disabled data-ar="مسح">Delete</button>
+                <button type="button" id="btnCancelSelect" class="btn btn--ghost btn--sm" data-ar="تمام">Done</button>
               </div>
             </div>
             <div class="task-list" id="taskList"></div>
-            <p id="tasksEmpty" class="muted center" hidden>No tasks for this day yet.</p>
+            <p id="tasksEmpty" class="muted center" hidden data-ar="مفيش مهام لليوم ده لسه.">No tasks for this day yet.</p>
 
             <div class="day-actions">
-              <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm">🗑 Clear day</button>
+              <button type="button" id="btnClearDay" class="btn btn--ghost btn--sm" data-ar="🗑 فضّي اليوم">🗑 Clear day</button>
+              <!-- downloads the day on screen as separate timed events (.ics) and opens
+                   Google Calendar's Import page — nothing else is sent -->
+              <button type="button" id="btnDayToGcal" class="btn btn--ghost btn--sm" data-ar="📅 ضيف لـ Google Calendar">📅 Add to Google Calendar</button>
               <span class="day-actions__dup">
-                <input type="date" id="duplicateDate" aria-label="Duplicate tasks to date" />
-                <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm">📋 Copy tasks here</button>
+                <input type="date" id="duplicateDate" aria-label="Duplicate tasks to date" data-ar-aria-label="انسخ المهام لتاريخ" />
+                <button type="button" id="btnDuplicateDay" class="btn btn--ghost btn--sm" data-ar="📋 انسخ المهام هنا">📋 Copy tasks here</button>
               </span>
             </div>
           </div>
         </details>
 
         <details class="section-collapse">
-          <summary>🗓 Last 14 days</summary>
+          <summary data-ar="🗓 آخر 14 يوم">🗓 Last 14 days</summary>
           <div class="section-collapse__body">
             <div class="day-history" id="dayHistory"></div>
           </div>
@@ -368,78 +372,78 @@
       <!-- ---- gallery: every quarter as a card; tap one to open it ---- -->
       <div class="card" id="quarterGalleryView">
         <div class="card__head">
-          <h2>Quarters</h2>
+          <h2 data-ar="أرباع السنة">Quarters</h2>
         </div>
 
         <details id="addQuarterBox">
-          <summary class="btnish">+ New quarter</summary>
+          <summary class="btnish" data-ar="+ ربع جديد">+ New quarter</summary>
           <form id="quarterForm" class="form">
             <div class="form form--grid">
-              <label>Name *<input name="name" required placeholder="Q3 2026" /></label>
-              <label>Start date *<input name="start_date" type="date" required /></label>
-              <label>End date *<input name="end_date" type="date" required /></label>
+              <label><span data-ar="الاسم *">Name *</span><input name="name" required placeholder="Q3 2026" /></label>
+              <label><span data-ar="تاريخ البداية *">Start date *</span><input name="start_date" type="date" required /></label>
+              <label><span data-ar="تاريخ النهاية *">End date *</span><input name="end_date" type="date" required /></label>
             </div>
             <!-- how long it runs, counted from the start day (owner, 2026-10-16:
                  "make it 21 days starts from 22 oct") -->
-            <div class="go-picks go-picks--tight" id="quarterLength" role="group" aria-label="How long">
-              <button type="button" class="go-pick" data-days="21">21 days</button>
-              <button type="button" class="go-pick" data-days="30">30 days</button>
-              <button type="button" class="go-pick" data-days="90">90 days</button>
+            <div class="go-picks go-picks--tight" id="quarterLength" role="group" aria-label="How long" data-ar-aria-label="المدة">
+              <button type="button" class="go-pick" data-days="21" data-ar="21 يوم">21 days</button>
+              <button type="button" class="go-pick" data-days="30" data-ar="30 يوم">30 days</button>
+              <button type="button" class="go-pick" data-days="90" data-ar="90 يوم">90 days</button>
             </div>
             <!-- which plan phase's hours a day the goals' due dates are counted with -->
-            <label class="quarter-phase-field">Plan phase for the due dates
+            <label class="quarter-phase-field"><span data-ar="مرحلة الخطة لحساب مواعيد التسليم">Plan phase for the due dates</span>
               <select name="plan_phase">
-                <option value="">Follow the plan (its ticked milestones)</option>
-                <option value="1">Phase 1 · Job hunt and building the business</option>
-                <option value="2">Phase 2 · Job and business together</option>
-                <option value="3">Phase 3 · Job, with the team running</option>
-                <option value="4">Phase 4 · Business full-time</option>
+                <option value="" data-ar="امشي مع الخطة (الخطوات المتعلّم عليها)">Follow the plan (its ticked milestones)</option>
+                <option value="1" data-ar="المرحلة 1 · تدوير على شغل وبناء البيزنس">Phase 1 · Job hunt and building the business</option>
+                <option value="2" data-ar="المرحلة 2 · الشغل والبيزنس مع بعض">Phase 2 · Job and business together</option>
+                <option value="3" data-ar="المرحلة 3 · الشغل، والفريق شغال">Phase 3 · Job, with the team running</option>
+                <option value="4" data-ar="المرحلة 4 · البيزنس فُل تايم">Phase 4 · Business full-time</option>
               </select>
             </label>
             <label class="checkline">
               <input type="checkbox" name="anti_perfectionist" />
-              Anti-perfectionist mode — count 75% of the full target as done
+              <span data-ar="وضع ضد المثالية — احسب 75% من الهدف الكامل إنه خلص">Anti-perfectionist mode — count 75% of the full target as done</span>
             </label>
             <!-- a new cycle can start as a copy of an earlier one, categories and
                  goals and all (owner, 2026-10-16: "duplicate same goals exactly") -->
             <div class="copy-from" id="quarterCopyFromBox">
-              <label>Start it from an earlier cycle
+              <label><span data-ar="ابدأه من دورة قبل كده">Start it from an earlier cycle</span>
                 <select id="quarterCopyFrom"><option value="">Nothing — start empty</option></select>
               </label>
-              <label class="checkline"><input type="checkbox" id="quarterCopyProgress" /> Keep the numbers where they are (otherwise every goal starts at 0)</label>
+              <label class="checkline"><input type="checkbox" id="quarterCopyProgress" /> <span data-ar="سيب الأرقام زي ما هي (غير كده كل هدف يبدأ من 0)">Keep the numbers where they are (otherwise every goal starts at 0)</span></label>
             </div>
             <div id="categoryRows" class="category-rows"></div>
-            <p class="muted category-rows__note" id="categoryRowsNote" hidden>The categories and goals come from the cycle you picked — anything typed here is added on top.</p>
-            <button type="button" id="btnAddCategoryRow" class="linklike">+ Add category</button>
+            <p class="muted category-rows__note" id="categoryRowsNote" hidden data-ar="التصنيفات والأهداف جاية من الدورة اللي اخترتها — أي حاجة تكتبها هنا بتتضاف عليها.">The categories and goals come from the cycle you picked — anything typed here is added on top.</p>
+            <button type="button" id="btnAddCategoryRow" class="linklike" data-ar="+ إضافة تصنيف">+ Add category</button>
             <div class="form-actions">
-              <button type="submit" class="btn btn--primary" id="btnQuarterSubmit">Save quarter</button>
-              <button type="button" class="btn btn--ghost" id="btnCancelQuarterEdit" hidden>Cancel edit</button>
+              <button type="submit" class="btn btn--primary" id="btnQuarterSubmit" data-ar="حفظ الربع">Save quarter</button>
+              <button type="button" class="btn btn--ghost" id="btnCancelQuarterEdit" hidden data-ar="إلغاء التعديل">Cancel edit</button>
             </div>
           </form>
         </details>
 
-        <p id="noQuarters" class="muted center" hidden>No quarters yet — create one above.</p>
+        <p id="noQuarters" class="muted center" hidden data-ar="مفيش أرباع لسه — اعمل واحد من فوق.">No quarters yet — create one above.</p>
 
         <!-- the Days tab's graph, one point per quarter instead of one per day -->
         <div id="quartersSummary" hidden>
           <div class="tiles">
             <div class="tile tile--accent">
-              <div class="tile__label">Execution</div>
+              <div class="tile__label" data-ar="التنفيذ">Execution</div>
               <div class="tile__value" id="quartersAvgValue">0%</div>
               <div class="tile__sub" id="quartersAvgSub">daily tasks done</div>
             </div>
             <div class="tile tile--goals">
-              <div class="tile__label">Goals reached</div>
+              <div class="tile__label" data-ar="أهداف اتحققت">Goals reached</div>
               <div class="tile__value" id="quartersGoalsValue">—</div>
               <div class="tile__sub" id="quartersGoalsSub">of goals reached</div>
             </div>
             <div class="tile">
-              <div class="tile__label">Best quarter</div>
+              <div class="tile__label" data-ar="أحسن ربع">Best quarter</div>
               <div class="tile__value" id="quartersBestValue">—</div>
               <div class="tile__sub" id="quartersBestSub">—</div>
             </div>
             <div class="tile">
-              <div class="tile__label">Days tracked</div>
+              <div class="tile__label" data-ar="أيام متسجلة">Days tracked</div>
               <div class="tile__value" id="quartersDaysValue">0</div>
               <div class="tile__sub" id="quartersDaysSub">across every quarter</div>
             </div>
@@ -456,11 +460,11 @@
       <!-- ---- detail: one quarter's categories/goals ---- -->
       <div class="card" id="quarterDetailView" hidden>
         <div class="card__head">
-          <button type="button" class="btn btn--ghost btn--sm" id="btnBackToQuarters">← All quarters</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnBackToQuarters" data-ar="→ كل الأرباع">← All quarters</button>
           <div class="topbar__actions" id="quarterActions" hidden>
-            <button id="btnCopyCategories" class="btn btn--ghost btn--sm">Copy to quarter</button>
-            <button id="btnEditQuarter" class="btn btn--ghost btn--sm">Edit quarter</button>
-            <button id="btnDeleteQuarter" class="btn btn--danger btn--sm">Delete quarter</button>
+            <button id="btnCopyCategories" class="btn btn--ghost btn--sm" data-ar="انسخ لربع">Copy to quarter</button>
+            <button id="btnEditQuarter" class="btn btn--ghost btn--sm" data-ar="تعديل الربع">Edit quarter</button>
+            <button id="btnDeleteQuarter" class="btn btn--danger btn--sm" data-ar="مسح الربع">Delete quarter</button>
           </div>
         </div>
         <h2 id="quarterDetailName" style="margin:2px 0 2px"></h2>
@@ -472,35 +476,35 @@
         <div id="quarterOverallBar"></div>
 
         <div class="goals-view-toggle" id="goalsViewToggle">
-          <button type="button" class="goals-view-toggle__btn" data-view="category">By category</button>
-          <button type="button" class="goals-view-toggle__btn" data-view="flat">All goals</button>
+          <button type="button" class="goals-view-toggle__btn" data-view="category" data-ar="حسب التصنيف">By category</button>
+          <button type="button" class="goals-view-toggle__btn" data-view="flat" data-ar="كل الأهداف">All goals</button>
         </div>
 
         <div id="categoryCards" class="category-cards"></div>
 
         <dialog id="copyDialog" class="copy-dialog" aria-labelledby="copyDialogTitle">
           <form method="dialog" id="copyForm" class="form">
-            <h3 id="copyDialogTitle">Copy categories</h3>
-            <p class="muted copy-dialog__note">Copies each category with its goals. Daily tasks stay on the days they were done.</p>
-            <label>To quarter<select name="to" id="copyTarget"></select></label>
+            <h3 id="copyDialogTitle" data-ar="انسخ التصنيفات">Copy categories</h3>
+            <p class="muted copy-dialog__note" data-ar="بينسخ كل تصنيف بأهدافه. المهام اليومية بتفضل في أيامها.">Copies each category with its goals. Daily tasks stay on the days they were done.</p>
+            <label><span data-ar="للربع">To quarter</span><select name="to" id="copyTarget"></select></label>
             <div class="copy-dialog__head">
-              <span class="goals__label">Categories</span>
-              <button type="button" class="linklike" id="copyToggleAll">Select none</button>
+              <span class="goals__label" data-ar="التصنيفات">Categories</span>
+              <button type="button" class="linklike" id="copyToggleAll" data-ar="شيل الاختيار">Select none</button>
             </div>
             <div class="copy-dialog__list" id="copyCategoryList"></div>
             <label class="checkline">
               <input type="checkbox" name="keep_progress" />
-              Keep goals' current progress (off: they start again from 0)
+              <span data-ar="خلّي تقدّم الأهداف زي ما هو (لو مقفول: يبدأوا من 0)">Keep goals' current progress (off: they start again from 0)</span>
             </label>
             <div class="copy-dialog__actions">
-              <button type="button" class="btn btn--ghost" id="btnCopyCancel">Cancel</button>
-              <button type="submit" class="btn btn--primary" id="btnCopySubmit">Copy</button>
+              <button type="button" class="btn btn--ghost" id="btnCopyCancel" data-ar="إلغاء">Cancel</button>
+              <button type="submit" class="btn btn--primary" id="btnCopySubmit" data-ar="نسخ">Copy</button>
             </div>
           </form>
         </dialog>
-        <p class="muted" id="goalsHiddenBanner" hidden><span class="goals-hidden-count">0</span> goal(s) hidden — <a href="#" id="btnShowHiddenGoals">show all</a></p>
+        <p class="muted" id="goalsHiddenBanner" hidden><span class="goals-hidden-count">0</span> <span data-ar="هدف مخفي —">goal(s) hidden —</span> <a href="#" id="btnShowHiddenGoals" data-ar="اعرضهم كلهم">show all</a></p>
         <div id="goalsFlatList" class="goals-flat-list" hidden></div>
-        <p id="noGoalsFlat" class="muted center" hidden>No goals yet — add some from the category view above.</p>
+        <p id="noGoalsFlat" class="muted center" hidden data-ar="مفيش أهداف لسه — ضيف من عرض التصنيفات فوق.">No goals yet — add some from the category view above.</p>
       </div>
       </section>
 
@@ -510,17 +514,17 @@
       <section class="tabpanel" data-tabpanel="focus" hidden>
         <div class="card">
           <div class="card__head">
-            <h2>🍅 Focus</h2>
+            <h2 data-ar="🍅 التركيز">🍅 Focus</h2>
             <span class="muted pomo-reset" id="pomoReset"></span>
           </div>
 
           <div class="pomo-top">
             <div class="pomo-top__row">
-              <div class="pomo-top__count"><b id="pomoDone">0</b> of <b id="pomoTarget">10</b> today</div>
+              <div class="pomo-top__count"><b id="pomoDone">0</b> <span data-ar="من">of</span> <b id="pomoTarget">10</b> <span data-ar="النهارده">today</span></div>
               <!-- the hours decide the blocks, the way the plan counts them: 25 on,
                    5 off, a 15-minute break after every fourth (owner, 2026-10-21) -->
-              <label class="pomo-hours">Hours today
-                <input type="number" id="pomoHours" min="0.5" max="18" step="0.5" inputmode="decimal" aria-label="Hours of focus today" />
+              <label class="pomo-hours"><span data-ar="ساعات النهارده">Hours today</span>
+                <input type="number" id="pomoHours" min="0.5" max="18" step="0.5" inputmode="decimal" aria-label="Hours of focus today" data-ar-aria-label="ساعات التركيز النهارده" />
               </label>
             </div>
             <div class="goal-row__bar"><div class="goal-row__fill" id="pomoFill" style="width:0%"></div></div>
@@ -533,21 +537,21 @@
             <div class="pomo-run__clock" id="pomoRunClock">25:00</div>
             <div class="pomo-run__bar"><div class="pomo-run__fill" id="pomoRunFill"></div></div>
             <div class="pomo-run__actions">
-              <button type="button" class="btn btn--hero" id="pomoPause">Pause</button>
-              <button type="button" class="btn btn--ghost" id="pomoDoneNow">Done now</button>
-              <button type="button" class="btn btn--ghost" id="pomoStop">Stop</button>
+              <button type="button" class="btn btn--hero" id="pomoPause" data-ar="وقّف مؤقتاً">Pause</button>
+              <button type="button" class="btn btn--ghost" id="pomoDoneNow" data-ar="خلصت دلوقتي">Done now</button>
+              <button type="button" class="btn btn--ghost" id="pomoStop" data-ar="إيقاف">Stop</button>
             </div>
           </div>
 
           <div class="pomo-list" id="pomoList"></div>
 
           <div class="pomo-foot">
-            <button type="button" class="btn btn--ghost btn--sm" id="pomoAddOne">+ One more block</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="pomoAddOne" data-ar="+ بلوك كمان">+ One more block</button>
             <span class="muted" id="pomoMinutes"></span>
           </div>
 
           <div class="pomo-history">
-            <div class="goals__label">The last two weeks</div>
+            <div class="goals__label" data-ar="آخر أسبوعين">The last two weeks</div>
             <div class="pomo-history__row" id="pomoHistory"></div>
           </div>
         </div>
@@ -556,27 +560,27 @@
       <section class="tabpanel" data-tabpanel="days" hidden>
       <div class="card">
         <div class="card__head">
-          <h2>Days</h2>
+          <h2 data-ar="الأيام">Days</h2>
           <!-- the Days tab follows the selected quarter; this changes it without
                a detour through the Quarter tab -->
           <div class="days-quarter">
-            <select id="daysQuarterPicker" aria-label="Which quarter to show" hidden></select>
+            <select id="daysQuarterPicker" aria-label="Which quarter to show" data-ar-aria-label="أنهي ربع يتعرض" hidden></select>
             <span class="muted" id="daysQuarterLabel"></span>
-            <button type="button" class="btn btn--ghost btn--sm" id="btnFillDays" data-sound="open">✍️ Fill empty days</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnFillDays" data-sound="open" data-ar="✍️ املا الأيام الفاضية">✍️ Fill empty days</button>
           </div>
         </div>
         <!-- the quarters as cards to tap (owner, 2026-10-16: the dropdown was "not the best") -->
-        <div class="cycle-picks" id="daysQuarterChips" role="group" aria-label="Which quarter to show" hidden></div>
-        <p id="noDaysQuarter" class="muted center" hidden>Create a quarter first (in the Quarter tab) to see its days here.</p>
+        <div class="cycle-picks" id="daysQuarterChips" role="group" aria-label="Which quarter to show" data-ar-aria-label="أنهي ربع يتعرض" hidden></div>
+        <p id="noDaysQuarter" class="muted center" hidden data-ar="اعمل ربع الأول (من تبويب ربع السنة) عشان تشوف أيامه هنا.">Create a quarter first (in the Quarter tab) to see its days here.</p>
 
         <div class="tiles">
           <div class="tile tile--accent">
-            <div class="tile__label">Execution</div>
+            <div class="tile__label" data-ar="التنفيذ">Execution</div>
             <div class="tile__value" id="daysAvgValue">0%</div>
             <div class="tile__sub" id="daysAvgSub">0 days tracked</div>
           </div>
           <div class="tile tile--goals">
-            <div class="tile__label">Goals reached</div>
+            <div class="tile__label" data-ar="أهداف اتحققت">Goals reached</div>
             <div class="tile__value" id="daysGoalsValue">—</div>
             <div class="tile__sub" id="daysGoalsSub">of this quarter's goals</div>
           </div>
@@ -597,38 +601,38 @@
              reads that stretch's own average, without losing the quarter line. -->
         <section class="focus-range" id="focusRange" hidden>
           <div class="focus-range__head">
-            <div class="goals__label focus-range__title">🔍 Focus a range</div>
+            <div class="goals__label focus-range__title" data-ar="🔍 ركّز على فترة">🔍 Focus a range</div>
             <div class="focus-range__weeknav">
-              <button type="button" class="iconbtn" id="btnFocusPrevWeek" aria-label="Previous week" title="Previous week">←</button>
+              <button type="button" class="iconbtn" id="btnFocusPrevWeek" data-ar="→" aria-label="Previous week" data-ar-aria-label="الأسبوع اللي فات" title="Previous week" data-ar-title="الأسبوع اللي فات">←</button>
               <span class="focus-range__week" id="focusWeekLabel">—</span>
-              <button type="button" class="iconbtn" id="btnFocusNextWeek" aria-label="Next week" title="Next week">→</button>
+              <button type="button" class="iconbtn" id="btnFocusNextWeek" data-ar="←" aria-label="Next week" data-ar-aria-label="الأسبوع الجاي" title="Next week" data-ar-title="الأسبوع الجاي">→</button>
             </div>
           </div>
 
           <div class="focus-range__controls">
-            <button type="button" class="chip" data-focus-preset="this-week">This week</button>
-            <button type="button" class="chip" data-focus-preset="last-week">Last week</button>
-            <button type="button" class="chip" data-focus-preset="last-4-weeks">Last 4 weeks</button>
+            <button type="button" class="chip" data-focus-preset="this-week" data-ar="الأسبوع ده">This week</button>
+            <button type="button" class="chip" data-focus-preset="last-week" data-ar="الأسبوع اللي فات">Last week</button>
+            <button type="button" class="chip" data-focus-preset="last-4-weeks" data-ar="آخر 4 أسابيع">Last 4 weeks</button>
             <button type="button" class="chip" data-focus-preset="all">Whole quarter</button>
             <span class="focus-range__dates">
-              <label>From <input type="date" id="focusFrom" /></label>
-              <label>To <input type="date" id="focusTo" /></label>
+              <label><span data-ar="من">From</span> <input type="date" id="focusFrom" /></label>
+              <label><span data-ar="إلى">To</span> <input type="date" id="focusTo" /></label>
             </span>
           </div>
 
           <div class="tiles focus-range__tiles">
             <div class="tile tile--accent">
-              <div class="tile__label">Range average</div>
+              <div class="tile__label" data-ar="متوسط الفترة">Range average</div>
               <div class="tile__value" id="focusAvgValue">0%</div>
               <div class="tile__sub" id="focusAvgSub">0 days tracked</div>
             </div>
             <div class="tile">
-              <div class="tile__label">Tasks done</div>
+              <div class="tile__label" data-ar="مهام خلصت">Tasks done</div>
               <div class="tile__value" id="focusTasksValue">0/0</div>
               <div class="tile__sub" id="focusTasksSub">across 0 days</div>
             </div>
             <div class="tile">
-              <div class="tile__label">Best day</div>
+              <div class="tile__label" data-ar="أحسن يوم">Best day</div>
               <div class="tile__value" id="focusBestValue">—</div>
               <div class="tile__sub" id="focusBestSub">no days tracked yet</div>
             </div>
@@ -640,7 +644,7 @@
         <p class="muted center" id="dayGalleryHint" style="margin-top:16px">Tap a day's percentage to open its to-do list.</p>
         <div class="day-gallery-wrap">
           <div class="day-gallery__weekdays">
-            <span>Sat</span><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
+            <span data-ar="السبت">Sat</span><span data-ar="الأحد">Sun</span><span data-ar="الاتنين">Mon</span><span data-ar="التلات">Tue</span><span data-ar="الأربع">Wed</span><span data-ar="الخميس">Thu</span><span data-ar="الجمعة">Fri</span>
           </div>
           <div class="day-gallery" id="dayGallery"></div>
         </div>
@@ -650,13 +654,13 @@
       <!-- ---- Ideas: a freeform list you can drag to reorder ---- -->
       <section class="tabpanel" data-tabpanel="ideas" hidden>
       <div class="card">
-        <div class="card__head"><h2>💡 Ideas</h2></div>
+        <div class="card__head"><h2 data-ar="💡 الأفكار">💡 Ideas</h2></div>
         <form id="ideaForm" class="form" style="flex-direction:row; gap:8px; flex-wrap:wrap">
-          <input name="text" placeholder="Got an idea? Drop it here…" required style="flex:1; min-width:200px" />
-          <button type="submit" class="btn btn--primary">Add</button>
+          <input name="text" placeholder="Got an idea? Drop it here…" data-ar-placeholder="عندك فكرة؟ اكتبها هنا…" required style="flex:1; min-width:200px" />
+          <button type="submit" class="btn btn--primary" data-ar="إضافة">Add</button>
         </form>
         <div class="idea-list" id="ideaList" style="margin-top:16px"></div>
-        <p id="ideasEmpty" class="muted center" hidden>No ideas yet — add your first one above.</p>
+        <p id="ideasEmpty" class="muted center" hidden data-ar="مفيش أفكار لسه — ضيف أول واحدة من فوق.">No ideas yet — add your first one above.</p>
       </div>
       </section>
 
@@ -664,31 +668,31 @@
       <section class="tabpanel" data-tabpanel="analytics" hidden>
       <div class="card">
         <div class="card__head">
-          <h2>Analytics</h2>
+          <h2 data-ar="التحليلات">Analytics</h2>
         </div>
-        <p id="noAnalytics" class="muted center" hidden>Add an hour target or a goal to a category to see analytics here.</p>
+        <p id="noAnalytics" class="muted center" hidden data-ar="ضيف هدف ساعات أو هدف لتصنيف عشان تشوف التحليلات هنا.">Add an hour target or a goal to a category to see analytics here.</p>
 
-        <div class="goals__label">Hours</div>
+        <div class="goals__label" data-ar="الساعات">Hours</div>
         <div class="donut-row">
           <div>
-            <div class="goals__label">Logged by category</div>
+            <div class="goals__label" data-ar="المتسجل حسب التصنيف">Logged by category</div>
             <div id="donutHoursByCategory"></div>
           </div>
           <div>
-            <div class="goals__label">Pace breakdown</div>
+            <div class="goals__label" data-ar="تفصيل السرعة">Pace breakdown</div>
             <div id="donutPace"></div>
           </div>
         </div>
         <div id="analyticsHours"></div>
 
-        <div class="goals__label" style="margin-top: 18px">Goals</div>
+        <div class="goals__label" style="margin-top: 18px" data-ar="الأهداف">Goals</div>
         <div class="donut-row">
           <div>
-            <div class="goals__label">Goals by category</div>
+            <div class="goals__label" data-ar="الأهداف حسب التصنيف">Goals by category</div>
             <div id="donutGoalsByCategory"></div>
           </div>
           <div>
-            <div class="goals__label">Status breakdown</div>
+            <div class="goals__label" data-ar="تفصيل الحالة">Status breakdown</div>
             <div id="donutGoalsStatus"></div>
           </div>
         </div>
@@ -700,29 +704,49 @@
       <section class="tabpanel" data-tabpanel="plan" hidden>
       <div class="card plan-card">
         <div class="card__head">
-          <h2>🗺️ Plan</h2>
-          <a class="btn btn--ghost btn--sm" href="/plan" target="_blank" rel="noopener" data-sound="open">Open on its own ↗</a>
+          <h2 data-ar="🗺️ الخطة">🗺️ Plan</h2>
+          <a class="btn btn--ghost btn--sm" href="/plan" target="_blank" rel="noopener" data-sound="open" data-ar="افتحها لوحدها ↖">Open on its own ↗</a>
         </div>
-        <iframe id="planFrame" class="plan-frame" title="Ahmed's plan" data-src="/plan" loading="lazy"></iframe>
+        <iframe id="planFrame" class="plan-frame" title="Ahmed's plan" data-ar-title="خطة أحمد" data-src="/plan" loading="lazy"></iframe>
       </div>
       </section>
 
     </section>
 
+    <!-- "done at" clock: drag the hand or type the time; the graph's point moves to it -->
+    <dialog id="clockDialog" class="copy-dialog clock-dialog" aria-labelledby="clockTitle">
+      <h3 id="clockTitle" data-ar="خلصت الساعة">Done at</h3>
+      <p class="muted copy-dialog__note" id="clockTask"></p>
+      <div class="clock-read">
+        <input id="clockH" class="clock-read__part" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="Hour, 0 to 23" data-ar-aria-label="الساعة، من 0 لـ 23" />
+        <span class="clock-read__colon">:</span>
+        <input id="clockM" class="clock-read__part" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="Minute" data-ar-aria-label="الدقيقة" />
+      </div>
+      <div class="clock-face" id="clockFace" aria-hidden="true">
+        <div class="clock-face__hand" id="clockHand"><span class="clock-face__knob"></span></div>
+        <span class="clock-face__pin"></span>
+      </div>
+      <div class="copy-dialog__actions clock-dialog__actions">
+        <button type="button" class="btn btn--ghost btn--sm" id="btnClockNow" data-ar="دلوقتي">Now</button>
+        <button type="button" class="btn btn--ghost" id="btnClockCancel" data-ar="إلغاء">Cancel</button>
+        <button type="button" class="btn btn--primary" id="btnClockSave" data-ar="حفظ">Save</button>
+      </div>
+    </dialog>
+
     <p id="toast" class="toast" hidden></p>
 
     <div class="pomodoro-overlay" id="pomodoroOverlay" hidden>
-      <button type="button" class="pomodoro-overlay__close" id="btnPomodoroClose" aria-label="Close focus screen">✕</button>
+      <button type="button" class="pomodoro-overlay__close" id="btnPomodoroClose" aria-label="Close focus screen" data-ar-aria-label="اقفل شاشة التركيز">✕</button>
       <div class="pomodoro" id="pomodoro">
         <div class="pomodoro__phase" id="pomodoroPhaseLabel">Focus</div>
         <div class="pomodoro__focus" id="pomodoroFocusLabel"></div>
         <div class="pomodoro__time" id="pomodoroTime">25:00</div>
         <div class="pomodoro__dots" id="pomodoroDots"></div>
         <div class="pomodoro__controls">
-          <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroStart">Start</button>
-          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroPause" hidden>Pause</button>
-          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroSkip">Skip</button>
-          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReset">Reset</button>
+          <button type="button" class="btn btn--primary btn--sm" id="btnPomodoroStart" data-ar="ابدأ">Start</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroPause" hidden data-ar="وقّف مؤقتاً">Pause</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroSkip" data-ar="تخطّي">Skip</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnPomodoroReset" data-ar="من الأول">Reset</button>
         </div>
       </div>
     </div>
@@ -731,10 +755,10 @@
       <div class="photo-menu__backdrop" id="dayPhotoMenuBackdrop"></div>
       <div class="photo-menu__sheet">
         <div class="photo-menu__title" id="dayPhotoMenuTitle"></div>
-        <button type="button" class="photo-menu__btn" id="dayPhotoMenuView" hidden>🔍 View full size</button>
+        <button type="button" class="photo-menu__btn" id="dayPhotoMenuView" hidden data-ar="🔍 اعرضها بالحجم الكامل">🔍 View full size</button>
         <button type="button" class="photo-menu__btn" id="dayPhotoMenuUpload">🔁 Replace photo</button>
-        <button type="button" class="photo-menu__btn" id="dayPhotoMenuGoto">📅 Go to day</button>
-        <button type="button" class="photo-menu__btn photo-menu__btn--cancel" id="dayPhotoMenuCancel">Cancel</button>
+        <button type="button" class="photo-menu__btn" id="dayPhotoMenuGoto" data-ar="📅 روح لليوم">📅 Go to day</button>
+        <button type="button" class="photo-menu__btn photo-menu__btn--cancel" id="dayPhotoMenuCancel" data-ar="إلغاء">Cancel</button>
       </div>
     </div>
 
@@ -743,39 +767,43 @@
     <div class="photo-menu" id="fillDays" hidden>
       <div class="photo-menu__backdrop" id="fillDaysBackdrop"></div>
       <div class="photo-menu__sheet fill-sheet">
-        <div class="photo-menu__title">✍️ Fill empty days</div>
-        <p class="muted fill-sheet__hint">One task per line. End a line with <code>check</code> to have it already ticked. Days that already have tasks are left alone.</p>
+        <div class="photo-menu__title" data-ar="✍️ املا الأيام الفاضية">✍️ Fill empty days</div>
+        <p class="muted fill-sheet__hint" data-ar-html="مهمة في كل سطر. اختم السطر بكلمة <code>check</code> عشان تتعلّم إنها خلصت. الأيام اللي فيها مهام بتتساب زي ما هي.">One task per line. End a line with <code>check</code> to have it already ticked. Days that already have tasks are left alone.</p>
         <div class="fill-sheet__dates">
-          <label>From<input type="date" id="fillFrom" /></label>
-          <label>To<input type="date" id="fillTo" /></label>
+          <label><span data-ar="من">From</span><input type="date" id="fillFrom" /></label>
+          <label><span data-ar="إلى">To</span><input type="date" id="fillTo" /></label>
         </div>
-        <textarea id="fillList" rows="10" spellcheck="false" aria-label="The tasks, one per line"></textarea>
+        <textarea id="fillList" rows="10" spellcheck="false" aria-label="The tasks, one per line" data-ar-aria-label="المهام، واحدة في كل سطر"></textarea>
         <p class="fill-sheet__count" id="fillCount"></p>
         <div class="fill-sheet__actions">
-          <button type="button" class="btn btn--hero" id="fillGo">Fill the days</button>
-          <button type="button" class="btn btn--ghost" id="fillCancel">Cancel</button>
+          <button type="button" class="btn btn--hero" id="fillGo" data-ar="املا الأيام">Fill the days</button>
+          <button type="button" class="btn btn--ghost" id="fillCancel" data-ar="إلغاء">Cancel</button>
         </div>
         <!-- Days filled in before the label existed can be marked now, and a
              stretch marked by mistake can be unmarked (owner, 2026-10-16). -->
         <div class="fill-sheet__also">
-          <p class="muted fill-sheet__hint">Already filled those days? Put the <strong>estimated</strong> label on everything between the two dates above.</p>
+          <p class="muted fill-sheet__hint" data-ar-html="مليت الأيام دي قبل كده؟ حط علامة <strong>تقديري</strong> على كل حاجة بين التاريخين اللي فوق.">Already filled those days? Put the <strong>estimated</strong> label on everything between the two dates above.</p>
           <div class="fill-sheet__actions">
-            <button type="button" class="btn btn--ghost" id="fillMark">🏷 Mark as estimated</button>
-            <button type="button" class="btn btn--ghost" id="fillUnmark">Remove the label</button>
+            <button type="button" class="btn btn--ghost" id="fillMark" data-ar="🏷 علّم إنها تقديرية">🏷 Mark as estimated</button>
+            <button type="button" class="btn btn--ghost" id="fillUnmark" data-ar="شيل العلامة">Remove the label</button>
           </div>
         </div>
       </div>
     </div>
 
     <div class="photo-view" id="dayPhotoView" hidden>
-      <button type="button" class="photo-view__close" id="dayPhotoViewClose" aria-label="Close">✕</button>
+      <button type="button" class="photo-view__close" id="dayPhotoViewClose" aria-label="Close" data-ar-aria-label="قفل">✕</button>
       <img class="photo-view__img" id="dayPhotoViewImg" alt="" />
     </div>
   </div>
 
-  <script src="js/tools/theme.js?v=2"></script>
-  <script src="js/tools/go.js?v=3"></script>
-  <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/time.js?v=75"></script>
+  <script>I18N.apply(document);</script>
+
+  <script src="js/tools/snap.js?v=1"></script>
+
+  <script src="js/tools/theme.js?v=3"></script>
+  <script src="js/tools/go.js?v=4"></script>
+  <script src="js/tools/chart.js?v=20"></script>
+  <script src="js/tools/time.js?v=82"></script>
 </body>
 </html>

@@ -13,6 +13,18 @@
 (function () {
   "use strict";
 
+  // Markup carries its Arabic beside the English as <name>-ar (data-title-ar,
+  // data-hint-ar, …) for the attributes this file reads itself — i18n.js only
+  // swaps text and standard attributes, not these.
+  function arAttr(el, name) {
+    var v = window.I18N && I18N.ar ? el.getAttribute(name + "-ar") : null;
+    return v != null ? v : el.getAttribute(name);
+  }
+
+  // a page that loads this file without i18n.js (the client's share page) stays English
+  var I18N = window.I18N || { ar: false, loc: function (l) { return l || "en-GB"; }, N: function (n, one, many) { return n + " " + (n === 1 ? one : many); } };
+  var T = window.T || function (en) { return en; };
+
   /* ---------------- sound ----------------
      Synthesised, not downloaded: two or three notes each. Built on the first
      press, which is the only moment a browser lets audio start. */
@@ -85,7 +97,7 @@
   function syncSoundButtons() {
     document.querySelectorAll(".go-sound").forEach(function (b) {
       b.textContent = on ? "🔊" : "🔇";
-      b.setAttribute("aria-label", on ? "Turn sounds off" : "Turn sounds on");
+      b.setAttribute("aria-label", on ? T("Turn sounds off", "اقفل الأصوات") : T("Turn sounds on", "شغّل الأصوات"));
       b.title = b.getAttribute("aria-label");
     });
   }
@@ -203,7 +215,7 @@
     if (!box) {
       box = document.createElement("div");
       box.className = "go-quick";
-      var suffix = input.getAttribute("data-quick-suffix") || "";
+      var suffix = arAttr(input, "data-quick-suffix") || "";
       box.innerHTML = input.getAttribute("data-quick").split(",").map(function (v) {
         v = v.trim();
         return '<button type="button" class="chip" aria-pressed="false" data-value="' + esc(v) + '">' + esc(v + suffix) + "</button>";
@@ -247,8 +259,8 @@
       input.parentNode.insertBefore(box, input);
       box.appendChild(input);
       input._goDrop = box;
-      box.querySelector("b").textContent = input.getAttribute("data-drop");
-      box.querySelector("small").textContent = input.getAttribute("data-drop-hint") || "";
+      box.querySelector("b").textContent = arAttr(input, "data-drop");
+      box.querySelector("small").textContent = arAttr(input, "data-drop-hint") || "";
       ["dragenter", "dragover"].forEach(function (t) { input.addEventListener(t, function () { box.classList.add("is-over"); }); });
       ["dragleave", "drop"].forEach(function (t) { input.addEventListener(t, function () { box.classList.remove("is-over"); }); });
       input.addEventListener("change", function () { syncDrop(input); if (input.files && input.files[0]) { play("coin"); box.classList.remove("go-pop"); void box.offsetWidth; box.classList.add("go-pop"); } });
@@ -265,10 +277,10 @@
     box.classList.toggle("has-file", !!f);
     if (f) {
       out.hidden = false;
-      out.innerHTML = '<span aria-hidden="true">' + glyphFor(f.name) + "</span><b>" + esc(f.name) + "</b><small>" + kb(f.size) + " · tap to change</small>";
+      out.innerHTML = '<span aria-hidden="true">' + glyphFor(f.name) + "</span><b>" + esc(f.name) + "</b><small>" + kb(f.size) + " · " + T("tap to change", "دوس عشان تغيّره") + "</small>";
     } else if (current) {
       out.hidden = false;
-      out.innerHTML = '<span aria-hidden="true">' + glyphFor(current) + "</span><b>" + esc(current) + "</b><small>saved · drop a new one to replace it</small>";
+      out.innerHTML = '<span aria-hidden="true">' + glyphFor(current) + "</span><b>" + esc(current) + "</b><small>" + T("saved · drop a new one to replace it", "محفوظ · ارمي واحد جديد عشان تبدّله") + "</small>";
     } else out.hidden = true;
   }
 
@@ -308,13 +320,13 @@
   function answerOf(el) {
     if (el.tagName === "SELECT") return el.value === "" ? "" : (el.options[el.selectedIndex] || {}).text || "";
     if (el.type === "file") return Array.prototype.map.call(el.files || [], function (f) { return "📎 " + f.name; }).join(", ");
-    if (el.type === "checkbox" || el.type === "radio") return el.checked ? "Yes" : "";
+    if (el.type === "checkbox" || el.type === "radio") return el.checked ? T("Yes", "أيوه") : "";
     if (el.type === "date" && el.value) {
       var d = new Date(el.value + "T00:00:00Z");
-      return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+      return d.toLocaleDateString(I18N.loc("en-GB"), { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
     }
     var v = String(el.value || "").trim();
-    var suffix = el.getAttribute("data-quick-suffix");
+    var suffix = arAttr(el, "data-quick-suffix");
     return v && suffix ? v + suffix : v;
   }
 
@@ -334,9 +346,9 @@
       var head = document.createElement("div");
       head.className = "go-wiz__head";
       head.innerHTML = '<span class="go-wiz__glyph" aria-hidden="true">' + esc(step.getAttribute("data-glyph") || "✏️") + "</span>" +
-        '<div><div class="go-wiz__title">' + esc(step.getAttribute("data-title")) +
-        '<span class="go-tag ' + (opt ? "go-tag--opt" : "go-tag--req") + '">' + (opt ? "Optional" : "Required") + "</span></div>" +
-        (step.getAttribute("data-hint") ? '<p class="go-wiz__hint">' + esc(step.getAttribute("data-hint")) + "</p>" : "") + "</div>";
+        '<div><div class="go-wiz__title">' + esc(arAttr(step, "data-title")) +
+        '<span class="go-tag ' + (opt ? "go-tag--opt" : "go-tag--req") + '">' + (opt ? T("Optional", "اختياري") : T("Required", "مطلوب")) + "</span></div>" +
+        (arAttr(step, "data-hint") ? '<p class="go-wiz__hint">' + esc(arAttr(step, "data-hint")) + "</p>" : "") + "</div>";
       step.appendChild(head);
       step.appendChild(body);
     });
@@ -345,8 +357,8 @@
     var review = document.createElement("div");
     review.className = "go-wiz__step";
     review.innerHTML = '<div class="go-wiz__head"><span class="go-wiz__glyph" aria-hidden="true">✅</span><div><div class="go-wiz__title">' +
-      esc(form.getAttribute("data-review-title") || "All good?") + '</div><p class="go-wiz__hint">' +
-      esc(form.getAttribute("data-review-hint") || "Check your answers. Tap Change to fix one.") + "</p></div></div>" +
+      esc(arAttr(form, "data-review-title") || T("All good?", "كله تمام؟")) + '</div><p class="go-wiz__hint">' +
+      esc(arAttr(form, "data-review-hint") || T("Check your answers. Tap Change to fix one.", "راجع إجاباتك. دوس تغيير عشان تصلّح واحدة.")) + "</p></div></div>" +
       '<div class="go-wiz__review"></div>';
     this.reviewEl = review;
     this.actions = form.querySelector(":scope > .go-wiz__actions");
@@ -363,8 +375,8 @@
 
     var nav = document.createElement("div");
     nav.className = "go-wiz__nav";
-    nav.innerHTML = '<button type="button" class="btn btn--ghost go-wiz__back" data-sound="page">← Back</button>' +
-      '<button type="button" class="btn btn--primary go-wiz__next">Continue →</button>';
+    nav.innerHTML = '<button type="button" class="btn btn--ghost go-wiz__back" data-sound="page">' + T("← Back", "→ رجوع") + "</button>" +
+      '<button type="button" class="btn btn--primary go-wiz__next">' + T("Continue →", "كمّل ←") + "</button>";
     form.insertBefore(nav, this.actions);
     this.nav = nav;
     this.back = nav.querySelector(".go-wiz__back");
@@ -440,7 +452,7 @@
     });
     var live = this.steps.map(function (s, k) { return k; }).filter(function (k) { return !self.empty(k); });
     var at = live.indexOf(i);
-    this.count.textContent = i === last ? "Last check" : "Step " + (at + 1) + " of " + live.length;
+    this.count.textContent = i === last ? T("Last check", "آخر مراجعة") : T("Step " + (at + 1) + " of " + live.length, "خطوة " + (at + 1) + " من " + live.length);
     this.bar.style.width = (i === last ? 100 : Math.round((at / live.length) * 100)) + "%";
     var first = 0;
     while (this.empty(first)) first++;
@@ -463,9 +475,9 @@
       if (self.empty(k)) return "";
       var answers = fieldsOf(step).map(answerOf).filter(Boolean);
       var empty = !answers.length;
-      return '<div class="go-wiz__row' + (empty ? " go-wiz__row--empty" : "") + '"><b>' + esc(step.getAttribute("data-title")) + "</b>" +
-        "<span>" + (empty ? "Skipped" : esc(answers.join("  ·  "))) + "</span>" +
-        '<button type="button" class="btn btn--ghost btn--sm" data-goto="' + k + '">Change</button></div>';
+      return '<div class="go-wiz__row' + (empty ? " go-wiz__row--empty" : "") + '"><b>' + esc(arAttr(step, "data-title")) + "</b>" +
+        "<span>" + (empty ? T("Skipped", "اتخطّت") : esc(answers.join("  ·  "))) + "</span>" +
+        '<button type="button" class="btn btn--ghost btn--sm" data-goto="' + k + '">' + T("Change", "تغيير") + "</button></div>";
     }).join("");
   };
 
@@ -578,7 +590,7 @@
 
   // the loader says something new while it waits
   function loaderTalk() {
-    var lines = ["Loading…", "Climbing to your data…", "Almost at the top…", "Nearly there…"];
+    var lines = [T("Loading…", "بيحمّل…"), T("Climbing to your data…", "طالعين لبياناتك…"), T("Almost at the top…", "قرّبنا من القمة…"), T("Nearly there…", "خلاص قرّبنا…")];
     var i = 0;
     setInterval(function () {
       document.querySelectorAll(".go-loader-view:not([hidden]) .go-loader__text").forEach(function (p) {

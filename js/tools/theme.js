@@ -10,6 +10,10 @@
 (function () {
   "use strict";
 
+  // a page that loads this file without i18n.js (the client's share page) stays English
+  var I18N = window.I18N || { ar: false, loc: function (l) { return l || "en-GB"; }, N: function (n, one, many) { return n + " " + (n === 1 ? one : many); } };
+  var T = window.T || function (en) { return en; };
+
   var KEY = "tools-theme";
   var listeners = [];
 
@@ -22,7 +26,7 @@
     var btn = document.getElementById("btnTheme");
     if (btn) {
       btn.textContent = theme === "light" ? "☀️" : "🌙";
-      btn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
+      btn.setAttribute("aria-label", theme === "light" ? T("Switch to dark theme", "حوّل للوضع الغامق") : T("Switch to light theme", "حوّل للوضع الفاتح"));
     }
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", theme === "light" ? "#f4f8ff" : "#0b1220");

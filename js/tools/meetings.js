@@ -10,6 +10,10 @@
 (function () {
   "use strict";
 
+  // a page that loads this file without i18n.js (the client's share page) stays English
+  var I18N = window.I18N || { ar: false, loc: function (l) { return l || "en-GB"; }, N: function (n, one, many) { return n + " " + (n === 1 ? one : many); } };
+  var T = window.T || function (en) { return en; };
+
   var DAY_MS = 86400000;
 
   function esc(s) {
@@ -117,11 +121,11 @@
     });
     var groups = {};
     allZones().forEach(function (tz) {
-      var region = tz.indexOf("/") === -1 ? "Other" : tz.split("/")[0];
+      var region = tz.indexOf("/") === -1 ? T("Other", "أخرى") : tz.split("/")[0];
       (groups[region] = groups[region] || []).push(tz);
     });
     var html = first ? '<option value="' + esc(first.value) + '">' + esc(first.label) + "</option>" : "";
-    html += '<optgroup label="Suggested">' + top.map(opt).join("") + "</optgroup>";
+    html += '<optgroup label="' + T("Suggested", "مقترحة") + '">' + top.map(opt).join("") + "</optgroup>";
     Object.keys(groups).sort().forEach(function (region) {
       var zones = groups[region].slice().sort(function (a, b) { return city(a).localeCompare(city(b)); });
       html += '<optgroup label="' + esc(region) + '">' + zones.map(opt).join("") + "</optgroup>";
@@ -135,7 +139,10 @@
 
   function fmt(date, tz, opts, locale) {
     opts.timeZone = tz;
-    return new Intl.DateTimeFormat(locale || "en-GB", opts).format(date);
+    // only formats that print words (a weekday, a month, AM/PM) follow the tools'
+    // language; digits-only ones stay as they were, since callers read them as numbers
+    var wordy = opts.weekday || opts.month || opts.hour12;
+    return new Intl.DateTimeFormat(wordy ? I18N.loc(locale || "en-GB") : (locale || "en-GB"), opts).format(date);
   }
 
   function fmtTime(date, tz) {
@@ -150,20 +157,20 @@
 
   function dayLabel(date, now, tz) {
     var d = dayDiff(date, now, tz);
-    if (d === 0) return "Today";
-    if (d === 1) return "Tomorrow";
-    if (d === -1) return "Yesterday";
+    if (d === 0) return T("Today", "النهارده");
+    if (d === 1) return T("Tomorrow", "بكرة");
+    if (d === -1) return T("Yesterday", "إمبارح");
     if (d > 1 && d < 7) return fmt(date, tz, { weekday: "long" });
     return fmt(date, tz, { weekday: "short", day: "numeric", month: "short" });
   }
 
   function span(ms) {
     var mins = Math.max(1, Math.round(ms / 60000));
-    if (mins < 60) return mins + " min";
+    if (mins < 60) return T(mins + " min", mins + " د");
     var h = Math.floor(mins / 60), m = mins % 60;
-    if (h < 24) return h + "h" + (m ? " " + m + "m" : "");
+    if (h < 24) return T(h + "h" + (m ? " " + m + "m" : ""), h + " س" + (m ? " " + m + " د" : ""));
     var d = Math.floor(h / 24), rh = h % 24;
-    return d + "d" + (rh ? " " + rh + "h" : "");
+    return T(d + "d" + (rh ? " " + rh + "h" : ""), d + " ي" + (rh ? " " + rh + " س" : ""));
   }
 
   /* "live" while it is running, otherwise which side of now it is on */
@@ -179,9 +186,9 @@
     var start = new Date(m.starts_at).getTime();
     var end = start + m.duration_min * 60000;
     var t = now.getTime();
-    if (t < start) return "in " + span(start - t);
-    if (t < end) return span(end - t) + " left";
-    return span(t - end) + " ago";
+    if (t < start) return T("in " + span(start - t), "بعد " + span(start - t));
+    if (t < end) return T(span(end - t) + " left", "فاضل " + span(end - t));
+    return T(span(t - end) + " ago", "من " + span(t - end));
   }
 
   function platform(link) {
@@ -228,7 +235,7 @@
     var st = status(m, now);
     var diff = dayDiff(start, now, tz);
     var tone = st === "live" ? "live" : st === "past" ? "past" : diff === 0 ? "today" : diff === 1 ? "tomorrow" : "later";
-    var label = st === "live" ? "Happening now" : dayLabel(start, now, tz);
+    var label = st === "live" ? T("Happening now", "شغّال دلوقتي") : dayLabel(start, now, tz);
     var link = safeLink(m.link);
     var app = platform(link);
 
@@ -243,11 +250,11 @@
       (st === "live" ? '<i class="pill__dot"></i>' : "") + esc(label) + "</span>" +
       '<span class="meet__rel">' + esc(relative(m, now)) + "</span>";
     var ser = opts.seriesOf ? opts.seriesOf(m) : null;
-    if (ser) html += '<span class="meet__series" title="Part of a repeating series">↻ ' + Number(ser.n) + " of " + Number(ser.total) + "</span>";
+    if (ser) html += '<span class="meet__series" title="' + T("Part of a repeating series", "جزء من سلسلة متكررة") + '">↻ ' + T(Number(ser.n) + " of " + Number(ser.total), Number(ser.n) + " من " + Number(ser.total)) + "</span>";
     html += "</div>";
 
     if (opts.who) {
-      html += '<button type="button" class="meet__who" data-act="open" title="Open ' + esc(opts.who.name) + '">' +
+      html += '<button type="button" class="meet__who" data-act="open" title="' + T("Open " + esc(opts.who.name), "افتح " + esc(opts.who.name)) + '">' +
         (opts.who.avatarHtml || "") + "<strong>" + esc(opts.who.name) + "</strong></button>";
     }
 
@@ -257,7 +264,7 @@
     if (opts.otherTz && isZone(opts.otherTz) && offsetMs(start, opts.otherTz) !== offsetMs(start, tz)) {
       // across the date line the same meeting is on a different day for them
       var sameDay = localFields(start, opts.otherTz).date === localFields(start, tz).date;
-      html += '<div class="meet__sub">' + esc((opts.otherName ? opts.otherName + "'s time: " : "Their time: ") +
+      html += '<div class="meet__sub">' + esc((opts.otherName ? T(opts.otherName + "'s time: ", "توقيت " + opts.otherName + ": ") : T("Their time: ", "توقيتهم: ")) +
         (sameDay ? "" : fmt(start, opts.otherTz, { weekday: "short", day: "numeric", month: "short" }) + ", ") +
         fmtTime(start, opts.otherTz) + " · " + zoneLabel(opts.otherTz, start)) + "</div>";
     }
@@ -267,14 +274,15 @@
     html += '<div class="meet__foot">';
     if (link && st !== "past") {
       html += '<a class="btn ' + (st === "live" || tone === "today" ? "btn--primary" : "btn--ghost") + ' btn--sm meet__join" href="' + esc(link) +
-        '" target="_blank" rel="noopener noreferrer">' + esc(app ? "Join on " + app : "Join meeting") + "</a>";
-      if (opts.copy) html += '<button type="button" class="btn btn--ghost btn--sm" data-act="copy">Copy link</button>';
+        '" target="_blank" rel="noopener noreferrer">' + esc(app ? T("Join on " + app, "ادخل على " + app) : T("Join meeting", "ادخل الاجتماع")) + "</a>";
+      if (opts.copy) html += '<button type="button" class="btn btn--ghost btn--sm" data-act="copy">' + T("Copy link", "نسخ اللينك") + "</button>";
     } else if (!link && st !== "past") {
-      html += '<span class="meet__nolink">' + esc(opts.noLinkText || "Link to follow") + "</span>";
+      html += '<span class="meet__nolink">' + esc(opts.noLinkText || T("Link to follow", "اللينك هييجي بعدين")) + "</span>";
     }
     if (opts.reminders && st === "upcoming") {
       html += '<span class="meet__mail">' +
-        esc("Reminders: 1 day " + (m.remind_day_at ? "sent" : "pending") + " · 2h " + (m.remind_2h_at ? "sent" : "pending")) + "</span>";
+        esc(T("Reminders: 1 day " + (m.remind_day_at ? "sent" : "pending") + " · 2h " + (m.remind_2h_at ? "sent" : "pending"),
+          "التذكيرات: قبلها بيوم " + (m.remind_day_at ? "اتبعت" : "لسه") + " · قبلها بساعتين " + (m.remind_2h_at ? "اتبعت" : "لسه"))) + "</span>";
     }
     if (opts.actions) html += '<span class="meet__actions">' + opts.actions(m, st) + "</span>";
     html += "</div></div></article>";

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- The security log: failed logins and wrong finance PINs, with the camera
+       frame taken at the time. Static shell only — the entries come from
+       /api/auth?action=snaps, which needs the admin passkey session. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Security log</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <script src="js/tools/i18n.js?v=1"></script>
+  <style>
+    :root { color-scheme: dark; --bg: #0f1117; --card: #181b24; --line: #2a2f3d; --ink: #eef0f6; --mute: #9aa3b5; --bad: #f87171; --ok: #34d399; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 20px 16px 80px; }
+    header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    h1 { font-size: 1.4rem; margin: 0; flex: 1; min-width: 180px; }
+    p.sub { color: var(--mute); margin: 0 0 18px; }
+    a.btn, button.btn { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 999px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+    button.btn.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+    a.btn:hover, button.btn:hover { background: rgba(255, 255, 255, .07); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .snap { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .snap img, .snap .none { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: #000; }
+    .snap .none { display: grid; place-items: center; color: var(--mute); font-size: .9rem; text-align: center; padding: 10px; }
+    .snap div.meta { padding: 10px 12px 12px; }
+    .snap b { display: block; }
+    .snap small { display: block; color: var(--mute); overflow-wrap: anywhere; unicode-bidi: plaintext; }
+    .tag { display: inline-block; font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); margin-bottom: 4px; }
+    .empty { padding: 40px 16px; text-align: center; color: var(--mute); border: 1px dashed var(--line); border-radius: 16px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <a class="btn" href="/admin" data-ar="→ الأدمن">← Admin</a>
+    <h1 data-ar="سجل الأمان">Security log</h1>
+    <button class="btn danger" id="clear" type="button" hidden data-ar="امسح السجل">Clear log</button>
+  </header>
+  <p class="sub" data-ar="أي محاولة دخول أو رقم سري غلط مرتين بتتسجل هنا، ومعاها صورة لو المتصفح سمح بالكاميرا. بنحتفظ بآخر 60 محاولة.">Two failed logins, or two wrong PINs, are recorded here, with a photo when the browser allowed the camera. The newest 60 are kept.</p>
+  <div id="list" class="grid"></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var list = document.getElementById("list"), clearBtn = document.getElementById("clear");
+  var KIND = { login: T("Failed login", "دخول فاشل"), pin: T("Wrong finance PIN", "رقم سري غلط في الفلوس") };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
+  function empty(msg) { list.className = ""; list.innerHTML = '<div class="empty">' + esc(msg) + "</div>"; }
+  function load() {
+    fetch("/api/auth?action=snaps", { cache: "no-store" }).then(function (r) {
+      // not signed in: the admin page is where the passkey prompt lives
+      if (r.status === 401) { location.replace("/admin"); return null; }
+      return r.json();
+    }).then(function (d) {
+      if (!d) return;
+      var snaps = d.snaps || [];
+      clearBtn.hidden = !snaps.length;
+      if (!snaps.length) return empty(T("Nothing recorded. No one has failed to get in.", "مفيش حاجة متسجلة. محدش حاول يدخل وفشل."));
+      list.className = "grid";
+      list.innerHTML = snaps.map(function (s) {
+        var when = new Date(s.created_at).toLocaleString(I18N.loc("en-GB"), { dateStyle: "medium", timeStyle: "short" });
+        // only data: JPEGs are ever stored, but check again before using one as a src
+        var ok = typeof s.photo === "string" && s.photo.indexOf("data:image/jpeg;base64,") === 0;
+        return '<article class="snap">' +
+          (ok ? '<img alt="" src="' + esc(s.photo) + '">' : '<div class="none">' + esc(T("No photo — the camera was not allowed", "مفيش صورة — الكاميرا ما اتسمحش بيها")) + "</div>") +
+          '<div class="meta"><span class="tag">' + esc(KIND[s.kind] || s.kind) + "</span><b>" + esc(when) + "</b>" +
+          "<small>" + esc(s.page || "") + (s.note ? " · " + esc(s.note) : "") + "</small>" +
+          "<small>" + esc(s.ip || "") + "</small><small>" + esc(s.ua || "") + "</small></div></article>";
+      }).join("");
+    }).catch(function () { empty(T("Could not load the log.", "السجل ما اتحمّلش.")); });
+  }
+  clearBtn.addEventListener("click", function () {
+    if (!confirm(T("Delete every entry and photo in the log? This cannot be undone.", "تمسح كل المحاولات والصور من السجل؟ مش هينفع ترجّعها."))) return;
+    fetch("/api/auth?action=snaps-clear", { method: "POST" }).then(load);
+  });
+  load();
+})();
+</script>
+</body>
+</html>

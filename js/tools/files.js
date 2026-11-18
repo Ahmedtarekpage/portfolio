@@ -7,6 +7,10 @@
 (function () {
   "use strict";
 
+  // a page that loads this file without i18n.js (the client's share page) stays English
+  var I18N = window.I18N || { ar: false, loc: function (l) { return l || "en-GB"; }, N: function (n, one, many) { return n + " " + (n === 1 ? one : many); } };
+  var T = window.T || function (en) { return en; };
+
   var CHUNK = 2.5 * 1024 * 1024;
   var WHOLE = 4 * 1024 * 1024;
   var MAX = 20 * 1024 * 1024;
@@ -17,7 +21,7 @@
     ppsx: { glyph: "📊", label: "PowerPoint", tone: "ppt" },
     ppt: { glyph: "📊", label: "PowerPoint", tone: "ppt" },
     key: { glyph: "🎞", label: "Keynote", tone: "key" },
-    odp: { glyph: "📽", label: "Slides", tone: "key" },
+    odp: { glyph: "📽", label: T("Slides", "عرض شرايح"), tone: "key" },
     docx: { glyph: "📝", label: "Word", tone: "doc" },
     doc: { glyph: "📝", label: "Word", tone: "doc" },
   };
@@ -28,7 +32,7 @@
   function ext(name) { return ((/\.([a-z0-9]+)$/i.exec(String(name || "")) || [])[1] || "").toLowerCase(); }
 
   function kind(name) {
-    return KINDS[ext(name)] || { glyph: "📎", label: "File", tone: "other" };
+    return KINDS[ext(name)] || { glyph: "📎", label: T("File", "ملف"), tone: "other" };
   }
 
   function size(bytes) {
@@ -40,8 +44,8 @@
 
   /* An error message, or null when the file can go. */
   function check(file) {
-    if (!KINDS[ext(file.name)]) return "Upload a PDF, PowerPoint, Keynote or Word file";
-    if (file.size > MAX) return "That file is " + size(file.size) + " — the most is 20 MB";
+    if (!KINDS[ext(file.name)]) return T("Upload a PDF, PowerPoint, Keynote or Word file", "ارفع ملف PDF أو PowerPoint أو Keynote أو Word");
+    if (file.size > MAX) return T("That file is " + size(file.size) + " — the most is 20 MB", "الملف ده " + size(file.size) + " — الحد الأقصى 20 MB");
     return null;
   }
 
@@ -74,7 +78,7 @@
           body: JSON.stringify({ upload_id: id, index: i, data_base64: b64 }),
         });
       }).then(function (r) {
-        if (!r.ok) return r.json().catch(function () { return {}; }).then(function (d) { throw new Error(d.error || "Upload failed"); });
+        if (!r.ok) return r.json().catch(function () { return {}; }).then(function (d) { throw new Error(d.error || T("Upload failed", "الرفع فشل")); });
         i++;
         if (onProgress) onProgress(Math.round((i / pieces) * 100));
         return next();
@@ -100,7 +104,7 @@
       var more = function () {
         if (k >= info.parts) return Promise.resolve();
         return fetch(base + "&part=" + k, { credentials: "same-origin" }).then(function (r) {
-          if (!r.ok) throw new Error("Could not read the file");
+          if (!r.ok) throw new Error(T("Could not read the file", "مقدرناش نقرا الملف"));
           return r.arrayBuffer();
         }).then(function (buf) {
           parts.push(buf); k++;

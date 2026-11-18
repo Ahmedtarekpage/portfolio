@@ -32,12 +32,13 @@
       } catch (e) {}
     })();
   </script>
+  <script src="js/tools/i18n.js?v=1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=13" />
-  <link rel="stylesheet" href="css/tools/dashboard.css?v=5" />
-  <link rel="stylesheet" href="css/tools/go.css?v=16" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tools/app.css?v=14" />
+  <link rel="stylesheet" href="css/tools/dashboard.css?v=6" />
+  <link rel="stylesheet" href="css/tools/go.css?v=17" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -52,16 +53,16 @@
           <path class="go-loader__climb" d="M20 94 L60 26"></path>
           <circle class="go-loader__peak" cx="60" cy="26" r="9.5"></circle>
         </svg>
-        <p class="go-loader__text">Loading…</p>
+        <p class="go-loader__text" data-ar="بيحمّل…">Loading…</p>
       </div>
     </section>
 
     <section id="view-login" class="view" hidden>
       <div class="card card--center login-card">
         <div class="lock-icon" aria-hidden="true">🔐</div>
-        <h1>Content</h1>
-        <p class="muted">Sign in with your passkey — the same one that opens /admin.</p>
-        <button id="btnLogin" class="btn btn--primary">Sign in with passkey</button>
+        <h1 data-ar="المحتوى">Content</h1>
+        <p class="muted" data-ar="ادخل بمفتاح الدخول — نفس اللي بيفتح /admin.">Sign in with your passkey — the same one that opens /admin.</p>
+        <button id="btnLogin" class="btn btn--primary" data-ar="دخول بمفتاح الدخول">Sign in with passkey</button>
         <p id="loginError" class="error" hidden></p>
       </div>
     </section>
@@ -69,8 +70,8 @@
     <section id="view-locked" class="view" hidden>
       <div class="card card--center login-card">
         <div class="lock-icon" aria-hidden="true">📱</div>
-        <h1>No passkey yet</h1>
-        <p class="muted">Register your iPhone at <a href="/admin">/admin</a> first — this dashboard shares that login.</p>
+        <h1 data-ar="مفيش مفتاح دخول لسه">No passkey yet</h1>
+        <p class="muted" data-ar-html="سجّل الآيفون بتاعك من <a href='/admin'>/admin</a> الأول — اللوحة دي بتستخدم نفس الدخول.">Register your iPhone at <a href="/admin">/admin</a> first — this dashboard shares that login.</p>
       </div>
     </section>
 
@@ -79,38 +80,38 @@
 
       <header class="dash-head">
         <div>
-          <h1>Site content</h1>
-          <p class="muted" id="dashSub">Change any words, photos or buttons on your site.</p>
+          <h1 data-ar="محتوى الموقع">Site content</h1>
+          <p class="muted" id="dashSub" data-ar="غيّر أي كلام أو صور أو زراير في موقعك.">Change any words, photos or buttons on your site.</p>
         </div>
         <div class="dash-head__actions">
-          <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">🌙</button>
-          <a class="btn btn--ghost btn--sm" href="/admin" data-sound="page">← Home</a>
-          <a class="btn btn--ghost btn--sm" href="/" target="_blank" rel="noopener">View site ↗</a>
-          <button id="btnLogout" class="btn btn--ghost btn--sm">Sign out</button>
+          <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme" data-ar-title="بدّل بين الفاتح والغامق">🌙</button>
+          <a class="btn btn--ghost btn--sm" href="/admin" data-sound="page" data-ar="→ الرئيسية">← Home</a>
+          <a class="btn btn--ghost btn--sm" href="/" target="_blank" rel="noopener" data-ar="شوف الموقع ↖">View site ↗</a>
+          <button id="btnLogout" class="btn btn--ghost btn--sm" data-ar="خروج">Sign out</button>
         </div>
       </header>
 
       <nav class="dash-tabs">
-        <button class="dash-tab is-on" data-tab="content">Content</button>
-        <button class="dash-tab" data-tab="media">Media library</button>
-        <button class="dash-tab" data-tab="news">Newsletter</button>
+        <button class="dash-tab is-on" data-tab="content" data-ar="المحتوى">Content</button>
+        <button class="dash-tab" data-tab="media" data-ar="مكتبة الوسائط">Media library</button>
+        <button class="dash-tab" data-tab="news" data-ar="النشرة">Newsletter</button>
       </nav>
 
       <!-- ---------- CONTENT ---------- -->
       <div id="tab-content" class="dash-panel">
         <div class="dash-pages" id="pagePicker"></div>
         <div class="dash-toolbar">
-          <input id="filter" class="dash-filter" type="search" placeholder="Search for the words you want to change…" />
-          <button id="btnShowAll" class="btn btn--ghost btn--sm">Show everything</button>
+          <input id="filter" class="dash-filter" type="search" placeholder="Search for the words you want to change…" data-ar-placeholder="دوّر على الكلام اللي عايز تغيّره…" />
+          <button id="btnShowAll" class="btn btn--ghost btn--sm" data-ar="اعرض كل حاجة">Show everything</button>
           <span class="dash-count muted" id="itemCount"></span>
-          <button id="btnSave" class="btn btn--primary btn--sm" disabled>Save changes</button>
+          <button id="btnSave" class="btn btn--primary btn--sm" disabled data-ar="حفظ التغييرات">Save changes</button>
         </div>
-        <p class="muted dash-hint">
+        <p class="muted dash-hint" data-ar="غيّر الكلام، بدّل صورة، أو خلّي زرار يودّي لمكان جديد — وبعدين دوس حفظ. موقعك بيتحدّث على طول. فضّي الخانة ودوس حفظ عشان ترجّع الأصل.">
           Change the words, swap a photo, point a button somewhere new — then press Save.
           Your site updates straight away. Empty a box and press Save to put the original back.
         </p>
         <p class="muted dash-hint" id="hiddenNote" hidden></p>
-        <div id="loadingPage" class="card card--center" hidden><p class="muted">Reading the page…</p></div>
+        <div id="loadingPage" class="card card--center" hidden><p class="muted" data-ar="بنقرا الصفحة…">Reading the page…</p></div>
         <div id="groups"></div>
         <iframe id="probe" class="cms-probe" title="page probe" aria-hidden="true"></iframe>
       </div>
@@ -119,9 +120,9 @@
       <div id="tab-media" class="dash-panel" hidden>
         <div class="dash-toolbar">
           <label class="btn btn--primary btn--sm upload-label">
-            Upload photos<input id="mediaUpload" type="file" accept="image/*,video/mp4,video/webm" hidden multiple />
+            <span data-ar="ارفع صور">Upload photos</span><input id="mediaUpload" type="file" accept="image/*,video/mp4,video/webm" hidden multiple />
           </label>
-          <span class="muted">Photos and short clips, up to 3&nbsp;MB each. For a long video, put it on YouTube and paste the link into the video field instead.</span>
+          <span class="muted" data-ar="صور وكليبات قصيرة، لحد 3 ميجا للواحد. لو الفيديو طويل، ارفعه على يوتيوب والصق اللينك في خانة الفيديو.">Photos and short clips, up to 3&nbsp;MB each. For a long video, put it on YouTube and paste the link into the video field instead.</span>
         </div>
         <p id="mediaError" class="error" hidden></p>
         <div id="mediaGrid" class="media-grid"></div>
@@ -135,48 +136,48 @@
 
           <section class="news-col">
             <div class="news-head">
-              <h2>Who is subscribed</h2>
+              <h2 data-ar="مين مشترك">Who is subscribed</h2>
               <div class="news-head__actions">
-                <button id="btnExport" class="btn btn--ghost btn--sm">Download as CSV</button>
-                <button id="btnReloadSubs" class="btn btn--ghost btn--sm">Refresh</button>
+                <button id="btnExport" class="btn btn--ghost btn--sm" data-ar="نزّل CSV">Download as CSV</button>
+                <button id="btnReloadSubs" class="btn btn--ghost btn--sm" data-ar="تحديث">Refresh</button>
               </div>
             </div>
-            <p class="muted news-sub" id="subsCount">Loading…</p>
-            <input id="subsFilter" class="dash-filter" type="search" placeholder="Search a name or address…" />
+            <p class="muted news-sub" id="subsCount" data-ar="بيحمّل…">Loading…</p>
+            <input id="subsFilter" class="dash-filter" type="search" placeholder="Search a name or address…" data-ar-placeholder="دوّر باسم أو إيميل…" />
             <div id="subsList" class="subs"></div>
           </section>
 
           <section class="news-col">
-            <div class="news-head"><h2>Write an email</h2></div>
+            <div class="news-head"><h2 data-ar="اكتب إيميل">Write an email</h2></div>
             <p class="muted news-sub" id="mailState"></p>
 
             <label class="news-field">
-              <span>Subject line <em>— what they see in their inbox</em></span>
+              <span data-ar-html="عنوان الرسالة <em>— اللي بيشوفوه في الإنبوكس</em>">Subject line <em>— what they see in their inbox</em></span>
               <input id="mSubject" type="text" placeholder="This week on The Track" />
             </label>
             <label class="news-field">
-              <span>Heading <em>— the big line at the top of the email</em></span>
+              <span data-ar-html="العنوان الكبير <em>— السطر الكبير فوق في الإيميل</em>">Heading <em>— the big line at the top of the email</em></span>
               <input id="mHeading" type="text" placeholder="What to learn next in AI" />
             </label>
             <label class="news-field">
-              <span>Your message</span>
-              <textarea id="mBody" rows="10" placeholder="Write it the way you would write any email.&#10;&#10;Leave a blank line between paragraphs. Put **asterisks** around words to make them bold. Start a line with - to make a bullet."></textarea>
+              <span data-ar="رسالتك">Your message</span>
+              <textarea id="mBody" rows="10" placeholder="Write it the way you would write any email.&#10;&#10;Leave a blank line between paragraphs. Put **asterisks** around words to make them bold. Start a line with - to make a bullet." data-ar-placeholder="اكتبها زي ما بتكتب أي إيميل.&#10;&#10;سيب سطر فاضي بين الفقرات. حط **نجمتين** حوالين الكلام عشان يبقى تقيل. ابدأ السطر بـ - عشان يبقى نقطة."></textarea>
             </label>
             <div class="news-row">
               <label class="news-field">
-                <span>Button text <em>— optional</em></span>
+                <span data-ar-html="كلام الزرار <em>— اختياري</em>">Button text <em>— optional</em></span>
                 <input id="mCtaLabel" type="text" placeholder="Read the full thing" />
               </label>
               <label class="news-field">
-                <span>Button link</span>
+                <span data-ar="لينك الزرار">Button link</span>
                 <input id="mCtaUrl" type="text" placeholder="https://…" />
               </label>
             </div>
 
             <div class="news-actions">
-              <button id="btnPreview" class="btn btn--ghost btn--sm">See how it looks</button>
-              <button id="btnTest" class="btn btn--ghost btn--sm">Send a test to me</button>
-              <button id="btnSend" class="btn btn--primary btn--sm">Send to everyone</button>
+              <button id="btnPreview" class="btn btn--ghost btn--sm" data-ar="شوف شكله">See how it looks</button>
+              <button id="btnTest" class="btn btn--ghost btn--sm" data-ar="ابعتلي تجربة">Send a test to me</button>
+              <button id="btnSend" class="btn btn--primary btn--sm" data-ar="ابعت للكل">Send to everyone</button>
             </div>
             <p id="sendState" class="muted news-sub" hidden></p>
           </section>
@@ -184,7 +185,7 @@
         </div>
 
         <section class="news-past">
-          <h2>Already sent</h2>
+          <h2 data-ar="اتبعت قبل كده">Already sent</h2>
           <div id="campaigns"></div>
         </section>
       </div>
@@ -195,15 +196,15 @@
   <div id="picker" class="picker" hidden>
     <div class="picker__box">
       <div class="picker__head">
-        <strong id="pickerTitle">Choose a photo</strong>
-        <button id="pickerClose" class="iconbtn" aria-label="Close">✕</button>
+        <strong id="pickerTitle" data-ar="اختار صورة">Choose a photo</strong>
+        <button id="pickerClose" class="iconbtn" aria-label="Close" data-ar-aria-label="إغلاق">✕</button>
       </div>
       <div class="picker__url">
-        <input id="pickerUrl" type="url" placeholder="…or paste a web address for a photo" />
-        <button id="pickerUseUrl" class="btn btn--sm">Use this</button>
+        <input id="pickerUrl" type="url" placeholder="…or paste a web address for a photo" data-ar-placeholder="…أو الصق لينك صورة من النت" />
+        <button id="pickerUseUrl" class="btn btn--sm" data-ar="استخدم ده">Use this</button>
       </div>
       <label class="btn btn--ghost btn--sm upload-label picker__upload">
-        Upload from this device<input id="pickerUpload" type="file" accept="image/*,video/mp4,video/webm" hidden />
+        <span data-ar="ارفع من الجهاز ده">Upload from this device</span><input id="pickerUpload" type="file" accept="image/*,video/mp4,video/webm" hidden />
       </label>
       <p id="pickerError" class="error" hidden></p>
       <div id="pickerGrid" class="media-grid media-grid--pick"></div>
@@ -214,17 +215,21 @@
   <div id="mailPreview" class="picker" hidden>
     <div class="picker__box picker__box--wide">
       <div class="picker__head">
-        <strong>This is what lands in their inbox</strong>
-        <button id="previewClose" class="iconbtn" aria-label="Close">✕</button>
+        <strong data-ar="ده اللي هيوصل في الإنبوكس بتاعهم">This is what lands in their inbox</strong>
+        <button id="previewClose" class="iconbtn" aria-label="Close" data-ar-aria-label="إغلاق">✕</button>
       </div>
-      <iframe id="previewFrame" class="mail-frame" title="Email preview"></iframe>
+      <iframe id="previewFrame" class="mail-frame" title="Email preview" data-ar-title="معاينة الإيميل"></iframe>
     </div>
   </div>
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="js/tools/theme.js?v=2"></script>
-  <script src="js/tools/go.js?v=3"></script>
-  <script src="js/tools/dashboard.js?v=7"></script>
+  <script>I18N.apply(document);</script>
+
+  <script src="js/tools/snap.js?v=1"></script>
+
+  <script src="js/tools/theme.js?v=3"></script>
+  <script src="js/tools/go.js?v=4"></script>
+  <script src="js/tools/dashboard.js?v=8"></script>
 </body>
 </html>

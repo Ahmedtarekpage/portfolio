@@ -83,7 +83,10 @@ export function rp(req) {
 }
 
 const SESSION_COOKIE = "admin_session";
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// One hour, on the owner's instruction (2026-11-18): the tools hold client
+// records and personal finances, so a device left open should lock itself
+// quickly. The passkey is one tap, so signing in again is cheap.
+const SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 export function createSession(res) {
   const token = sign({ t: "sess", exp: Date.now() + SESSION_TTL_MS });

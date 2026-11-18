@@ -119,7 +119,7 @@
 .gamify__start-row input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 6px;
   color: var(--ink); padding: 2px 6px; font: 600 0.72rem var(--font-ui);
-  color-scheme: dark; outline: none;
+  outline: none;
 }
 .gamify__start-row input[type="date"]:focus { border-color: var(--blue-2); }
 .gamify__divider { height: 1px; background: var(--glass-brd); }
@@ -466,7 +466,7 @@
 .day-nav input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
   color: var(--ink); padding: 6px 10px; font: 400 0.85rem var(--font-ui);
-  color-scheme: dark; outline: none;
+  outline: none;
 }
 .day-nav input[type="date"]:focus { border-color: var(--blue); }
 
@@ -475,7 +475,7 @@
 .day-actions__dup input[type="date"] {
   background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
   color: var(--ink); padding: 6px 10px; font: 400 0.85rem var(--font-ui);
-  color-scheme: dark; outline: none;
+  outline: none;
 }
 .day-actions__dup input[type="date"]:focus { border-color: var(--blue); }
 
@@ -525,6 +525,10 @@
   border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .task-row__check:active { transform: scale(0.82); }
+/* half done: the circle half filled, and the ½ button lit */
+.task-row__check:indeterminate { border-color: var(--blue); background: linear-gradient(90deg, var(--blue) 50%, var(--bg) 50%); }
+.iconbtn--half { font-weight: 700; }
+.iconbtn--half[aria-pressed="true"] { color: var(--btn-ink); background: var(--blue); border-color: var(--blue); }
 /* ---------- select mode: pick several tasks, delete them together ----------
    The select mark is a rounded square on purpose. The done mark is a circle, and
    the two must never be mistaken for each other — one is a record of the day,
@@ -559,6 +563,7 @@
 .task-list--selecting .task-row__handle,
 .task-list--selecting .task-row__check,
 .task-list--selecting .task-row__actual,
+.task-list--selecting .task-row__time,
 .task-list--selecting .task-row .iconbtn { display: none; }
 .task-list--selecting .task-row:active { transform: scale(0.99); }
 .task-row--selected { border-color: var(--blue); background: rgba(var(--accent-rgb), 0.08); }
@@ -573,6 +578,81 @@
   color: var(--ink); padding: 5px 8px; font: 400 0.82rem var(--font-ui); outline: none;
 }
 .task-row__actual:focus { border-color: var(--blue); }
+/* when it was done — the graph's point; click to change it on the clock */
+.task-row__time {
+  flex: none; background: var(--bg); border: 1px solid var(--glass-brd); border-radius: 8px;
+  color: var(--ink); padding: 4px 8px; font: 500 0.82rem var(--font-ui); cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--t-fast) ease, transform var(--t-fast) var(--ease);
+}
+.task-row__time:hover, .task-row__time:focus-visible { border-color: var(--blue); outline: none; }
+.task-row__time:active { transform: scale(0.95); }
+
+/* ---------- "done at" clock: a raised dial with a sunken face ---------- */
+/* doubled class: these sit above .copy-dialog in the file and must still win */
+.clock-dialog.copy-dialog { width: min(340px, calc(100vw - 32px)); }
+.clock-dialog.copy-dialog[open] { animation: clockDialogIn var(--t-mid) var(--ease-out); }
+@keyframes clockDialogIn { from { opacity: 0; transform: perspective(900px) translateY(10px) rotateX(14deg) scale(0.96); } }
+.clock-read { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 4px 0 16px; }
+.clock-read__part {
+  width: 72px; padding: 6px 0; text-align: center; border-radius: 12px;
+  border: 1px solid var(--glass-brd); background: var(--bg-2); color: var(--ink);
+  font: 700 2rem var(--font-ui); font-variant-numeric: tabular-nums; outline: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
+  transition: border-color var(--t-fast) ease, background-color var(--t-fast) ease, color var(--t-fast) ease;
+}
+.clock-read__part--on { border-color: var(--blue); background: rgba(var(--accent-rgb), 0.14); color: var(--blue); }
+.clock-read__colon { font: 700 2rem var(--font-ui); color: var(--faint); }
+.clock-face {
+  position: relative; width: min(260px, 100%); aspect-ratio: 1; margin: 0 auto;
+  border-radius: 50%; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none;
+  /* light from the top left: a bevelled rim around a sunken face */
+  background: radial-gradient(circle at 35% 30%, var(--bg) 0%, var(--bg-2) 70%);
+  border: 8px solid var(--bg-2);
+  box-shadow:
+    0 14px 30px -10px rgba(0, 0, 0, 0.45),
+    0 2px 0 1px var(--glass-brd),
+    inset 0 6px 14px rgba(0, 0, 0, 0.22),
+    inset 0 -3px 8px rgba(255, 255, 255, 0.06);
+}
+.clock-face__num {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 600 0.95rem var(--font-ui); font-variant-numeric: tabular-nums; color: var(--ink);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18); pointer-events: none; z-index: 2;
+  transition: color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.clock-face__num--inner { width: 28px; height: 28px; font-size: 0.78rem; color: var(--muted); }
+.clock-face__num--on { color: var(--btn-ink); text-shadow: none; }
+.clock-face__num--m { display: none; }
+.clock-face--minutes .clock-face__num--h { display: none; }
+.clock-face--minutes .clock-face__num--m { display: inline-flex; }
+.clock-face__hand {
+  position: absolute; left: calc(50% - 1.5px); bottom: 50%; width: 3px;
+  transform-origin: 50% 100%; border-radius: 2px; z-index: 1;
+  background: linear-gradient(var(--blue-2), var(--blue));
+  box-shadow: 2px 3px 4px rgba(0, 0, 0, 0.25);
+  transition: transform var(--t-mid) var(--ease-out), height var(--t-mid) var(--ease-out);
+}
+.clock-face__knob {
+  position: absolute; left: 50%; top: 0; width: 34px; height: 34px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 30%, var(--blue-2), var(--blue) 60%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+.clock-face--minutes .clock-face__knob { width: 30px; height: 30px; }
+.clock-face__pin {
+  position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+  transform: translate(-50%, -50%); z-index: 3;
+  background: radial-gradient(circle at 35% 30%, var(--blue-2), var(--blue));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.clock-dialog__actions { align-items: center; }
+.clock-dialog__actions #btnClockNow { margin-right: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .clock-dialog.copy-dialog[open], .clock-face__hand { animation: none; transition: none; }
+}
 
 /* ---------- 14-day history strip ---------- */
 .day-history {
@@ -991,3 +1071,63 @@
 }
 .day-gallery__head::after { content: ""; flex: 1; height: 1px; background: var(--glass-brd); }
 .day-gallery__head:first-child { margin-top: 0; }
+
+/* ==========================================================================
+   RTL (Arabic) overrides — active only under <html dir="rtl">, which
+   js/tools/i18n.js sets when the tools are switched to Arabic.
+
+   Why this block is appended instead of merged into the rules above: every
+   rule above stays byte-for-byte as it was, so English (LTR) cannot regress.
+   Each override repeats the original selector with [dir="rtl"] in front, so
+   it wins on specificity, and keeps the original's media query. Fonts,
+   letter-spacing, charts and input direction come from app.css's and
+   go.css's RTL blocks, which this page also loads.
+   ========================================================================== */
+
+/* -- things that must not mirror -- */
+/* the clock picker: HH : MM and the dial read the same in every language */
+[dir="rtl"] .clock-read, [dir="rtl"] .clock-face { direction: ltr; }
+/* timers and percentages keep their digits and separators in order */
+[dir="rtl"] .pomodoro-status__time, [dir="rtl"] .pomodoro__time, [dir="rtl"] .task-row__time,
+[dir="rtl"] .goal-row__pct, [dir="rtl"] .goals-overall__pct, [dir="rtl"] .donut-legend__pct,
+[dir="rtl"] .milestone-row__pct { direction: ltr; unicode-bidi: isolate; }
+/* the 14-day history strip is a timeline: oldest stays on the left */
+[dir="rtl"] .day-history { direction: ltr; }
+
+/* -- collapsible sections: the closed chevron points left -- */
+[dir="rtl"] .section-collapse:not([open]) > summary::after { transform: rotate(90deg); }
+
+/* -- achievements -- */
+[dir="rtl"] .badge-chip--tuned::after { right: auto; left: 3px; }
+
+/* -- focus range -- */
+[dir="rtl"] .focus-range__dates { margin-left: 0; margin-right: auto; }
+@media (max-width: 640px) {
+  [dir="rtl"] .focus-range__dates { margin-right: 0; }
+}
+
+/* -- day tiles and photos -- */
+[dir="rtl"] .day-tile__remove { right: auto; left: 4px; }
+@media (max-width: 640px) {
+  [dir="rtl"] .day-tile__remove { right: auto; left: 6px; }
+}
+[dir="rtl"] .photo-menu__btn { text-align: right; }
+[dir="rtl"] .photo-view__close { right: auto; left: 20px; }
+
+/* -- countdowns -- */
+[dir="rtl"] .countdown__spent { margin-left: 0; margin-right: 4px; }
+
+/* -- tasks -- */
+[dir="rtl"] .task-select__count { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .clock-dialog__actions #btnClockNow { margin-right: 0; margin-left: auto; }
+
+/* -- pomodoro -- */
+[dir="rtl"] .pomo-break { padding: 2px 58px 2px 0; }
+[dir="rtl"] .pomodoro__settings input { margin-left: 0; margin-right: 5px; }
+[dir="rtl"] .pomodoro-overlay__close { right: auto; left: 18px; }
+
+/* -- categories, milestones, copy dialog -- */
+[dir="rtl"] .category-card__name { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .milestone-row__pct { text-align: left; }
+[dir="rtl"] .copy-dialog__name { margin-right: 0; margin-left: auto; }
+/* ============================ end RTL overrides ============================ */

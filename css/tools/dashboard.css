@@ -198,3 +198,30 @@
   .news-cols { grid-template-columns: minmax(0, 1fr); }
   .news-row { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   RTL (Arabic) overrides — active only under <html dir="rtl">, which
+   js/tools/i18n.js sets when the tools are switched to Arabic.
+
+   Why this block is appended instead of merged into the rules above: every
+   rule above stays byte-for-byte as it was, so English (LTR) cannot regress.
+   Each override repeats the original selector with [dir="rtl"] in front, so
+   it wins on specificity. Fonts, letter-spacing and input direction come
+   from app.css's and go.css's RTL blocks, which this page also loads.
+   ========================================================================== */
+
+/* the off-screen measuring iframe: parked on the right, because in RTL it is
+   overflow to the LEFT that scrolls and would add a 20000px sideways scroll */
+[dir="rtl"] .cms-probe { left: auto; right: -20000px; }
+
+/* -- content groups -- */
+[dir="rtl"] .grp__head { text-align: right; }
+/* the closed caret points left (toward the content); open still turns down */
+[dir="rtl"] .grp__caret { transform: scaleX(-1); }
+[dir="rtl"] .grp.is-open .grp__caret { transform: rotate(90deg); }
+[dir="rtl"] .grp__n { margin-left: 0; margin-right: auto; }
+
+/* -- fields -- */
+[dir="rtl"] .fld__revert { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .fld.is-dirty { box-shadow: inset -3px 0 0 var(--blue); padding-left: 0; padding-right: 12px; }
+/* ============================ end RTL overrides ============================ */

@@ -12,11 +12,13 @@
 (function () {
   "use strict";
 
+  if (I18N.ar) document.title = "المحتوى — Ahmed Tarek";
+
   var PAGES = [
-    { id: "home", label: "Home page", url: "/" },
-    { id: "full", label: "Full story", url: "/full" },
-    { id: "educator", label: "Educator", url: "/educator" },
-    { id: "product", label: "Product", url: "/product" },
+    { id: "home", label: T("Home page", "الصفحة الرئيسية"), url: "/" },
+    { id: "full", label: T("Full story", "القصة الكاملة"), url: "/full" },
+    { id: "educator", label: T("Educator", "المعلّم"), url: "/educator" },
+    { id: "product", label: T("Product", "المنتج"), url: "/product" },
   ];
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -38,9 +40,9 @@
       body: opts.body ? JSON.stringify(opts.body) : undefined,
       credentials: "same-origin",
     }).then(function (r) {
-      if (r.status === 401) { show("view-login"); throw new Error("Not signed in"); }
+      if (r.status === 401) { show("view-login"); throw new Error(T("Not signed in", "مش مسجّل دخول")); }
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok) throw new Error(d.error || ("Request failed (" + r.status + ")"));
+        if (!r.ok) throw new Error(d.error || T("Request failed (" + r.status + ")", "الطلب فشل (" + r.status + ")"));
         return d;
       });
     });
@@ -84,10 +86,12 @@
     api("/api/auth?action=login-options", { method: "POST", body: {} })
       .then(function (options) { return SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options }); })
       .then(function (response) { return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } }); })
-      .then(start)
+      .then(function (r) { if (window.Snap) Snap.ok("login"); return start(r); })
       .catch(function (e) {
+        // a second failed sign-in is recorded for the security log (js/tools/snap.js)
+        if (window.Snap) Snap.fail("login", e && e.name);
         if (e.name === "NotAllowedError") return;
-        err.textContent = e.message || "Sign-in failed";
+        err.textContent = e.message || T("Sign-in failed", "الدخول فشل");
         err.hidden = false;
       });
   });
@@ -145,17 +149,17 @@
 
   /* Plain-language names for the parts of each page. */
   var SECTION_NAMES = {
-    "dc-root": "Header, hero and menu", "page": "Page", "content": "Videos and content hub",
-    "about": "Who I am", "help": "How I can help", "platform": "Platform",
-    "track-rail": "The track method", "testimonials": "What people say",
-    "resources": "Free downloads", "newsletter": "Newsletter sign-up",
-    "contact": "Contact and footer", "nav": "Top menu",
-    "hero": "Hero — name and buttons", "educator": "Educator chapter",
-    "eduTimeline": "Teaching entries", "builder": "Builder chapter",
-    "buildTimeline": "Engineering entries", "work": "Products chapter",
-    "timeline": "Product entries", "skills": "Skills", "skillsGrid": "Skill groups",
-    "contactForm": "Contact form", "lightbox": "Photo viewer",
-    "site-settings": "Your links", "cookieBanner": "Cookie notice", "langToggle": "Language button",
+    "dc-root": T("Header, hero and menu", "الهيدر والواجهة والقايمة"), "page": T("Page", "الصفحة"), "content": T("Videos and content hub", "الفيديوهات ومركز المحتوى"),
+    "about": T("Who I am", "أنا مين"), "help": T("How I can help", "أقدر أساعد إزاي"), "platform": T("Platform", "المنصة"),
+    "track-rail": T("The track method", "طريقة التراك"), "testimonials": T("What people say", "الناس بتقول إيه"),
+    "resources": T("Free downloads", "تحميلات مجانية"), "newsletter": T("Newsletter sign-up", "الاشتراك في النشرة"),
+    "contact": T("Contact and footer", "التواصل والفوتر"), "nav": T("Top menu", "القايمة اللي فوق"),
+    "hero": T("Hero — name and buttons", "الواجهة — الاسم والزراير"), "educator": T("Educator chapter", "فصل المعلّم"),
+    "eduTimeline": T("Teaching entries", "محطات التدريس"), "builder": T("Builder chapter", "فصل البنّاء"),
+    "buildTimeline": T("Engineering entries", "محطات الهندسة"), "work": T("Products chapter", "فصل المنتجات"),
+    "timeline": T("Product entries", "محطات المنتجات"), "skills": T("Skills", "المهارات"), "skillsGrid": T("Skill groups", "مجموعات المهارات"),
+    "contactForm": T("Contact form", "فورم التواصل"), "lightbox": T("Photo viewer", "عارض الصور"),
+    "site-settings": T("Your links", "لينكاتك"), "cookieBanner": T("Cookie notice", "إشعار الكوكيز"), "langToggle": T("Language button", "زرار اللغة"),
   };
   function sectionName(id) { return SECTION_NAMES[id] || id; }
 
@@ -177,8 +181,8 @@
     });
 
     var hidden = items.length - pool.length;
-    $("#itemCount").textContent = pool.length + " of " + items.length;
-    $("#btnShowAll").textContent = showAll ? "Show the main things" : "Show everything";
+    $("#itemCount").textContent = T(pool.length + " of " + items.length, pool.length + " من " + items.length);
+    $("#btnShowAll").textContent = showAll ? T("Show the main things", "اعرض الأساسي بس") : T("Show everything", "اعرض كل حاجة");
 
     // Pictures first — they are the hardest thing to find otherwise, and the
     // empty slots are invisible on the page itself.
@@ -195,28 +199,31 @@
 
     var html = "";
     if (pinned.length) {
-      html += groupHTML("Your links", pinned, true,
-        "Set once here, and every button on the site that uses it follows.");
+      html += groupHTML(T("Your links", "لينكاتك"), pinned, true,
+        T("Set once here, and every button on the site that uses it follows.", "ظبّطه هنا مرة واحدة، وكل زرار في الموقع بيستخدمه هيمشي وراه."));
     }
     if (vids.length) {
-      html += groupHTML("Videos", vids, true,
-        "Paste a YouTube link for each one. On the site, clicking any of them plays it in the big player \u2014 " +
-        "the pictures and titles stay as they are.");
+      html += groupHTML(T("Videos", "الفيديوهات"), vids, true,
+        T("Paste a YouTube link for each one. On the site, clicking any of them plays it in the big player \u2014 " +
+        "the pictures and titles stay as they are.", "الصق لينك يوتيوب لكل واحد. في الموقع، الضغط على أي واحد بيشغّله في المشغّل الكبير \u2014 " +
+        "والصور والعناوين بتفضل زي ما هي."));
     }
     if (pics.length) {
-      html += groupHTML("Photos on this page", pics, true,
-        "Every picture here, including empty slots waiting for one.");
+      html += groupHTML(T("Photos on this page", "صور الصفحة دي"), pics, true,
+        T("Every picture here, including empty slots waiting for one.", "كل الصور اللي هنا، ومعاها الأماكن الفاضية اللي مستنية صورة."));
     }
     order.forEach(function (sec, i) {
       html += groupHTML(sectionName(sec), bySection[sec],
         (!pics.length && !vids.length && !pinned.length && i === 0) || !!q);
     });
-    $("#groups").innerHTML = html || '<p class="muted">Nothing matches that.</p>';
+    $("#groups").innerHTML = html || '<p class="muted">' + T("Nothing matches that.", "مفيش حاجة مطابقة.") + "</p>";
 
     var note = $("#hiddenNote");
     note.hidden = !(hidden > 0 && !q && !showAll);
-    note.textContent = hidden + " buttons, links and short labels are folded away. " +
-      "Use “Show everything” if you need one of them.";
+    note.textContent = T(hidden + " buttons, links and short labels are folded away. " +
+      "Use “Show everything” if you need one of them.",
+      hidden + " من الزراير واللينكات والعناوين القصيرة متخبّيين. " +
+      "استخدم «اعرض كل حاجة» لو محتاج واحد منهم.");
 
     bindFields();
     updateSaveButton();
@@ -226,7 +233,7 @@
     var nSet = list.filter(isSet).length;
     return '<section class="grp' + (open ? " is-open" : "") + '">' +
       '<button class="grp__head"><span class="grp__caret">▶</span>' + esc(name) +
-        (nSet ? ' <span class="grp__edited">' + nSet + " changed</span>" : "") +
+        (nSet ? ' <span class="grp__edited">' + T(nSet + " changed", nSet + " اتغيّر") + "</span>" : "") +
         '<span class="grp__n">' + list.length + "</span></button>" +
       '<div class="grp__body">' +
         (sub ? '<p class="grp__sub">' + esc(sub) + "</p>" : "") +
@@ -241,33 +248,33 @@
   // Name a field by what it says, not by where it lives.
   function shortLabel(it) {
     var t = String(it.original || "").replace(/\*\*/g, "").trim();
-    if (!t) return "Empty photo slot";
+    if (!t) return T("Empty photo slot", "مكان صورة فاضي");
     return t.length <= 44 ? t : t.slice(0, 44) + "…";
   }
 
   function fieldHTML(it) {
     var v = valueOf(it);
     var cls = "fld" + (isDirty(it) ? " is-dirty" : "") + (isSet(it) ? " is-set" : "");
-    var undo = isSet(it) ? '<button class="fld__revert" data-revert="' + esc(it.key) + '">undo</button>' : "";
+    var undo = isSet(it) ? '<button class="fld__revert" data-revert="' + esc(it.key) + '">' + T("undo", "تراجع") + "</button>" : "";
 
     if (it.kind === "src") {
       var url = mediaUrl(v);
       var thumb = !url
-        ? '<div class="fld__thumb fld__thumb--empty">No photo yet</div>'
+        ? '<div class="fld__thumb fld__thumb--empty">' + T("No photo yet", "مفيش صورة لسه") + "</div>"
         : /\.(mp4|webm)(\?|$)/i.test(url)
-          ? '<div class="fld__thumb fld__thumb--empty">Video</div>'
+          ? '<div class="fld__thumb fld__thumb--empty">' + T("Video", "فيديو") + "</div>"
           : '<img class="fld__thumb" src="' + esc(url) + '" alt="" loading="lazy" onerror="this.style.opacity=.2" />';
       return '<div class="' + cls + '"><div class="fld__label">' +
         esc(it.label || shortLabel(it)) + undo + "</div>" +
         '<div class="fld__media">' + thumb +
           '<div class="fld__mediaval"><button class="btn btn--sm" data-pick="' + esc(it.key) + '">' +
-            (url ? "Change photo" : "Add a photo") + "</button></div>" +
+            (url ? T("Change photo", "غيّر الصورة") : T("Add a photo", "ضيف صورة")) + "</button></div>" +
         "</div></div>";
     }
 
     if (it.kind === "href") {
       return '<div class="' + cls + '"><div class="fld__label">' +
-        (it.pinned || it.video ? "" : "Link \u2014 ") + esc(it.label || "link") + undo + "</div>" +
+        (it.pinned || it.video ? "" : T("Link \u2014 ", "لينك \u2014 ")) + esc(it.label || T("link", "لينك")) + undo + "</div>" +
         (it.hint ? '<p class="fld__hint">' + esc(it.hint) + "</p>" : "") +
         '<input type="text" data-in="' + esc(it.key) + '" value="' + esc(v) + '" placeholder="' +
         (it.video ? "https://www.youtube.com/watch?v=\u2026" : "https://\u2026") + '" />' +
@@ -276,7 +283,8 @@
 
     var rows = Math.min(9, Math.max(1, Math.ceil(v.length / 70)));
     var hint = it.kind === "rich"
-      ? '<p class="fld__hint">Words between **asterisks** are the highlighted part — keep the asterisks to keep the styling.</p>'
+      ? '<p class="fld__hint">' + T("Words between **asterisks** are the highlighted part — keep the asterisks to keep the styling.",
+          "الكلام اللي بين **نجمتين** هو الجزء المميّز — سيب النجوم عشان الشكل يفضل زي ما هو.") + "</p>"
       : "";
     return '<div class="' + cls + '"><div class="fld__label">' + esc(shortLabel(it)) + undo + "</div>" +
       hint + '<textarea data-in="' + esc(it.key) + '" rows="' + rows + '">' + esc(v) + "</textarea></div>";
@@ -318,7 +326,9 @@
     var n = dirtyKeys().length;
     var b = $("#btnSave");
     b.disabled = n === 0;
-    b.textContent = n ? "Save " + n + " change" + (n === 1 ? "" : "s") : "Save changes";
+    b.textContent = n
+      ? T("Save " + n + " change" + (n === 1 ? "" : "s"), "احفظ " + I18N.N(n, "change", "changes", ["تغيير واحد", "تغييرين", "تغييرات", "تغيير"]))
+      : T("Save changes", "حفظ التغييرات");
   }
 
   function save() {
@@ -334,7 +344,7 @@
     $("#btnSave").disabled = true;
     api("/api/cms", { method: "PUT", body: { items: payload } })
       .then(function () { edits = {}; return loadSaved(); })
-      .then(function () { toast("Saved — your site is updated"); loadPage(current); })
+      .then(function () { toast(T("Saved — your site is updated", "اتحفظ — موقعك اتحدّث")); loadPage(current); })
       .catch(function (e) { toast(e.message, true); updateSaveButton(); });
   }
 
@@ -344,7 +354,7 @@
   $("#pagePicker").addEventListener("click", function (e) {
     var b = e.target.closest("[data-page]");
     if (!b) return;
-    if (dirtyKeys().length && !confirm("You have unsaved changes. Leave this page?")) return;
+    if (dirtyKeys().length && !confirm(T("You have unsaved changes. Leave this page?", "عندك تغييرات مش محفوظة. تسيب الصفحة؟"))) return;
     edits = {};
     var p = PAGES.filter(function (x) { return x.id === b.getAttribute("data-page"); })[0];
     if (p) loadPage(p);
@@ -387,7 +397,7 @@
 
   function loadNewsletter(force) {
     if (subsLoaded && !force) return;
-    $("#subsCount").textContent = "Loading…";
+    $("#subsCount").textContent = T("Loading…", "بيحمّل…");
     api("/api/cms?resource=newsletter").then(function (d) {
       subs = d.subscribers || [];
       campaigns = d.campaigns || [];
@@ -397,17 +407,25 @@
       renderCampaigns();
       var st = $("#mailState");
       if (mailCfg.configured) {
-        st.innerHTML = "Sending from <strong>" + esc(mailCfg.from) + "</strong> through " +
+        st.innerHTML = T("Sending from <strong>" + esc(mailCfg.from) + "</strong> through " +
           esc(mailCfg.provider === "brevo" ? "Brevo" : "Resend") +
-          ". Send yourself a test first — it proves the address is accepted.";
+          ". Send yourself a test first — it proves the address is accepted.",
+          "الإرسال من <strong>" + esc(mailCfg.from) + "</strong> عن طريق " +
+          esc(mailCfg.provider === "brevo" ? "Brevo" : "Resend") +
+          ". ابعت لنفسك تجربة الأول — عشان تتأكد إن العنوان مقبول.");
         st.style.color = "";
       } else {
-        st.innerHTML =
+        st.innerHTML = T(
           "Sending is not switched on yet — you can still collect subscribers and write and preview. " +
           '<a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener">Get a free Brevo key</a>' +
           ", verify your sending address there, and the three things below go into Vercel \u2192 Settings " +
           "\u2192 Environment Variables:<br />" +
-          "<code>BREVO_API_KEY</code> \u00b7 <code>NEWSLETTER_FROM</code> \u00b7 redeploy.";
+          "<code>BREVO_API_KEY</code> \u00b7 <code>NEWSLETTER_FROM</code> \u00b7 redeploy.",
+          "الإرسال لسه مش متفعّل — بس تقدر تجمع مشتركين وتكتب وتشوف المعاينة. " +
+          '<a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener">هات مفتاح Brevo مجاني</a>' +
+          "، وأكّد عنوان الإرسال هناك، والحاجات دي بتتحط في <span dir=\"ltr\">Vercel \u2192 Settings " +
+          "\u2192 Environment Variables</span>:<br />" +
+          "<code>BREVO_API_KEY</code> \u00b7 <code>NEWSLETTER_FROM</code> \u00b7 وبعدين redeploy.");
         st.style.color = "var(--c-danger, #e5484d)";
       }
     }).catch(function (e) { $("#subsCount").textContent = e.message; });
@@ -417,7 +435,7 @@
 
   function when(iso) {
     var d = new Date(iso);
-    return isNaN(d) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    return isNaN(d) ? "" : d.toLocaleDateString(I18N.ar ? I18N.loc() : undefined, { day: "numeric", month: "short", year: "numeric" });
   }
 
   function renderSubs() {
@@ -427,9 +445,9 @@
     });
     var n = activeSubs().length;
     $("#subsCount").textContent = n === 0
-      ? "Nobody has subscribed yet."
-      : n + (n === 1 ? " person is" : " people are") + " subscribed" +
-        (subs.length > n ? " · " + (subs.length - n) + " unsubscribed" : "");
+      ? T("Nobody has subscribed yet.", "لسه محدش اشترك.")
+      : T(n + (n === 1 ? " person is" : " people are") + " subscribed", I18N.N(n, "person", "people", ["شخص واحد", "شخصين", "أشخاص", "شخص"]) + " مشتركين") +
+        (subs.length > n ? " · " + T((subs.length - n) + " unsubscribed", (subs.length - n) + " لغوا الاشتراك") : "");
 
     $("#subsList").innerHTML = list.length
       ? list.map(function (x) {
@@ -437,21 +455,21 @@
             '<div class="sub-row__who">' +
               '<div class="sub-row__mail">' + esc(x.email) + "</div>" +
               '<div class="sub-row__meta">' + esc(x.name || "") + (x.name ? " · " : "") +
-                when(x.created_at) + (x.source ? " · from the " + esc(x.source) : "") +
-                (x.status === "active" ? "" : " · unsubscribed") + "</div>" +
+                when(x.created_at) + (x.source ? " · " + T("from the " + esc(x.source), "من " + esc(x.source)) : "") +
+                (x.status === "active" ? "" : " · " + T("unsubscribed", "لغى الاشتراك")) + "</div>" +
             "</div>" +
-            '<button class="sub-row__x" data-del="' + x.id + '" title="Remove from the list">✕</button>' +
+            '<button class="sub-row__x" data-del="' + x.id + '" title="' + T("Remove from the list", "شيله من القايمة") + '">✕</button>' +
           "</div>";
         }).join("")
-      : '<p class="muted">Nothing matches that.</p>';
+      : '<p class="muted">' + T("Nothing matches that.", "مفيش حاجة مطابقة.") + "</p>";
 
     Array.prototype.forEach.call($("#subsList").querySelectorAll("[data-del]"), function (b) {
       b.addEventListener("click", function () {
         var id = b.getAttribute("data-del");
         var row = subs.filter(function (x) { return String(x.id) === id; })[0];
-        if (!confirm("Remove " + (row ? row.email : "this address") + " from the list?")) return;
+        if (!confirm(T("Remove " + (row ? row.email : "this address") + " from the list?", "تشيل " + (row ? row.email : "العنوان ده") + " من القايمة؟"))) return;
         api("/api/cms?resource=newsletter&id=" + id, { method: "DELETE" })
-          .then(function () { loadNewsletter(true); toast("Removed"); })
+          .then(function () { loadNewsletter(true); toast(T("Removed", "اتشال")); })
           .catch(function (e) { toast(e.message, true); });
       });
     });
@@ -461,12 +479,12 @@
     $("#campaigns").innerHTML = campaigns.length
       ? campaigns.map(function (c) {
           return '<div class="camp"><span class="camp__subject">' + esc(c.subject) + "</span>" +
-            '<span class="camp__meta">' + c.recipients + " sent" +
-              (c.failed ? " · " + c.failed + " failed" : "") + " · " + when(c.created_at) + "</span>" +
+            '<span class="camp__meta">' + T(c.recipients + " sent", "اتبعت لـ " + c.recipients) +
+              (c.failed ? " · " + T(c.failed + " failed", c.failed + " فشلوا") : "") + " · " + when(c.created_at) + "</span>" +
             (c.errors ? '<span class="camp__err">' + esc(c.errors) + "</span>" : "") +
           "</div>";
         }).join("")
-      : '<p class="muted">No emails sent yet.</p>';
+      : '<p class="muted">' + T("No emails sent yet.", "لسه مفيش إيميلات اتبعتت.") + "</p>";
   }
 
   function draft() {
@@ -511,13 +529,13 @@
   });
 
   $("#btnTest").addEventListener("click", function () {
-    var to = prompt("Send a test copy to which address?", mailCfg.replyTo || "");
+    var to = prompt(T("Send a test copy to which address?", "تبعت نسخة تجربة لأنهي عنوان؟"), mailCfg.replyTo || "");
     if (!to) return;
     var d = draft();
     d.testTo = to;
     $("#btnTest").disabled = true;
     api("/api/cms?resource=newsletter&action=send", { method: "POST", body: d })
-      .then(function () { toast("Test sent to " + to); })
+      .then(function () { toast(T("Test sent to " + to, "التجربة اتبعتت لـ " + to)); })
       .catch(function (e) { toast(e.message, true); })
       .then(function () { $("#btnTest").disabled = false; });
   });
@@ -526,11 +544,13 @@
     if (sending) return;
     var d = draft();
     var n = activeSubs().length;
-    if (!d.subject) return toast("Give the email a subject line first.", true);
-    if (!d.body.trim()) return toast("The email has no text in it.", true);
-    if (!n) return toast("Nobody is subscribed yet.", true);
-    if (!confirm("Send “" + d.subject + "” to " + n + (n === 1 ? " person" : " people") +
-                 "?\n\nThis cannot be taken back.")) return;
+    if (!d.subject) return toast(T("Give the email a subject line first.", "اكتب عنوان للرسالة الأول."), true);
+    if (!d.body.trim()) return toast(T("The email has no text in it.", "الإيميل مفيهوش كلام."), true);
+    if (!n) return toast(T("Nobody is subscribed yet.", "لسه محدش مشترك."), true);
+    if (!confirm(T("Send “" + d.subject + "” to " + n + (n === 1 ? " person" : " people") +
+                 "?\n\nThis cannot be taken back.",
+                 "تبعت «" + d.subject + "» لـ " + I18N.N(n, "person", "people", ["شخص واحد", "شخصين", "أشخاص", "شخص"]) +
+                 "؟\n\nمش هينفع ترجع فيها."))) return;
 
     sending = true;
     $("#btnSend").disabled = true;
@@ -542,7 +562,7 @@
     var campaignId = 0;
 
     function chunk(offset) {
-      state.textContent = "Sending… " + totalSent + " of " + n + " so far.";
+      state.textContent = T("Sending… " + totalSent + " of " + n + " so far.", "بيبعت… " + totalSent + " من " + n + " لحد دلوقتي.");
       var payload = {};
       for (var k in d) payload[k] = d[k];
       payload.offset = offset;
@@ -558,13 +578,14 @@
 
     chunk(0)
       .then(function () {
-        state.textContent = "Sent to " + totalSent + (totalSent === 1 ? " person." : " people.");
-        toast("Newsletter sent");
+        state.textContent = T("Sent to " + totalSent + (totalSent === 1 ? " person." : " people."),
+          "اتبعت لـ " + I18N.N(totalSent, "person", "people", ["شخص واحد", "شخصين", "أشخاص", "شخص"]) + ".");
+        toast(T("Newsletter sent", "النشرة اتبعتت"));
         loadNewsletter(true);
       })
       .catch(function (e) {
         state.style.color = "var(--c-danger, #e5484d)";
-        state.textContent = "Stopped after " + totalSent + " — " + e.message;
+        state.textContent = T("Stopped after " + totalSent + " — " + e.message, "وقف بعد " + totalSent + " — " + e.message);
       })
       .then(function () { sending = false; $("#btnSend").disabled = false; });
   });
@@ -581,7 +602,7 @@
         : '<div class="media-card__vid">▶</div>') +
       '<div class="media-card__meta"><div class="media-card__name" title="' + esc(m.name) + '">' + esc(m.name) + "</div>" +
         (m.bytes / 1024).toFixed(0) + " KB</div>" +
-      (pick ? "" : '<div class="media-card__row"><button class="btn btn--sm btn--danger" data-del="' + m.id + '">Delete</button></div>') +
+      (pick ? "" : '<div class="media-card__row"><button class="btn btn--sm btn--danger" data-del="' + m.id + '">' + T("Delete", "مسح") + "</button></div>") +
       "</div>";
   }
 
@@ -589,12 +610,13 @@
     var g = $("#mediaGrid");
     g.innerHTML = media.length
       ? media.map(function (m) { return mediaCardHTML(m, false); }).join("")
-      : '<p class="muted">Nothing uploaded yet. Use the button above, or add a photo straight from the Content tab.</p>';
+      : '<p class="muted">' + T("Nothing uploaded yet. Use the button above, or add a photo straight from the Content tab.",
+        "لسه مفيش حاجة مرفوعة. استخدم الزرار اللي فوق، أو ضيف صورة على طول من تبويب المحتوى.") + "</p>";
     Array.prototype.forEach.call(g.querySelectorAll("[data-del]"), function (b) {
       b.addEventListener("click", function () {
-        if (!confirm("Delete this file? Anywhere it is used will go blank.")) return;
+        if (!confirm(T("Delete this file? Anywhere it is used will go blank.", "تمسح الملف ده؟ أي مكان مستخدم فيه هيبقى فاضي."))) return;
         api("/api/cms?resource=media&id=" + b.getAttribute("data-del"), { method: "DELETE" })
-          .then(loadMedia).then(renderMedia).then(function () { toast("Deleted"); })
+          .then(loadMedia).then(renderMedia).then(function () { toast(T("Deleted", "اتمسح")); })
           .catch(function (e) { toast(e.message, true); });
       });
     });
@@ -604,7 +626,7 @@
     return new Promise(function (res, rej) {
       var fr = new FileReader();
       fr.onload = function () { res(fr.result); };
-      fr.onerror = function () { rej(new Error("Could not read " + file.name)); };
+      fr.onerror = function () { rej(new Error(T("Could not read " + file.name, "مقدرناش نقرا " + file.name))); };
       fr.readAsDataURL(file);
     });
   }
@@ -657,7 +679,7 @@
     files.reduce(function (chain, f) {
       return chain.then(function () { return upload(f, $("#mediaError")); });
     }, Promise.resolve())
-      .then(function () { renderMedia(); toast("Uploaded"); })
+      .then(function () { renderMedia(); toast(T("Uploaded", "اترفع")); })
       .catch(function () { renderMedia(); });
   });
 
@@ -666,12 +688,12 @@
   function openPicker(key) {
     pickerTarget = key;
     var it = byKey(key);
-    $("#pickerTitle").textContent = it ? "Photo for: " + shortLabel(it) : "Choose a photo";
+    $("#pickerTitle").textContent = it ? T("Photo for: " + shortLabel(it), "صورة لـ: " + shortLabel(it)) : T("Choose a photo", "اختار صورة");
     $("#pickerUrl").value = it ? valueOf(it) : "";
     $("#pickerError").hidden = true;
     $("#pickerGrid").innerHTML = media.length
       ? media.map(function (m) { return mediaCardHTML(m, true); }).join("")
-      : '<p class="muted">Nothing uploaded yet — use the button above.</p>';
+      : '<p class="muted">' + T("Nothing uploaded yet — use the button above.", "لسه مفيش حاجة مرفوعة — استخدم الزرار اللي فوق.") + "</p>";
     Array.prototype.forEach.call($("#pickerGrid").querySelectorAll(".media-card"), function (c) {
       c.addEventListener("click", function () { setPicked("media:" + c.getAttribute("data-id")); });
     });
@@ -694,7 +716,7 @@
     var f = (e.target.files || [])[0];
     e.target.value = "";
     if (!f) return;
-    upload(f, $("#pickerError")).then(function (m) { setPicked("media:" + m.id); toast("Uploaded"); }).catch(function () {});
+    upload(f, $("#pickerError")).then(function (m) { setPicked("media:" + m.id); toast(T("Uploaded", "اترفع")); }).catch(function () {});
   });
 
   window.addEventListener("beforeunload", function (e) {

@@ -13,6 +13,7 @@
     editingTaskId: null,
     selectingTasks: false, // Today tab's select mode, for deleting several tasks at once
     selectedTaskIds: {},   // id -> true while selecting
+    dayTasks: [],          // the tasks of the day on screen, for "Add to Google Calendar"
     daysData: null,  // { quarterId, from, to, days: [{date,pct,done,total}], avg } for the Days tab
     quarterStats: null, // { byId: {id: {avg,tracked,days}}, avg, tracked } for the Quarters gallery
     daysFocus: null, // { quarterId, from, to, preset } — the week/range focused under the days chart
@@ -39,7 +40,7 @@
       return r.json().catch(function () { return {}; }).then(function (data) {
         if (!r.ok) {
           if (r.status === 401 && path.indexOf("action=me") === -1) show("view-login");
-          throw new Error(data.error || ("Request failed (" + r.status + ")"));
+          throw new Error(data.error || T("Request failed (" + r.status + ")", "الطلب فشل (" + r.status + ")"));
         }
         return data;
       });
@@ -62,7 +63,7 @@
   function fmtDate(iso) {
     if (!iso) return "—";
     var d = new Date(String(iso).slice(0, 10) + "T00:00:00Z");
-    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+    return d.toLocaleDateString(I18N.loc("en-GB"), { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
   }
 
   // day-tile grid only: no weekday text needed there since the Sat-Fri
@@ -70,12 +71,12 @@
   function fmtDayMonth(iso) {
     if (!iso) return "—";
     var d = new Date(String(iso).slice(0, 10) + "T00:00:00Z");
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+    return d.toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", timeZone: "UTC" });
   }
 
   function fmtH(n) {
     n = Number(n) || 0;
-    return (Number.isInteger(n) ? n : n.toFixed(1)) + "h";
+    return (Number.isInteger(n) ? n : n.toFixed(1)) + T("h", " س");
   }
 
   function todayISO() {
@@ -233,7 +234,7 @@
     if (now > end) {
       box.classList.add("countdown--ended");
       if (lastCountdownText !== "ended") {
-        $("#countdownLabel").textContent = "This quarter has ended";
+        $("#countdownLabel").textContent = T("This quarter has ended", "ربع السنة ده خلص");
         $("#countdownSpent").textContent = "";
         $("#countdownBar").style.width = "100%";
         ["cdDays", "cdHours", "cdMinutes", "cdSeconds"].forEach(function (id) { $("#" + id).textContent = "00"; });
@@ -244,7 +245,7 @@
 
     box.classList.remove("countdown--ended");
     var target = now < start ? start : end;
-    $("#countdownLabel").textContent = now < start ? "Starts in" : "Time left in this quarter";
+    $("#countdownLabel").textContent = now < start ? T("Starts in", "هيبدأ بعد") : T("Time left in this quarter", "الوقت الباقي في ربع السنة ده");
 
     if (now < start) {
       $("#countdownSpent").textContent = "";
@@ -253,7 +254,7 @@
       var totalQuarterDays = Math.max(1, Math.round((end - start) / 86400000));
       var spentDays = Math.min(totalQuarterDays, Math.max(0, Math.floor((now - start) / 86400000)));
       var done = Math.min(1, Math.max(0, (now - start) / (end - start)));
-      $("#countdownSpent").textContent = "Day " + spentDays + " of " + totalQuarterDays + " · " + Math.round(done * 100) + "% gone";
+      $("#countdownSpent").textContent = T("Day " + spentDays + " of " + totalQuarterDays + " · " + Math.round(done * 100) + "% gone", "اليوم " + spentDays + " من " + totalQuarterDays + " · " + Math.round(done * 100) + "% عدّى");
       $("#countdownBar").style.width = (done * 100).toFixed(2) + "%";
     }
 
@@ -334,7 +335,7 @@
       updateLifeCounters();
       renderMilestones();
       updateNextMilestoneCounter();
-      toast("Target age updated ✓");
+      toast(T("Target age updated ✓", "السن المستهدف اتحدّث ✓"));
     });
   }
 
@@ -393,16 +394,24 @@
     var deadline = new Date(GOAL_DATE.getFullYear(), GOAL_DATE.getMonth(), GOAL_DATE.getDate());
     var age = GOAL_DATE.getFullYear() - BIRTH_DATE.getFullYear();
     if (deadline <= today) {
-      return "Halved down from $500K to ~$976, " + MILESTONE_HALVINGS + " steps. The age " + age +
+      return T("Halved down from $500K to ~$976, " + MILESTONE_HALVINGS + " steps. The age " + age +
         " date has gone by, so the ladder keeps a " + MILESTONE_MONTHS_PER_DOUBLING +
-        "-month pace from today. Check one off once you've actually reached it.";
+        "-month pace from today. Check one off once you've actually reached it.",
+        "متقسّمة بالنص من $500K لحد ~$976، " + MILESTONE_HALVINGS + " خطوات. تاريخ سن " + age +
+        " عدّى، فالسلّم ماشي بمعدل خطوة كل " + MILESTONE_MONTHS_PER_DOUBLING +
+        " شهور من النهارده. علّم على الخطوة لما توصلها فعلاً.");
     }
     var weeks = Math.max(1, Math.round((deadline - today) / 604800000 / (MILESTONE_HALVINGS + 1)));
-    var every = weeks >= 9 ? Math.round(weeks / 4.345) + " months" : weeks + (weeks === 1 ? " week" : " weeks");
-    return "Halved down from $500K to ~$976 — doubling every " + every + ", " + MILESTONE_HALVINGS +
+    var every = weeks >= 9 ? I18N.N(Math.round(weeks / 4.345), "month", "months", ["شهر", "شهرين", "شهور", "شهر"]) : I18N.N(weeks, "week", "weeks", ["أسبوع", "أسبوعين", "أسابيع", "أسبوع"]);
+    var deadlineLabel = deadline.toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", year: "numeric" });
+    return T("Halved down from $500K to ~$976 — doubling every " + every + ", " + MILESTONE_HALVINGS +
       " times in a row, the last landing on your " + age + "th birthday (" +
-      deadline.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) +
-      "). Check one off once you've actually reached it.";
+      deadlineLabel +
+      "). Check one off once you've actually reached it.",
+      "متقسّمة بالنص من $500K لحد ~$976 — بتتضاعف كل " + every + "، " + MILESTONE_HALVINGS +
+      " مرات ورا بعض، وآخر واحدة في عيد ميلادك رقم " + age + " (" +
+      deadlineLabel +
+      "). علّم على الخطوة لما توصلها فعلاً.");
   }
 
   function fmtMoney(v) {
@@ -422,7 +431,7 @@
     var next = milestones.find(function (_, i) { return !checked[i]; });
     if (!next) {
       box.classList.add("countdown--ended");
-      label.textContent = "🎉 All milestones reached!";
+      label.textContent = T("🎉 All milestones reached!", "🎉 وصلت لكل المحطات!");
       MS_UNIT_IDS.forEach(function (id) { $("#" + id).textContent = "00"; });
       return;
     }
@@ -430,7 +439,7 @@
     var nextIdx = milestones.indexOf(next);
     var reached = Number(loadMilestoneAmounts()[nextIdx]) || 0;
     var pct = next.value > 0 ? Math.min(100, Math.round((reached / next.value) * 100)) : 0;
-    label.textContent = "💰 Time left to hit $" + fmtMoney(next.value) + " (" + pct + "% there)";
+    label.textContent = T("💰 Time left to hit $" + fmtMoney(next.value) + " (" + pct + "% there)", "💰 الوقت الباقي عشان توصل $" + fmtMoney(next.value) + " (وصلت " + pct + "%)");
     setCalendarUnits("nextMs", calendarDiff(now, next.date));
   }
 
@@ -480,21 +489,21 @@
       var isNext = i === nextIdx;
       var cls = "milestone-row" + (isChecked ? " milestone-row--done" : "") + (isNext ? " milestone-row--next" : "");
       var prevVal = i === 0 ? 0 : milestones[i - 1].value;
-      var dateLabel = m.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      var dateLabel = m.date.toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", year: "numeric" });
       var rowAmount = Number(amounts[i]) || 0;
       var pct = m.value > 0 ? Math.min(100, Math.round((rowAmount / m.value) * 100)) : 0;
       return '<div class="' + cls + '" data-idx="' + i + '">' +
-        '<input type="checkbox" class="task-row__check milestone-row__check"' + (isChecked ? " checked" : "") + ' aria-label="Mark $' + fmtMoney(m.value) + ' reached" />' +
+        '<input type="checkbox" class="task-row__check milestone-row__check"' + (isChecked ? " checked" : "") + ' aria-label="' + T("Mark $" + fmtMoney(m.value) + " reached", "علّم إنك وصلت $" + fmtMoney(m.value)) + '" />' +
         '<span class="milestone-row__body">' +
           '<span class="milestone-row__top">' +
             '<span class="milestone-row__amount">$' + fmtMoney(m.value) + '</span>' +
-            '<span class="milestone-row__delta">+$' + fmtMoney(m.value - prevVal) + ' to add</span>' +
+            '<span class="milestone-row__delta">+$' + fmtMoney(m.value - prevVal) + T(" to add", " زيادة") + '</span>' +
           '</span>' +
           '<span class="goal-row__nums milestone-row__reached">' +
             '<input type="number" class="goal-row__current milestone-row__amount-input" min="0" step="any" placeholder="0" value="' + (rowAmount || "") + '" />' +
-            ' / $' + fmtMoney(m.value) + ' reached' +
+            ' / $' + fmtMoney(m.value) + T(" reached", " وصلتلها") +
           '</span>' +
-          '<span class="milestone-row__date">pace: by ' + dateLabel + '</span>' +
+          '<span class="milestone-row__date">' + T("pace: by ", "المعدل: قبل ") + dateLabel + '</span>' +
           '<span class="milestone-row__progress">' +
             '<span class="milestone-row__bar"><span class="milestone-row__bar-fill' + (pct >= 100 ? ' milestone-row__bar-fill--done' : '') +
               '" style="width:' + pct + '%"></span></span>' +
@@ -585,7 +594,7 @@
     return mins * 60000;
   }
   function pomodoroPhaseLabel(phase) {
-    return phase === "work" ? "Focus" : phase === "long" ? "Long break" : "Short break";
+    return phase === "work" ? T("Focus", "تركيز") : phase === "long" ? T("Long break", "راحة طويلة") : T("Short break", "راحة قصيرة");
   }
 
   function renderPomodoroTime(ms) {
@@ -648,7 +657,7 @@
     renderPomodoroTime(pomodoroRemainingMs);
     renderPomodoroUI();
     pomodoroEndAt = Date.now() + pomodoroRemainingMs;
-    toast(pomodoroPhaseLabel(pomodoroPhase) + " time!");
+    toast(T(pomodoroPhaseLabel(pomodoroPhase) + " time!", "وقت " + pomodoroPhaseLabel(pomodoroPhase) + "!"));
   }
 
   function pomodoroStart() {
@@ -717,7 +726,7 @@
   // the fullscreen screen, and start the timer immediately
   function pomodoroLaunch() {
     var text = $("#pomodoroFocusInput").value.trim();
-    pomodoroFocusText = text || "Focused work";
+    pomodoroFocusText = text || T("Focused work", "شغل بتركيز");
     pomodoroPhase = "work";
     pomodoroCompleted = 0;
     pomodoroRemainingMs = pomodoroPhaseMs("work");
@@ -768,7 +777,7 @@
         pomodoroRemainingMs = pomodoroPhaseMs(pomodoroPhase);
         renderPomodoroTime(pomodoroRemainingMs);
       }
-      toast("Pomodoro durations updated ✓");
+      toast(T("Pomodoro durations updated ✓", "مدد البومودورو اتحدّثت ✓"));
     });
   });
 
@@ -797,8 +806,9 @@
     api("/api/auth?action=login-options", { method: "POST", body: {} })
       .then(function (options) { return SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options }); })
       .then(function (response) { return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } }); })
-      .then(function () { initApp(); })
-      .catch(function (e) { if (e.name !== "NotAllowedError") showErr("#loginError", e.message || "Sign-in failed"); })
+      .then(function () { if (window.Snap) Snap.ok("login"); initApp(); })
+      // a second failed sign-in is recorded for the security log (js/tools/snap.js)
+      .catch(function (e) { if (window.Snap) Snap.fail("login", e && e.name); if (e.name !== "NotAllowedError") showErr("#loginError", e.message || T("Sign-in failed", "الدخول فشل")); })
       .finally(function () { busy(btn, false); });
   });
 
@@ -811,10 +821,10 @@
       .then(function (response) {
         return api("/api/auth?action=register-verify", { method: "POST", body: { response: response, label: "admin device" } });
       })
-      .then(function () { toast("Passkey registered ✓"); initApp(); })
+      .then(function () { toast(T("Passkey registered ✓", "مفتاح الدخول اتسجّل ✓")); initApp(); })
       .catch(function (e) {
-        if (e.name === "InvalidStateError") showErr("#setupError", "This device already holds the passkey — reload and sign in.");
-        else if (e.name !== "NotAllowedError") showErr("#setupError", e.message || "Setup failed");
+        if (e.name === "InvalidStateError") showErr("#setupError", T("This device already holds the passkey — reload and sign in.", "الجهاز ده عليه مفتاح الدخول بالفعل — حمّل الصفحة تاني وادخل."));
+        else if (e.name !== "NotAllowedError") showErr("#setupError", e.message || T("Setup failed", "الإعداد فشل"));
       })
       .finally(function () { busy(btn, false); });
   });
@@ -883,11 +893,11 @@
     }
     empty.hidden = true;
 
-    var doneSorted = tasks.filter(function (t) { return t.done; })
+    var doneSorted = tasks.filter(function (t) { return t.done || t.half; })
       .sort(function (a, b) { return new Date(taskCompletionTime(a)) - new Date(taskCompletionTime(b)); });
     var running = 0;
     var points = doneSorted.map(function (t) {
-      running++;
+      running += t.done ? 1 : 0.5;
       return { time: taskCompletionTime(t), title: t.title, cumulative: running };
     });
 
@@ -969,36 +979,50 @@
     requestAnimationFrame(step);
   }
 
+  // "14:05" in local time, for the done-at clock on a row
+  function clockOf(iso) {
+    var d = new Date(iso);
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+
   function renderTasks(tasks, opts) {
     opts = opts || {};
+    state.dayTasks = tasks;
     var animate = opts.animate !== false;
     var total = tasks.length;
-    var done = tasks.filter(function (t) { return t.done; }).length;
+    // a half-done task counts as half a task
+    var done = tasks.reduce(function (n, t) { return n + (t.done ? 1 : t.half ? 0.5 : 0); }, 0);
     animateCount($("#dayPercent"), total ? Math.round((done / total) * 100) : 0, "%");
-    $("#dayCount").textContent = done + " of " + total + " task" + (total === 1 ? "" : "s");
+    $("#dayCount").textContent = T(done + " of " + total + " task" + (total === 1 ? "" : "s"), done + " من " + total + " " + (total >= 3 && total <= 10 ? "مهام" : "مهمة"));
 
     var list = $("#taskList");
     list.innerHTML = "";
     $("#tasksEmpty").hidden = total > 0;
     tasks.forEach(function (t) {
       var row = document.createElement("div");
-      row.className = "task-row" + (t.done ? " task-row--done" : "") + (animate ? " task-row--enter" : "");
+      row.className = "task-row" + (t.done ? " task-row--done" : "") + (t.half ? " task-row--half" : "") + (animate ? " task-row--enter" : "");
       row.dataset.id = t.id;
       var meta = [];
       if (t.category_name) meta.push(esc(t.category_name));
-      if (t.planned_hours != null) meta.push(fmtH(t.planned_hours) + " planned");
+      if (t.planned_hours != null) meta.push(fmtH(t.planned_hours) + T(" planned", " مخطط"));
       if (state.selectedTaskIds[t.id]) row.classList.add("task-row--selected");
       row.innerHTML =
         '<span class="task-row__select" aria-hidden="true"></span>' +
-        '<span class="task-row__handle" title="Drag to reorder">⠿</span>' +
-        '<input type="checkbox" class="task-row__check" ' + (t.done ? "checked" : "") + ' aria-label="Mark done" />' +
+        '<span class="task-row__handle" title="' + T("Drag to reorder", "اسحب عشان ترتّب") + '">⠿</span>' +
+        '<input type="checkbox" class="task-row__check" ' + (t.done ? "checked" : "") + ' aria-label="' + T("Mark done", "علّم إنها خلصت") + '" />' +
         '<span class="task-row__icon">' + esc(t.icon || "📝") + '</span>' +
         '<div class="task-row__body"><div class="task-row__title">' + esc(t.title) + '</div>' +
         (meta.length ? '<div class="task-row__meta">' + meta.join(" · ") + '</div>' : '') + '</div>' +
-        (t.done ? '<input type="number" min="0" step="0.25" class="task-row__actual" title="Actual hours" value="' +
+        ((t.done || t.half) && t.completed_at ? '<button type="button" class="task-row__time" title="' + T("Done at — click to change it", "وقت ما خلصت — دوس عشان تغيّره") + '">🕒 ' +
+          clockOf(t.completed_at) + '</button>' : '') +
+        (t.done ? '<input type="number" min="0" step="0.25" class="task-row__actual" title="' + T("Actual hours", "الساعات الفعلية") + '" value="' +
           (t.actual_hours != null ? Number(t.actual_hours) : '') + '" />' : '') +
-        '<button type="button" class="iconbtn iconbtn--edit" title="Edit task">✎</button>' +
-        '<button type="button" class="iconbtn" title="Delete task">✕</button>';
+        '<button type="button" class="iconbtn iconbtn--half" aria-pressed="' + !!t.half + '" title="' +
+          (t.half ? T("Half done — click to undo", "نص خلصان — دوس عشان ترجّعها") : T("Mark half done", "علّم إنها نص خلصانة")) + '">½</button>' +
+        '<button type="button" class="iconbtn iconbtn--edit" title="' + T("Edit task", "تعديل المهمة") + '">✎</button>' +
+        '<button type="button" class="iconbtn" title="' + T("Delete task", "مسح المهمة") + '">✕</button>';
+      // the circle shows a half as a half-filled circle
+      row.querySelector(".task-row__check").indeterminate = !!t.half;
 
       row.querySelector(".task-row__check").addEventListener("change", function (ev) {
         if (ev.target.checked) playCheckSound();
@@ -1006,6 +1030,8 @@
           .then(function () { return afterTaskChange(); })
           .catch(function (e) { toast(e.message, true); ev.target.checked = !ev.target.checked; });
       });
+      var timeBtn = row.querySelector(".task-row__time");
+      if (timeBtn) timeBtn.addEventListener("click", function () { openClock(t); });
       var actualInput = row.querySelector(".task-row__actual");
       if (actualInput) {
         actualInput.addEventListener("change", function () {
@@ -1019,9 +1045,15 @@
         if (!state.selectingTasks) return;
         toggleTaskSelected(t.id, row);
       });
+      row.querySelector(".iconbtn--half").addEventListener("click", function () {
+        if (!t.half) playCheckSound();
+        api("/api/tasks?id=" + t.id, { method: "PATCH", body: { half: !t.half } })
+          .then(function () { return afterTaskChange(); })
+          .catch(function (e) { toast(e.message, true); });
+      });
       row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditTask(t); });
-      row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
-        if (!confirm('Delete task "' + t.title + '"?')) return;
+      row.querySelector(".iconbtn:not(.iconbtn--edit):not(.iconbtn--half)").addEventListener("click", function () {
+        if (!confirm(T('Delete task "' + t.title + '"?', 'تمسح المهمة "' + t.title + '"؟'))) return;
         api("/api/tasks?id=" + t.id, { method: "DELETE" })
           .then(function () { playDeleteSound(); if (state.editingTaskId === t.id) stopEditTask(); return afterTaskChange(); })
           .catch(function (e) { toast(e.message, true); });
@@ -1041,6 +1073,144 @@
     else syncTaskSelectBar();
   }
 
+  /* ---------------- "done at" clock ----------------
+     A 24-hour dial: 1–12 on the outer ring, 00 and 13–23 on the inner one,
+     then minutes. Drag the hand (picking the hour moves on to the minutes)
+     or type into the two boxes. Saved on the day on screen, so the graph
+     puts the point there. */
+
+  var clock = { task: null, h: 0, m: 0, mode: "h" };
+  var CLOCK_OUTER = 0.40, CLOCK_INNER = 0.26; // label rings, as a share of the face width
+
+  (function buildClockFace() {
+    var face = $("#clockFace");
+    function label(text, ring, i, cls) {
+      var el = document.createElement("span");
+      var a = i * 30 * Math.PI / 180;
+      el.className = "clock-face__num " + cls;
+      el.textContent = text;
+      el.style.left = (50 + ring * 100 * Math.sin(a)) + "%";
+      el.style.top = (50 - ring * 100 * Math.cos(a)) + "%";
+      face.appendChild(el);
+    }
+    for (var i = 0; i < 12; i++) {
+      label(i === 0 ? "12" : String(i), CLOCK_OUTER, i, "clock-face__num--h");
+      label(i === 0 ? "00" : String(i + 12), CLOCK_INNER, i, "clock-face__num--h clock-face__num--inner");
+      label(String(i * 5).padStart(2, "0"), CLOCK_OUTER, i, "clock-face__num--m");
+    }
+  })();
+
+  function openClock(t) {
+    var d = new Date(t.completed_at);
+    clock.task = t;
+    clock.h = d.getHours();
+    clock.m = d.getMinutes();
+    $("#clockTask").textContent = (t.icon ? t.icon + " " : "") + t.title;
+    setClockMode("h");
+    $("#clockDialog").showModal();
+    $("#clockH").focus();
+    $("#clockH").select();
+  }
+
+  function setClockMode(mode) {
+    clock.mode = mode;
+    $("#clockFace").classList.toggle("clock-face--minutes", mode === "m");
+    $("#clockH").classList.toggle("clock-read__part--on", mode === "h");
+    $("#clockM").classList.toggle("clock-read__part--on", mode === "m");
+    drawClock();
+  }
+
+  function drawClock(skipInputs) {
+    if (!skipInputs) {
+      $("#clockH").value = String(clock.h).padStart(2, "0");
+      $("#clockM").value = String(clock.m).padStart(2, "0");
+    }
+    var deg, ring;
+    if (clock.mode === "h") {
+      deg = (clock.h % 12) * 30;
+      ring = clock.h === 0 || clock.h > 12 ? CLOCK_INNER : CLOCK_OUTER;
+    } else {
+      deg = clock.m * 6;
+      ring = CLOCK_OUTER;
+    }
+    var hand = $("#clockHand");
+    hand.style.height = (ring * 100) + "%";
+    hand.style.transform = "rotate(" + deg + "deg)";
+    document.querySelectorAll("#clockFace .clock-face__num").forEach(function (el) {
+      var on = clock.mode === "h"
+        ? el.classList.contains("clock-face__num--h") && Number(el.textContent) === clock.h
+        : el.classList.contains("clock-face__num--m") && Number(el.textContent) === clock.m;
+      el.classList.toggle("clock-face__num--on", on);
+    });
+  }
+
+  function clockPick(ev) {
+    var box = $("#clockFace").getBoundingClientRect();
+    var x = ev.clientX - (box.left + box.width / 2);
+    var y = ev.clientY - (box.top + box.height / 2);
+    var deg = (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360;
+    if (clock.mode === "h") {
+      var i = Math.round(deg / 30) % 12;
+      var inner = Math.sqrt(x * x + y * y) < box.width * (CLOCK_OUTER + CLOCK_INNER) / 2;
+      clock.h = inner ? (i === 0 ? 0 : i + 12) : (i === 0 ? 12 : i);
+    } else {
+      clock.m = Math.round(deg / 6) % 60;
+    }
+    drawClock();
+  }
+
+  var clockDragging = false;
+  $("#clockFace").addEventListener("pointerdown", function (ev) {
+    clockDragging = true;
+    this.setPointerCapture(ev.pointerId);
+    clockPick(ev);
+  });
+  $("#clockFace").addEventListener("pointermove", function (ev) { if (clockDragging) clockPick(ev); });
+  $("#clockFace").addEventListener("pointerup", function () {
+    if (!clockDragging) return;
+    clockDragging = false;
+    if (clock.mode === "h") { playCheckSound(); setClockMode("m"); }
+  });
+
+  // typing: the hour box hands over to the minutes once two digits are in
+  [["#clockH", "h", 23], ["#clockM", "m", 59]].forEach(function (c) {
+    var input = $(c[0]);
+    input.addEventListener("focus", function () { setClockMode(c[1]); input.select(); });
+    input.addEventListener("input", function () {
+      input.value = input.value.replace(/\D/g, "").slice(0, 2);
+      if (input.value === "") return;
+      clock[c[1]] = Math.min(c[2], Number(input.value));
+      drawClock(true);
+      if (c[1] === "h" && input.value.length === 2) $("#clockM").focus();
+    });
+    input.addEventListener("blur", function () { drawClock(); });
+    input.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); saveClock(); }
+    });
+  });
+
+  $("#btnClockNow").addEventListener("click", function () {
+    var now = new Date();
+    clock.h = now.getHours();
+    clock.m = now.getMinutes();
+    drawClock();
+  });
+  $("#btnClockCancel").addEventListener("click", function () { $("#clockDialog").close(); });
+  $("#clockDialog").addEventListener("click", function (ev) { if (ev.target === this) this.close(); });
+  $("#btnClockSave").addEventListener("click", saveClock);
+
+  function saveClock() {
+    var t = clock.task;
+    if (!t) return;
+    var at = new Date(state.currentDate + "T" + String(clock.h).padStart(2, "0") + ":" + String(clock.m).padStart(2, "0") + ":00");
+    var btn = $("#btnClockSave");
+    busy(btn, true);
+    api("/api/tasks?id=" + t.id, { method: "PATCH", body: { completed_at: at.toISOString() } })
+      .then(function () { $("#clockDialog").close(); return afterTaskChange(); })
+      .catch(function (e) { toast(e.message, true); })
+      .finally(function () { busy(btn, false); });
+  }
+
   /* ---------------- select several tasks, delete them together ---------------- */
 
   function selectedTaskCount() { return Object.keys(state.selectedTaskIds).length; }
@@ -1048,10 +1218,10 @@
   function syncTaskSelectBar() {
     var n = selectedTaskCount();
     var all = (state.visibleTaskIds || []).length;
-    $("#taskSelectCount").textContent = n + " selected";
+    $("#taskSelectCount").textContent = T(n + " selected", "المحدد: " + n);
     $("#btnDeleteSelected").disabled = n === 0;
-    $("#btnDeleteSelected").textContent = n ? "Delete " + n : "Delete";
-    $("#btnSelectAll").textContent = n && n === all ? "Select none" : "Select all";
+    $("#btnDeleteSelected").textContent = n ? T("Delete " + n, "مسح " + n) : T("Delete", "مسح");
+    $("#btnSelectAll").textContent = n && n === all ? T("Select none", "إلغاء التحديد") : T("Select all", "تحديد الكل");
   }
 
   function enterTaskSelect() {
@@ -1099,14 +1269,14 @@
   $("#btnDeleteSelected").addEventListener("click", function () {
     var ids = Object.keys(state.selectedTaskIds);
     if (!ids.length) return;
-    if (!confirm("Delete " + ids.length + " task" + (ids.length === 1 ? "" : "s") + "? This can't be undone.")) return;
+    if (!confirm(T("Delete " + ids.length + " task" + (ids.length === 1 ? "" : "s") + "? This can't be undone.", "تمسح " + I18N.N(ids.length, "task", "tasks", ["مهمة واحدة", "مهمتين", "مهام", "مهمة"]) + "؟ مش هينفع ترجعها."))) return;
     var btn = this;
     busy(btn, true);
     api("/api/tasks?ids=" + ids.join(","), { method: "DELETE" })
       .then(function (r) {
         playDeleteSound();
         var n = r.count != null ? r.count : ids.length;
-        toast("Deleted " + n + " task" + (n === 1 ? "" : "s"));
+        toast(T("Deleted " + n + " task" + (n === 1 ? "" : "s"), "اتمسحت " + I18N.N(n, "task", "tasks", ["مهمة واحدة", "مهمتين", "مهام", "مهمة"])));
         exitTaskSelect();
         return afterTaskChange();
       })
@@ -1188,25 +1358,205 @@
   $("#duplicateDate").value = addDays(todayISO(), 1);
 
   $("#btnClearDay").addEventListener("click", function () {
-    if (!confirm("Delete ALL tasks for " + fmtDate(state.currentDate) + "? This can't be undone.")) return;
+    if (!confirm(T("Delete ALL tasks for " + fmtDate(state.currentDate) + "? This can't be undone.", "تمسح كل مهام " + fmtDate(state.currentDate) + "؟ مش هينفع ترجعها."))) return;
     api("/api/tasks?date=" + state.currentDate, { method: "DELETE" })
-      .then(function () { toast("Day cleared"); return afterTaskChange(); })
+      .then(function () { toast(T("Day cleared", "اليوم اتمسح")); return afterTaskChange(); })
       .catch(function (e) { toast(e.message, true); });
   });
 
   $("#btnDuplicateDay").addEventListener("click", function () {
     var to = $("#duplicateDate").value;
-    if (!to) { toast("Pick a date to copy to", true); return; }
+    if (!to) { toast(T("Pick a date to copy to", "اختار تاريخ تنسخ ليه"), true); return; }
     var btn = this;
     busy(btn, true);
     api("/api/tasks?duplicate=1", { method: "POST", body: { from_date: state.currentDate, to_date: to } })
       .then(function (r) {
-        toast(r.count ? ("Copied " + r.count + " task" + (r.count === 1 ? "" : "s") + " to " + fmtDate(to)) : "No tasks to copy");
+        toast(r.count ? T("Copied " + r.count + " task" + (r.count === 1 ? "" : "s") + " to " + fmtDate(to), "اتنسخت " + I18N.N(r.count, "task", "tasks", ["مهمة واحدة", "مهمتين", "مهام", "مهمة"]) + " ليوم " + fmtDate(to)) : T("No tasks to copy", "مفيش مهام تتنسخ"));
         return to === state.currentDate ? afterTaskChange() : null;
       })
       .catch(function (e) { toast(e.message, true); })
       .finally(function () { busy(btn, false); });
   });
+
+  /* ---------------- add the shown day to Google Calendar ----------------
+     Every task of the day on screen becomes its own timed event, back to back
+     (planned hours long, 30 min when none), starting at the next half hour
+     when it's today or 9:00 on any other day — the owner then drags them
+     into place in Google Calendar.
+
+     With GCAL_CLIENT_ID set, the button signs in with Google (a popup, once
+     an hour at most) and writes the events straight into the primary
+     calendar. Each event id comes from the task id, so pressing it again
+     skips tasks already there and keeps wherever they were dragged to.
+     Without a client id it falls back to downloading an .ics to import. */
+
+  // OAuth client (Web application) whose authorised JavaScript origin is
+  // https://ahmedtarek.tech — public by design, it is not a secret
+  var GCAL_CLIENT_ID = "";
+  var GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+  var gcalToken = null; // { value, expires }
+  var gcalTokenClient = null;
+
+  if (GCAL_CLIENT_ID) {
+    // loaded up front: the sign-in popup has to open inside the click itself,
+    // which a script still loading at click time would miss
+    var gsi = document.createElement("script");
+    gsi.src = "https://accounts.google.com/gsi/client";
+    gsi.async = true;
+    document.head.appendChild(gsi);
+  }
+
+  function dayEventPlan(date, tasks) {
+    var start = new Date(date + "T09:00:00");
+    if (date === todayISO()) {
+      start = new Date();
+      start.setSeconds(0, 0);
+      start.setMinutes(start.getMinutes() < 30 ? 30 : 60);
+    }
+    return tasks.map(function (t) {
+      var end = new Date(start.getTime() + Math.round((Number(t.planned_hours) || 0.5) * 60) * 60000);
+      var ev = {
+        task: t,
+        title: (t.done ? "✓ " : t.half ? "½ " : "") + (t.icon ? t.icon + " " : "") + t.title,
+        start: start,
+        end: end
+      };
+      start = end;
+      return ev;
+    });
+  }
+
+  $("#btnDayToGcal").addEventListener("click", function () {
+    var tasks = state.dayTasks || [];
+    if (!tasks.length) { toast(T("No tasks on this day to add", "مفيش مهام في اليوم ده تتضاف"), true); return; }
+    var plan = dayEventPlan(state.currentDate, tasks);
+    if (!GCAL_CLIENT_ID) { downloadDayIcs(state.currentDate, plan); return; }
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      toast(T("Google sign-in is still loading — try again in a second", "تسجيل الدخول بجوجل لسه بيحمّل — جرّب تاني بعد ثانية"), true);
+      return;
+    }
+    var btn = this;
+    withGcalToken(function (token) {
+      busy(btn, true);
+      gcalInsertAll(token, plan)
+        .then(function (r) {
+          var msg = r.added ? T("Added " + r.added + " event" + (r.added === 1 ? "" : "s") + " to Google Calendar ✓", "اتضاف " + I18N.N(r.added, "event", "events", ["حدث واحد", "حدثين", "أحداث", "حدث"]) + " على Google Calendar ✓") : T("Already in Google Calendar", "موجودة بالفعل على Google Calendar");
+          if (r.added && r.skipped) msg += T(" · " + r.skipped + " already there", " · " + r.skipped + " موجودة قبل كده");
+          toast(msg);
+        })
+        .catch(function (e) {
+          if (e.status === 401) gcalToken = null;
+          toast(e.message, true);
+        })
+        .finally(function () { busy(btn, false); });
+    });
+  });
+
+  function withGcalToken(fn) {
+    if (gcalToken && gcalToken.expires > Date.now() + 60000) { fn(gcalToken.value); return; }
+    if (!gcalTokenClient) {
+      gcalTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GCAL_CLIENT_ID,
+        scope: GCAL_SCOPE,
+        callback: function () {},
+        error_callback: function (err) {
+          if (err && err.type !== "popup_closed") toast(T("Google sign-in failed — allow pop-ups for this site", "تسجيل الدخول بجوجل فشل — اسمح بالنوافذ المنبثقة للموقع ده"), true);
+        }
+      });
+    }
+    gcalTokenClient.callback = function (resp) {
+      if (resp.error || !google.accounts.oauth2.hasGrantedAllScopes(resp, GCAL_SCOPE)) {
+        toast(T("Calendar access wasn't granted", "ما اتسمحش بالوصول للتقويم"), true);
+        return;
+      }
+      gcalToken = { value: resp.access_token, expires: Date.now() + Number(resp.expires_in || 3600) * 1000 };
+      fn(gcalToken.value);
+    };
+    gcalTokenClient.requestAccessToken();
+  }
+
+  function gcalRequest(token, method, path, body) {
+    return fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events" + path, {
+      method: method,
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (res) {
+      if (res.ok) return res.json();
+      return res.json().catch(function () { return {}; }).then(function (j) {
+        var err = new Error((j.error && j.error.message) || T("Google Calendar error " + res.status, "خطأ من Google Calendar " + res.status));
+        err.status = res.status;
+        throw err;
+      });
+    });
+  }
+
+  function gcalInsertAll(token, plan) {
+    var zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var local = function (d) {
+      var pad = function (n) { return String(n).padStart(2, "0"); };
+      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":00";
+    };
+    var added = 0, skipped = 0;
+    // one after another, not all at once — Calendar rate-limits bursts per user
+    return plan.reduce(function (chain, ev) {
+      return chain.then(function () {
+        // event ids may only use a-v and 0-9; "timetask" + the task id fits
+        var id = "timetask" + ev.task.id;
+        var body = {
+          id: id,
+          summary: ev.title,
+          start: { dateTime: local(ev.start), timeZone: zone },
+          end: { dateTime: local(ev.end), timeZone: zone }
+        };
+        return gcalRequest(token, "POST", "", body)
+          .then(function () { added++; })
+          .catch(function (e) {
+            if (e.status !== 409) throw e;
+            // the id is taken: leave a live event where it was dragged to,
+            // bring back one that was deleted (Google keeps it as cancelled)
+            return gcalRequest(token, "GET", "/" + id).then(function (existing) {
+              if (existing.status !== "cancelled") { skipped++; return; }
+              body.status = "confirmed";
+              return gcalRequest(token, "PUT", "/" + id, body).then(function () { added++; });
+            });
+          });
+      });
+    }, Promise.resolve()).then(function () { return { added: added, skipped: skipped }; });
+  }
+
+  function downloadDayIcs(date, plan) {
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    // floating local time (no Z / zone), so it lands at the same clock time in the calendar
+    var icsTime = function (d) {
+      return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "T" + pad(d.getHours()) + pad(d.getMinutes()) + "00";
+    };
+    var esc = function (v) { return String(v).replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); };
+    var stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ahmedtarek.tech//time//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+    plan.forEach(function (ev) {
+      lines.push(
+        "BEGIN:VEVENT",
+        "UID:task-" + ev.task.id + "@ahmedtarek.tech",
+        "DTSTAMP:" + stamp,
+        "DTSTART:" + icsTime(ev.start),
+        "DTEND:" + icsTime(ev.end),
+        "SUMMARY:" + esc(ev.title),
+        "END:VEVENT"
+      );
+    });
+    lines.push("END:VCALENDAR");
+
+    var blob = new Blob([lines.join("\r\n") + "\r\n"], { type: "text/calendar;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "todo-" + date + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    window.open("https://calendar.google.com/calendar/r/settings/export", "_blank", "noopener");
+    toast(T("Downloaded " + plan.length + " event" + (plan.length === 1 ? "" : "s") + " — in Google Calendar, Import that file", "اتنزّل " + I18N.N(plan.length, "event", "events", ["حدث واحد", "حدثين", "أحداث", "حدث"]) + " — في Google Calendar اعمل Import للملف ده"));
+  }
 
   function startEditTask(t) {
     state.editingTaskId = t.id;
@@ -1217,7 +1567,7 @@
     form.elements.planned_hours.value = t.planned_hours != null ? Number(t.planned_hours) : "";
     form.elements.actual_hours.value = t.actual_hours != null ? Number(t.actual_hours) : "";
     $("#actualHoursField").hidden = false;
-    $("#btnTaskSubmit").textContent = "Update task";
+    $("#btnTaskSubmit").textContent = T("Update task", "تحديث المهمة");
     $("#btnCancelTaskEdit").hidden = false;
     form.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -1227,7 +1577,7 @@
     var form = $("#addTaskForm");
     form.reset();
     $("#actualHoursField").hidden = true;
-    $("#btnTaskSubmit").textContent = "Add task";
+    $("#btnTaskSubmit").textContent = T("Add task", "إضافة مهمة");
     $("#btnCancelTaskEdit").hidden = true;
   }
 
@@ -1252,7 +1602,7 @@
     (editingId ? api("/api/tasks?id=" + editingId, { method: "PATCH", body: body })
                : api("/api/tasks", { method: "POST", body: body }))
       .then(function () {
-        toast(editingId ? "Task updated ✓" : "Task added ✓");
+        toast(editingId ? T("Task updated ✓", "المهمة اتحدّثت ✓") : T("Task added ✓", "المهمة اتضافت ✓"));
         if (!editingId) playAddSound();
         stopEditTask();
         return afterTaskChange();
@@ -1290,7 +1640,7 @@
       // (e.g. after checking a task) should just show the new heights directly,
       // not collapse every bar back to 0% and regrow them, which reads as a reset
       bar.style.height = (reduceMotion || !animate) ? target + "%" : "0%";
-      bar.title = fmtDate(d) + (pct == null ? " · no tasks" : " · " + pct + "% (" + s.done + "/" + s.total + ")");
+      bar.title = fmtDate(d) + (pct == null ? T(" · no tasks", " · مفيش مهام") : " · " + pct + "% (" + s.done + "/" + s.total + ")");
       box.appendChild(bar);
       bars.push({ el: bar, target: target });
       d = addDays(d, 1);
@@ -1320,10 +1670,10 @@
   /* ---------------- mascot: reacts to today's completion %, with a streak + confetti ---------------- */
 
   var MASCOT_MOODS = [
-    { max: 0, mouth: "sad", caption: "Let's get started! 💪" },
-    { max: 49, mouth: "neutral", caption: "Building momentum…" },
-    { max: 99, mouth: "happy", caption: "You're doing great!" },
-    { max: 100, mouth: "excited", caption: "Perfect day! 🎉" },
+    { max: 0, mouth: "sad", caption: T("Let's get started! 💪", "يلا نبدأ! 💪") },
+    { max: 49, mouth: "neutral", caption: T("Building momentum…", "الحماس بيزيد…") },
+    { max: 99, mouth: "happy", caption: T("You're doing great!", "إنت ماشي كويس!") },
+    { max: 100, mouth: "excited", caption: T("Perfect day! 🎉", "يوم مثالي! 🎉") },
   ];
   var mascotHit100Today = false;
 
@@ -1389,23 +1739,23 @@
      it is, counted from real data each time — nothing is stored but whether
      its fanfare has already played. */
   var BADGES = [
-    { id: "task-1", icon: "✅", name: "First task done", goal: 1, of: function (s) { return s.totalDone; }, unit: "tasks" },
-    { id: "task-50", icon: "🥉", name: "50 tasks done", goal: 50, of: function (s) { return s.totalDone; }, unit: "tasks" },
-    { id: "task-200", icon: "🥈", name: "200 tasks done", goal: 200, of: function (s) { return s.totalDone; }, unit: "tasks" },
-    { id: "task-500", icon: "🥇", name: "500 tasks done", goal: 500, of: function (s) { return s.totalDone; }, unit: "tasks" },
-    { id: "streak-3", icon: "🔥", name: "3 days in a row, all done", goal: 3, of: function (s) { return s.longestStreak; }, unit: "days" },
-    { id: "streak-7", icon: "⚡", name: "A whole week in a row", goal: 7, of: function (s) { return s.longestStreak; }, unit: "days" },
-    { id: "streak-30", icon: "🌋", name: "30 days in a row", goal: 30, of: function (s) { return s.longestStreak; }, unit: "days" },
-    { id: "goal-1", icon: "🎯", name: "First goal reached", goal: 1, of: function (s) { return s.completedGoals; }, unit: "goals" },
-    { id: "goal-10", icon: "🏹", name: "10 goals reached", goal: 10, of: function (s) { return s.completedGoals; }, unit: "goals" },
-    { id: "pomo-1", icon: "🍅", name: "First focus block", goal: 1, of: function (s) { return s.focusBlocks; }, unit: "blocks" },
-    { id: "pomo-day", icon: "💯", name: "A full ten-block day", goal: 1, of: function (s) { return s.focusFullDays; }, unit: "days" },
-    { id: "pomo-100", icon: "🧘", name: "100 focus blocks", goal: 100, of: function (s) { return s.focusBlocks; }, unit: "blocks" },
-    { id: "milestone-1", icon: "🪜", name: "First money milestone", goal: 1, of: function (s) { return s.milestonesChecked; }, unit: "rungs" },
-    { id: "milestone-half", icon: "💰", name: "Halfway up to $500K", goal: 5, of: function (s) { return s.milestonesChecked; }, unit: "rungs" },
-    { id: "cycle-1", icon: "🎖️", name: "One 5-month cycle kept", goal: 1, of: function (s) { return s.cyclesCompleted; }, unit: "cycles" },
-    { id: "cycle-2", icon: "🏅", name: "Ten months kept", goal: 2, of: function (s) { return s.cyclesCompleted; }, unit: "cycles" },
-    { id: "cycle-4", icon: "🏆", name: "A year kept", goal: 4, of: function (s) { return s.cyclesCompleted; }, unit: "cycles" },
+    { id: "task-1", icon: "✅", name: T("First task done", "أول مهمة خلصت"), goal: 1, of: function (s) { return s.totalDone; }, unit: T("tasks", "مهمة") },
+    { id: "task-50", icon: "🥉", name: T("50 tasks done", "50 مهمة خلصت"), goal: 50, of: function (s) { return s.totalDone; }, unit: T("tasks", "مهمة") },
+    { id: "task-200", icon: "🥈", name: T("200 tasks done", "200 مهمة خلصت"), goal: 200, of: function (s) { return s.totalDone; }, unit: T("tasks", "مهمة") },
+    { id: "task-500", icon: "🥇", name: T("500 tasks done", "500 مهمة خلصت"), goal: 500, of: function (s) { return s.totalDone; }, unit: T("tasks", "مهمة") },
+    { id: "streak-3", icon: "🔥", name: T("3 days in a row, all done", "3 أيام ورا بعض، كله خلص"), goal: 3, of: function (s) { return s.longestStreak; }, unit: T("days", "يوم") },
+    { id: "streak-7", icon: "⚡", name: T("A whole week in a row", "أسبوع كامل ورا بعض"), goal: 7, of: function (s) { return s.longestStreak; }, unit: T("days", "يوم") },
+    { id: "streak-30", icon: "🌋", name: T("30 days in a row", "30 يوم ورا بعض"), goal: 30, of: function (s) { return s.longestStreak; }, unit: T("days", "يوم") },
+    { id: "goal-1", icon: "🎯", name: T("First goal reached", "أول هدف اتحقق"), goal: 1, of: function (s) { return s.completedGoals; }, unit: T("goals", "هدف") },
+    { id: "goal-10", icon: "🏹", name: T("10 goals reached", "10 أهداف اتحققت"), goal: 10, of: function (s) { return s.completedGoals; }, unit: T("goals", "هدف") },
+    { id: "pomo-1", icon: "🍅", name: T("First focus block", "أول بلوك تركيز"), goal: 1, of: function (s) { return s.focusBlocks; }, unit: T("blocks", "بلوك") },
+    { id: "pomo-day", icon: "💯", name: T("A full ten-block day", "يوم كامل بعشر بلوكات"), goal: 1, of: function (s) { return s.focusFullDays; }, unit: T("days", "يوم") },
+    { id: "pomo-100", icon: "🧘", name: T("100 focus blocks", "100 بلوك تركيز"), goal: 100, of: function (s) { return s.focusBlocks; }, unit: T("blocks", "بلوك") },
+    { id: "milestone-1", icon: "🪜", name: T("First money milestone", "أول محطة فلوس"), goal: 1, of: function (s) { return s.milestonesChecked; }, unit: T("rungs", "محطة") },
+    { id: "milestone-half", icon: "💰", name: T("Halfway up to $500K", "نص الطريق لـ $500K"), goal: 5, of: function (s) { return s.milestonesChecked; }, unit: T("rungs", "محطة") },
+    { id: "cycle-1", icon: "🎖️", name: T("One 5-month cycle kept", "دورة 5 شهور كاملة"), goal: 1, of: function (s) { return s.cyclesCompleted; }, unit: T("cycles", "دورة") },
+    { id: "cycle-2", icon: "🏅", name: T("Ten months kept", "عشر شهور التزام"), goal: 2, of: function (s) { return s.cyclesCompleted; }, unit: T("cycles", "دورة") },
+    { id: "cycle-4", icon: "🏆", name: T("A year kept", "سنة التزام"), goal: 4, of: function (s) { return s.cyclesCompleted; }, unit: T("cycles", "دورة") },
   ];
 
   function loadCommitStart() {
@@ -1461,7 +1811,7 @@
       void badge.offsetWidth;
       badge.classList.add("gamify__level-badge--pop");
     }
-    toast("🎉 5-month cycle complete — cycle " + currentCycleNum + " begins!");
+    toast(T("🎉 5-month cycle complete — cycle " + currentCycleNum + " begins!", "🎉 دورة الـ5 شهور خلصت — الدورة " + currentCycleNum + " بتبدأ!"));
   }
 
   function badgeUnlockCelebrate(ids) {
@@ -1479,7 +1829,7 @@
       var b = BADGES.filter(function (x) { return x.id === id; })[0];
       return b ? b.icon + " " + b.name : id;
     });
-    toast("🏅 New badge: " + names.join(", "));
+    toast(T("🏅 New badge: " + names.join(", "), "🏅 شارة جديدة: " + names.join("، ")));
   }
 
   /* Each badge set by hand (owner, 2026-10-21: «manual adjust — can set
@@ -1528,7 +1878,7 @@
   // "50 tasks done" says its new number; a name without one says the goal
   function badgeName(b, goal) {
     if (goal === b.goal) return b.name;
-    return b.name.indexOf(String(b.goal)) !== -1 ? b.name.replace(String(b.goal), String(goal)) : b.name + " (goal " + goal + ")";
+    return b.name.indexOf(String(b.goal)) !== -1 ? b.name.replace(String(b.goal), String(goal)) : b.name + T(" (goal " + goal + ")", " (الهدف " + goal + ")");
   }
   var lastGamify = null; // { stats, full } — redrawn without fetching again after a change
   var openBadge = null;
@@ -1538,7 +1888,7 @@
     var pct = cycle.totalCycleDays > 0 ? Math.min(100, Math.round((cycle.dayInCycle / cycle.totalCycleDays) * 100)) : 0;
 
     $("#gamifyLevelBadge").textContent = cycle.currentCycleNum;
-    $("#gamifyXpText").textContent = "Day " + cycle.dayInCycle + " / " + cycle.totalCycleDays;
+    $("#gamifyXpText").textContent = T("Day " + cycle.dayInCycle + " / " + cycle.totalCycleDays, "يوم " + cycle.dayInCycle + " / " + cycle.totalCycleDays);
     $("#gamifyXpFill").style.width = pct + "%";
     var startInput = $("#gamifyStartInput");
     if (document.activeElement !== startInput) startInput.value = cycle.startISO;
@@ -1570,7 +1920,7 @@
     $("#gamifyBadges").innerHTML = reached.map(function (r) {
       var b = r.badge;
       var shown = Math.min(r.now, r.goal);
-      var tip = r.name + " — " + shown + " of " + r.goal + " " + b.unit + (r.done ? " ✓" : "") + " · click to set the goal or restart";
+      var tip = T(r.name + " — " + shown + " of " + r.goal + " " + b.unit + (r.done ? " ✓" : "") + " · click to set the goal or restart", r.name + " — " + shown + " من " + r.goal + " " + b.unit + (r.done ? " ✓" : "") + " · دوس عشان تحدد الهدف أو تبدأ من الأول");
       return '<button type="button" class="badge-chip' + (r.done ? " badge-chip--unlocked" : "") + (r.tuned ? " badge-chip--tuned" : "") +
         (openBadge === b.id ? " badge-chip--open" : "") + '" data-id="' + b.id +
         '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
@@ -1579,15 +1929,17 @@
       '</button>';
     }).join("");
     if (openBadge) fillBadgeTune(reached.filter(function (r) { return r.badge.id === openBadge; })[0]);
-    $("#gamifyBadgeCount").textContent = unlockedIds.length + " of " + BADGES.length;
+    $("#gamifyBadgeCount").textContent = T(unlockedIds.length + " of " + BADGES.length, unlockedIds.length + " من " + BADGES.length);
 
     // the nearest one still to come, so the row says what to aim at
     var next = reached.filter(function (r) { return !r.done; })
       .sort(function (a, b) { return b.pct - a.pct; })[0];
     $("#gamifyNext").textContent = next
-      ? "Closest: " + next.badge.icon + " " + next.name + " — " + Math.min(next.now, next.goal) +
-        " of " + next.goal + " " + next.badge.unit
-      : "Every badge earned 🎉";
+      ? T("Closest: " + next.badge.icon + " " + next.name + " — " + Math.min(next.now, next.goal) +
+        " of " + next.goal + " " + next.badge.unit,
+        "الأقرب: " + next.badge.icon + " " + next.name + " — " + Math.min(next.now, next.goal) +
+        " من " + next.goal + " " + next.badge.unit)
+      : T("Every badge earned 🎉", "كل الشارات اتكسبت 🎉");
 
     var meta = loadGamifyMeta();
     if (meta.initialized) {
@@ -1603,7 +1955,7 @@
      (back to today) and the memory of which fanfares have played. Tasks,
      goals, milestones and focus blocks are untouched. */
   $("#btnGamifyReset").addEventListener("click", function () {
-    if (!confirm("Restart the 5-month commitment AND every badge from today?\n\nEach badge counts again from zero; the goals you set are kept. Your tasks, goals, milestones and focus blocks are not touched.")) return;
+    if (!confirm(T("Restart the 5-month commitment AND every badge from today?\n\nEach badge counts again from zero; the goals you set are kept. Your tasks, goals, milestones and focus blocks are not touched.", "تبدأ التزام الـ5 شهور وكل الشارات من النهارده تاني؟\n\nكل شارة هتتعد من الصفر تاني، والأهداف اللي حددتها هتفضل زي ما هي. مهامك وأهدافك ومحطاتك وبلوكات التركيز مش هتتلمس."))) return;
     var today = todayISO();
     var tune = loadBadgeTune();
     BADGES.forEach(function (b) {
@@ -1617,7 +1969,7 @@
     saveCommitStart(today);
     saveGamifyMeta({ cyclesCompleted: 0, badges: [], initialized: false });
     playAddSound();
-    toast("Commitment and badges restarted from today ✓");
+    toast(T("Commitment and badges restarted from today ✓", "الالتزام والشارات بدأوا من النهارده تاني ✓"));
     loadGamification();
   });
 
@@ -1627,8 +1979,8 @@
     var t = loadBadgeTune()[r.badge.id];
     $("#badgeTuneGlyph").textContent = r.badge.icon;
     $("#badgeTuneName").textContent = r.name + (r.done ? " ✓" : "");
-    $("#badgeTuneNow").textContent = Math.min(r.now, r.goal) + " of " + r.goal + " " + r.badge.unit +
-      (t && t.since ? " · counting since " + t.since : " · counting all your history");
+    $("#badgeTuneNow").textContent = Math.min(r.now, r.goal) + T(" of ", " من ") + r.goal + " " + r.badge.unit +
+      (t && t.since ? T(" · counting since " + t.since, " · العدّ من " + t.since) : T(" · counting all your history", " · العدّ على كل تاريخك"));
     var goalInput = $("#badgeTuneGoal");
     if (document.activeElement !== goalInput) goalInput.value = r.goal;
     $("#badgeTuneUnit").textContent = r.badge.unit;
@@ -1653,14 +2005,14 @@
   $("#badgeTuneSave").addEventListener("click", function () {
     var b = BADGES.filter(function (x) { return x.id === openBadge; })[0];
     var n = Math.round(Number($("#badgeTuneGoal").value));
-    if (!b || !(n >= 1)) { toast("A goal is a whole number, 1 or more"); return; }
+    if (!b || !(n >= 1)) { toast(T("A goal is a whole number, 1 or more", "الهدف رقم صحيح، 1 أو أكتر")); return; }
     var tune = loadBadgeTune();
     var t = tune[b.id] || {};
     if (n === b.goal) delete t.goal; else t.goal = n;
     if (Object.keys(t).length) tune[b.id] = t; else delete tune[b.id];
     saveBadgeTune(tune);
     playAddSound();
-    toast("Goal set: " + badgeName(b, n) + " ✓");
+    toast(T("Goal set: " + badgeName(b, n) + " ✓", "الهدف اتحدد: " + badgeName(b, n) + " ✓"));
     redrawGamify();
   });
   $("#badgeTuneGoal").addEventListener("keydown", function (ev) {
@@ -1676,7 +2028,7 @@
     tune[b.id] = t;
     saveBadgeTune(tune);
     playDeleteSound();
-    toast(b.icon + " restarted from today");
+    toast(T(b.icon + " restarted from today", b.icon + " بدأت من النهارده تاني"));
     redrawGamify();
   });
   $("#badgeTuneDefault").addEventListener("click", function () {
@@ -1684,7 +2036,7 @@
     delete tune[openBadge];
     saveBadgeTune(tune);
     playAddSound();
-    toast("Back to its default goal, counting all your history");
+    toast(T("Back to its default goal, counting all your history", "رجعت لهدفها الأصلي، والعدّ على كل تاريخك"));
     redrawGamify();
   });
 
@@ -1844,13 +2196,13 @@
     box.hidden = false;
 
     $("#quartersAvgValue").textContent = st.avg + "%";
-    $("#quartersAvgSub").textContent = "daily tasks done · " + plural(st.counted, "quarter");
+    $("#quartersAvgSub").textContent = T("daily tasks done · " + plural(st.counted, "quarter"), "مهام يومية خلصت · " + I18N.N(st.counted, "quarter", "quarters", ["ربع سنة واحد", "ربعين", "أرباع", "ربع"]));
     $("#quartersGoalsValue").textContent = st.goalsAvg == null ? "—" : st.goalsAvg + "%";
     $("#quartersGoalsSub").textContent = st.goalsAvg == null
-      ? "no goals set yet"
-      : "of goals reached · " + plural(st.goalsCounted, "quarter");
+      ? T("no goals set yet", "لسه مفيش أهداف")
+      : T("of goals reached · " + plural(st.goalsCounted, "quarter"), "من الأهداف اتحققت · " + I18N.N(st.goalsCounted, "quarter", "quarters", ["ربع سنة واحد", "ربعين", "أرباع", "ربع"]));
     $("#quartersDaysValue").textContent = st.trackedDays;
-    $("#quartersDaysSub").textContent = "across " + plural(state.quarters.length, "quarter");
+    $("#quartersDaysSub").textContent = T("across " + plural(state.quarters.length, "quarter"), "على مدار " + I18N.N(state.quarters.length, "quarter", "quarters", ["ربع سنة واحد", "ربعين", "أرباع", "ربع"]));
 
     var best = null;
     state.quarters.forEach(function (q) {
@@ -1858,7 +2210,7 @@
       if (s && s.tracked && (!best || s.avg > best.s.avg)) best = { q: q, s: s };
     });
     $("#quartersBestValue").textContent = best ? best.s.avg + "%" : "—";
-    $("#quartersBestSub").textContent = best ? best.q.name : "no tracked days yet";
+    $("#quartersBestSub").textContent = best ? best.q.name : T("no tracked days yet", "لسه مفيش أيام متسجلة");
 
     // oldest first — a trend line that ran newest-to-oldest would read backwards
     var today = todayISO();
@@ -1886,19 +2238,19 @@
     var today = todayISO();
     var box = $("#quarterGallery");
     box.innerHTML = state.quarters.map(function (q) {
-      var badge = today < q.start_date ? '<span class="badge badge--muted">Upcoming</span>'
-        : today > q.end_date ? '<span class="badge badge--muted">Past</span>'
-        : '<span class="badge badge--good">Current</span>';
+      var badge = today < q.start_date ? '<span class="badge badge--muted">' + T("Upcoming", "جاي") + '</span>'
+        : today > q.end_date ? '<span class="badge badge--muted">' + T("Past", "فات") + '</span>'
+        : '<span class="badge badge--good">' + T("Current", "الحالي") + '</span>';
       var s = state.quarterStats && state.quarterStats.byId[q.id];
       return '<div class="quarter-card" data-id="' + q.id + '">' +
         '<div class="quarter-card__top"><span class="quarter-card__name">' + esc(q.name) + '</span>' + badge + '</div>' +
         '<div class="quarter-card__dates">' + fmtDate(q.start_date) + ' – ' + fmtDate(q.end_date) + '</div>' +
         (s ?
           '<div class="quarter-card__avg">' +
-            quarterMeasureHtml("Execution", s.tracked ? s.avg : null, "exec") +
-            quarterMeasureHtml("Goals", s.goals, "goals") +
+            quarterMeasureHtml(T("Execution", "التنفيذ"), s.tracked ? s.avg : null, "exec") +
+            quarterMeasureHtml(T("Goals", "الأهداف"), s.goals, "goals") +
             '<div class="quarter-card__foot">' +
-              (s.tracked ? s.tracked + ' of ' + s.days + ' days tracked' : 'nothing logged yet') +
+              (s.tracked ? T(s.tracked + ' of ' + s.days + ' days tracked', s.tracked + ' من ' + s.days + ' يوم متسجل') : T('nothing logged yet', 'لسه مفيش حاجة متسجلة')) +
             '</div>' +
           '</div>'
           : '') +
@@ -1955,19 +2307,19 @@
   function renderCategorySelect(categories) {
     var sel = $("#addTaskForm").elements.category_id;
     var current = sel.value;
-    sel.innerHTML = '<option value="">— none —</option>' +
+    sel.innerHTML = '<option value="">' + T("— none —", "— مفيش —") + '</option>' +
       (categories || []).map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
     if (current) sel.value = current;
   }
 
-  var PACE_LABEL = { ahead: "Ahead", "on-track": "On track", behind: "Behind", "not-started": "Not started" };
+  var PACE_LABEL = { ahead: T("Ahead", "سابق"), "on-track": T("On track", "ماشي تمام"), behind: T("Behind", "متأخر"), "not-started": T("Not started", "لسه ما بدأش") };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
   var PACE_DONUT_COLOR = { ahead: "#1fa876", "on-track": "#60a5fa", behind: "#e2586a", "not-started": "#5f6b7d" };
   // Categorical palette led by the site's blurple accent. Every hue sits at a
   // similar mid lightness so the same swatch reads on the white ground and on
   // the dark one, without a per-theme second palette.
   var CATEGORY_PALETTE = ["#8477d4", "#3aa682", "#c98a2b", "#4f93d1", "#c4649b", "#3fadaf", "#d1704f", "#8b8fa3"];
-  var GOAL_STATUS_LABEL = { done: "Completed", "in-progress": "In progress", "not-started": "Not started" };
+  var GOAL_STATUS_LABEL = { done: T("Completed", "خلصت"), "in-progress": T("In progress", "شغال عليه"), "not-started": T("Not started", "لسه ما بدأش") };
   var GOAL_STATUS_COLOR = { done: "#1fa876", "in-progress": "#60a5fa", "not-started": "#5f6b7d" };
 
   function fmtNum(n) {
@@ -2006,12 +2358,12 @@
      then depends on order in all goals non hidden add days, so this will be
      the due date"). */
   var TRACK_KEYS = ["biz", "brand", "job", "learn"];
-  var TRACK_NAME = { biz: "Business", brand: "Branding", job: "Job", learn: "Learning" };
+  var TRACK_NAME = { biz: T("Business", "البيزنس"), brand: T("Branding", "البراند"), job: T("Job", "الوظيفة"), learn: T("Learning", "التعلّم") };
   var TRACK_COLOR = { biz: "#e0652f", brand: "#15966b", job: "#2a78d6", learn: "#d99a00" };
   var TRACK_WORDS = { biz: /business|biz|startup|company|product|cashflow|sales|client/i, brand: /brand|content|linkedin|youtube|social|writing|audience/i, job: /job|work|career|interview|applications?|cv|resume/i, learn: /learn|study|course|read|book|skill|english/i };
   // the plan's own starting numbers, per phase, for when it has not been saved yet
   var PLAN_DEFAULT_HOURS = { 1: { biz: 5, brand: 3, job: 2.5, learn: 1.5 }, 2: { biz: 2, brand: 1.5, job: 8, learn: 0.5 }, 3: { biz: 2.5, brand: 1, job: 8, learn: 0.5 }, 4: { biz: 6, brand: 4, job: 0, learn: 2 } };
-  var PLAN_PHASE_NAME = { 1: "Job hunt and building the business", 2: "Job and business together", 3: "Job, with the team running", 4: "Business full-time" };
+  var PLAN_PHASE_NAME = { 1: T("Job hunt and building the business", "تدوير على وظيفة وبناء البيزنس"), 2: T("Job and business together", "الوظيفة والبيزنس مع بعض"), 3: T("Job, with the team running", "الوظيفة، والفريق شغال"), 4: T("Business full-time", "البيزنس فول تايم") };
 
   function guessTrack(name) {
     for (var i = 0; i < TRACK_KEYS.length; i++) if (TRACK_WORDS[TRACK_KEYS[i]].test(name || "")) return TRACK_KEYS[i];
@@ -2076,11 +2428,11 @@
 
   function dueChipHtml(g) {
     if (!g.due) return "";
-    var today = todayISO(), cls = "", text = "due " + fmtDayMonth(g.due);
-    if (goalPct(g) >= 100) { cls = "goal-row__due--done"; text = "done · was due " + fmtDayMonth(g.due); }
-    else if (g.due < today) { cls = "goal-row__due--late"; text = "late · was due " + fmtDayMonth(g.due); }
+    var today = todayISO(), cls = "", text = T("due " + fmtDayMonth(g.due), "المعاد " + fmtDayMonth(g.due));
+    if (goalPct(g) >= 100) { cls = "goal-row__due--done"; text = T("done · was due " + fmtDayMonth(g.due), "خلصت · كان معادها " + fmtDayMonth(g.due)); }
+    else if (g.due < today) { cls = "goal-row__due--late"; text = T("late · was due " + fmtDayMonth(g.due), "متأخر · كان معاده " + fmtDayMonth(g.due)); }
     else if (addDays(today, 2) >= g.due) cls = "goal-row__due--soon";
-    return '<span class="goal-row__due ' + cls + '" title="From the plan: ' + TRACK_NAME[g.dueTrack] + ' days, split equally in the All-goals order">' + text + '</span>';
+    return '<span class="goal-row__due ' + cls + '" title="' + T("From the plan: " + TRACK_NAME[g.dueTrack] + " days, split equally in the All-goals order", "من الخطة: أيام " + TRACK_NAME[g.dueTrack] + "، متقسمة بالتساوي بترتيب كل الأهداف") + '">' + text + '</span>';
   }
 
   function renderQuarterSeries(data, due) {
@@ -2089,19 +2441,19 @@
     var keys = TRACK_KEYS.filter(function (k) { return due.stretches[k]; });
     if (!due.days.length) { box.hidden = true; return; }
     var anyTrack = data.categories.some(function (c) { return c.trackKey; });
-    var dayName = function (d) { return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; };
+    var dayName = function (d) { return [T("Sun", "الأحد"), T("Mon", "الاتنين"), T("Tue", "التلات"), T("Wed", "الأربع"), T("Thu", "الخميس"), T("Fri", "الجمعة"), T("Sat", "السبت")][d]; };
     // which phase's hours: the plan's own (auto) or one chosen for this quarter
-    var phaseSel = '<select class="quarter-series__phase" id="quarterPhase" aria-label="Plan phase for the due dates">' +
-      '<option value=""' + (due.chosen ? '' : ' selected') + '>Plan now · Phase ' + planPhaseNow() + '</option>' +
-      [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (due.chosen && due.phase === n ? ' selected' : '') + '>Phase ' + n + ' · ' + PLAN_PHASE_NAME[n] + '</option>'; }).join("") +
+    var phaseSel = '<select class="quarter-series__phase" id="quarterPhase" aria-label="' + T("Plan phase for the due dates", "مرحلة الخطة لحساب المواعيد") + '">' +
+      '<option value=""' + (due.chosen ? '' : ' selected') + '>' + T("Plan now · Phase " + planPhaseNow(), "الخطة دلوقتي · المرحلة " + planPhaseNow()) + '</option>' +
+      [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (due.chosen && due.phase === n ? ' selected' : '') + '>' + T("Phase " + n, "المرحلة " + n) + ' · ' + PLAN_PHASE_NAME[n] + '</option>'; }).join("") +
       '</select>';
-    box.innerHTML = phaseSel + '<span>in series:</span>' + keys.map(function (k) {
+    box.innerHTML = phaseSel + '<span>' + T("in series:", "بالترتيب:") + '</span>' + keys.map(function (k) {
       var s = due.stretches[k];
       return '<span class="quarter-series__chip"><i class="quarter-series__dot" style="background:' + TRACK_COLOR[k] + '"></i>' +
-        TRACK_NAME[k] + ' ' + fmtDayMonth(s.from) + (s.from === s.to ? '' : ' → ' + fmtDayMonth(s.to)) + '</span>';
+        TRACK_NAME[k] + ' ' + fmtDayMonth(s.from) + (s.from === s.to ? '' : T(" → ", " ← ") + fmtDayMonth(s.to)) + '</span>';
     }).join("") +
-      '<span class="quarter-series__hint">' + due.days.length + ' working days · weekend ' + (due.weekend.length ? due.weekend.map(dayName).join(", ") : "none") +
-      (anyTrack ? '' : ' · set each category\'s track in Edit quarter to get due dates') + '</span>';
+      '<span class="quarter-series__hint">' + T(due.days.length + " working days · weekend ", I18N.N(due.days.length, "", "", ["يوم شغل", "يومين شغل", "أيام شغل", "يوم شغل"]) + " · الإجازة ") + (due.weekend.length ? due.weekend.map(dayName).join(T(", ", "، ")) : T("none", "مفيش")) +
+      (anyTrack ? '' : T(" · set each category's track in Edit quarter to get due dates", " · حدد مسار كل تصنيف من تعديل ربع السنة عشان تطلع المواعيد")) + '</span>';
     box.hidden = false;
     $("#quarterPhase").addEventListener("change", function () {
       var v = this.value ? Number(this.value) : null;
@@ -2116,15 +2468,15 @@
     var pct = goalPct(g);
     return '<div class="goal-row' + (pct >= 100 ? " goal-row--done" : "") + '" data-id="' + g.id + '">' +
       '<div class="goal-row__top">' +
-        (opts.draggable || opts.handle ? '<span class="goal-row__handle" title="Drag to reorder">⠿</span>' : '') +
+        (opts.draggable || opts.handle ? '<span class="goal-row__handle" title="' + T("Drag to reorder", "اسحب لإعادة الترتيب") + '">⠿</span>' : '') +
         (opts.categoryName ? '<span class="goal-row__cat-tag">' + esc(opts.categoryName) + '</span>' : '') +
         '<span class="goal-row__title">' + esc(g.title) + '</span>' +
         dueChipHtml(g) +
         '<span class="goal-row__pct">' + pct + '%</span>' +
-        (opts.draggable ? '<button type="button" class="iconbtn iconbtn--hide" title="Hide from this view">🙈</button>' : '') +
-        '<button type="button" class="iconbtn iconbtn--copy" title="Add to today\'s to-do">📋</button>' +
-        '<button type="button" class="iconbtn iconbtn--edit" title="Edit goal">✎</button>' +
-        '<button type="button" class="iconbtn iconbtn--delete" title="Delete goal">✕</button>' +
+        (opts.draggable ? '<button type="button" class="iconbtn iconbtn--hide" title="' + T("Hide from this view", "إخفاء من العرض ده") + '">🙈</button>' : '') +
+        '<button type="button" class="iconbtn iconbtn--copy" title="' + T("Add to today's to-do", "ضيفه لمهام النهارده") + '">📋</button>' +
+        '<button type="button" class="iconbtn iconbtn--edit" title="' + T("Edit goal", "تعديل الهدف") + '">✎</button>' +
+        '<button type="button" class="iconbtn iconbtn--delete" title="' + T("Delete goal", "مسح الهدف") + '">✕</button>' +
       '</div>' +
       '<div class="goal-row__bar"><div class="goal-row__fill' + (pct >= 100 ? ' goal-row__fill--done' : '') +
         '" style="width:' + pct + '%"></div></div>' +
@@ -2136,9 +2488,9 @@
         // edit form (owner, 2026-10-17: "like additional shortcut")
         '<span class="goal-row__target">' +
           '<span class="goal-row__slash">/</span>' +
-          '<button type="button" class="goal-row__tstep" data-tdelta="-1" title="Lower the target" aria-label="Lower the target">−</button>' +
-          '<input type="number" min="0" step="any" class="goal-row__target-input" value="' + fmtNum(g.target) + '" aria-label="Target" />' +
-          '<button type="button" class="goal-row__tstep" data-tdelta="1" title="Raise the target" aria-label="Raise the target">+</button>' +
+          '<button type="button" class="goal-row__tstep" data-tdelta="-1" title="' + T("Lower the target", "قلّل المستهدف") + '" aria-label="' + T("Lower the target", "قلّل المستهدف") + '">−</button>' +
+          '<input type="number" min="0" step="any" class="goal-row__target-input" value="' + fmtNum(g.target) + '" aria-label="' + T("Target", "المستهدف") + '" />' +
+          '<button type="button" class="goal-row__tstep" data-tdelta="1" title="' + T("Raise the target", "زوّد المستهدف") + '" aria-label="' + T("Raise the target", "زوّد المستهدف") + '">+</button>' +
           (g.unit ? '<span class="goal-row__unit">' + esc(g.unit) + '</span>' : '') +
         '</span>' +
       '</div>' +
@@ -2261,7 +2613,7 @@
     form.elements.target.value = Number(goal.target);
     form.elements.unit.value = goal.unit || "";
     form.dataset.editingId = goal.id;
-    form.querySelector("button[type=submit]").textContent = "Update";
+    form.querySelector("button[type=submit]").textContent = T("Update", "تحديث");
     form.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
@@ -2276,7 +2628,7 @@
     });
     row.querySelector(".goal-row__target-input").addEventListener("change", function (ev) {
       var v = Number(ev.target.value);
-      if (!(v > 0)) { ev.target.value = fmtNum(g.target); toast("A target has to be more than 0", true); return; }
+      if (!(v > 0)) { ev.target.value = fmtNum(g.target); toast(T("A target has to be more than 0", "المستهدف لازم يكون أكبر من 0"), true); return; }
       setGoalTarget(g, v, category);
     });
     row.querySelector(".goal-row__current").addEventListener("change", function (ev) {
@@ -2296,14 +2648,14 @@
       api("/api/tasks", { method: "POST", body: { task_date: today, title: g.title, category_id: category.id } })
         .then(function () {
           playAddSound();
-          toast('Added "' + g.title + '" to today\'s to-do ✓');
+          toast(T('Added "' + g.title + '" to today\'s to-do ✓', 'اتضاف "' + g.title + '" لمهام النهارده ✓'));
           if (state.currentDate === today) return afterTaskChange();
         })
         .catch(function (e) { toast(e.message, true); });
     });
     row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditGoal(category, g); });
     row.querySelector(".iconbtn--delete").addEventListener("click", function () {
-      if (!confirm('Delete goal "' + g.title + '"?')) return;
+      if (!confirm(T('Delete goal "' + g.title + '"?', 'تمسح الهدف "' + g.title + '"؟'))) return;
       api("/api/goals?id=" + g.id, { method: "DELETE" })
         .then(function () { playDeleteSound(); return loadQuarterDetail(state.selectedQuarterId); })
         .catch(function (e) { toast(e.message, true); });
@@ -2330,7 +2682,7 @@
       (editingId ? api("/api/goals?id=" + editingId, { method: "PATCH", body: body })
                  : api("/api/goals", { method: "POST", body: body }))
         .then(function () {
-          toast(editingId ? "Goal updated ✓" : "Goal added ✓");
+          toast(editingId ? T("Goal updated ✓", "الهدف اتحدّث ✓") : T("Goal added ✓", "الهدف اتضاف ✓"));
           if (!editingId) playAddSound();
           return loadQuarterDetail(state.selectedQuarterId);
         })
@@ -2357,7 +2709,7 @@
     });
     var totalHoursLogged = hoursCats.reduce(function (sum, c) { return sum + (Number(c.progress.actual) || 0); }, 0);
     window.renderDonutChart($("#donutHoursByCategory"), hoursSlices, {
-      label: "Hours logged by category", centerValue: fmtH(totalHoursLogged), centerLabel: "logged",
+      label: T("Hours logged by category", "الساعات المسجلة حسب التصنيف"), centerValue: fmtH(totalHoursLogged), centerLabel: T("logged", "مسجّل"),
     });
 
     var paceCounts = { ahead: 0, "on-track": 0, behind: 0, "not-started": 0 };
@@ -2365,12 +2717,12 @@
     var paceSlices = Object.keys(PACE_LABEL).map(function (key) {
       return { label: PACE_LABEL[key], value: paceCounts[key], color: PACE_DONUT_COLOR[key] };
     });
-    window.renderDonutChart($("#donutPace"), paceSlices, { label: "Pace breakdown", centerLabel: "categories" });
+    window.renderDonutChart($("#donutPace"), paceSlices, { label: T("Pace breakdown", "توزيع المعدل"), centerLabel: T("categories", "تصنيفات") });
 
     if (hoursCats.length) {
       var hoursTitle = document.createElement("div");
       hoursTitle.className = "goals__label";
-      hoursTitle.textContent = "Hours pace — logged vs. quarter target";
+      hoursTitle.textContent = T("Hours pace — logged vs. quarter target", "معدل الساعات — المسجّل قصاد مستهدف ربع السنة");
       hoursBox.appendChild(hoursTitle);
       hoursCats.forEach(function (c) {
         var p = c.progress;
@@ -2384,7 +2736,7 @@
     var goalsByCatSlices = goalsCats.map(function (c, i) {
       return { label: c.name, value: (c.goals || []).length, color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] };
     });
-    window.renderDonutChart($("#donutGoalsByCategory"), goalsByCatSlices, { label: "Goals by category", centerLabel: "goals" });
+    window.renderDonutChart($("#donutGoalsByCategory"), goalsByCatSlices, { label: T("Goals by category", "الأهداف حسب التصنيف"), centerLabel: T("goals", "أهداف") });
 
     var allGoalsFlat = data ? data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []) : [];
     var statusCounts = { done: 0, "in-progress": 0, "not-started": 0 };
@@ -2395,13 +2747,13 @@
     var statusSlices = Object.keys(GOAL_STATUS_LABEL).map(function (key) {
       return { label: GOAL_STATUS_LABEL[key], value: statusCounts[key], color: GOAL_STATUS_COLOR[key] };
     });
-    window.renderDonutChart($("#donutGoalsStatus"), statusSlices, { label: "Goals status", centerLabel: "goals" });
+    window.renderDonutChart($("#donutGoalsStatus"), statusSlices, { label: T("Goals status", "حالة الأهداف"), centerLabel: T("goals", "أهداف") });
 
     if (goalsCats.length) {
       var goalsTitle = document.createElement("div");
       goalsTitle.className = "goals__label";
       if (hoursCats.length) goalsTitle.style.marginTop = "16px";
-      goalsTitle.textContent = "Goals completion";
+      goalsTitle.textContent = T("Goals completion", "إنجاز الأهداف");
       goalsBox.appendChild(goalsTitle);
       goalsCats.forEach(function (c) {
         var wrap = document.createElement("div");
@@ -2491,14 +2843,14 @@
     if (data.quarter.anti_perfectionist) {
       var note = document.createElement("p");
       note.className = "go-note";
-      note.textContent = "🌤 Anti-perfectionist mode is on — targets below already count 75% as done.";
+      note.textContent = T("🌤 Anti-perfectionist mode is on — targets below already count 75% as done.", "🌤 وضع «مش لازم كمال» شغال — المستهدفات اللي تحت بتتحسب خلصانة عند 75%.");
       box.appendChild(note);
     }
 
     var allGoals = data.categories.reduce(function (acc, c) { return acc.concat(c.goals || []); }, []);
     var quarterPct = combinedGoalsPct(allGoals);
     if (quarterPct != null) {
-      quarterBarBox.innerHTML = overallBarHtml(quarterPct, "This quarter — all categories' goals");
+      quarterBarBox.innerHTML = overallBarHtml(quarterPct, T("This quarter — all categories' goals", "ربع السنة ده — أهداف كل التصنيفات"));
     }
 
     data.categories.forEach(function (c) {
@@ -2511,35 +2863,35 @@
       card.dataset.id = c.id; // makeReorderable reads data-id
       card.innerHTML =
         '<div class="category-card__head">' +
-          '<span class="category-card__handle" title="Drag to reorder categories">⠿</span>' +
+          '<span class="category-card__handle" title="' + T("Drag to reorder categories", "اسحب لإعادة ترتيب التصنيفات") + '">⠿</span>' +
           '<span class="category-card__name">' + esc(c.name) + '</span>' +
         (hasHours ? '<span class="badge ' + PACE_CLASS[p.pace] + '">' + PACE_LABEL[p.pace] + '</span>' : '') +
-          '<button type="button" class="iconbtn iconbtn--edit category-card__copy" title="Copy to another quarter" aria-label="Copy ' + esc(c.name) + ' to another quarter">⧉</button>' +
+          '<button type="button" class="iconbtn iconbtn--edit category-card__copy" title="' + T("Copy to another quarter", "انسخ لربع سنة تاني") + '" aria-label="' + T("Copy " + esc(c.name) + " to another quarter", "انسخ " + esc(c.name) + " لربع سنة تاني") + '">⧉</button>' +
         '</div>' +
         (c.trackKey && due && due.stretches[c.trackKey]
           ? '<div class="category-card__track"><i class="quarter-series__dot" style="background:' + TRACK_COLOR[c.trackKey] + '"></i>' +
-            TRACK_NAME[c.trackKey] + ' days · ' + fmtDayMonth(due.stretches[c.trackKey].from) + ' → ' + fmtDayMonth(due.stretches[c.trackKey].to) + '</div>'
+            T(TRACK_NAME[c.trackKey] + " days", "أيام " + TRACK_NAME[c.trackKey]) + ' · ' + fmtDayMonth(due.stretches[c.trackKey].from) + T(" → ", " ← ") + fmtDayMonth(due.stretches[c.trackKey].to) + '</div>'
           : '') +
         (hasHours ?
           '<div class="category-card__stats">' +
-            '<div>Weekly target<b>' + fmtH(c.weekly_hours) + '</b></div>' +
-            '<div>Quarter target<b>' + fmtH(p.target) + '</b></div>' +
-            '<div>Logged<b>' + fmtH(p.actual) + '</b></div>' +
-            '<div>Remaining<b>' + fmtH(p.remaining) + '</b></div>' +
+            '<div>' + T("Weekly target", "مستهدف الأسبوع") + '<b>' + fmtH(c.weekly_hours) + '</b></div>' +
+            '<div>' + T("Quarter target", "مستهدف ربع السنة") + '<b>' + fmtH(p.target) + '</b></div>' +
+            '<div>' + T("Logged", "المسجّل") + '<b>' + fmtH(p.actual) + '</b></div>' +
+            '<div>' + T("Remaining", "الباقي") + '<b>' + fmtH(p.remaining) + '</b></div>' +
           '</div>' +
           '<div class="chart" style="min-height:190px"></div>'
-          : '<p class="muted" style="margin:0">No hour target set for this category.</p>') +
+          : '<p class="muted" style="margin:0">' + T("No hour target set for this category.", "مفيش مستهدف ساعات للتصنيف ده.") + '</p>') +
         '<div class="goals">' +
-          '<div class="goals__label">Goals</div>' +
-          (catPct != null ? overallBarHtml(catPct, "Overall", c.id) : '') +
+          '<div class="goals__label">' + T("Goals", "الأهداف") + '</div>' +
+          (catPct != null ? overallBarHtml(catPct, T("Overall", "الإجمالي"), c.id) : '') +
           '<div class="goals__list">' +
             (c.goals || []).map(function (g) { return goalRowHtml(g, { handle: true }); }).join("") +
           '</div>' +
           '<form class="goal-add-form">' +
-            '<input name="title" placeholder="Goal (e.g. Job applications)" required />' +
-            '<input name="target" type="number" min="0.01" step="any" placeholder="Target" required />' +
-            '<input name="unit" placeholder="unit" />' +
-            '<button type="submit" class="btn btn--ghost btn--sm">+ Add goal</button>' +
+            '<input name="title" placeholder="' + T("Goal (e.g. Job applications)", "هدف (مثلاً: تقديمات شغل)") + '" required />' +
+            '<input name="target" type="number" min="0.01" step="any" placeholder="' + T("Target", "المستهدف") + '" required />' +
+            '<input name="unit" placeholder="' + T("unit", "الوحدة") + '" />' +
+            '<button type="submit" class="btn btn--ghost btn--sm">' + T("+ Add goal", "+ إضافة هدف") + '</button>' +
           '</form>' +
         '</div>';
       box.appendChild(card);
@@ -2654,10 +3006,10 @@
 
   function ideaRowHtml(idea) {
     return '<div class="idea-row idea-row--enter" data-id="' + idea.id + '">' +
-      '<span class="idea-row__handle" title="Drag to reorder">⠿</span>' +
+      '<span class="idea-row__handle" title="' + T("Drag to reorder", "اسحب لإعادة الترتيب") + '">⠿</span>' +
       '<div class="idea-row__body"><span class="idea-row__text">' + esc(idea.text) + '</span></div>' +
-      '<button type="button" class="iconbtn iconbtn--edit" title="Edit idea">✎</button>' +
-      '<button type="button" class="iconbtn" title="Delete idea">✕</button>' +
+      '<button type="button" class="iconbtn iconbtn--edit" title="' + T("Edit idea", "تعديل الفكرة") + '">✎</button>' +
+      '<button type="button" class="iconbtn" title="' + T("Delete idea", "مسح الفكرة") + '">✕</button>' +
     '</div>';
   }
 
@@ -2697,7 +3049,7 @@
         row.querySelector(".idea-row__text").addEventListener("click", function () { startEditIdea(row, idea); });
         row.querySelector(".iconbtn--edit").addEventListener("click", function () { startEditIdea(row, idea); });
         row.querySelector(".iconbtn:not(.iconbtn--edit)").addEventListener("click", function () {
-          if (!confirm("Delete this idea?")) return;
+          if (!confirm(T("Delete this idea?", "تمسح الفكرة دي؟"))) return;
           api("/api/ideas?id=" + id, { method: "DELETE" })
             .then(function () { playDeleteSound(); return loadIdeas(); })
             .catch(function (e) { toast(e.message, true); });
@@ -2732,14 +3084,14 @@
     var hoursVal = cat && cat.weekly_hours != null ? Number(cat.weekly_hours) : "";
     var track = cat ? (cat.track || guessTrack(cat.name)) : "";
     row.innerHTML =
-      '<input name="cat_name" placeholder="Category (e.g. Deep work)" value="' + esc(cat ? cat.name : "") + '" required />' +
-      '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="h/week (optional)" value="' + hoursVal + '" />' +
+      '<input name="cat_name" placeholder="' + T("Category (e.g. Deep work)", "تصنيف (مثلاً: شغل بتركيز)") + '" value="' + esc(cat ? cat.name : "") + '" required />' +
+      '<input name="cat_hours" type="number" min="0.5" step="0.5" placeholder="' + T("h/week (optional)", "ساعة/أسبوع (اختياري)") + '" value="' + hoursVal + '" />' +
       // which of the plan's four tracks it belongs to: its goals' due dates come from that track's stretch
-      '<select name="cat_track" title="Track in the plan" aria-label="Track in the plan">' +
-        '<option value="">— track —</option>' +
+      '<select name="cat_track" title="' + T("Track in the plan", "المسار في الخطة") + '" aria-label="' + T("Track in the plan", "المسار في الخطة") + '">' +
+        '<option value="">' + T("— track —", "— المسار —") + '</option>' +
         TRACK_KEYS.map(function (k) { return '<option value="' + k + '"' + (track === k ? ' selected' : '') + '>' + TRACK_NAME[k] + '</option>'; }).join("") +
       '</select>' +
-      '<button type="button" class="iconbtn category-row__remove" title="Remove category">✕</button>';
+      '<button type="button" class="iconbtn category-row__remove" title="' + T("Remove category", "شيل التصنيف") + '">✕</button>';
     // a fresh row guesses its track as the name is typed, until a track is picked by hand
     row.querySelector("[name=cat_name]").addEventListener("input", function () {
       var sel = row.querySelector("[name=cat_track]");
@@ -2789,7 +3141,7 @@
   function fillCopyFrom() {
     var select = $("#quarterCopyFrom");
     var keep = select.value;
-    select.innerHTML = '<option value="">Nothing — start empty</option>' +
+    select.innerHTML = '<option value="">' + T("Nothing — start empty", "ولا حاجة — ابدأ فاضي") + '</option>' +
       (state.quarters || []).map(function (q) {
         return '<option value="' + q.id + '">' + esc(q.name) + " · " + fmtDate(q.start_date) + " – " + fmtDate(q.end_date) + "</option>";
       }).join("");
@@ -2805,7 +3157,7 @@
     $("#categoryRows").innerHTML = "";
     addCategoryRow();
     state.editingQuarterId = null;
-    $("#btnQuarterSubmit").textContent = "Save quarter";
+    $("#btnQuarterSubmit").textContent = T("Save quarter", "حفظ ربع السنة");
     $("#btnCancelQuarterEdit").hidden = true;
     $("#quarterCopyFromBox").hidden = false;
     $("#quarterCopyFrom").value = "";
@@ -2838,7 +3190,7 @@
     $("#quarterCopyFrom").value = "";
     syncCopyFrom();
     syncLengthPicks();
-    $("#btnQuarterSubmit").textContent = "Update quarter";
+    $("#btnQuarterSubmit").textContent = T("Update quarter", "تحديث ربع السنة");
     $("#btnCancelQuarterEdit").hidden = false;
     $("#addQuarterBox").open = true;
     form.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2847,9 +3199,9 @@
   $("#btnDeleteQuarter").addEventListener("click", function () {
     if (!state.quarterDetail) return;
     var q = state.quarterDetail.quarter;
-    if (!confirm('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).')) return;
+    if (!confirm(T('Delete quarter "' + q.name + '"? Its categories will be removed (logged tasks are kept, just uncategorized).', 'تمسح ربع السنة "' + q.name + '"؟ تصنيفاته هتتشال (المهام المسجلة هتفضل، بس من غير تصنيف).'))) return;
     api("/api/quarters?id=" + q.id, { method: "DELETE" })
-      .then(function () { playDeleteSound(); toast("Quarter deleted"); remember("quarter-id", null); return loadQuarters(); })
+      .then(function () { playDeleteSound(); toast(T("Quarter deleted", "ربع السنة اتمسح")); remember("quarter-id", null); return loadQuarters(); })
       .then(function () { showQuarterGallery(); return loadDay(state.currentDate); })
       .catch(function (e) { toast(e.message, true); });
   });
@@ -2871,16 +3223,16 @@
   function syncCopyToggle() {
     var boxes = $("#copyCategoryList").querySelectorAll("input");
     var checked = $("#copyCategoryList").querySelectorAll("input:checked").length;
-    $("#copyToggleAll").textContent = checked === boxes.length ? "Select none" : "Select all";
+    $("#copyToggleAll").textContent = checked === boxes.length ? T("Select none", "شيل التحديد") : T("Select all", "حدد الكل");
     $("#btnCopySubmit").disabled = !checked;
-    $("#btnCopySubmit").textContent = checked ? "Copy " + checked + " categor" + (checked === 1 ? "y" : "ies") : "Copy";
+    $("#btnCopySubmit").textContent = checked ? T("Copy ", "نسخ ") + I18N.N(checked, "category", "categories", ["تصنيف", "تصنيفين", "تصنيفات", "تصنيف"]) : T("Copy", "نسخ");
   }
 
   function openCopyDialog(onlyIds) {
     var data = state.quarterDetail;
     if (!data || !data.categories.length) return;
     var others = (state.quarters || []).filter(function (q) { return q.id !== data.quarter.id; });
-    if (!others.length) { toast("Create another quarter first, then copy into it."); return; }
+    if (!others.length) { toast(T("Create another quarter first, then copy into it.", "اعمل ربع سنة تاني الأول، وبعدين انسخ فيه.")); return; }
 
     var select = $("#copyTarget");
     select.innerHTML = others.map(function (q) {
@@ -2894,7 +3246,7 @@
       return '<label class="copy-dialog__item">' +
         '<input type="checkbox" value="' + c.id + '"' + (on ? " checked" : "") + ' />' +
         '<span class="copy-dialog__name">' + esc(c.name) + '</span>' +
-        '<span class="muted">' + (n ? n + " goal" + (n === 1 ? "" : "s") : "no goals") + '</span>' +
+        '<span class="muted">' + (n ? I18N.N(n, "goal", "goals", ["هدف", "هدفين", "أهداف", "هدف"]) : T("no goals", "مفيش أهداف")) + '</span>' +
       '</label>';
     }).join("");
     $("#copyForm").elements.keep_progress.checked = false;
@@ -2930,11 +3282,11 @@
       $("#copyDialog").close();
       playAddSound();
       var parts = [];
-      if (r.categories_added) parts.push(r.categories_added + " categor" + (r.categories_added === 1 ? "y" : "ies"));
-      if (r.goals_added) parts.push(r.goals_added + " goal" + (r.goals_added === 1 ? "" : "s"));
-      var msg = parts.length ? "Copied " + parts.join(" and ") : "Nothing new to copy";
-      if (r.categories_merged) msg += " — " + r.categories_merged + " already there, merged";
-      toast(msg + (target ? " into " + target.name : ""));
+      if (r.categories_added) parts.push(I18N.N(r.categories_added, "category", "categories", ["تصنيف", "تصنيفين", "تصنيفات", "تصنيف"]));
+      if (r.goals_added) parts.push(I18N.N(r.goals_added, "goal", "goals", ["هدف", "هدفين", "أهداف", "هدف"]));
+      var msg = parts.length ? T("Copied ", "اتنسخ ") + parts.join(T(" and ", " و")) : T("Nothing new to copy", "مفيش جديد يتنسخ");
+      if (r.categories_merged) msg += T(" — " + r.categories_merged + " already there, merged", " — " + r.categories_merged + " كانوا موجودين واتدمجوا");
+      toast(msg + (target ? T(" into ", " في ") + target.name : ""));
       return loadDay(state.currentDate); // the task form's category list may now include them
     }).catch(function (e) { toast(e.message, true); })
       .then(function () { busy(btn, false); syncCopyToggle(); });
@@ -2973,20 +3325,20 @@
         if (!copyFrom || !newId) return { r: r, copied: "" };
         return api("/api/quarters?id=" + copyFrom).then(function (src) {
           var ids = (src.categories || []).map(function (c) { return c.id; });
-          if (!ids.length) return { r: r, copied: " — that cycle had nothing to copy" };
+          if (!ids.length) return { r: r, copied: T(" — that cycle had nothing to copy", " — الدورة دي ماكانش فيها حاجة تتنسخ") };
           return api("/api/quarters?copy_categories=1", {
             method: "POST",
             body: { to_quarter_id: newId, category_ids: ids, keep_progress: keepProgress, log_date: todayISO() },
           }).then(function (c) {
-            return { r: r, copied: " with " + c.categories_added + " categor" + (c.categories_added === 1 ? "y" : "ies") +
-              (c.goals_added ? " and " + c.goals_added + " goal" + (c.goals_added === 1 ? "" : "s") : "") +
-              " from " + src.quarter.name };
+            return { r: r, copied: T(" with ", " ومعاه ") + I18N.N(c.categories_added, "category", "categories", ["تصنيف", "تصنيفين", "تصنيفات", "تصنيف"]) +
+              (c.goals_added ? T(" and ", " و") + I18N.N(c.goals_added, "goal", "goals", ["هدف", "هدفين", "أهداف", "هدف"]) : "") +
+              T(" from ", " من ") + src.quarter.name };
           });
         });
       })
       .then(function (done) {
         var r = done.r;
-        toast(editingId ? "Quarter updated ✓" : "Quarter created" + done.copied + " ✓");
+        toast(editingId ? T("Quarter updated ✓", "ربع السنة اتحدّث ✓") : T("Quarter created" + done.copied + " ✓", "ربع السنة اتعمل" + done.copied + " ✓"));
         if (!editingId) playAddSound();
         resetQuarterForm();
         $("#addQuarterBox").open = false;
@@ -3021,10 +3373,10 @@
           canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
           resolve(canvas.toDataURL("image/jpeg", quality));
         };
-        img.onerror = function () { reject(new Error("Could not read that image")); };
+        img.onerror = function () { reject(new Error(T("Could not read that image", "مقدرناش نقرا الصورة دي"))); };
         img.src = e.target.result;
       };
-      reader.onerror = function () { reject(new Error("Could not read that file")); };
+      reader.onerror = function () { reject(new Error(T("Could not read that file", "مقدرناش نقرا الملف ده"))); };
       reader.readAsDataURL(file);
     });
   }
@@ -3065,7 +3417,7 @@
       $("#daysQuarterLabel").textContent = "";
       $("#daysQuarterPicker").hidden = true;
       $("#daysAvgValue").textContent = "0%";
-      $("#daysAvgSub").textContent = "0 days tracked";
+      $("#daysAvgSub").textContent = T("0 days tracked", "مفيش أيام متسجلة");
       $("#daysGoalsValue").textContent = "—";
       state.daysData = null;
       $("#focusRange").hidden = true;
@@ -3073,7 +3425,7 @@
     }
     $("#noDaysQuarter").hidden = true;
     var picker = $("#daysQuarterPicker");
-    picker.innerHTML = (quarters.length > 1 ? '<option value="all">All quarters</option>' : "") +
+    picker.innerHTML = (quarters.length > 1 ? '<option value="all">' + T("All quarters", "كل الأرباع") + '</option>' : "") +
       quarters.map(function (q) { return '<option value="' + q.id + '">' + esc(q.name) + "</option>"; }).join("");
     picker.value = all ? "all" : String(quarter.id);
     renderCycleChips(quarters, picker.value);
@@ -3112,10 +3464,10 @@
       return '<button type="button" class="cycle-pick' + (on ? " is-on" : "") + (now ? " is-now" : "") + '" data-value="' + esc(value) + '" aria-pressed="' + on + '">' +
         '<span class="cycle-pick__glyph" aria-hidden="true">' + glyph + "</span>" +
         '<span class="cycle-pick__text"><b>' + esc(title) + "</b><small>" + esc(sub) + "</small></span>" +
-        (now ? '<span class="cycle-pick__now">Now</span>' : "") + "</button>";
+        (now ? '<span class="cycle-pick__now">' + T("Now", "دلوقتي") + '</span>' : "") + "</button>";
     };
     var span = allQuartersSpan();
-    box.innerHTML = chip("all", "All quarters", plural(quarters.length, "quarter") + " · " + fmtDate(span.from) + " – " + fmtDate(span.to), "🗂", false) +
+    box.innerHTML = chip("all", T("All quarters", "كل الأرباع"), plural(quarters.length, "quarter") + " · " + fmtDate(span.from) + " – " + fmtDate(span.to), "🗂", false) +
       quarters.map(function (q) {
         var from = String(q.start_date).slice(0, 10), to = String(q.end_date).slice(0, 10);
         var now = from <= today && today <= to;
@@ -3213,7 +3565,7 @@
 
     var avg = countedDays ? Math.round(sumPct / countedDays) : 0;
     $("#daysAvgValue").textContent = avg + "%";
-    $("#daysAvgSub").textContent = countedDays + " of " + totalDays + " days tracked";
+    $("#daysAvgSub").textContent = T(countedDays + " of " + totalDays + " days tracked", countedDays + " من " + totalDays + " يوم متسجلين");
 
     var quarter = state.quarterDetail && state.quarterDetail.quarter;
     state.daysData = {
@@ -3234,8 +3586,8 @@
       var mean = pcts.length ? Math.round(pcts.reduce(function (a2, b) { return a2 + b; }, 0) / pcts.length) : null;
       $("#daysGoalsValue").textContent = mean == null ? "—" : mean + "%";
       $("#daysGoalsSub").textContent = mean == null
-        ? "no goals yet"
-        : "averaged over " + plural(pcts.length, "quarter");
+        ? T("no goals yet", "مفيش أهداف لسه")
+        : T("averaged over ", "المتوسط على ") + plural(pcts.length, "quarter");
     } else {
       // the goals tile reads the live goals, not the log, so it always matches the
       // bar inside the quarter even on a day the log hasn't caught up with
@@ -3244,8 +3596,8 @@
       var goalsNow = combinedGoalsPct(allGoals);
       $("#daysGoalsValue").textContent = goalsNow == null ? "—" : goalsNow + "%";
       $("#daysGoalsSub").textContent = goalsNow == null
-        ? "no goals in this quarter"
-        : "of " + plural(allGoals.length, "goal") + ", target-weighted";
+        ? T("no goals in this quarter", "مفيش أهداف في الربع ده")
+        : T("of ", "من ") + plural(allGoals.length, "goal") + T(", target-weighted", "، بوزن المستهدف");
     }
     renderDaysFocus({ animateChart: opts.animate !== false, animateTiles: opts.animate !== false });
   }
@@ -3276,12 +3628,12 @@
       if (qt > to) qt = to;
       if (qt < qf) return;
       if (qf > cursor && hasData(cursor, addDays(qf, -1))) {
-        segs.push({ label: "Between quarters", from: cursor, to: addDays(qf, -1) });
+        segs.push({ label: T("Between quarters", "بين الأرباع"), from: cursor, to: addDays(qf, -1) });
       }
       segs.push({ label: q.name + " · " + fmtDate(qf) + " – " + fmtDate(qt), from: qf, to: qt });
       cursor = addDays(qt, 1);
     });
-    if (cursor <= to && hasData(cursor, to)) segs.push({ label: "Between quarters", from: cursor, to: to });
+    if (cursor <= to && hasData(cursor, to)) segs.push({ label: T("Between quarters", "بين الأرباع"), from: cursor, to: to });
     return segs.length ? segs : [{ label: null, from: from, to: to }];
   }
 
@@ -3309,10 +3661,10 @@
 
   function emptyPhotoHtml(day, today) {
     var when = day === today ? "today" : day < today ? "past" : "future";
-    var word = when === "today" ? "Add photo" : when === "past" ? "No photo" : "Not yet";
+    var word = when === "today" ? T("Add photo", "ضيف صورة") : when === "past" ? T("No photo", "مفيش صورة") : T("Not yet", "لسه");
     return '<span class="day-empty day-empty--' + when + '">' + SUMMIT +
       '<span class="day-empty__word">' + word + "</span>" +
-      (when === "future" ? "" : '<span class="day-empty__add">+ Add a photo</span>') + "</span>";
+      (when === "future" ? "" : '<span class="day-empty__add">' + T("+ Add a photo", "+ ضيف صورة") + '</span>') + "</span>";
   }
 
   /* Adding or removing a day's picture builds the whole gallery again, which
@@ -3369,8 +3721,8 @@
         // written in afterwards rather than ticked off on the day itself
         var mark = document.createElement("span");
         mark.className = "day-tile__estimated";
-        mark.textContent = "estimated";
-        mark.title = "These tasks were written in afterwards, not tracked on the day";
+        mark.textContent = T("estimated", "تقديري");
+        mark.title = T("These tasks were written in afterwards, not tracked on the day", "المهام دي اتكتبت بعدين، مش متسجلة في نفس اليوم");
         tile.appendChild(mark);
       }
 
@@ -3396,7 +3748,7 @@
 
       var meta = document.createElement("div");
       meta.className = "day-tile__meta";
-      meta.title = "Open " + fmtDate(d) + "'s to-do list";
+      meta.title = T("Open " + fmtDate(d) + "'s to-do list", "افتح مهام " + fmtDate(d));
       meta.innerHTML = "<span>" + fmtDayMonth(d) + "</span><b>" + (pct == null ? "—" : pct + "%") + "</b>";
       meta.addEventListener("click", function (dd) { return function () { openDayDetail(dd); }; }(d));
       tile.appendChild(meta);
@@ -3405,13 +3757,13 @@
         var removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "day-tile__remove";
-        removeBtn.title = "Remove photo";
+        removeBtn.title = T("Remove photo", "امسح الصورة");
         removeBtn.textContent = "✕";
         tile.appendChild(removeBtn);
         removeBtn.addEventListener("click", function (dd) {
           return function (ev) {
             ev.preventDefault();
-            if (!confirm("Remove this day's photo?")) return;
+            if (!confirm(T("Remove this day's photo?", "تمسح صورة اليوم ده؟"))) return;
             var hold = keepDayPlace(dd);
             api("/api/day-photos?date=" + dd, { method: "DELETE" })
               .then(function () { playDeleteSound(); return loadDaysGallery({ animate: false }); })
@@ -3431,7 +3783,7 @@
             .then(function (sizes) {
               return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: sizes[0], photo_full: sizes[1] } });
             })
-            .then(function () { playAddSound(); toast("Photo saved ✓"); return loadDaysGallery({ animate: false }); })
+            .then(function () { playAddSound(); toast(T("Photo saved ✓", "الصورة اتحفظت ✓")); return loadDaysGallery({ animate: false }); })
             .then(hold)
             .catch(function (e) { toast(e.message, true); });
         };
@@ -3521,7 +3873,14 @@
     };
   }
 
-  function plural(n, word) { return n + " " + word + (n === 1 ? "" : "s"); }
+  var PLURAL_AR = {
+    "day": ["يوم", "يومين", "أيام", "يوم"],
+    "tracked day": ["يوم متسجل", "يومين متسجلين", "أيام متسجلة", "يوم متسجل"],
+    "quarter": ["ربع سنة", "ربعين", "أرباع", "ربع"],
+    "goal": ["هدف", "هدفين", "أهداف", "هدف"],
+    "task": ["مهمة", "مهمتين", "مهام", "مهمة"]
+  };
+  function plural(n, word) { return I18N.N(n, word, word + "s", PLURAL_AR[word]); }
 
   function renderDaysFocus(opts) {
     opts = opts || {};
@@ -3552,12 +3911,12 @@
       el.value = sel === "#focusFrom" ? f.from : f.to;
     });
 
-    $("#focusWeekLabel").textContent = fmtDayMonth(f.from) + " → " + fmtDayMonth(f.to);
+    $("#focusWeekLabel").textContent = fmtDayMonth(f.from) + T(" → ", " ← ") + fmtDayMonth(f.to);
     $("#btnFocusPrevWeek").disabled = f.from <= data.from;
     $("#btnFocusNextWeek").disabled = f.to >= data.to;
     // the "all" chip covers the whole quarter, or everything, depending on scope
-    $('#focusRange .chip[data-focus-preset="all"]').textContent = spanAll ? "Every quarter" : "Whole quarter";
-    $("#btnDaysChartAll").textContent = spanAll ? "↩ Every quarter" : "↩ Whole quarter";
+    $('#focusRange .chip[data-focus-preset="all"]').textContent = spanAll ? T("Every quarter", "كل الأرباع") : T("Whole quarter", "الربع كله");
+    $("#btnDaysChartAll").textContent = spanAll ? T("↩ Every quarter", "↪ كل الأرباع") : T("↩ Whole quarter", "↪ الربع كله");
     document.querySelectorAll("#focusRange .chip").forEach(function (c) {
       c.classList.toggle("chip--on", c.dataset.focusPreset === f.preset);
       // "this week" and friends are anchored on today — meaningless for a quarter
@@ -3568,19 +3927,22 @@
     var s = focusStats(f.from, f.to);
 
     $("#focusAvgValue").textContent = s.avg + "%";
-    $("#focusAvgSub").textContent = s.tracked + " of " + plural(s.spanned, "day") + " tracked";
+    $("#focusAvgSub").textContent = T(s.tracked + " of " + plural(s.spanned, "day") + " tracked", s.tracked + " متسجلين من " + plural(s.spanned, "day"));
     $("#focusTasksValue").textContent = s.done + "/" + s.planned;
-    $("#focusTasksSub").textContent = "across " + plural(s.tracked, "tracked day");
+    $("#focusTasksSub").textContent = T("across ", "على ") + plural(s.tracked, "tracked day");
 
     $("#focusBestValue").textContent = s.best ? s.best.pct + "%" : "—";
     $("#focusBestSub").textContent = s.best
-      ? fmtDate(s.best.date) + (s.worst && s.worst.date !== s.best.date ? " · worst " + s.worst.pct + "% " + fmtDayMonth(s.worst.date) : "")
-      : "no days tracked in this range";
+      ? fmtDate(s.best.date) + (s.worst && s.worst.date !== s.best.date ? T(" · worst ", " · الأسوأ ") + s.worst.pct + "% " + fmtDayMonth(s.worst.date) : "")
+      : T("no days tracked in this range", "مفيش أيام متسجلة في المدة دي");
 
     $("#focusRangeNote").textContent = s.tracked
-      ? fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "%, against " + data.avg + "% " +
-        (spanAll ? "across every quarter." : "for the quarter.")
-      : "No tasks logged between " + fmtDate(f.from) + " and " + fmtDate(f.to) + ".";
+      ? T(fmtDate(f.from) + " → " + fmtDate(f.to) + ": averaging " + s.avg + "%, against " + data.avg + "% " +
+        (spanAll ? "across every quarter." : "for the quarter."),
+        fmtDate(f.from) + " ← " + fmtDate(f.to) + ": المتوسط " + s.avg + "%، قصاد " + data.avg + "% " +
+        (spanAll ? "في كل الأرباع." : "للربع كله."))
+      : T("No tasks logged between " + fmtDate(f.from) + " and " + fmtDate(f.to) + ".",
+        "مفيش مهام متسجلة بين " + fmtDate(f.from) + " و" + fmtDate(f.to) + ".");
 
     // picking a week zooms the graph to that week — the quarter's average still
     // rides along as a faint line, so the slice never reads without its context
@@ -3588,31 +3950,32 @@
     var zoomed = slice.length > 0 && slice.length < data.days.length;
 
     $("#daysChartRange").innerHTML = zoomed
-      ? "Showing <b>" + esc(fmtDate(f.from)) + " → " + esc(fmtDate(f.to)) + "</b> · " + plural(slice.length, "day")
-      : (spanAll ? "Showing every quarter · " : "Showing the whole quarter · ") + plural(data.days.length, "day");
+      ? T("Showing <b>", "معروض <b>") + esc(fmtDate(f.from)) + T(" → ", " ← ") + esc(fmtDate(f.to)) + "</b> · " + plural(slice.length, "day")
+      : (spanAll ? T("Showing every quarter · ", "معروض كل الأرباع · ") : T("Showing the whole quarter · ", "معروض الربع كله · ")) + plural(data.days.length, "day");
     $("#btnDaysChartAll").hidden = !zoomed;
 
     if (opts.tiles !== false) {
       renderDayTiles(f.from, f.to, opts.animateTiles !== false);
       $("#dayGalleryHint").textContent = zoomed
-        ? "Showing " + plural(slice.length, "day") + " — tap a day's percentage to open its to-do list."
-        : "Tap a day's percentage to open its to-do list.";
+        ? T("Showing " + plural(slice.length, "day") + " — tap a day's percentage to open its to-do list.",
+          "معروض " + plural(slice.length, "day") + " — دوس على نسبة أي يوم عشان تفتح مهامه.")
+        : T("Tap a day's percentage to open its to-do list.", "دوس على نسبة أي يوم عشان تفتح مهامه.");
     }
 
     window.renderDaysChart($("#daysChart"), $("#daysChartTip"), zoomed ? slice : data.days, {
       avg: data.avg,
       goalsByDate: data.goalsByDate,
       goalsEstimatedByDate: data.goalsEstimatedByDate,
-      avgLabel: zoomed ? (spanAll ? "All time" : "Quarter") : "Avg",
+      avgLabel: zoomed ? (spanAll ? T("All time", "كل الوقت") : T("Quarter", "ربع السنة")) : T("Avg", "المتوسط"),
       // where each quarter begins, so a year-long line can be read quarter by quarter
       dividers: spanAll ? (state.quarters || []).map(function (q) {
         return { date: String(q.start_date).slice(0, 10), label: q.name };
       }) : null,
       // unzoomed, the range average would sit exactly on the quarter's line
-      focus: zoomed ? { avg: s.tracked ? s.avg : null, label: "This range" } : null,
+      focus: zoomed ? { avg: s.tracked ? s.avg : null, label: T("This range", "المدة دي") } : null,
       ariaLabel: zoomed
-        ? "Daily completion from " + fmtDate(f.from) + " to " + fmtDate(f.to)
-        : (spanAll ? "Daily completion across every quarter" : "Daily completion across the quarter"),
+        ? T("Daily completion from " + fmtDate(f.from) + " to " + fmtDate(f.to), "نسبة الإنجاز اليومية من " + fmtDate(f.from) + " لـ " + fmtDate(f.to))
+        : (spanAll ? T("Daily completion across every quarter", "نسبة الإنجاز اليومية في كل الأرباع") : T("Daily completion across the quarter", "نسبة الإنجاز اليومية في الربع كله")),
       animate: opts.animateChart !== false,
     });
   }
@@ -3668,7 +4031,7 @@
     dayPhotoMenuState = { date: date, photoUrl: photoUrl, fileInput: fileInput };
     $("#dayPhotoMenuTitle").textContent = fmtDate(date);
     $("#dayPhotoMenuView").hidden = !photoUrl;
-    $("#dayPhotoMenuUpload").textContent = photoUrl ? "🔁 Replace photo" : "📤 Upload photo";
+    $("#dayPhotoMenuUpload").textContent = photoUrl ? T("🔁 Replace photo", "🔁 غيّر الصورة") : T("📤 Upload photo", "📤 ارفع صورة");
     $("#dayPhotoMenu").hidden = false;
   }
   function closeDayPhotoMenu() {
@@ -3770,13 +4133,14 @@
     var ticked = list.filter(function (t) { return t.done; }).length;
     var box = $("#fillCount");
     if (!days.length || !list.length) {
-      box.textContent = !list.length ? "Write at least one task." : "Pick a first and last day.";
+      box.textContent = !list.length ? T("Write at least one task.", "اكتب مهمة واحدة على الأقل.") : T("Pick a first and last day.", "اختار أول يوم وآخر يوم.");
       $("#fillGo").disabled = true;
       return;
     }
     $("#fillGo").disabled = false;
-    box.textContent = days.length + " day" + (days.length === 1 ? "" : "s") + " × " + list.length +
-      " task" + (list.length === 1 ? "" : "s") + ", " + ticked + " of them ticked — only the empty days get them.";
+    box.textContent = T(days.length + " day" + (days.length === 1 ? "" : "s") + " × " + list.length +
+      " task" + (list.length === 1 ? "" : "s") + ", " + ticked + " of them ticked — only the empty days get them.",
+      plural(days.length, "day") + " × " + plural(list.length, "task") + "، منهم " + ticked + " متعلّم عليهم — الأيام الفاضية بس اللي هتاخدهم.");
   }
 
   function openFillDays() {
@@ -3787,7 +4151,7 @@
     $("#fillFrom").value = q ? String(q.start_date).slice(0, 10) : addDays(todayISO(), -27);
     // never the days still to come unless you ask for them
     $("#fillTo").value = todayISO();
-    $("#fillGo").textContent = "Fill the days";
+    $("#fillGo").textContent = T("Fill the days", "املا الأيام");
     fillCountNow();
     $("#fillDays").hidden = false;
   }
@@ -3805,17 +4169,18 @@
      so add this to them"). The dates above say which days. */
   function markRange(estimated, btn) {
     var from = $("#fillFrom").value, to = $("#fillTo").value;
-    if (!from || !to || from > to) { toast("Pick a first and last day", true); return; }
+    if (!from || !to || from > to) { toast(T("Pick a first and last day", "اختار أول يوم وآخر يوم"), true); return; }
     var was = btn.textContent;
     btn.disabled = true;
-    btn.textContent = estimated ? "Marking…" : "Removing…";
+    btn.textContent = estimated ? T("Marking…", "بيتعلّم…") : T("Removing…", "بيتشال…");
     api("/api/tasks?estimate=1", { method: "PATCH", body: { from: from, to: to, estimated: estimated } })
       .then(function (r) {
-        if (!r.days) { toast(estimated ? "Those days already say estimated" : "No label to remove in those days"); return null; }
+        if (!r.days) { toast(estimated ? T("Those days already say estimated", "الأيام دي مكتوب عليها تقديري أصلاً") : T("No label to remove in those days", "مفيش علامة تتشال في الأيام دي")); return null; }
         closeFillDays();
         playAddSound();
-        toast(r.days + " day" + (r.days === 1 ? "" : "s") +
-          (estimated ? " now say estimated ✓" : " no longer say estimated ✓"));
+        toast(T(r.days + " day" + (r.days === 1 ? "" : "s") +
+          (estimated ? " now say estimated ✓" : " no longer say estimated ✓"),
+          plural(r.days, "day") + (estimated ? " بقى مكتوب عليهم تقديري ✓" : " اتشالت منهم علامة تقديري ✓")));
         return loadDaysGallery({ animate: false });
       })
       .catch(function (e) { toast(e.message, true); })
@@ -3838,7 +4203,7 @@
         var taken = {};
         (res.stats || []).forEach(function (st) { if (st.total > 0) taken[String(st.date).slice(0, 10)] = true; });
         var empty = days.filter(function (d) { return !taken[d]; });
-        if (!empty.length) { toast("Every day in that stretch already has tasks"); return null; }
+        if (!empty.length) { toast(T("Every day in that stretch already has tasks", "كل يوم في المدة دي عليه مهام أصلاً")); return null; }
         var total = empty.length * list.length, made = 0;
 
         // one at a time: hundreds of rows, and the order they are written is
@@ -3852,7 +4217,7 @@
             return api("/api/tasks", { method: "POST", body: { task_date: day, title: list[k].title, estimated: true } })
               .then(function (r) {
                 made++;
-                btn.textContent = "Writing… " + Math.round((made / total) * 100) + "%";
+                btn.textContent = T("Writing… ", "بيكتب… ") + Math.round((made / total) * 100) + "%";
                 if (!list[k].done || !r.task) return null;
                 return api("/api/tasks?id=" + r.task.id, { method: "PATCH", body: { done: true } });
               })
@@ -3866,11 +4231,11 @@
         if (filled == null) return null;
         closeFillDays();
         playAddSound();
-        toast(filled + " day" + (filled === 1 ? "" : "s") + " filled ✓");
+        toast(T(filled + " day" + (filled === 1 ? "" : "s") + " filled ✓", plural(filled, "day") + " اتملوا ✓"));
         return loadDaysGallery({ animate: false });
       })
       .catch(function (e) { toast(e.message, true); })
-      .finally(function () { btn.disabled = false; btn.textContent = "Fill the days"; });
+      .finally(function () { btn.disabled = false; btn.textContent = T("Fill the days", "املا الأيام"); });
   });
 
   /* ---------------- Focus: ten pomodoros a day ----------------
@@ -3903,12 +4268,13 @@
   }
   function pomoBreakAfter(slot) { var r = pomoRhythm(); return slot % r.rounds === 0 ? r.long : r.short; }
   function pomoTarget() { return pomo.hours > 0 ? Math.max(1, pomosInHours(pomo.hours)) : POMO_TARGET; }
-  function fmtMins(m) { var h = Math.floor(m / 60), r = m % 60; return (h ? h + "h " : "") + (r || !h ? r + "m" : "").trim(); }
+  function fmtMins(m) { var h = Math.floor(m / 60), r = m % 60; return (h ? h + T("h ", "س ") : "") + (r || !h ? r + T("m", "د") : "").trim(); }
   // the postures, in the order he asked for; after the third it starts again
   var POMO_MODES = [
-    { glyph: "🪑", name: "Sitting" },
-    { glyph: "🧍", name: "Standing" },
-    { glyph: "🚶", name: "Walking (treadmill)" },
+    // name is what the server stores; label is what the page shows
+    { glyph: "🪑", name: "Sitting", label: T("Sitting", "قاعد") },
+    { glyph: "🧍", name: "Standing", label: T("Standing", "واقف") },
+    { glyph: "🚶", name: "Walking (treadmill)", label: T("Walking (treadmill)", "مشي (على المشاية)") },
   ];
   function pomoMode(slot) { return POMO_MODES[(slot - 1) % POMO_MODES.length]; }
 
@@ -3931,7 +4297,7 @@
     } catch (e) { return ""; }
     var mins = (24 * 60) - (Number(parts.hour) * 60 + Number(parts.minute));
     var h = Math.floor(mins / 60), m = mins % 60;
-    return "Resets in " + (h ? h + "h " : "") + m + "m · Cairo";
+    return T("Resets in " + (h ? h + "h " : "") + m + "m · Cairo", "هيتصفّر بعد " + (h ? h + "س " : "") + m + "د · القاهرة");
   }
 
   var pomo = { date: null, done: {}, extra: 0, history: [], run: null, hours: Number(recall("pomo-hours", "12")) || 0 };
@@ -3968,16 +4334,19 @@
     var target = pomoTarget(), r = pomoRhythm();
     var hoursIn = $("#pomoHours"); if (document.activeElement !== hoursIn) hoursIn.value = pomo.hours || "";
     $("#pomoSay").textContent = done >= target
-      ? (target === 10 ? "Ten" : target) + " done — that is the day's work 🎉"
-      : done === 0 ? (target === 10 ? "Ten" : target) + " blocks waiting. Press ▶ on the first one."
-        : (target - done) + " to go. " + pomoMode(done + 1).glyph + " " + pomoMode(done + 1).name + " is next.";
+      ? T((target === 10 ? "Ten" : target) + " done — that is the day's work 🎉", target + " خلصوا — ده شغل اليوم كله 🎉")
+      : done === 0 ? T((target === 10 ? "Ten" : target) + " blocks waiting. Press ▶ on the first one.", target + " بلوك مستنيينك. دوس ▶ على أول واحد.")
+        : T((target - done) + " to go. " + pomoMode(done + 1).glyph + " " + pomoMode(done + 1).name + " is next.",
+          "فاضل " + (target - done) + ". اللي جاي: " + pomoMode(done + 1).glyph + " " + pomoMode(done + 1).label + ".");
     var mins = 0;
     Object.keys(pomo.done).forEach(function (s) { mins += Number(pomo.done[s].minutes) || 0; });
     // what the hours become: the blocks, the focus in them, and the clock time with the breaks
     var focusMin = target * r.work, withBreaks = focusMin;
     for (var b = 1; b < target; b++) withBreaks += pomoBreakAfter(b);
-    $("#pomoMinutes").textContent = (pomo.hours ? pomo.hours + "h → " : "") + target + " × " + r.work + " min = " + fmtMins(focusMin) + " of focus, " + fmtMins(withBreaks) + " with the breaks" +
-      (mins ? " · " + fmtMins(mins) + " logged today" : "");
+    $("#pomoMinutes").textContent = T((pomo.hours ? pomo.hours + "h → " : "") + target + " × " + r.work + " min = " + fmtMins(focusMin) + " of focus, " + fmtMins(withBreaks) + " with the breaks" +
+      (mins ? " · " + fmtMins(mins) + " logged today" : ""),
+      (pomo.hours ? pomo.hours + "س ← " : "") + target + " × " + r.work + " دقيقة = " + fmtMins(focusMin) + " تركيز، " + fmtMins(withBreaks) + " بالاستراحات" +
+      (mins ? " · " + fmtMins(mins) + " متسجلين النهارده" : ""));
 
     var list = $("#pomoList");
     list.innerHTML = "";
@@ -3991,18 +4360,18 @@
       row.dataset.slot = slot;
       row.innerHTML =
         '<button type="button" class="pomo-row__check" aria-pressed="' + isDone + '" ' +
-          'aria-label="' + (isDone ? "Undo block " : "Tick off block ") + slot + '">' + (isDone ? "✓" : "") + '</button>' +
+          'aria-label="' + (isDone ? T("Undo block ", "الغي بلوك ") : T("Tick off block ", "علّم على بلوك ")) + slot + '">' + (isDone ? "✓" : "") + '</button>' +
         '<span class="pomo-row__n">' + slot + '</span>' +
-        '<span class="pomo-row__mode"><span class="pomo-row__glyph">' + mode.glyph + '</span>' + esc(mode.name) + '</span>' +
-        '<span class="pomo-row__len">' + (pomo.done[slot] && pomo.done[slot].minutes ? pomo.done[slot].minutes : POMO_MINUTES) + ' min</span>' +
+        '<span class="pomo-row__mode"><span class="pomo-row__glyph">' + mode.glyph + '</span>' + esc(mode.label) + '</span>' +
+        '<span class="pomo-row__len">' + (pomo.done[slot] && pomo.done[slot].minutes ? pomo.done[slot].minutes : POMO_MINUTES) + T(" min", " دقيقة") + '</span>' +
         '<button type="button" class="btn btn--ghost btn--sm pomo-row__go">' +
-          (isRunning ? "Running…" : isDone ? "Again" : "▶ Start") + '</button>';
+          (isRunning ? T("Running…", "شغال…") : isDone ? T("Again", "تاني") : T("▶ Start", "▶ ابدأ")) + '</button>';
       list.appendChild(row);
       // the break that follows: 5 minutes, or 15 after every fourth block
       if (slot < total) {
         var br = pomoBreakAfter(slot), gap = document.createElement("div");
         gap.className = "pomo-break" + (br >= pomoRhythm().long ? " pomo-break--long" : "") + (isDone ? " pomo-break--done" : "");
-        gap.textContent = (br >= pomoRhythm().long ? "🛋 " : "☕ ") + br + " min break";
+        gap.textContent = (br >= pomoRhythm().long ? "🛋 " : "☕ ") + T(br + " min break", "استراحة " + br + " دقيقة");
         list.appendChild(gap);
       }
     }
@@ -4020,7 +4389,7 @@
       var cell = document.createElement("div");
       cell.className = "pomo-day" + (n >= pomoTarget() ? " pomo-day--full" : n ? " pomo-day--some" : "");
       cell.style.setProperty("--fill", Math.min(100, Math.round((n / pomoTarget()) * 100)) + "%");
-      cell.title = fmtDate(d) + " — " + n + " of " + pomoTarget();
+      cell.title = fmtDate(d) + " — " + n + T(" of ", " من ") + pomoTarget();
       cell.innerHTML = '<span class="pomo-day__n">' + (n || "") + "</span>";
       box.appendChild(cell);
     }
@@ -4087,11 +4456,11 @@
     var ms = pomoLeftMs();
     var secs = Math.ceil(ms / 1000);
     var clock = Math.floor(secs / 60) + ":" + ("0" + (secs % 60)).slice(-2);
-    $("#pomoRunMode").textContent = "Block " + pomo.run.slot + " · " + mode.glyph + " " + mode.name;
+    $("#pomoRunMode").textContent = T("Block ", "بلوك ") + pomo.run.slot + " · " + mode.glyph + " " + mode.label;
     $("#pomoRunClock").textContent = clock;
     $("#pomoRunFill").style.width = (100 - Math.min(100, (ms / (pomo.run.minutes * 60000)) * 100)) + "%";
-    $("#pomoPause").textContent = pomo.run.left != null ? "Resume" : "Pause";
-    document.title = clock + " · " + mode.name + " — " + pomoTitleBase;
+    $("#pomoPause").textContent = pomo.run.left != null ? T("Resume", "كمّل") : T("Pause", "وقّف مؤقتاً");
+    document.title = clock + " · " + mode.label + " — " + pomoTitleBase;
     if (ms <= 0) finishPomodoro();
   }
 
@@ -4110,7 +4479,7 @@
       }
       if (window.Go) window.Go.play("success");
       var done = Object.keys(pomo.done).length;
-      toast(done >= pomoTarget() ? "Ten blocks done today 🎉" : "Block " + run.slot + " done — " + (pomoTarget() - done) + " to go");
+      toast(done >= pomoTarget() ? T("Ten blocks done today 🎉", "بلوكات النهارده كلها خلصت 🎉") : T("Block " + run.slot + " done — " + (pomoTarget() - done) + " to go", "بلوك " + run.slot + " خلص — فاضل " + (pomoTarget() - done)));
     }).catch(function (e) { toast(e.message, true); });
   }
 
@@ -4143,7 +4512,7 @@
     }
     if (ev.target.closest(".pomo-row__go")) {
       if (pomo.run && pomo.run.slot !== slot && pomoLeftMs() > 0) {
-        if (!confirm("Block " + pomo.run.slot + " is still running. Start block " + slot + " instead?")) return;
+        if (!confirm(T("Block " + pomo.run.slot + " is still running. Start block " + slot + " instead?", "بلوك " + pomo.run.slot + " لسه شغال. تبدأ بلوك " + slot + " بداله؟"))) return;
       }
       startPomodoro(slot);
       row.scrollIntoView({ behavior: "smooth", block: "nearest" });

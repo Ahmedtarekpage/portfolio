@@ -713,3 +713,77 @@ button.meet__who:hover strong { color: var(--blue-2); }
 @media (prefers-reduced-motion: reduce) {
   .pill__dot { animation: none !important; }
 }
+
+/* ==========================================================================
+   RTL (Arabic) overrides — active only under <html dir="rtl">, which
+   js/tools/i18n.js sets when the tools are switched to Arabic.
+
+   Why this block is appended instead of merged into the rules above: every
+   rule above stays byte-for-byte as it was, so English (LTR) cannot regress.
+   Each override repeats the original selector with [dir="rtl"] in front, so
+   it wins on specificity, and keeps the original's media query. Numbers,
+   times, charts and code are kept left-to-right on purpose.
+   ========================================================================== */
+
+/* -- Arabic type: the page fonts (Inter / Quicksand / Bricolage) are Latin
+      only. Arabic fonts lead; the Latin face stays in the stack for digits
+      and English words. Arabic is a joined script: no letter-spacing. -- */
+:root[dir="rtl"],
+:root[dir="rtl"][data-theme="light"],
+:root[dir="rtl"][data-theme="dark"] {
+  --font-ui: "Cairo", "Noto Sans Arabic", "Geeza Pro", "Inter", "Segoe UI", Tahoma, system-ui, sans-serif;
+}
+[dir="rtl"] body, [dir="rtl"] button, [dir="rtl"] input, [dir="rtl"] select, [dir="rtl"] textarea {
+  font-family: var(--font-ui, "Cairo", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", Tahoma, system-ui, sans-serif);
+}
+[dir="rtl"] *, [dir="rtl"] *::before, [dir="rtl"] *::after { letter-spacing: normal !important; }
+
+/* -- things that must not mirror -- */
+/* SVG charts: text-anchor start/end follow `direction`, so axes stay LTR */
+[dir="rtl"] svg, [dir="rtl"] canvas { direction: ltr; }
+[dir="rtl"] code { direction: ltr; unicode-bidi: isolate; }
+[dir="rtl"] input[type="email"], [dir="rtl"] input[type="url"], [dir="rtl"] input[type="tel"] { direction: ltr; text-align: right; }
+[dir="rtl"] input[type="number"], [dir="rtl"] input[type="date"], [dir="rtl"] input[type="time"],
+[dir="rtl"] input[type="datetime-local"], [dir="rtl"] input[type="month"] { direction: ltr; }
+[dir="rtl"] input[type="date"], [dir="rtl"] input[type="time"],
+[dir="rtl"] input[type="datetime-local"], [dir="rtl"] input[type="month"] { text-align: right; }
+/* typed text may be Arabic or English: each field follows its own content */
+[dir="rtl"] input[type="text"], [dir="rtl"] input[type="search"], [dir="rtl"] input:not([type]), [dir="rtl"] textarea { unicode-bidi: plaintext; }
+/* numeric cells and big figures keep their sign and separators in order */
+[dir="rtl"] .table .num, [dir="rtl"] .table td.num { direction: ltr; unicode-bidi: isolate; text-align: left; }
+[dir="rtl"] .meet__day, [dir="rtl"] .client-card__hours b { direction: ltr; unicode-bidi: isolate; }
+[dir="rtl"] .meet__topic { unicode-bidi: plaintext; text-align: right; }
+
+/* -- forms and tables -- */
+[dir="rtl"] .form { text-align: right; }
+[dir="rtl"] .table th { text-align: right; }
+
+/* -- badges -- */
+[dir="rtl"] .badge { margin-left: 0; margin-right: 8px; }
+[dir="rtl"] .series__list .badge { margin-right: 0; }
+[dir="rtl"] .client-card__foot .badge { margin-right: 0; }
+
+/* -- chart filter and the pinned detail panel -- */
+[dir="rtl"] .chart-filter__dates { margin-left: 0; margin-right: auto; }
+@media (max-width: 640px) {
+  [dir="rtl"] .chart-filter__dates { margin-right: 0; }
+}
+[dir="rtl"] .chart-detail { padding: 14px 16px 14px 34px; }
+[dir="rtl"] .chart-detail__close { right: auto; left: 10px; }
+
+/* -- avatar upload badge -- */
+[dir="rtl"] .avatar-upload__badge { right: auto; left: -4px; }
+
+/* -- meetings -- */
+[dir="rtl"] button.meet__who { text-align: right; }
+[dir="rtl"] .meet__zone { margin-left: 0; margin-right: 4px; }
+[dir="rtl"] .meet__actions { margin-left: 0; margin-right: auto; }
+
+/* -- client cards -- */
+[dir="rtl"] .client-card { text-align: right; }
+[dir="rtl"] .client-card__type { margin-left: 0; margin-right: auto; }
+
+@media (max-width: 640px) {
+  [dir="rtl"] .meet__actions { margin-right: 0; }
+}
+/* ============================ end RTL overrides ============================ */

@@ -253,7 +253,8 @@ One passkey. No passwords, and no second account.
 - The **first** device to register becomes the only one that can ever log in.
   Registration then locks permanently, enforced by a guarded `INSERT` in
   `api/auth.js` rather than by a flag in the app.
-- Sessions are a 7-day signed, `HttpOnly` cookie.
+- Sessions are a 1-hour signed, `HttpOnly` cookie: a device left open locks itself, and the passkey makes signing in again one tap.
+- Two failed logins (or two wrong finance PINs) take one camera frame, if the browser allows it, and record the attempt. The owner reads the log at `/security` ([`api/_lib/intruder.js`](api/_lib/intruder.js), [`js/tools/snap.js`](js/tools/snap.js)).
 - On a laptop the browser shows a QR code to scan with the registered phone —
   that is passkeys working as designed, not a workaround.
 - Losing the phone means `POST /api/auth?action=reset` with `ADMIN_RESET_SECRET`,
@@ -380,6 +381,7 @@ a manual-action risk, not a shortcut.
 - **Never `src=""`.** An empty `src` is not "no picture" — the browser resolves
   it to the current page and downloads the whole document to try to decode it.
   Use `removeAttribute("src")`.
+- **The private tools are English and Arabic.** [`js/tools/i18n.js`](js/tools/i18n.js) sets `<html lang dir>` and adds the switch. Every string carries its Arabic where it is used — `T("Save", "حفظ")` in scripts, `data-ar="حفظ"` in markup — so new interface text needs both. The right-to-left rules are appended at the end of each stylesheet under `[dir="rtl"]`, leaving the existing rules untouched.
 - The public pages are English only. The translation layer in `journey.js` is
   still there and inert; do not wire it back up without asking.
 

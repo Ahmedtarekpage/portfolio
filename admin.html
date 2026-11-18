@@ -30,11 +30,12 @@
       } catch (e) {}
     })();
   </script>
+  <script src="js/tools/i18n.js?v=1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=13" />
-  <link rel="stylesheet" href="css/tools/go.css?v=16" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tools/app.css?v=14" />
+  <link rel="stylesheet" href="css/tools/go.css?v=17" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
 </head>
 <body>
@@ -50,7 +51,7 @@
           <path class="go-loader__climb" d="M20 94 L60 26"></path>
           <circle class="go-loader__peak" cx="60" cy="26" r="9.5"></circle>
         </svg>
-        <p class="go-loader__text">Loading…</p>
+        <p class="go-loader__text" data-ar="بنحمّل…">Loading…</p>
       </div>
     </section>
 
@@ -58,10 +59,10 @@
     <section id="view-login" class="view" hidden>
       <div class="card card--center login-card">
         <div class="lock-icon" aria-hidden="true">🔐</div>
-        <h1>Admin</h1>
-        <p class="muted">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
+        <h1 data-ar="لوحة التحكم">Admin</h1>
+        <p class="muted" data-ar-html="ادخل بمفتاح الدخول. على الـiPhone بيشتغل بـFace&amp;nbsp;ID؛ ومن الكمبيوتر المتصفح هيعرض QR code تصوّره بالـiPhone.">Sign in with your passkey. On iPhone this uses Face&nbsp;ID;
         from a computer your browser will show a QR code to scan with the iPhone.</p>
-        <button id="btnLogin" class="btn btn--hero">Sign in with passkey</button>
+        <button id="btnLogin" class="btn btn--hero" data-ar="ادخل بمفتاح الدخول">Sign in with passkey</button>
         <p id="loginError" class="error" hidden></p>
       </div>
     </section>
@@ -70,12 +71,12 @@
     <section id="view-setup" class="view" hidden>
       <div class="card card--center login-card">
         <div class="lock-icon" aria-hidden="true">📱</div>
-        <h1>Register your iPhone</h1>
-        <p class="muted">One device only — after this, setup locks forever and only your iPhone can sign in.</p>
-        <p class="muted"><strong>On a computer:</strong> tap the button below and your browser will show a
+        <h1 data-ar="سجّل الـiPhone بتاعك">Register your iPhone</h1>
+        <p class="muted" data-ar="جهاز واحد بس — بعد كده التسجيل بيتقفل للأبد والـiPhone بتاعك بس اللي يقدر يدخل.">One device only — after this, setup locks forever and only your iPhone can sign in.</p>
+        <p class="muted" data-ar-html="<strong>على الكمبيوتر:</strong> دوس الزرار اللي تحت والمتصفح هيعرض <strong>QR code</strong> — صوّره بكاميرا الـiPhone، وبعدين أكّد بـFace&amp;nbsp;ID.<br /><br /><strong>على الـiPhone نفسه:</strong> دوس الزرار وأكّد بـFace&amp;nbsp;ID."><strong>On a computer:</strong> tap the button below and your browser will show a
         <strong>QR code</strong> — scan it with the iPhone camera, then confirm with Face&nbsp;ID.<br /><br />
         <strong>On the iPhone itself:</strong> just tap the button and confirm with Face&nbsp;ID.</p>
-        <button id="btnSetup" class="btn btn--hero">Create passkey</button>
+        <button id="btnSetup" class="btn btn--hero" data-ar="اعمل مفتاح دخول">Create passkey</button>
         <p id="setupError" class="error" hidden></p>
       </div>
     </section>
@@ -87,91 +88,92 @@
         <span class="go-doodles" aria-hidden="true"><i>📅</i><i>⏱</i><i>💰</i><i>✨</i><i>🎯</i><i>☕</i></span>
         <div class="go-hero__kicker" id="homeDate"></div>
         <h1 id="homeHello">Hi Ahmed</h1>
-        <p>Where do you want to go?</p>
+        <p data-ar="عايز تروح فين؟">Where do you want to go?</p>
         <span class="go-hero__bar" aria-hidden="true"></span>
       </div>
       <div class="go-home">
         <button type="button" class="go-home__tile" id="goClients">
           <span class="go-home__icon" aria-hidden="true">👥</span>
           <span>
-            <span class="go-home__name">Clients</span>
-            <span class="go-home__sub">Hours, sessions and meetings</span>
+            <span class="go-home__name" data-ar="العملاء">Clients</span>
+            <span class="go-home__sub" data-ar="الساعات والجلسات والاجتماعات">Hours, sessions and meetings</span>
             <span class="go-home__facts" id="homeClientFacts"></span>
           </span>
-          <span class="go-home__go" aria-hidden="true">→</span>
+          <span class="go-home__go" aria-hidden="true" data-ar="←">→</span>
         </button>
         <a class="go-home__tile" href="/time" id="goTime">
           <span class="go-home__icon" aria-hidden="true">⏱</span>
           <span>
-            <span class="go-home__name">Time</span>
-            <span class="go-home__sub">Your days, tasks, goals and quarters</span>
-            <span class="go-home__facts"><span class="go-home__fact">Today · Days · Quarters · Ideas</span></span>
+            <span class="go-home__name" data-ar="الوقت">Time</span>
+            <span class="go-home__sub" data-ar="أيامك ومهامك وأهدافك وأرباع السنة">Your days, tasks, goals and quarters</span>
+            <span class="go-home__facts"><span class="go-home__fact" data-ar="النهارده · الأيام · أرباع السنة · الأفكار">Today · Days · Quarters · Ideas</span></span>
           </span>
-          <span class="go-home__go" aria-hidden="true">→</span>
+          <span class="go-home__go" aria-hidden="true" data-ar="←">→</span>
         </a>
         <a class="go-home__tile" href="/finance" id="goFinance">
           <span class="go-home__icon" aria-hidden="true">🪙</span>
           <span>
-            <span class="go-home__name">Finance</span>
-            <span class="go-home__sub">Income split, safety fund, debt and goals</span>
-            <span class="go-home__facts"><span class="go-home__fact">Wallets · Payday · Analytics</span></span>
+            <span class="go-home__name" data-ar="الفلوس">Finance</span>
+            <span class="go-home__sub" data-ar="تقسيم الدخل، صندوق الأمان، الديون والأهداف">Income split, safety fund, debt and goals</span>
+            <span class="go-home__facts"><span class="go-home__fact" data-ar="المحافظ · يوم القبض · التحليلات">Wallets · Payday · Analytics</span></span>
           </span>
-          <span class="go-home__go" aria-hidden="true">→</span>
+          <span class="go-home__go" aria-hidden="true" data-ar="←">→</span>
         </a>
       </div>
       <div class="go-home__more">
-        <a class="btn btn--ghost btn--sm" href="/dashboard">🖋 Site content</a>
+        <a class="btn btn--ghost btn--sm" href="/security" data-ar="🛡 سجل الأمان">🛡 Security log</a>
+        <a class="btn btn--ghost btn--sm" href="/dashboard" data-ar="🖋 محتوى الموقع">🖋 Site content</a>
         <button type="button" class="btn btn--ghost btn--sm go-sound"></button>
-        <button type="button" id="btnLogoutHome" class="btn btn--ghost btn--sm">Log out</button>
+        <button type="button" id="btnLogoutHome" class="btn btn--ghost btn--sm" data-ar="خروج">Log out</button>
       </div>
     </section>
 
     <!-- ================= CLIENT LIST ================= -->
     <section id="view-list" class="view" hidden>
       <header class="topbar">
-        <h1><button type="button" id="btnHome" class="btn btn--ghost btn--sm" data-sound="page">← Home</button> Clients</h1>
+        <h1><button type="button" id="btnHome" class="btn btn--ghost btn--sm" data-sound="page" data-ar="→ الرئيسية">← Home</button> <span data-ar="العملاء">Clients</span></h1>
         <div class="topbar__actions">
-          <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">🌙</button>
-          <button id="btnZone" class="btn btn--ghost btn--sm" title="Your time zone and meeting settings" aria-expanded="false" aria-controls="settingsCard">🌍 <span id="zoneNow">Time zone</span></button>
-          <a class="btn btn--ghost btn--sm" href="/time">⏱ Time</a>
-          <a class="btn btn--ghost btn--sm" href="/dashboard">Site content</a>
-          <button id="btnLogout" class="btn btn--ghost btn--sm">Log out</button>
+          <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme" data-ar-title="بدّل بين الفاتح والغامق">🌙</button>
+          <button id="btnZone" class="btn btn--ghost btn--sm" title="Your time zone and meeting settings" data-ar-title="منطقتك الزمنية وإعدادات الاجتماعات" aria-expanded="false" aria-controls="settingsCard">🌍 <span id="zoneNow">Time zone</span></button>
+          <a class="btn btn--ghost btn--sm" href="/time" data-ar="⏱ الوقت">⏱ Time</a>
+          <a class="btn btn--ghost btn--sm" href="/dashboard" data-ar="محتوى الموقع">Site content</a>
+          <button id="btnLogout" class="btn btn--ghost btn--sm" data-ar="خروج">Log out</button>
         </div>
       </header>
 
       <div class="card" id="settingsCard" hidden>
         <div class="card__head">
-          <h2>Meeting settings</h2>
-          <button type="button" class="iconbtn iconbtn--edit" id="btnCloseSettings" aria-label="Close settings">✕</button>
+          <h2 data-ar="إعدادات الاجتماعات">Meeting settings</h2>
+          <button type="button" class="iconbtn iconbtn--edit" id="btnCloseSettings" aria-label="Close settings" data-ar-aria-label="اقفل الإعدادات">✕</button>
         </div>
         <form id="settingsForm" class="form form--grid">
-          <label>Your time zone
+          <label><span data-ar="منطقتك الزمنية">Your time zone</span>
             <select name="timezone"></select>
           </label>
-          <label>Your usual meeting link
-            <input name="default_link" type="url" placeholder="https://meet.google.com/… or https://zoom.us/j/…" />
+          <label><span data-ar="لينك اجتماعاتك المعتاد">Your usual meeting link</span>
+            <input name="default_link" type="url" placeholder="https://meet.google.com/… or https://zoom.us/j/…" data-ar-placeholder="https://meet.google.com/… أو https://zoom.us/j/…" />
           </label>
-          <label class="span2" id="notifyField" hidden>Send my copy of each reminder to
+          <label class="span2" id="notifyField" hidden><span data-ar="ابعت نسختي من كل تذكير على">Send my copy of each reminder to</span>
             <input name="notify_email" type="email" />
           </label>
           <p class="span2 form__note" id="mailStatus" hidden></p>
-          <div class="span2"><button type="submit" class="btn btn--primary">Save settings</button></div>
+          <div class="span2"><button type="submit" class="btn btn--primary" data-ar="حفظ الإعدادات">Save settings</button></div>
         </form>
       </div>
 
       <section class="agenda" id="agenda" hidden>
         <div class="section-head">
-          <h2>📅 Upcoming meetings</h2>
-          <button type="button" class="btn btn--ghost btn--sm" id="btnCalendar" data-sound="open">🔗 Add to Google Calendar</button>
+          <h2 data-ar="📅 الاجتماعات الجاية">📅 Upcoming meetings</h2>
+          <button type="button" class="btn btn--ghost btn--sm" id="btnCalendar" data-sound="open" data-ar="🔗 ضيف على Google Calendar">🔗 Add to Google Calendar</button>
         </div>
         <div class="agenda-bar">
-          <div class="agenda-filter" id="agendaFilter" role="group" aria-label="Show meetings">
-            <button type="button" class="chip" data-range="today" aria-pressed="false">Today <span class="chip__n"></span></button>
-            <button type="button" class="chip" data-range="tomorrow" aria-pressed="false">Tomorrow <span class="chip__n"></span></button>
-            <button type="button" class="chip" data-range="week" aria-pressed="false">This week <span class="chip__n"></span></button>
-            <button type="button" class="chip" data-range="next" aria-pressed="false">Next week <span class="chip__n"></span></button>
-            <button type="button" class="chip" data-range="month" aria-pressed="false">This month <span class="chip__n"></span></button>
-            <button type="button" class="chip" data-range="all" aria-pressed="false">All <span class="chip__n"></span></button>
+          <div class="agenda-filter" id="agendaFilter" role="group" aria-label="Show meetings" data-ar-aria-label="اعرض الاجتماعات">
+            <button type="button" class="chip" data-range="today" aria-pressed="false"><span data-ar="النهارده">Today</span> <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="tomorrow" aria-pressed="false"><span data-ar="بكرة">Tomorrow</span> <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="week" aria-pressed="false"><span data-ar="الأسبوع ده">This week</span> <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="next" aria-pressed="false"><span data-ar="الأسبوع الجاي">Next week</span> <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="month" aria-pressed="false"><span data-ar="الشهر ده">This month</span> <span class="chip__n"></span></button>
+            <button type="button" class="chip" data-range="all" aria-pressed="false"><span data-ar="الكل">All</span> <span class="chip__n"></span></button>
           </div>
           <span class="muted section-head__note" id="agendaZone"></span>
         </div>
@@ -182,61 +184,61 @@
 
       <div class="card">
         <details id="addClientBox">
-          <summary class="btn btn--hero"><span class="when-closed">+ Add a client</span><span class="when-open">✕ Close</span></summary>
-          <form id="addClientForm" class="form" data-wizard data-review-title="Ready to add them?">
-            <fieldset class="go-wiz__step" data-title="What's their name?" data-hint="As you'd write it on an invoice." data-glyph="👤">
-              <label>Name<input name="name" required maxlength="200" autocomplete="off" /></label>
+          <summary class="btn btn--hero"><span class="when-closed" data-ar="+ ضيف عميل">+ Add a client</span><span class="when-open" data-ar="✕ اقفل">✕ Close</span></summary>
+          <form id="addClientForm" class="form" data-wizard data-review-title="Ready to add them?" data-review-title-ar="نضيفه؟">
+            <fieldset class="go-wiz__step" data-title="What's their name?" data-title-ar="اسمه إيه؟" data-hint="As you'd write it on an invoice." data-hint-ar="زي ما هتكتبه في الفاتورة." data-glyph="👤">
+              <label><span data-ar="الاسم">Name</span><input name="name" required maxlength="200" autocomplete="off" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="Man or woman?" data-hint="Picks the default picture. You can upload a photo later." data-glyph="🧑" data-optional>
+            <fieldset class="go-wiz__step" data-title="Man or woman?" data-title-ar="راجل ولا ست؟" data-hint="Picks the default picture. You can upload a photo later." data-hint-ar="عشان نختار الصورة الافتراضية. تقدر ترفع صورة بعدين." data-glyph="🧑" data-optional>
               <select name="gender" data-picks data-picks-empty>
-                <option value="" data-glyph="🤷">Skip</option>
-                <option value="male" data-glyph="👨">Man</option>
-                <option value="female" data-glyph="👩">Woman</option>
+                <option value="" data-glyph="🤷" data-ar="تخطّي">Skip</option>
+                <option value="male" data-glyph="👨" data-ar="راجل">Man</option>
+                <option value="female" data-glyph="👩" data-ar="ست">Woman</option>
               </select>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="How do you reach them?" data-hint="Phone, email, or both." data-glyph="📞" data-optional data-two>
-              <label>Phone<input name="phone" type="tel" placeholder="+20 …" /></label>
-              <label>Email<input name="email" type="email" /></label>
+            <fieldset class="go-wiz__step" data-title="How do you reach them?" data-title-ar="بتوصل له إزاي؟" data-hint="Phone, email, or both." data-hint-ar="تليفون، إيميل، أو الاتنين." data-glyph="📞" data-optional data-two>
+              <label><span data-ar="التليفون">Phone</span><input name="phone" type="tel" placeholder="+20 …" /></label>
+              <label><span data-ar="الإيميل">Email</span><input name="email" type="email" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="How do they pay you?" data-glyph="💳" data-optional>
+            <fieldset class="go-wiz__step" data-title="How do they pay you?" data-title-ar="بيدفع لك إزاي؟" data-glyph="💳" data-optional>
               <select name="transaction_type" data-picks>
                 <option value="">—</option>
-                <option data-glyph="🤝">Direct</option>
+                <option value="Direct" data-glyph="🤝" data-ar="مباشر">Direct</option>
                 <option data-glyph="🅿️">PayPal</option>
-                <option data-glyph="🏦">Bank transfer</option>
+                <option value="Bank transfer" data-glyph="🏦" data-ar="تحويل بنكي">Bank transfer</option>
                 <option data-glyph="🌍">Wise</option>
                 <option data-glyph="⚡">InstaPay</option>
-                <option data-glyph="✨">Other</option>
+                <option value="Other" data-glyph="✨" data-ar="حاجة تانية">Other</option>
               </select>
-              <label>Nationality<input name="nationality" placeholder="Egypt, Saudi Arabia…" /></label>
+              <label><span data-ar="الجنسية">Nationality</span><input name="nationality" placeholder="Egypt, Saudi Arabia…" data-ar-placeholder="مصر، السعودية…" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="Anything to remember?" data-hint="A note for you, and a photo if you have one." data-glyph="📝" data-optional>
-              <label>Notes<input name="notes" /></label>
-              <label>Photo<input name="photo" type="file" accept="image/*" data-drop="Drop a photo here" data-drop-hint="We'll crop it to a square" /></label>
+            <fieldset class="go-wiz__step" data-title="Anything to remember?" data-title-ar="حاجة تفتكرها؟" data-hint="A note for you, and a photo if you have one." data-hint-ar="ملاحظة ليك، وصورة لو عندك." data-glyph="📝" data-optional>
+              <label><span data-ar="ملاحظات">Notes</span><input name="notes" /></label>
+              <label><span data-ar="الصورة">Photo</span><input name="photo" type="file" accept="image/*" data-drop="Drop a photo here" data-drop-ar="ارمي الصورة هنا" data-drop-hint="We'll crop it to a square" data-drop-hint-ar="هنقصّها مربع" /></label>
             </fieldset>
-            <div class="go-wiz__actions"><button type="submit" class="btn btn--primary">Add client ✓</button></div>
+            <div class="go-wiz__actions"><button type="submit" class="btn btn--primary" data-ar="ضيف العميل ✓">Add client ✓</button></div>
           </form>
         </details>
       </div>
 
       <div class="section-head">
-        <h2>All clients <span class="count" id="clientCount"></span></h2>
-        <input type="search" id="clientSearch" class="search" placeholder="Search by name, phone, email or country" aria-label="Search clients" />
+        <h2><span data-ar="كل العملاء">All clients</span> <span class="count" id="clientCount"></span></h2>
+        <input type="search" id="clientSearch" class="search" placeholder="Search by name, phone, email or country" data-ar-placeholder="دوّر بالاسم أو التليفون أو الإيميل أو البلد" aria-label="Search clients" data-ar-aria-label="دوّر في العملاء" />
       </div>
       <div class="client-grid" id="clientGrid"></div>
-      <p id="clientsEmpty" class="muted center" hidden>No clients yet — add your first one above.</p>
-      <p id="clientsNoMatch" class="muted center" hidden>No client matches that search.</p>
+      <p id="clientsEmpty" class="muted center" hidden data-ar="مفيش عملاء لسه — ضيف أول واحد من فوق.">No clients yet — add your first one above.</p>
+      <p id="clientsNoMatch" class="muted center" hidden data-ar="مفيش عميل مطابق للبحث ده.">No client matches that search.</p>
     </section>
 
     <!-- ================= CLIENT DETAIL ================= -->
     <section id="view-client" class="view" hidden>
       <header class="topbar">
-        <button id="btnBack" class="btn btn--ghost btn--sm">← Clients</button>
+        <button id="btnBack" class="btn btn--ghost btn--sm" data-ar="→ العملاء">← Clients</button>
         <div class="topbar__actions">
-          <button id="btnShare" class="btn btn--ghost btn--sm" title="Copy a read-only link for this client">🔗 Share link</button>
-          <button id="btnRevokeShare" class="btn btn--ghost btn--sm" hidden title="Disable the shared link">Revoke link</button>
-          <button id="btnEditClient" class="btn btn--ghost btn--sm">Edit</button>
-          <button id="btnDeleteClient" class="btn btn--danger btn--sm">Delete</button>
+          <button id="btnShare" class="btn btn--ghost btn--sm" title="Copy a read-only link for this client" data-ar-title="انسخ لينك للقراءة بس للعميل ده" data-ar="🔗 لينك المشاركة">🔗 Share link</button>
+          <button id="btnRevokeShare" class="btn btn--ghost btn--sm" hidden title="Disable the shared link" data-ar-title="وقّف لينك المشاركة" data-ar="الغي اللينك">Revoke link</button>
+          <button id="btnEditClient" class="btn btn--ghost btn--sm" data-ar="تعديل">Edit</button>
+          <button id="btnDeleteClient" class="btn btn--danger btn--sm" data-ar="مسح">Delete</button>
         </div>
       </header>
 
@@ -250,42 +252,42 @@
           <div>
             <h1 id="cName"></h1>
             <div id="cMeta" class="client-chips"></div>
-            <button type="button" class="linklike avatar-remove" id="btnRemovePhoto" hidden>Remove photo</button>
+            <button type="button" class="linklike avatar-remove" id="btnRemovePhoto" hidden data-ar="شيل الصورة">Remove photo</button>
           </div>
         </div>
-        <form id="editClientForm" class="form" data-wizard data-review-title="Edit client" data-review-hint="Tap Change on anything you want to fix, then save." hidden>
-          <fieldset class="go-wiz__step" data-title="Name" data-glyph="👤">
-            <label>Name<input name="name" required maxlength="200" /></label>
+        <form id="editClientForm" class="form" data-wizard data-review-title="Edit client" data-review-title-ar="تعديل العميل" data-review-hint="Tap Change on anything you want to fix, then save." data-review-hint-ar="دوس «تغيير» على أي حاجة عايز تصلحها، وبعدين احفظ." hidden>
+          <fieldset class="go-wiz__step" data-title="Name" data-title-ar="الاسم" data-glyph="👤">
+            <label><span data-ar="الاسم">Name</span><input name="name" required maxlength="200" /></label>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="Man or woman" data-glyph="🧑" data-optional>
+          <fieldset class="go-wiz__step" data-title="Man or woman" data-title-ar="راجل ولا ست" data-glyph="🧑" data-optional>
             <select name="gender" data-picks>
-                <option value="" data-glyph="🤷">Skip</option>
-                <option value="male" data-glyph="👨">Man</option>
-                <option value="female" data-glyph="👩">Woman</option>
+                <option value="" data-glyph="🤷" data-ar="تخطّي">Skip</option>
+                <option value="male" data-glyph="👨" data-ar="راجل">Man</option>
+                <option value="female" data-glyph="👩" data-ar="ست">Woman</option>
               </select>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="Contact" data-glyph="📞" data-optional data-two>
-            <label>Phone<input name="phone" /></label>
-            <label>Email<input name="email" type="email" /></label>
+          <fieldset class="go-wiz__step" data-title="Contact" data-title-ar="التواصل" data-glyph="📞" data-optional data-two>
+            <label><span data-ar="التليفون">Phone</span><input name="phone" /></label>
+            <label><span data-ar="الإيميل">Email</span><input name="email" type="email" /></label>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="Payment and nationality" data-glyph="💳" data-optional>
+          <fieldset class="go-wiz__step" data-title="Payment and nationality" data-title-ar="الدفع والجنسية" data-glyph="💳" data-optional>
             <select name="transaction_type" data-picks>
                 <option value="">—</option>
-                <option data-glyph="🤝">Direct</option>
+                <option value="Direct" data-glyph="🤝" data-ar="مباشر">Direct</option>
                 <option data-glyph="🅿️">PayPal</option>
-                <option data-glyph="🏦">Bank transfer</option>
+                <option value="Bank transfer" data-glyph="🏦" data-ar="تحويل بنكي">Bank transfer</option>
                 <option data-glyph="🌍">Wise</option>
                 <option data-glyph="⚡">InstaPay</option>
-                <option data-glyph="✨">Other</option>
+                <option value="Other" data-glyph="✨" data-ar="حاجة تانية">Other</option>
               </select>
-            <label>Nationality<input name="nationality" /></label>
+            <label><span data-ar="الجنسية">Nationality</span><input name="nationality" /></label>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="Notes" data-glyph="📝" data-optional>
-            <label>Notes<input name="notes" /></label>
+          <fieldset class="go-wiz__step" data-title="Notes" data-title-ar="ملاحظات" data-glyph="📝" data-optional>
+            <label><span data-ar="ملاحظات">Notes</span><input name="notes" /></label>
           </fieldset>
           <div class="go-wiz__actions">
-            <button type="submit" class="btn btn--primary">Save changes ✓</button>
-            <button type="button" class="btn btn--ghost" id="btnCancelEditClient">Cancel</button>
+            <button type="submit" class="btn btn--primary" data-ar="حفظ التعديلات ✓">Save changes ✓</button>
+            <button type="button" class="btn btn--ghost" id="btnCancelEditClient" data-ar="إلغاء">Cancel</button>
           </div>
         </form>
       </div>
@@ -294,10 +296,10 @@
 
       <div class="card" id="meetingsCard">
         <div class="card__head">
-          <h2>Meetings</h2>
+          <h2 data-ar="الاجتماعات">Meetings</h2>
           <div class="card__tools">
-            <button type="button" class="btn btn--ghost btn--sm" id="btnLinkAll" hidden>🔗 Change link for all</button>
-            <button type="button" class="btn btn--ghost btn--sm" id="btnNewMeeting">+ Schedule a meeting</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnLinkAll" hidden data-ar="🔗 غيّر اللينك للكل">🔗 Change link for all</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnNewMeeting" data-ar="+ احجز اجتماع">+ Schedule a meeting</button>
           </div>
         </div>
         <form id="linkAllForm" class="form link-all" hidden>
@@ -305,90 +307,90 @@
             <span class="link-all__glyph" aria-hidden="true">🔗</span>
             <div>
               <h3 id="linkAllTitle">New link for every upcoming meeting</h3>
-              <p class="muted" id="linkAllHint">Paste the new Zoom or Google Meet link. Meetings that already happened keep theirs.</p>
+              <p class="muted" id="linkAllHint" data-ar="الصق لينك Zoom أو Google Meet الجديد. الاجتماعات اللي فاتت هتفضل بلينكها.">Paste the new Zoom or Google Meet link. Meetings that already happened keep theirs.</p>
             </div>
           </div>
-          <label>Meeting link
-            <input name="link" type="url" placeholder="https://meet.google.com/… or https://zoom.us/j/…" autocomplete="off" />
+          <label><span data-ar="لينك الاجتماع">Meeting link</span>
+            <input name="link" type="url" placeholder="https://meet.google.com/… or https://zoom.us/j/…" data-ar-placeholder="https://meet.google.com/… أو https://zoom.us/j/…" autocomplete="off" />
           </label>
           <p class="link-all__app" id="linkAllApp" hidden></p>
           <label class="link-all__check">
             <input name="save_default" type="checkbox" />
-            <span>Also use it for new meetings from now on</span>
+            <span data-ar="واستخدمه للاجتماعات الجديدة من دلوقتي">Also use it for new meetings from now on</span>
           </label>
           <div class="form__actions">
             <button type="submit" class="btn btn--primary" id="btnLinkAllSubmit">Change the link ✓</button>
-            <button type="button" class="btn btn--ghost" id="btnLinkAllCancel">Cancel</button>
+            <button type="button" class="btn btn--ghost" id="btnLinkAllCancel" data-ar="إلغاء">Cancel</button>
           </div>
         </form>
-        <form id="meetingForm" class="form" data-wizard data-review-title="Book it?" data-review-hint="Check the time for you and for them." hidden>
-          <fieldset class="go-wiz__step" data-title="When is it?" data-hint="In the time zone you agreed with them." data-glyph="📅" data-two>
-            <label>Date<input name="date" type="date" required /></label>
-            <label>Time<input name="time" type="time" required /></label>
-            <label class="span2">Time zone the time is in
+        <form id="meetingForm" class="form" data-wizard data-review-title="Book it?" data-review-title-ar="نحجزه؟" data-review-hint="Check the time for you and for them." data-review-hint-ar="راجع الوقت عندك وعنده." hidden>
+          <fieldset class="go-wiz__step" data-title="When is it?" data-title-ar="إمتى؟" data-hint="In the time zone you agreed with them." data-hint-ar="بالمنطقة الزمنية اللي اتفقتوا عليها." data-glyph="📅" data-two>
+            <label><span data-ar="التاريخ">Date</span><input name="date" type="date" required /></label>
+            <label><span data-ar="الوقت">Time</span><input name="time" type="time" required /></label>
+            <label class="span2"><span data-ar="المنطقة الزمنية للوقت ده">Time zone the time is in</span>
               <select name="timezone" required></select>
             </label>
             <p class="span2 meet-preview" id="meetingPreview" data-wiz-review hidden></p>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="How long?" data-glyph="⏳">
+          <fieldset class="go-wiz__step" data-title="How long?" data-title-ar="قد إيه؟" data-glyph="⏳">
             <select name="duration_min" data-picks>
-              <option value="30" data-glyph="☕">30 minutes</option>
-              <option value="45" data-glyph="🕒">45 minutes</option>
-              <option value="60" data-glyph="🕐" selected>1 hour</option>
-              <option value="90" data-glyph="🕜">1.5 hours</option>
-              <option value="120" data-glyph="🕑">2 hours</option>
-              <option value="180" data-glyph="🕒">3 hours</option>
+              <option value="30" data-glyph="☕" data-ar="30 دقيقة">30 minutes</option>
+              <option value="45" data-glyph="🕒" data-ar="45 دقيقة">45 minutes</option>
+              <option value="60" data-glyph="🕐" selected data-ar="ساعة">1 hour</option>
+              <option value="90" data-glyph="🕜" data-ar="ساعة ونص">1.5 hours</option>
+              <option value="120" data-glyph="🕑" data-ar="ساعتين">2 hours</option>
+              <option value="180" data-glyph="🕒" data-ar="3 ساعات">3 hours</option>
             </select>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="Does it repeat?" data-hint="A repeat books the whole series in one go." data-glyph="🔁">
+          <fieldset class="go-wiz__step" data-title="Does it repeat?" data-title-ar="بيتكرر؟" data-hint="A repeat books the whole series in one go." data-hint-ar="التكرار بيحجز السلسلة كلها مرة واحدة." data-glyph="🔁">
             <div class="repeat-only">
               <select name="repeat" data-picks>
-                <option value="none" data-glyph="1️⃣">Just once</option>
-                <option value="1" data-glyph="🔁">Every week</option>
-                <option value="2" data-glyph="🗓">Every 2 weeks</option>
+                <option value="none" data-glyph="1️⃣" data-ar="مرة واحدة">Just once</option>
+                <option value="1" data-glyph="🔁" data-ar="كل أسبوع">Every week</option>
+                <option value="2" data-glyph="🗓" data-ar="كل أسبوعين">Every 2 weeks</option>
               </select>
             </div>
             <div class="field repeat-only" id="daysField" hidden>
-              <span class="field__label" id="daysLabel">On these days</span>
+              <span class="field__label" id="daysLabel" data-ar="في الأيام دي">On these days</span>
               <div class="daychips" id="dayChips" role="group" aria-labelledby="daysLabel">
-                <button type="button" class="chip" data-day="1" aria-pressed="false">Mon</button>
-                <button type="button" class="chip" data-day="2" aria-pressed="false">Tue</button>
-                <button type="button" class="chip" data-day="3" aria-pressed="false">Wed</button>
-                <button type="button" class="chip" data-day="4" aria-pressed="false">Thu</button>
-                <button type="button" class="chip" data-day="5" aria-pressed="false">Fri</button>
-                <button type="button" class="chip" data-day="6" aria-pressed="false">Sat</button>
-                <button type="button" class="chip" data-day="0" aria-pressed="false">Sun</button>
+                <button type="button" class="chip" data-day="1" aria-pressed="false" data-ar="الاتنين">Mon</button>
+                <button type="button" class="chip" data-day="2" aria-pressed="false" data-ar="التلات">Tue</button>
+                <button type="button" class="chip" data-day="3" aria-pressed="false" data-ar="الأربع">Wed</button>
+                <button type="button" class="chip" data-day="4" aria-pressed="false" data-ar="الخميس">Thu</button>
+                <button type="button" class="chip" data-day="5" aria-pressed="false" data-ar="الجمعة">Fri</button>
+                <button type="button" class="chip" data-day="6" aria-pressed="false" data-ar="السبت">Sat</button>
+                <button type="button" class="chip" data-day="0" aria-pressed="false" data-ar="الحد">Sun</button>
               </div>
             </div>
             <div class="field repeat-only" id="untilField" hidden>
-              <span class="field__label">Until</span>
+              <span class="field__label" data-ar="لحد">Until</span>
               <select name="until" data-picks>
-                <option value="credit" data-glyph="⏱">The credit runs out</option>
-                <option value="count" data-glyph="#️⃣">A number of sessions</option>
-                <option value="date" data-glyph="📆">A date</option>
+                <option value="credit" data-glyph="⏱" data-ar="ما الرصيد يخلص">The credit runs out</option>
+                <option value="count" data-glyph="#️⃣" data-ar="عدد جلسات">A number of sessions</option>
+                <option value="date" data-glyph="📆" data-ar="تاريخ">A date</option>
               </select>
             </div>
-            <label class="repeat-only" id="countField" hidden>How many sessions
+            <label class="repeat-only" id="countField" hidden><span data-ar="كام جلسة">How many sessions</span>
               <input name="count" type="number" min="1" max="60" step="1" value="4" data-quick="4,8,12" />
             </label>
-            <label class="repeat-only" id="untilDateField" hidden>Last date
+            <label class="repeat-only" id="untilDateField" hidden><span data-ar="آخر تاريخ">Last date</span>
               <input name="until_date" type="date" />
             </label>
             <div class="series" id="seriesPreview" data-wiz-review hidden aria-live="polite"></div>
           </fieldset>
-          <fieldset class="go-wiz__step" data-title="Where, and about what?" data-hint="The link they'll join from, and a topic." data-glyph="🔗" data-optional>
-            <label>Meeting link (Zoom, Google Meet…)
+          <fieldset class="go-wiz__step" data-title="Where, and about what?" data-title-ar="فين، وعن إيه؟" data-hint="The link they'll join from, and a topic." data-hint-ar="اللينك اللي هيدخل منه، والموضوع." data-glyph="🔗" data-optional>
+            <label><span data-ar="لينك الاجتماع (Zoom، Google Meet…)">Meeting link (Zoom, Google Meet…)</span>
               <input name="link" type="url" placeholder="https://…" />
             </label>
-            <label>Topic<input name="topic" placeholder="What is the session about?" maxlength="300" /></label>
+            <label><span data-ar="الموضوع">Topic</span><input name="topic" placeholder="What is the session about?" data-ar-placeholder="الجلسة عن إيه؟" maxlength="300" /></label>
           </fieldset>
           <div class="go-wiz__actions">
             <button type="submit" class="btn btn--primary" id="btnMeetingSubmit">Schedule meeting</button>
-            <button type="button" class="btn btn--ghost" id="btnCancelMeeting">Cancel</button>
+            <button type="button" class="btn btn--ghost" id="btnCancelMeeting" data-ar="إلغاء">Cancel</button>
           </div>
         </form>
         <div class="meet-list" id="meetingsUpcoming"></div>
-        <p class="muted" id="meetingsEmpty" hidden>Nothing scheduled yet.</p>
+        <p class="muted" id="meetingsEmpty" hidden data-ar="مفيش حاجة محجوزة لسه.">Nothing scheduled yet.</p>
         <details id="meetingsPastBox" class="meet-past" hidden>
           <summary class="btnish" id="meetingsPastSummary">Earlier meetings</summary>
           <div class="meet-list" id="meetingsPast"></div>
@@ -397,22 +399,22 @@
 
       <div class="card">
         <div class="card__head">
-          <h2>Hours balance</h2>
+          <h2 data-ar="رصيد الساعات">Hours balance</h2>
           <div class="chart-key muted">
-            <span><i class="key key--purchase"></i>purchase</span>
-            <span><i class="key key--session"></i>session</span>
-            <span><i class="key key--expiry"></i>expiry</span>
+            <span data-ar-html='<i class="key key--purchase"></i>شراء'><i class="key key--purchase"></i>purchase</span>
+            <span data-ar-html='<i class="key key--session"></i>جلسة'><i class="key key--session"></i>session</span>
+            <span data-ar-html='<i class="key key--expiry"></i>انتهاء'><i class="key key--expiry"></i>expiry</span>
           </div>
         </div>
         <div class="chart-filter" id="chartFilter">
-          <button type="button" class="chip chip--on" data-range="all">All</button>
-          <button type="button" class="chip" data-range="30">30d</button>
-          <button type="button" class="chip" data-range="90">90d</button>
-          <button type="button" class="chip" data-range="365">1y</button>
+          <button type="button" class="chip chip--on" data-range="all" data-ar="الكل">All</button>
+          <button type="button" class="chip" data-range="30" data-ar="30 يوم">30d</button>
+          <button type="button" class="chip" data-range="90" data-ar="90 يوم">90d</button>
+          <button type="button" class="chip" data-range="365" data-ar="سنة">1y</button>
           <span class="chart-filter__dates">
-            <input type="date" name="from" aria-label="From date" />
-            <span class="muted">→</span>
-            <input type="date" name="to" aria-label="To date" />
+            <input type="date" name="from" aria-label="From date" data-ar-aria-label="من تاريخ" />
+            <span class="muted" data-ar="←">→</span>
+            <input type="date" name="to" aria-label="To date" data-ar-aria-label="لحد تاريخ" />
           </span>
         </div>
         <div id="chart" class="chart"></div>
@@ -422,52 +424,52 @@
 
       <div class="cols">
         <div class="card">
-          <div class="card__head"><h2>Hours purchased</h2></div>
-          <form id="addPackageForm" class="form" data-wizard data-review-title="Add these hours?">
-            <fieldset class="go-wiz__step" data-title="How many hours?" data-glyph="⏱">
-              <label>Hours<input name="hours" type="number" min="0.5" step="0.5" required data-quick="1,5,10,20" data-quick-suffix="h" /></label>
+          <div class="card__head"><h2 data-ar="الساعات المشتراة">Hours purchased</h2></div>
+          <form id="addPackageForm" class="form" data-wizard data-review-title="Add these hours?" data-review-title-ar="نضيف الساعات دي؟">
+            <fieldset class="go-wiz__step" data-title="How many hours?" data-title-ar="كام ساعة؟" data-glyph="⏱">
+              <label><span data-ar="الساعات">Hours</span><input name="hours" type="number" min="0.5" step="0.5" required data-quick="1,5,10,20" data-quick-suffix="h" data-quick-suffix-ar="س" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="What did they pay?" data-glyph="💰" data-optional data-two>
-              <label>Amount paid<input name="amount_paid" type="number" min="0" step="0.01" /></label>
-              <label>Currency<input name="currency" value="USD" maxlength="8" data-quick="USD,EUR,EGP,AED,SAR" /></label>
+            <fieldset class="go-wiz__step" data-title="What did they pay?" data-title-ar="دفع كام؟" data-glyph="💰" data-optional data-two>
+              <label><span data-ar="المبلغ المدفوع">Amount paid</span><input name="amount_paid" type="number" min="0" step="0.01" /></label>
+              <label><span data-ar="العملة">Currency</span><input name="currency" value="USD" maxlength="8" data-quick="USD,EUR,EGP,AED,SAR" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="When, and for how long?" data-hint="The hours expire after this many months." data-glyph="📅" data-two>
-              <label>Purchase date<input name="purchased_at" type="date" required /></label>
-              <label>Valid for (months)<input name="months" type="number" min="1" max="24" value="1" data-quick="1,2,3,6,12" data-quick-suffix=" mo" /></label>
+            <fieldset class="go-wiz__step" data-title="When, and for how long?" data-title-ar="إمتى، ولمدة قد إيه؟" data-hint="The hours expire after this many months." data-hint-ar="الساعات بتنتهي بعد عدد الشهور ده." data-glyph="📅" data-two>
+              <label><span data-ar="تاريخ الشراء">Purchase date</span><input name="purchased_at" type="date" required /></label>
+              <label><span data-ar="صالحة لمدة (شهور)">Valid for (months)</span><input name="months" type="number" min="1" max="24" value="1" data-quick="1,2,3,6,12" data-quick-suffix=" mo" data-quick-suffix-ar=" شهر" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="Proof and a note" data-hint="A payment screenshot or PDF, max 3 MB." data-glyph="📎" data-optional>
-              <label>Payment screenshot<input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" data-drop="Drop the payment screenshot here" data-drop-hint="An image or a PDF · up to 3 MB" /></label>
-              <label>Note<input name="note" /></label>
+            <fieldset class="go-wiz__step" data-title="Proof and a note" data-title-ar="الإثبات وملاحظة" data-hint="A payment screenshot or PDF, max 3 MB." data-hint-ar="سكرين شوت الدفع أو PDF، بحد أقصى 3 ميجا." data-glyph="📎" data-optional>
+              <label><span data-ar="سكرين شوت الدفع">Payment screenshot</span><input name="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" data-drop="Drop the payment screenshot here" data-drop-ar="ارمي سكرين شوت الدفع هنا" data-drop-hint="An image or a PDF · up to 3 MB" data-drop-hint-ar="صورة أو PDF · لحد 3 ميجا" /></label>
+              <label><span data-ar="ملاحظة">Note</span><input name="note" /></label>
             </fieldset>
-            <div class="go-wiz__actions"><button type="submit" class="btn btn--primary">Add hours ✓</button></div>
+            <div class="go-wiz__actions"><button type="submit" class="btn btn--primary" data-ar="ضيف الساعات ✓">Add hours ✓</button></div>
           </form>
           <div class="table-scroll">
             <table class="table" id="packagesTable">
-              <thead><tr><th>Bought</th><th class="num">Hours</th><th class="num">Paid</th><th>Expires</th><th></th></tr></thead>
+              <thead><tr><th data-ar="اتشترت">Bought</th><th class="num" data-ar="الساعات">Hours</th><th class="num" data-ar="المدفوع">Paid</th><th data-ar="ينتهي">Expires</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
         </div>
 
         <div class="card">
-          <div class="card__head"><h2>Sessions</h2></div>
-          <form id="addSessionForm" class="form" data-wizard data-review-title="Record it?">
-            <fieldset class="go-wiz__step" data-title="When, and how long?" data-glyph="🗓" data-two>
-              <label>Date<input name="session_date" type="date" required /></label>
-              <label>Duration (hours)<input name="hours" type="number" min="0.25" step="0.25" value="1" required data-quick="0.5,1,1.5,2" data-quick-suffix="h" /></label>
+          <div class="card__head"><h2 data-ar="الجلسات">Sessions</h2></div>
+          <form id="addSessionForm" class="form" data-wizard data-review-title="Record it?" data-review-title-ar="نسجّلها؟">
+            <fieldset class="go-wiz__step" data-title="When, and how long?" data-title-ar="إمتى، وقد إيه؟" data-glyph="🗓" data-two>
+              <label><span data-ar="التاريخ">Date</span><input name="session_date" type="date" required /></label>
+              <label><span data-ar="المدة (ساعات)">Duration (hours)</span><input name="hours" type="number" min="0.25" step="0.25" value="1" required data-quick="0.5,1,1.5,2" data-quick-suffix="h" data-quick-suffix-ar="س" /></label>
             </fieldset>
-            <fieldset class="go-wiz__step" data-title="What was it about?" data-hint="A topic, and the minutes or the slides you showed." data-glyph="📝" data-optional>
-              <label>Topic<input name="topic" placeholder="What was the session about?" /></label>
-              <label>Minutes or slides<input name="pdf" type="file" accept=".pdf,.pptx,.ppsx,.ppt,.key,.odp,.docx,.doc" data-drop="Drop the minutes or slides here" data-drop-hint="PDF, PowerPoint, Keynote or Word · up to 20 MB" /></label>
+            <fieldset class="go-wiz__step" data-title="What was it about?" data-title-ar="كانت عن إيه؟" data-hint="A topic, and the minutes or the slides you showed." data-hint-ar="الموضوع، والمحضر أو السلايدات اللي عرضتها." data-glyph="📝" data-optional>
+              <label><span data-ar="الموضوع">Topic</span><input name="topic" placeholder="What was the session about?" data-ar-placeholder="الجلسة كانت عن إيه؟" /></label>
+              <label><span data-ar="المحضر أو السلايدات">Minutes or slides</span><input name="pdf" type="file" accept=".pdf,.pptx,.ppsx,.ppt,.key,.odp,.docx,.doc" data-drop="Drop the minutes or slides here" data-drop-ar="ارمي المحضر أو السلايدات هنا" data-drop-hint="PDF, PowerPoint, Keynote or Word · up to 20 MB" data-drop-hint-ar="PDF أو PowerPoint أو Keynote أو Word · لحد 20 ميجا" /></label>
             </fieldset>
             <div class="go-wiz__actions">
-              <button type="submit" class="btn btn--primary" id="btnSessionSubmit">Record session</button>
-              <button type="button" class="btn btn--ghost" id="btnCancelEdit" hidden>Cancel edit</button>
+              <button type="submit" class="btn btn--primary" id="btnSessionSubmit" data-ar="سجّل الجلسة">Record session</button>
+              <button type="button" class="btn btn--ghost" id="btnCancelEdit" hidden data-ar="إلغاء التعديل">Cancel edit</button>
             </div>
           </form>
           <div class="table-scroll">
             <table class="table" id="sessionsTable">
-              <thead><tr><th>Date</th><th class="num">Hours</th><th>Topic</th><th>File</th><th></th></tr></thead>
+              <thead><tr><th data-ar="التاريخ">Date</th><th class="num" data-ar="الساعات">Hours</th><th data-ar="الموضوع">Topic</th><th data-ar="الملف">File</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -477,22 +479,22 @@
 
     <dialog id="calDialog" class="dialog cal-dialog" aria-labelledby="calTitle">
       <div class="cal-dialog__glyph" aria-hidden="true">📅</div>
-      <h2 id="calTitle">Your meetings in your calendar</h2>
-      <p class="muted">Subscribe once. New meetings, new times and cancellations then follow on their own. Google reads the link every few hours, an iPhone more often.</p>
+      <h2 id="calTitle" data-ar="اجتماعاتك في التقويم بتاعك">Your meetings in your calendar</h2>
+      <p class="muted" data-ar="اشترك مرة واحدة. الاجتماعات الجديدة والمواعيد الجديدة والإلغاءات هتتحدث لوحدها. Google بيقرا اللينك كل كام ساعة، والـiPhone أكتر.">Subscribe once. New meetings, new times and cancellations then follow on their own. Google reads the link every few hours, an iPhone more often.</p>
       <div id="calOff">
-        <button type="button" class="btn btn--hero" id="calMake">Make my calendar link</button>
+        <button type="button" class="btn btn--hero" id="calMake" data-ar="اعمل لينك التقويم بتاعي">Make my calendar link</button>
       </div>
       <div id="calOn" hidden>
         <div class="cal-dialog__steps">
-          <a class="btn btn--primary" id="calGoogle" target="_blank" rel="noopener">Add to Google Calendar</a>
-          <a class="btn btn--ghost" id="calApple">Add to iPhone / Mac calendar</a>
+          <a class="btn btn--primary" id="calGoogle" target="_blank" rel="noopener" data-ar="ضيف على Google Calendar">Add to Google Calendar</a>
+          <a class="btn btn--ghost" id="calApple" data-ar="ضيف على تقويم iPhone / Mac">Add to iPhone / Mac calendar</a>
         </div>
-        <label class="cal-dialog__url">Or paste this link into any calendar app
-          <span class="cal-dialog__row"><input id="calUrl" readonly /><button type="button" class="btn btn--ghost btn--sm" id="calCopy">Copy</button></span>
+        <label class="cal-dialog__url"><span data-ar="أو الصق اللينك ده في أي تطبيق تقويم">Or paste this link into any calendar app</span>
+          <span class="cal-dialog__row"><input id="calUrl" readonly /><button type="button" class="btn btn--ghost btn--sm" id="calCopy" data-ar="نسخ">Copy</button></span>
         </label>
-        <p class="muted cal-dialog__note">Keep the link private: anyone who has it can see your meetings. <button type="button" class="linklike" id="calRotate">Make a new link</button> and the old one stops working.</p>
+        <p class="muted cal-dialog__note"><span data-ar="خلّي اللينك ده سر: أي حد معاه يقدر يشوف اجتماعاتك.">Keep the link private: anyone who has it can see your meetings.</span> <button type="button" class="linklike" id="calRotate" data-ar="اعمل لينك جديد">Make a new link</button> <span data-ar="واللينك القديم هيبطل يشتغل.">and the old one stops working.</span></p>
       </div>
-      <div class="dialog__actions"><button type="button" class="btn btn--ghost" id="calClose">Done</button></div>
+      <div class="dialog__actions"><button type="button" class="btn btn--ghost" id="calClose" data-ar="تمام">Done</button></div>
     </dialog>
 
     <dialog id="askDialog" class="dialog" aria-labelledby="askTitle">
@@ -504,12 +506,16 @@
     <p id="toast" class="toast" hidden></p>
   </div>
 
-  <script src="js/tools/chart.js?v=19"></script>
-  <script src="js/tools/theme.js?v=2"></script>
-  <script src="js/tools/meetings.js?v=3"></script>
-  <script src="js/tools/go.js?v=3"></script>
+  <script>I18N.apply(document);</script>
+
+  <script src="js/tools/snap.js?v=1"></script>
+
+  <script src="js/tools/chart.js?v=20"></script>
+  <script src="js/tools/theme.js?v=3"></script>
+  <script src="js/tools/meetings.js?v=4"></script>
+  <script src="js/tools/go.js?v=4"></script>
   <script src="js/tools/country.js?v=1"></script>
-  <script src="js/tools/files.js?v=1"></script>
-  <script src="js/tools/admin.js?v=17"></script>
+  <script src="js/tools/files.js?v=2"></script>
+  <script src="js/tools/admin.js?v=18"></script>
 </body>
 </html>

@@ -9,6 +9,10 @@
 (function () {
   "use strict";
 
+  // a page that loads this file without i18n.js (the client's share page) stays English
+  var I18N = window.I18N || { ar: false, loc: function (l) { return l || "en-GB"; }, N: function (n, one, many) { return n + " " + (n === 1 ? one : many); } };
+  var T = window.T || function (en) { return en; };
+
   var COLORS = { line: "#60a5fa", purchase: "#1fa876", session: "#3b82f6", expiry: "#d97706", danger: "#e2586a", surface: "#131822" };
   var DAY = 86400000;
 
@@ -20,12 +24,12 @@
 
   function fmtDate(iso) {
     var d = new Date(String(iso).slice(0, 10) + "T00:00:00Z");
-    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    return d.toLocaleDateString(I18N.loc("en-GB"), { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   }
 
   function fmtH(n) {
     n = Number(n) || 0;
-    return (Number.isInteger(n) ? n : n.toFixed(1)) + "h";
+    return (Number.isInteger(n) ? n : n.toFixed(1)) + T("h", " س");
   }
 
   function todayISO() {
@@ -36,6 +40,10 @@
   function svgEl(name, attrs) {
     var el = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (var k in attrs) el.setAttribute(k, attrs[k]);
+    // the charts are laid out left to right in both languages: without this an
+    // Arabic page flips what text-anchor "start" and "end" mean and labels land
+    // on the wrong side of their point
+    if (name === "svg" && I18N.ar) el.setAttribute("direction", "ltr");
     return el;
   }
 
@@ -79,7 +87,7 @@
     box.innerHTML = "";
     tip.hidden = true;
     if (!timeline || !timeline.length) {
-      box.innerHTML = '<p class="muted center" style="padding:60px 0">No activity yet.</p>';
+      box.innerHTML = '<p class="muted center" style="padding:60px 0">' + T("No activity yet.", "لسه مفيش نشاط.") + "</p>";
       return;
     }
 
@@ -96,7 +104,7 @@
       return (fromT == null || p.t >= fromT) && (toT == null || p.t <= toT);
     });
     if (!pts.length) {
-      box.innerHTML = '<p class="muted center" style="padding:60px 0">No activity in this date range.</p>';
+      box.innerHTML = '<p class="muted center" style="padding:60px 0">' + T("No activity in this date range.", "مفيش نشاط في الفترة دي.") + "</p>";
       return;
     }
 
@@ -122,7 +130,7 @@
     var x = function (t) { return M.l + ((t - minT) / (maxT - minT)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / yMax) * (H - M.t - M.b); };
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Hours balance over time" });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": T("Hours balance over time", "رصيد الساعات مع الوقت") });
 
     // y grid + labels
     var step = niceStep(yMax, 4);
@@ -138,7 +146,7 @@
     for (var i = 0; i <= nx; i++) {
       var t = minT + ((maxT - minT) * i) / nx;
       var xl = svgEl("text", { x: x(t), y: H - 10, "text-anchor": "middle", fill: "#5f6b7d", "font-size": 11 });
-      xl.textContent = new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+      xl.textContent = new Date(t).toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", timeZone: "UTC" });
       svg.appendChild(xl);
     }
 
@@ -176,7 +184,7 @@
     if (todayT >= minT && todayT <= maxT) {
       svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
       var tl = svgEl("text", { x: x(todayT), y: M.t - 3, "text-anchor": "middle", fill: "#9aa6b8", "font-size": 10 });
-      tl.textContent = "today";
+      tl.textContent = T("today", "النهارده");
       svg.appendChild(tl);
       var bl = svgEl("text", { x: Math.min(x(todayT) + 7, W - M.r - 30), y: y(balAtToday) - 8, fill: "#eef2f8", "font-size": 12, "font-weight": 600 });
       bl.textContent = fmtH(balAtToday);
@@ -230,10 +238,10 @@
       cross.setAttribute("visibility", "visible");
       ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
       ring.setAttribute("visibility", "visible");
-      tip.innerHTML = "<div class=\"muted\">" + fmtDate(best.p.date) + (best.p.future ? " · upcoming" : "") + "</div>" +
-        esc(best.p.label) + "<div>Balance: <b>" + fmtH(best.p.balance) + "</b></div>" +
-        (best.p.uncovered > 0 ? '<div style="color:#ff9aa7">' + fmtH(best.p.uncovered) + " not covered by any package</div>" : "") +
-        (opts.onPointClick ? '<div class="muted">Tap for details</div>' : "");
+      tip.innerHTML = "<div class=\"muted\">" + fmtDate(best.p.date) + (best.p.future ? " · " + T("upcoming", "جاي") : "") + "</div>" +
+        esc(best.p.label) + "<div>" + T("Balance", "الرصيد") + ": <b>" + fmtH(best.p.balance) + "</b></div>" +
+        (best.p.uncovered > 0 ? '<div style="color:#ff9aa7">' + T(fmtH(best.p.uncovered) + " not covered by any package", fmtH(best.p.uncovered) + " مش متغطية بأي باقة") + "</div>" : "") +
+        (opts.onPointClick ? '<div class="muted">' + T("Tap for details", "دوس للتفاصيل") + "</div>" : "");
       tip.hidden = false;
       var bx = box.getBoundingClientRect();
       var left = (best.cx / W) * bx.width + 12;
@@ -361,7 +369,7 @@
     var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / yMax) * (H - M.t - M.b); };
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Category progress" });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": T("Category progress", "تقدّم التصنيف") });
 
     var step = niceStep(yMax, 3);
     for (var v = 0; v <= yMax; v += step) {
@@ -396,7 +404,7 @@
 
     [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
       var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
-      xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+      xl.textContent = new Date(p.t).toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", timeZone: "UTC" });
       svg.appendChild(xl);
     });
 
@@ -431,7 +439,7 @@
     var clean = (slices || []).filter(function (s) { return Number(s.value) > 0; });
     var total = clean.reduce(function (sum, s) { return sum + Number(s.value); }, 0);
     if (!total) {
-      box.innerHTML = '<p class="muted center" style="margin:0">No data yet.</p>';
+      box.innerHTML = '<p class="muted center" style="margin:0">' + T("No data yet.", "لسه مفيش بيانات.") + "</p>";
       return;
     }
 
@@ -444,7 +452,7 @@
     var wrap = document.createElement("div");
     wrap.className = "donut-chart";
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + size + " " + size, width: size, height: size, role: "img", "aria-label": opts.label || "Breakdown" });
+    var svg = svgEl("svg", { viewBox: "0 0 " + size + " " + size, width: size, height: size, role: "img", "aria-label": opts.label || T("Breakdown", "التوزيع") });
     svg.appendChild(svgEl("circle", { cx: c, cy: c, r: r, fill: "none", stroke: trackColor, "stroke-width": stroke }));
 
     var total_label = svgEl("text", { x: c, y: c - 3, "text-anchor": "middle", fill: ink, "font-size": 20, "font-weight": 700 });
@@ -535,7 +543,7 @@
     var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": "Today's completion pace" });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": T("Today's completion pace", "معدّل إنجاز النهارده") });
 
     [0, 25, 50, 75, 100].forEach(function (v) {
       svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
@@ -600,9 +608,9 @@
         cross.setAttribute("visibility", "visible");
         ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
         ring.setAttribute("visibility", "visible");
-        var timeLabel = new Date(best.p.t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        var timeLabel = new Date(best.p.t).toLocaleTimeString(I18N.ar ? I18N.loc() : [], { hour: "numeric", minute: "2-digit" });
         tip.innerHTML = '<div class="muted">' + timeLabel + '</div>' + esc(best.p.title) +
-          '<div>Progress: <b>' + Math.round(best.p.pct) + '%</b> (' + best.p.count + '/' + total + ')</div>';
+          '<div>' + T("Progress", "التقدّم") + ': <b>' + Math.round(best.p.pct) + '%</b> (' + best.p.count + '/' + total + ')</div>';
         tip.hidden = false;
         var bx = box.getBoundingClientRect();
         var left = (best.cx / W) * bx.width + 12;
@@ -667,7 +675,7 @@
     var pts = (days || []).map(function (d) {
       return { t: new Date(String(d.date).slice(0, 10) + "T00:00:00Z").getTime(), pct: Number(d.pct) || 0, done: d.done, total: d.total, date: d.date };
     });
-    if (!pts.length) { box.innerHTML = '<p class="muted center" style="margin:0">No days yet.</p>'; return; }
+    if (!pts.length) { box.innerHTML = '<p class="muted center" style="margin:0">' + T("No days yet.", "لسه مفيش أيام.") + "</p>"; return; }
 
     // goals reached on each day, looked up by date so a cropped range lines up
     // without the caller slicing a second array in step with the first
@@ -692,7 +700,7 @@
     var x = function (t) { return M.l + ((t - start) / (end - start)) * (W - M.l - M.r); };
     var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
 
-    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": opts.ariaLabel || "Daily completion across the quarter" });
+    var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": opts.ariaLabel || T("Daily completion across the quarter", "الإنجاز اليومي على مدار ربع السنة") });
 
     [0, 25, 50, 75, 100].forEach(function (v) {
       svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
@@ -704,7 +712,7 @@
     var avgEl = svgEl("line", { x1: M.l, x2: W - M.r, y1: y(avg), y2: y(avg), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" });
     svg.appendChild(avgEl);
     var avgLbl = svgEl("text", { x: W - M.r, y: y(avg) - 4, "text-anchor": "end", fill: faint, "font-size": 10 });
-    avgLbl.textContent = (opts.avgLabel || "Avg") + " " + Math.round(avg) + "%";
+    avgLbl.textContent = (opts.avgLabel || T("Avg", "المتوسط")) + " " + Math.round(avg) + "%";
     svg.appendChild(avgLbl);
 
     // The caller crops `days` to whatever range is focused below the chart and
@@ -724,8 +732,8 @@
     var goalsEl = null, goalDots = [];
     var goalsEstEl = null;
     if (hasGoals) {
-      var legend = [{ color: color, label: "Execution" }, { color: goalsColor, label: "Goals reached" }];
-      if (hasEstimated) legend.push({ color: goalsColor, label: "estimated", dash: "3 3" });
+      var legend = [{ color: color, label: T("Execution", "التنفيذ") }, { color: goalsColor, label: T("Goals reached", "الأهداف المتحققة") }];
+      if (hasEstimated) legend.push({ color: goalsColor, label: T("estimated", "تقديري"), dash: "3 3" });
       drawLegend(svg, legend, M.l, 11, faint);
       // a segment is solid only when both of its ends were recorded — one that
       // starts from an estimate has an estimated slope, even if it lands on a record
@@ -789,13 +797,13 @@
           x: x(p.t), y: H - 6, fill: faint, "font-size": 9,
           "text-anchor": i === 0 ? "start" : (i === pts.length - 1 ? "end" : "middle"),
         });
-        xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+        xl.textContent = new Date(p.t).toLocaleDateString(I18N.loc("en-GB"), { weekday: "short", timeZone: "UTC" });
         svg.appendChild(xl);
       });
     } else {
       [{ t: start, anchor: "start" }, { t: end, anchor: "end" }].forEach(function (p) {
         var xl = svgEl("text", { x: x(p.t), y: H - 6, "text-anchor": p.anchor, fill: faint, "font-size": 10 });
-        xl.textContent = new Date(p.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+        xl.textContent = new Date(p.t).toLocaleDateString(I18N.loc("en-GB"), { day: "numeric", month: "short", timeZone: "UTC" });
         svg.appendChild(xl);
       });
     }
@@ -841,11 +849,11 @@
         ring.setAttribute("visibility", "visible");
         var dateLabel = fmtDate(best.p.date);
         var detail = best.p.total
-          ? ((hasGoals ? "Execution" : "Progress") + ": <b>" + Math.round(best.p.pct) + "%</b> (" + best.p.done + "/" + best.p.total + ")")
-          : "No tasks logged";
+          ? ((hasGoals ? T("Execution", "التنفيذ") : T("Progress", "التقدّم")) + ": <b>" + Math.round(best.p.pct) + "%</b> (" + best.p.done + "/" + best.p.total + ")")
+          : T("No tasks logged", "مفيش مهام متسجّلة");
         var goalsLine = hasGoals
-          ? '<div>Goals reached: <b>' + (best.p.goals != null ? Math.round(best.p.goals) + "%" : "—") + '</b>' +
-            (best.p.goalsEstimated ? ' <span class="muted">(estimated)</span>' : '') + '</div>'
+          ? '<div>' + T("Goals reached", "الأهداف المتحققة") + ': <b>' + (best.p.goals != null ? Math.round(best.p.goals) + "%" : "—") + '</b>' +
+            (best.p.goalsEstimated ? ' <span class="muted">(' + T("estimated", "تقديري") + ')</span>' : '') + '</div>'
           : "";
         tip.innerHTML = '<div class="muted">' + dateLabel + '</div><div>' + detail + '</div>' + goalsLine;
         tip.hidden = false;
@@ -935,7 +943,7 @@
     // a quarter earns a place on the axis if either line has something to say
     var pts = (quarters || []).filter(function (q) { return q && (q.tracked || q.goals != null); });
     if (!pts.length) {
-      box.innerHTML = '<p class="muted center" style="margin:0">Nothing tracked in any quarter yet.</p>';
+      box.innerHTML = '<p class="muted center" style="margin:0">' + T("Nothing tracked in any quarter yet.", "لسه مفيش حاجة متسجّلة في أي ربع.") + "</p>";
       return;
     }
     var hasGoals = pts.some(function (q) { return q.goals != null; });
@@ -951,7 +959,7 @@
     var y = function (v) { return H - M.b - (v / 100) * (H - M.t - M.b); };
 
     var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
-      "aria-label": opts.ariaLabel || "Average completion for each quarter" });
+      "aria-label": opts.ariaLabel || T("Average completion for each quarter", "متوسط الإنجاز لكل ربع سنة") });
 
     [0, 25, 50, 75, 100].forEach(function (v) {
       svg.appendChild(svgEl("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: gridColor, "stroke-width": 1 }));
@@ -963,12 +971,12 @@
     var avgEl = svgEl("line", { x1: M.l, x2: W - M.r, y1: y(avg), y2: y(avg), stroke: faint, "stroke-width": 1.5, "stroke-dasharray": "5 5" });
     svg.appendChild(avgEl);
     var avgLbl = svgEl("text", { x: W - M.r, y: y(avg) - 4, "text-anchor": "end", fill: faint, "font-size": 10 });
-    avgLbl.textContent = (hasGoals ? "Execution avg " : "All quarters ") + Math.round(avg) + "%";
+    avgLbl.textContent = (hasGoals ? T("Execution avg ", "متوسط التنفيذ ") : T("All quarters ", "كل الأرباع ")) + Math.round(avg) + "%";
     svg.appendChild(avgLbl);
 
     var goalsEl = null;
     if (hasGoals) {
-      drawLegend(svg, [{ color: lineColor, label: "Execution" }, { color: goalsColor, label: "Goals reached" }], M.l, 11, faint);
+      drawLegend(svg, [{ color: lineColor, label: T("Execution", "التنفيذ") }, { color: goalsColor, label: T("Goals reached", "الأهداف المتحققة") }], M.l, 11, faint);
       var gd = "", gDrawing = false;
       pts.forEach(function (q, i) {
         if (q.goals == null) { gDrawing = false; return; }
@@ -1045,9 +1053,9 @@
         ring.setAttribute("cx", best.cx); ring.setAttribute("cy", best.cy);
         ring.setAttribute("visibility", "visible");
         tip.innerHTML = '<div class="muted">' + esc(best.q.name) + '</div>' +
-          '<div>Execution: <b>' + (best.q.tracked ? Math.round(best.q.avg) + "%" : "—") + '</b></div>' +
-          (hasGoals ? '<div>Goals reached: <b>' + (best.q.goals != null ? Math.round(best.q.goals) + "%" : "—") + '</b></div>' : '') +
-          '<div class="muted">' + best.q.tracked + ' of ' + best.q.days + ' days tracked</div>';
+          '<div>' + T("Execution", "التنفيذ") + ': <b>' + (best.q.tracked ? Math.round(best.q.avg) + "%" : "—") + '</b></div>' +
+          (hasGoals ? '<div>' + T("Goals reached", "الأهداف المتحققة") + ': <b>' + (best.q.goals != null ? Math.round(best.q.goals) + "%" : "—") + '</b></div>' : '') +
+          '<div class="muted">' + T(best.q.tracked + ' of ' + best.q.days + ' days tracked', best.q.tracked + " من " + best.q.days + " يوم متسجّلين") + '</div>';
         tip.hidden = false;
         var bx = box.getBoundingClientRect();
         var left = (best.cx / W) * bx.width + 12;

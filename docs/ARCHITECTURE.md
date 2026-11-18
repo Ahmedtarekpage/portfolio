@@ -495,7 +495,7 @@ means merging it into an existing one.
 
 ## Security notes
 
-- All data endpoints require a valid passkey session (7-day signed, HttpOnly cookie).
+- All data endpoints require a valid passkey session (1-hour signed, HttpOnly cookie).
 - Exactly one passkey can ever exist; the guarded INSERT in `api/auth.js` makes a
   second registration impossible until you wipe `wa_credentials` yourself.
 - Passkeys created on iPhone sync via iCloud Keychain, so your other Apple devices

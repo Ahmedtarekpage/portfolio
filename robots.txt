@@ -20,6 +20,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -30,6 +31,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -40,6 +42,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -50,6 +53,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -60,6 +64,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -70,6 +75,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -80,6 +86,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -90,6 +97,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -100,6 +108,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -110,6 +119,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -120,6 +130,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/
@@ -130,6 +141,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /finance
+Disallow: /security
 Disallow: /c/
 Disallow: /unsubscribe
 Disallow: /api/

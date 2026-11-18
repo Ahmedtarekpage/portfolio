@@ -6,6 +6,9 @@
 //   POST /api/auth?action=register-options -> WebAuthn registration options (ONLY while no device is registered)
 //   POST /api/auth?action=register-verify  -> verify attestation, save credential, start session
 //   POST /api/auth?action=logout
+//   POST /api/auth?action=snap             -> record a failed attempt (+ camera frame); open to anyone, see _lib/intruder.js
+//   GET  /api/auth?action=snaps            -> the security log (owner only)
+//   POST /api/auth?action=snaps-clear      -> empty it (owner only)
 //
 // Registration is first-device-only: once one passkey exists, registration is
 // permanently closed (enforced with a guarded INSERT). To reset, delete the
@@ -25,6 +28,7 @@ import {
   withErrors, json, rp, sign, verifyToken, parseCookies, setCookie, clearCookie,
   createSession, destroySession, isAuthed, safeEqual,
 } from "./_lib/util.js";
+import { snapSave, snapList, snapClear } from "./_lib/intruder.js";
 
 const RP_NAME = "Ahmed Tarek — Admin";
 const CHALLENGE_COOKIE = "wa_challenge";
@@ -58,7 +62,12 @@ export default withErrors(async (req, res) => {
     return json(res, 200, { authed: isAuthed(req), hasCredentials: (await credentialCount(sql)) > 0 });
   }
 
+  if (action === "snaps" && req.method === "GET") return snapList(req, res, await db());
+
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+
+  if (action === "snap") return snapSave(req, res, await db());
+  if (action === "snaps-clear") return snapClear(req, res, await db());
 
   if (action === "logout") {
     destroySession(res);
