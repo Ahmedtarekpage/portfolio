@@ -20,18 +20,18 @@
   var T = window.T || function (en) { return en; };
   var LOCAL = /^(localhost|127\.0\.0\.1|\[::1\]|)$/.test(location.hostname);
   var KEY = "desk.v1", API = "/api/ideas?desk=data";
-  var doc = {}, rev = "", W = null, saveTimer = null, status = "";
+  var doc = {}, rev = "", W = null, saveTimer = null, status = "", moved = false;
   var todayDow = new Date().getDay(), sel = todayDow, editing = null, drag = null;
 
-  // Saturday first: the week starts with the fix day
+  // Saturday first: the week starts with the plan day
   var ORDER = [6, 0, 1, 2, 3, 4, 5];
   var DAY = {
-    6: { en: "Sat", ar: "السبت", ico: "🛠️", fen: "Fix", far: "تصليح", len: "Solve the problems in your products", lar: "حل مشاكل المنتجات" },
-    0: { en: "Sun", ar: "الأحد", ico: "🤝", fen: "Sell", far: "بيع", len: "Selling and follow-up only: current clients, then new ones", lar: "بيع ومتابعة بس: العملاء الحاليين وبعدهم الجدد" },
-    1: { en: "Mon", ar: "الاثنين", ico: "✍️", fen: "Build · Write", far: "بناء · كتابة", len: "Build the product; every 3rd week write the scripts", lar: "بناء المنتج؛ وكل تالت أسبوع كتابة السكريبتات" },
-    2: { en: "Tue", ar: "الثلاثاء", ico: "🎥", fen: "Shoot", far: "تصوير", len: "Film the week's 6 videos in one sitting", lar: "تصوير 6 فيديوهات الأسبوع في قعدة واحدة" },
-    3: { en: "Wed", ar: "الأربعاء", ico: "🎙️", fen: "Edit · Search", far: "مونتاج · بحث", len: "Voice-over, montage, scheduling, then one search page", lar: "تعليق صوتي ومونتاج وجدولة، وبعدها صفحة بحث واحدة" },
-    4: { en: "Thu", ar: "الخميس", ico: "🌊", fen: "Close · Life", far: "قفل · حياتي", len: "Company posts with AI, money check, your life and next week", lar: "بوستات الشركات بالذكاء الاصطناعي، الفلوس، حياتك، والأسبوع الجاي" },
+    6: { en: "Sat", ar: "السبت", ico: "🧭", fen: "Plan", far: "خطة", len: "Numbers and feedback, 3 tasks per product, what to automate, the week's marketing focus", lar: "الأرقام والفيدباك، 3 مهام لكل منتج، إيه اللي يتعمل أوتوماتيك، وتركيز التسويق للأسبوع" },
+    0: { en: "Sun", ar: "الأحد", ico: "🛠️", fen: "Build", far: "بناء", len: "Fix bugs, fix what stops clients paying, then new features", lar: "صلّح الأخطاء، وبعدها أي حاجة بتمنع العميل يدفع، وبعدها مميزات جديدة" },
+    1: { en: "Mon", ar: "الاثنين", ico: "✍️", fen: "Script · Shoot", far: "سكريبت · تصوير", len: "Create part 1: 6 video scripts, 2 LinkedIn posts, 13 product posts, then shoot", lar: "صناعة المحتوى 1: 6 سكريبتات فيديو و2 بوست LinkedIn و13 بوست للمنتجات، وبعدها التصوير" },
+    2: { en: "Tue", ar: "الثلاثاء", ico: "🎬", fen: "Edit · Schedule", far: "مونتاج · جدولة", len: "Create part 2: montage, design the posts, schedule everything at the best hours", lar: "صناعة المحتوى 2: مونتاج، تصميم البوستات، وجدولة كل حاجة في أحسن المواعيد" },
+    3: { en: "Wed", ar: "الأربعاء", ico: "📣", fen: "Distribute", far: "توزيع", len: "DMs, emails, cold calls and replies: UAE in the morning, Egypt in the evening", lar: "رسايل خاصة وإيميلات ومكالمات وردود: الإمارات الصبح ومصر بالليل" },
+    4: { en: "Thu", ar: "الخميس", ico: "🧗", fen: "My path", far: "طريقي", len: "Close the week with reports, money check, then check and edit your own path", lar: "قفّل الأسبوع بالتقارير، راجع الفلوس، وبعدها راجع طريقك وعدّله" },
     5: { en: "Fri", ar: "الجمعة", ico: "🌿", fen: "Rest", far: "راحة", len: "Rest. Nothing is planned", lar: "راحة. مفيش حاجة متخططة" }
   };
 
@@ -41,56 +41,62 @@
     if (more) for (var k in more) o[k] = more[k];
     return o;
   }
+  // v2 (2026-11-24): plan → build → script + shoot → edit + schedule → distribute → my path
+  var WEEK_V = 2;
   function seed() {
-    var cmt = function () { return it("18:00", "18:30", "Answer comments and messages on today's posts", "رد على التعليقات والرسايل على بوستات النهارده"); };
+    var cmt = function (f, t) { return it(f || "18:00", t || "18:30", "Answer comments and messages on today's posts", "رد على التعليقات والرسايل على بوستات النهارده"); };
     var job = function () { return it("08:00", "09:00", "🎯 5 job applications, each one fitted to the role", "🎯 5 تقديمات وظايف، كل واحد متظبط على الوظيفة"); };
-    return { v: 1, jobs: { daily: 5, log: {} }, days: {
+    var cus = function () { return it("09:00", "10:00", "Customers first", "العملاء الأول"); };
+    return { v: WEEK_V, jobs: { daily: 5, log: {} }, days: {
       6: [
         job(),
-        it("09:00", "13:45", "🔴 Fix the queue, top first. Screen recording on", "🔴 صلّح الطابور من فوق. تسجيل الشاشة شغال"),
-        it("13:45", "14:30", "Test on the live site, take the after screenshot", "جرّب على الموقع الحقيقي وخد سكرين بعد التصليح"),
-        it("14:30", "15:00", "Write the story of the week: what was broken, how you fixed it", "اكتب حكاية الأسبوع: إيه اللي كان بايظ وصلّحته إزاي")
+        it("09:00", "11:00", "📊 Review the numbers, watch, and read customer feedback", "📊 راجع الأرقام، اتفرج، واقرا فيدباك العملاء"),
+        it("11:00", "12:30", "📋 Plan 3 tasks for each product this week (12 tasks)", "📋 خطّط 3 مهام لكل منتج الأسبوع ده (12 مهمة)"),
+        it("12:30", "13:30", "🤖 What could be automated in every product: 1 project each", "🤖 إيه اللي ممكن يتعمل أوتوماتيك في كل منتج: مشروع واحد لكل منتج"),
+        it("14:00", "15:00", "🎯 Our marketing focus for the week", "🎯 تركيز التسويق بتاعنا للأسبوع"),
+        cmt()
       ],
       0: [
         job(),
-        it("09:00", "10:00", "Inbox: answer everything from Friday and Saturday", "رد على كل رسايل الجمعة والسبت"),
-        it("10:00", "11:30", "🇦🇪 Follow up with current UAE clients (calls, WhatsApp)", "🇦🇪 متابعة عملاء الإمارات الحاليين (مكالمات، واتساب)"),
-        it("11:30", "13:00", "🇦🇪 New clients: messages + write cold emails (they send Tue 08:00)", "🇦🇪 عملاء جدد: رسايل + كتابة الإيميلات الباردة (بتتبعت الثلاثاء 8:00)"),
-        it("17:00", "18:00", "🇪🇬 Follow up with paying GoBachaloria students (15:00 Cairo)", "🇪🇬 متابعة طلبة GoBachaloria الدافعين (3:00 القاهرة)"),
-        it("18:00", "19:00", "🇪🇬 New clients: tried it, did not pay (16:00 Cairo)", "🇪🇬 عملاء جدد: جرّبوا وما دفعوش (4:00 القاهرة)"),
-        it("19:00", "19:30", "🇪🇬 New clients: parents and teachers, if time is left", "🇪🇬 عملاء جدد: أولياء أمور ومدرسين لو فضل وقت")
+        cus(),
+        it("10:00", "12:00", "🐞 Fix bugs, screen recording on", "🐞 صلّح الأخطاء وتسجيل الشاشة شغال"),
+        it("12:00", "13:00", "💳 Fix what stops clients from paying", "💳 صلّح أي حاجة بتمنع العميل إنه يدفع"),
+        it("14:00", "17:00", "🚀 New features", "🚀 مميزات جديدة"),
+        cmt()
       ],
       1: [
         job(),
-        it("09:00", "10:00", "Customers first: replies to Sunday's messages", "العملاء الأول: ردود على رسايل الأحد"),
-        it("10:00", "14:30", "✍️ Script day: 18 video scripts (9 English, 9 Arabic) + 6 LinkedIn posts", "✍️ يوم السكريبتات: 18 سكريبت فيديو (9 إنجليزي، 9 عربي) + 6 بوستات LinkedIn", { every: 3, from0: "2026-11-30" }),
-        it("10:00", "13:00", "Build GoBachaloria, screen recording on", "بناء GoBachaloria وتسجيل الشاشة شغال"),
-        it("14:00", "17:00", "Build GoBachaloria, then one hour for Techmakerz", "بناء GoBachaloria وبعده ساعة لـTechmakerz"),
+        cus(),
+        it("10:00", "12:00", "✍️ 6 video scripts (3 English, 3 Arabic) + 2 LinkedIn posts: personal brand and products", "✍️ 6 سكريبتات فيديو (3 إنجليزي، 3 عربي) + 2 بوست LinkedIn: البراند الشخصي والمنتجات"),
+        it("12:00", "13:00", "🤖 13 product posts with AI: GoBachaloria 5, Techmakerz 3, Ashrhly 3, Elhesab 2", "🤖 13 بوست للمنتجات بالذكاء الاصطناعي: GoBachaloria 5، Techmakerz 3، Ashrhly 3، Elhesab 2"),
+        it("14:00", "17:00", "🎥 Shoot the 6 videos in one sitting, or make them with AI", "🎥 صوّر الـ6 فيديوهات في قعدة واحدة، أو اعملهم بالذكاء الاصطناعي"),
         cmt()
       ],
       2: [
         job(),
-        it("08:00", "08:05", "Cold emails go out on their own (scheduled on Sunday)", "الإيميلات الباردة بتتبعت لوحدها (متجدولة من الأحد)"),
-        it("09:00", "10:00", "Calls to new UAE businesses, answer email replies", "مكالمات لشركات جديدة في الإمارات ورد على الإيميلات"),
-        it("10:00", "13:00", "🎥 Shoot 6 videos: 3 English, then 3 Arabic", "🎥 صوّر 6 فيديوهات: 3 إنجليزي وبعدهم 3 عربي"),
-        it("14:00", "17:00", "Build GoBachaloria and Techmakerz", "بناء GoBachaloria وTechmakerz"),
+        cus(),
+        it("10:00", "14:00", "🎬 Montage the 6 videos", "🎬 مونتاج الـ6 فيديوهات"),
+        it("14:00", "16:00", "🎨 Design the 13 posts with AI + 1 search page", "🎨 صمّم الـ13 بوست بالذكاء الاصطناعي + صفحة بحث واحدة"),
+        it("16:00", "17:00", "🗓️ Schedule everything at the best hours, and Wednesday's emails", "🗓️ جدول كل حاجة في أحسن المواعيد، وإيميلات الأربعاء"),
         cmt()
       ],
       3: [
         job(),
-        it("09:00", "10:00", "Customers first", "العملاء الأول"),
-        it("10:00", "15:00", "🎙️ Voice-over, montage, schedule next week's 6 videos", "🎙️ تعليق صوتي، مونتاج، وجدولة 6 فيديوهات الأسبوع الجاي"),
-        it("15:00", "17:00", "🔎 Search (Google + AI answers): one page that answers one real question", "🔎 البحث (جوجل + إجابات الذكاء الاصطناعي): صفحة واحدة بتجاوب سؤال حقيقي واحد"),
-        cmt()
+        it("08:00", "08:05", "✉️ Emails go out on their own (UAE 08:00, Egypt schools 10:00)", "✉️ الإيميلات بتتبعت لوحدها (الإمارات 8:00، مدارس مصر 10:00)"),
+        it("09:00", "10:00", "💬 Reply to messages: current clients first", "💬 رد على الرسايل: العملاء الحاليين الأول"),
+        it("10:00", "11:30", "🇦🇪 Cold calls to UAE businesses", "🇦🇪 مكالمات لشركات جديدة في الإمارات"),
+        it("11:30", "13:00", "🇦🇪 DMs to new leads (LinkedIn + Instagram)", "🇦🇪 رسايل خاصة لعملاء جدد (LinkedIn + Instagram)"),
+        it("17:00", "18:00", "🇪🇬 Reply to paying GoBachaloria students (15:00 Cairo)", "🇪🇬 رد على طلبة GoBachaloria الدافعين (3:00 القاهرة)"),
+        it("18:00", "19:00", "🇪🇬 DMs: tried it, did not pay (16:00 Cairo)", "🇪🇬 رسايل خاصة: جرّبوا وما دفعوش (4:00 القاهرة)"),
+        it("19:00", "19:30", "🇪🇬 Calls: parents and teachers, if time is left", "🇪🇬 مكالمات: أولياء أمور ومدرسين لو فضل وقت"),
+        cmt("19:30", "20:00")
       ],
       4: [
         job(),
-        it("09:00", "10:00", "Customers first", "العملاء الأول"),
-        it("10:00", "12:30", "🤖 13 company posts with AI: GoBachaloria 5, Techmakerz 3, Ashrhly 3, Elhesab 2", "🤖 13 بوست للشركات بالذكاء الاصطناعي: GoBachaloria 5، Techmakerz 3، Ashrhly 3، Elhesab 2"),
-        it("12:30", "13:00", "Read the week's numbers", "اقرا أرقام الأسبوع"),
-        it("14:00", "15:00", "💰 Money check in Floosy", "💰 مراجعة الفلوس في Floosy"),
-        it("15:00", "16:00", "🧭 Your life: look back, 3 personal goals, book English sessions", "🧭 حياتك: راجع الأسبوع، 3 أهداف شخصية، واحجز جلسات الإنجليزي"),
-        it("16:00", "16:30", "Plan next week's work", "خطة شغل الأسبوع الجاي"),
+        cus(),
+        it("10:00", "12:30", "📊 Close the week: reports, each product's numbers vs last week", "📊 قفّل الأسبوع: تقارير، أرقام كل منتج قدام الأسبوع اللي فات"),
+        it("12:30", "13:00", "💰 Money check in Floosy", "💰 مراجعة الفلوس في Floosy"),
+        it("14:00", "15:30", "🧗 My path: check it and edit it", "🧗 طريقي: راجعه وعدّله"),
         cmt()
       ],
       5: []
@@ -146,7 +152,14 @@
   /* ---------- storage ---------- */
   function adopt(d) {
     doc = d && typeof d === "object" && !Array.isArray(d) ? d : {};
-    W = doc.week && doc.week.v === 1 && doc.week.days ? doc.week : seed();
+    W = doc.week && doc.week.days ? doc.week : seed();
+    // an older week is replaced by the new one; the job log is kept, and so is the old week (prev)
+    if (W.v !== WEEK_V) {
+      var fresh = seed();
+      if (W.jobs) fresh.jobs = W.jobs;
+      if (W.days && W.v) fresh.prev = { v: W.v, days: W.days };
+      W = fresh; moved = true;
+    }
   }
   function load(done) {
     if (LOCAL) {
@@ -228,11 +241,9 @@
       '<div class="week-post"><span class="week-chip week-chip--uae">🇦🇪 ' + esc(T("Post, UAE time: LinkedIn Wed Thu Fri 16:00 · Instagram Tue Wed Thu 09:00", "النشر بتوقيت الإمارات: LinkedIn الأربعاء والخميس والجمعة 4:00 · Instagram الثلاثاء والأربعاء والخميس 9:00")) + "</span>" +
         '<span class="week-chip week-chip--egy">🇪🇬 ' + esc(T("Post, Egypt time: TikTok Sat 13:00 · Sun 09:00 · Mon 13:00", "النشر بتوقيت مصر: TikTok السبت 1:00 · الأحد 9:00 · الاثنين 1:00")) + "</span></div>" +
       '<details class="week-pic"><summary>🖼️ ' + esc(T("The whole week as one picture", "الأسبوع كله في صورة واحدة")) + "</summary>" +
-        '<a href="/assets/week/routine-waterfall-k7q2.png" target="_blank" rel="noopener"><img loading="lazy" src="/assets/week/routine-waterfall-k7q2.png" alt="' + esc(T("Weekly routine waterfall", "شلال الروتين الأسبوعي")) + '"></a>' +
+        '<a href="/assets/week/routine-waterfall-v2-k7q2.png" target="_blank" rel="noopener"><img loading="lazy" src="/assets/week/routine-waterfall-v2-k7q2.png" alt="' + esc(T("Weekly routine waterfall", "شلال الروتين الأسبوعي")) + '"></a>' +
         '<div class="week-pic__acts">' +
-          '<a class="btn btn--primary btn--sm" href="/assets/week/routine-waterfall-k7q2.png" download="my-week.png">⬇ ' + esc(T("Download the week", "نزّل صورة الأسبوع")) + "</a>" +
-          '<a class="btn btn--ghost btn--sm" href="/assets/week/monday-script-day-k7q2.png" download="monday-script-day.png">⬇ ' + esc(T("Monday: script day", "الاثنين: يوم السكريبتات")) + "</a>" +
-          '<a class="btn btn--ghost btn--sm" href="/assets/week/thursday-close-week-k7q2.png" download="thursday-close-week.png">⬇ ' + esc(T("Thursday: close the week", "الخميس: قفل الأسبوع")) + "</a>" +
+          '<a class="btn btn--primary btn--sm" href="/assets/week/routine-waterfall-v2-k7q2.png" download="my-week.png">⬇ ' + esc(T("Download the week", "نزّل صورة الأسبوع")) + "</a>" +
         "</div></details>";
   }
 
@@ -306,5 +317,5 @@
   host.addEventListener("pointerup", drop);
   host.addEventListener("pointercancel", drop);
 
-  load(function () { render(); setInterval(function () { if (!editing && !drag) render(); }, 60000); });
+  load(function () { if (moved) { moved = false; save(); } render(); setInterval(function () { if (!editing && !drag) render(); }, 60000); });
 })();
