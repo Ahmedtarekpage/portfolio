@@ -1210,7 +1210,8 @@
     // My week is the one plan of the day (owner, 2026-11-24: "today is duplicated"): once it has
     // loaded, breakfast, gym or sport and sleep are taken from it, and there is no separate nap
     var wk = window.MyWeek && window.MyWeek.life ? window.MyWeek.life(date) : null;
-    if (wk) {
+    if (wk && wk.none) { ["life:nap", "life:breakfast", "life:gym", "life:sleep"].forEach(function (k) { delete plan[k]; }); }   // before the plan's first day
+    else if (wk) {
       delete plan["life:nap"];
       var fromWeek = T("from My week", "من أسبوعي");
       if (wk.breakfast) plan["life:breakfast"] = { from: wk.breakfast.from, to: wk.breakfast.to, note: fromWeek }; else delete plan["life:breakfast"];

@@ -409,12 +409,15 @@
     });
     return { date: key, events: ev };
   }
+  // the new plan starts on Thursday 26 Nov 2026 (owner, 2026-11-24): nothing from it goes to Google
+  // Calendar or into the Today tab for an earlier day
+  var PLAN_START = "2026-11-26";
   function gcSync() {
     if (LOCAL || !GC.connected || !W) return;
     clearTimeout(gcTimer);
     gcTimer = setTimeout(function () {
       var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
-      fetch("/api/ideas?gcal=sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tz: tz, days: [dayEvents(0), dayEvents(1)] }) })
+      fetch("/api/ideas?gcal=sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tz: tz, days: [0, 1].filter(function (off) { return iso(new Date(Date.now() + off * 864e5)) >= PLAN_START; }).map(dayEvents) }) })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (x) {
           if (x.ok) { var n = new Date(); GC.last = ap(n.getHours() * 60 + n.getMinutes()); GC.err = ""; }
@@ -1062,6 +1065,7 @@
   window.MyWeek = {
     life: function (date) {
       if (!W) return null;
+      if (date < PLAN_START) return { none: true };
       var dow = new Date(date + "T12:00:00").getDay(), rows = rowsOf(dow);
       var bf = rows.filter(function (x) { return catOf(x) === "food" && /breakfast|فطار/i.test(x.en || ""); })[0];
       var gym = rows.filter(function (x) { return catOf(x) === "fitness"; })[0];
@@ -1078,6 +1082,7 @@
   // free-time fillers are not rows; the morning azkar is already Today's own)
   window.MyWeek.today = function (date) {
     if (!W) return null;
+    if (date < PLAN_START) return [];
     var dow = new Date(date + "T12:00:00").getDay();
     return rowsOf(dow).filter(function (x) { return x.from && x.to && !/^📿 Morning azkar/.test(x.en || ""); }).map(function (x) {
       var cat = catOf(x), name = x.text || T(x.en, x.ar), m = name.match(/^(\S+)\s+(.*)$/);
@@ -1354,6 +1359,178 @@
       '<g transform="translate(0 30)">' + [42, 34, 26, 18, 10].map(function (y, i) { return coin(y, 4 - i === 0 ? 0 : 1); }).join("") + "</g>" +
       '<g class="mn__coin" transform="translate(64 2)"><ellipse cx="14" cy="14" rx="12" ry="12" fill="url(#mnEdge)"/><ellipse cx="13" cy="13" rx="10.5" ry="10.5" fill="url(#mnFace)"/><text x="13" y="16.5" text-anchor="middle" font-size="10" font-weight="800" fill="#8A5A12">Đ</text></g></svg>';
   }
+  /* Reminders: "remind me in X". Kept with the week (so every open device rings), checked every second. */
+  function rems() { if (!Array.isArray(W.reminders)) W.reminders = []; return W.reminders; }
+  function leftTxt(ms) { var s0 = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s0 / 3600), mm = Math.floor(s0 % 3600 / 60), ss = s0 % 60; return (h ? h + ":" + ("0" + mm).slice(-2) : mm) + ":" + ("0" + ss).slice(-2); }
+  function remHtml() {
+    var list = rems().slice().sort(function (a, b) { return a.at - b.at; });
+    var q = [[5, "5 min", "٥ د"], [15, "15 min", "١٥ د"], [30, "30 min", "٣٠ د"], [60, "1 h", "ساعة"], [120, "2 h", "ساعتين"]];
+    return '<section class="nw nw--rem"><div class="nw__k">⏰ ' + esc(T("Remind me", "فكّرني")) + "</div>" +
+      '<form class="nw__form rem__form" data-rem><input name="text" type="text" maxlength="120" placeholder="' + esc(T("What? (e.g. call Sara)", "بإيه؟ (مثلاً كلّم سارة)")) + '">' +
+      '<div class="rem__q">' + q.map(function (x) { return '<button type="button" class="btn btn--ghost btn--sm" data-rem-in="' + x[0] + '">' + esc(T("in " + x[1], "بعد " + x[2])) + "</button>"; }).join("") + "</div>" +
+      '<div class="rem__c"><input name="h" type="number" min="0" max="72" placeholder="' + esc(T("hours", "ساعات")) + '"><input name="m" type="number" min="0" max="59" placeholder="' + esc(T("min", "دقايق")) + '"><button class="btn btn--primary btn--sm" type="submit">' + esc(T("Set", "اضبط")) + "</button></div></form>" +
+      (list.length ? '<ul class="rem__list">' + list.map(function (r) {
+        var due = r.at <= Date.now(), d = new Date(r.at);
+        return '<li class="' + (due ? "is-due" : "") + '"><span>' + esc(r.text || T("Reminder", "تذكير")) + '</span><b data-rem-left="' + r.at + '">' + (due ? "⏰" : leftTxt(r.at - Date.now())) + "</b><small>" + esc(ap(d.getHours() * 60 + d.getMinutes())) + '</small><button type="button" class="nt__x" data-rem-del="' + r.id + '" aria-label="' + esc(T("Delete", "امسح")) + '">✕</button></li>';
+      }).join("") + "</ul>" : '<p class="muted nw__hint">' + esc(T("Nothing set.", "مفيش تذكيرات.")) + "</p>") + "</section>";
+  }
+  function remAdd(text, min) {
+    if (!(min > 0)) return;
+    rems().push({ id: uid(), text: String(text || "").trim().slice(0, 120), at: Date.now() + Math.round(min * 60000) });
+    try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {}
+    sfx("pop"); save();
+    note(T("I will remind you in ", "هفكّرك بعد ") + (min >= 60 ? Math.floor(min / 60) + T(" h", " س") + (min % 60 ? " " + Math.round(min % 60) + T(" min", " د") : "") : Math.round(min) + T(" min", " دقيقة")));
+  }
+  var remShown = {};
+  function remTick() {
+    if (!W) return;
+    var now = Date.now();
+    rems().forEach(function (r) {
+      if (r.at > now || remShown[r.id]) return;
+      remShown[r.id] = 1;
+      tone([{ f: 880, d: 0.25, t: 0, v: 0.2 }, { f: 1175, d: 0.25, t: 0.25, v: 0.2 }, { f: 880, d: 0.25, t: 0.6, v: 0.2 }, { f: 1175, d: 0.5, t: 0.85, v: 0.2 }]);
+      try { if (window.Notification && Notification.permission === "granted") new Notification("⏰ " + (r.text || T("Reminder", "تذكير")), { tag: "rem" + r.id, requireInteraction: true }); } catch (e) {}
+      var t0 = document.createElement("div"); t0.className = "rem-toast";
+      t0.innerHTML = "<b>⏰ " + esc(r.text || T("Reminder", "تذكير")) + '</b><span><button type="button" class="btn btn--ghost btn--sm" data-rem-snooze>' + esc(T("10 min more", "١٠ دقايق كمان")) + '</button><button type="button" class="btn btn--primary btn--sm" data-rem-done>' + esc(T("Done", "تمام")) + "</button></span>";
+      t0.addEventListener("click", function (e) {
+        var sn = e.target.closest("[data-rem-snooze]"), dn = e.target.closest("[data-rem-done]"); if (!sn && !dn) return;
+        var it = rems().filter(function (x) { return x.id === r.id; })[0];
+        if (it && sn) { it.at = Date.now() + 10 * 60000; delete remShown[r.id]; }
+        if (dn) W.reminders = rems().filter(function (x) { return x.id !== r.id; });
+        t0.remove(); save();
+      });
+      document.body.appendChild(t0);
+    });
+    if (nowHost) [].forEach.call(nowHost.querySelectorAll("[data-rem-left]"), function (el) { var at = +el.getAttribute("data-rem-left"); el.textContent = at <= now ? "⏰" : leftTxt(at - now); });
+  }
+
+  /* Archive: 3D folders of files, stored on the site (api/_lib/archive.js). */
+  var ARC = { folders: null, files: [], err: "", open: null, busy: "" };
+  var ARC_COLORS = ["#F9B233", "#4F7CFF", "#3AA682", "#FF6B5B", "#B48EE8", "#14213D"];
+  var ARC_API = "/api/ideas?archive=";
+  function arcLoad() {
+    fetch(ARC_API + "list", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (d) { ARC.folders = d.folders; ARC.files = d.files; ARC.err = ""; renderNow(); arcModalDraw(); })
+      .catch(function () { ARC.err = LOCAL ? T("The archive works on the live site.", "الأرشيف شغال على الموقع نفسه.") : T("Could not load the archive.", "ما قدرتش أحمّل الأرشيف."); ARC.folders = ARC.folders || []; renderNow(); });
+  }
+  function arcCall(method, what, body) {
+    return fetch(ARC_API + what, { method: method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || r.status); return d; }); });
+  }
+  function fmtSize(n) { n = +n || 0; return n < 1024 ? n + " B" : n < 1048576 ? Math.round(n / 1024) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
+  function fileIco(t, name) {
+    t = t || ""; name = name || "";
+    if (/^image\//.test(t)) return "🖼️"; if (/pdf/.test(t)) return "📕"; if (/^audio\//.test(t)) return "🎵"; if (/^video\//.test(t)) return "🎬";
+    if (/sheet|excel|csv/.test(t) || /\.(xlsx?|csv)$/i.test(name)) return "📊";
+    if (/presentation|powerpoint|keynote/.test(t) || /\.(pptx?|key)$/i.test(name)) return "📽️";
+    if (/word|document/.test(t) || /\.docx?$/i.test(name)) return "📝";
+    if (/zip|compressed/.test(t)) return "🗜️"; if (/^text\//.test(t)) return "📄"; return "📎";
+  }
+  function folderSvg(c) { return '<span class="af3" style="--fc:' + (c || "#F9B233") + '"><i class="af3__back"></i><i class="af3__paper"></i><i class="af3__paper af3__paper--2"></i><i class="af3__front"></i></span>'; }
+  function arcHtml() {
+    if (ARC.folders == null) { ARC.folders = []; setTimeout(arcLoad, 0); }
+    var F = ARC.folders || [];
+    return '<section class="nw nw--arc"><div class="nw__k">🗄️ ' + esc(T("Archive", "الأرشيف")) + '<span class="fl__ctl"><button type="button" class="btn btn--ghost btn--sm" data-arc-new>＋ ' + esc(T("Folder", "فولدر")) + "</button></span></div>" +
+      (ARC.err ? '<p class="muted nw__hint">' + esc(ARC.err) + "</p>" : "") +
+      '<div class="arc__grid">' + F.map(function (f) {
+        return '<button type="button" class="arc__f" data-arc-open="' + f.id + '" data-arc-drop="' + f.id + '" title="' + esc(T("Open · drop files here to upload", "افتح · ارمي ملفات هنا ترفعها")) + '">' + folderSvg(f.color) +
+          "<b>" + esc(f.name) + "</b><small>" + f.count + " · " + fmtSize(f.size) + "</small></button>";
+      }).join("") + "</div>" + (F.length || ARC.err ? "" : '<p class="muted nw__hint">' + esc(T("Make your first folder, then drop files on it.", "اعمل أول فولدر، وبعدين ارمي الملفات عليه.")) + "</p>") +
+      (ARC.busy ? '<p class="arc__busy">⏳ ' + esc(ARC.busy) + "</p>" : "") + "</section>";
+  }
+  function arcUpload(folderId, files) {
+    files = [].slice.call(files || []); if (!files.length || !folderId) return;
+    var LIM = 25 * 1048576, big = files.filter(function (f) { return f.size > LIM; });
+    if (big.length) { window.alert(T("Too big (max 25 MB): ", "كبير أوي (أقصى حاجة 25 ميجا): ") + big.map(function (f) { return f.name; }).join(", ")); files = files.filter(function (f) { return f.size <= LIM; }); }
+    var i = 0, PIECE = 2.5 * 1048576;
+    var next = function () {
+      if (i >= files.length) { ARC.busy = ""; sfx("coin"); return arcLoad(); }
+      var f = files[i++], up = (uid() + uid() + Date.now().toString(36) + "xxxxxxxxxxxxxxxx").replace(/[^\w-]/g, "").slice(0, 40), n = Math.max(1, Math.ceil(f.size / PIECE)), k = 0;
+      var piece = function () {
+        ARC.busy = T("Uploading ", "برفع ") + f.name + " (" + (k + 1) + "/" + n + ")"; renderNow(); arcModalDraw();
+        var rd = new FileReader();
+        rd.onload = function () {
+          var b64 = String(rd.result).split(",")[1] || "";
+          arcCall("POST", "upload", { upload_id: up, index: k, data_base64: b64 }).then(function () {
+            k++; if (k < n) return piece();
+            return arcCall("POST", "file", { upload_id: up, folder_id: folderId, name: f.name, type: f.type }).then(next);
+          }).catch(function (e) { ARC.busy = ""; window.alert(f.name + ": " + e.message); arcLoad(); });
+        };
+        rd.readAsDataURL(f.slice(k * PIECE, (k + 1) * PIECE));
+      };
+      piece();
+    };
+    next();
+  }
+  function saveBlob(u, name) { var a = document.createElement("a"); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+  function arcGet(file, download) {
+    var url = ARC_API + "get&id=" + file.id;
+    if (file.size <= 4 * 1048576) { if (download) saveBlob(url + "&dl=1", file.name); else window.open(url, "_blank", "noopener"); return; }
+    ARC.busy = T("Downloading ", "بنزّل ") + file.name; arcModalDraw();
+    fetch(url + "&info=1").then(function (r) { return r.json(); }).then(function (inf) {
+      var parts = [], k = 0;
+      var step = function () {
+        if (k >= inf.parts) {
+          var u = URL.createObjectURL(new Blob(parts, { type: inf.type }));
+          if (download || !/^(image|application\/pdf|video|audio)/.test(inf.type)) saveBlob(u, file.name); else window.open(u, "_blank", "noopener");
+          ARC.busy = ""; arcModalDraw(); setTimeout(function () { URL.revokeObjectURL(u); }, 60000); return;
+        }
+        fetch(url + "&part=" + k).then(function (r) { return r.arrayBuffer(); }).then(function (b) { parts.push(b); k++; step(); });
+      };
+      step();
+    }).catch(function () { ARC.busy = ""; arcModalDraw(); });
+  }
+  // the open folder: a window over the page (outside the board, so the board can redraw under it)
+  function arcModalDraw() {
+    var M = document.getElementById("arcModal");
+    var f = ARC.open && (ARC.folders || []).filter(function (x) { return x.id === ARC.open; })[0];
+    if (!f) { if (M) M.remove(); return; }
+    if (!M) {
+      M = document.createElement("div"); M.id = "arcModal"; M.className = "arcm"; document.body.appendChild(M);
+      M.addEventListener("click", arcModalClick); M.addEventListener("change", arcModalChange);
+      M.addEventListener("dragover", function (e) { e.preventDefault(); M.classList.add("is-drop"); });
+      M.addEventListener("dragleave", function (e) { if (e.target === M) M.classList.remove("is-drop"); });
+      M.addEventListener("drop", function (e) { e.preventDefault(); M.classList.remove("is-drop"); arcUpload(ARC.open, e.dataTransfer.files); });
+    }
+    var files = ARC.files.filter(function (x) { return x.folder_id === f.id; });
+    M.innerHTML = '<div class="arcm__box" style="--fc:' + (f.color || "#F9B233") + '"><div class="arcm__head">' + folderSvg(f.color) + "<h3>" + esc(f.name) + "</h3><small>" + files.length + " · " + fmtSize(f.size) + "</small>" +
+      '<span class="arcm__acts"><span class="arcm__colors">' + ARC_COLORS.map(function (c) { return '<button type="button" class="bt__c' + (c === f.color ? " is-on" : "") + '" style="--c:' + c + '" data-arc-color="' + c + '"></button>'; }).join("") + "</span>" +
+      '<button type="button" class="btn btn--ghost btn--sm" data-arc-rename>✏️ ' + esc(T("Rename", "غيّر الاسم")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-arc-delfolder>🗑 ' + esc(T("Delete folder", "امسح الفولدر")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-arc-close>✕</button></span></div>' +
+      '<label class="arcm__drop"><input type="file" multiple hidden data-arc-files>⬆️ ' + esc(T("Upload files (or drop them here) · up to 25 MB each", "ارفع ملفات (أو ارميها هنا) · لحد 25 ميجا للملف")) + "</label>" +
+      (ARC.busy ? '<p class="arc__busy">⏳ ' + esc(ARC.busy) + "</p>" : "") +
+      '<ul class="arcm__list">' + (files.length ? files.map(function (x) {
+        return '<li data-arc-file="' + x.id + '"><span class="arcm__ico">' + fileIco(x.type, x.name) + '</span><button type="button" class="arcm__name" data-arc-view title="' + esc(T("Open", "افتح")) + '">' + esc(x.name) + "</button><small>" + fmtSize(x.size) + " · " + esc(new Date(x.created_at).toLocaleDateString()) + "</small>" +
+          '<select data-arc-move aria-label="' + esc(T("Move to", "انقل لـ")) + '"><option value="">' + esc(T("Move…", "انقل…")) + "</option>" + ARC.folders.filter(function (o) { return o.id !== f.id; }).map(function (o) { return '<option value="' + o.id + '">' + esc(o.name) + "</option>"; }).join("") + "</select>" +
+          '<button type="button" class="btn btn--ghost btn--sm" data-arc-dl title="' + esc(T("Download", "نزّل")) + '">⬇️</button><button type="button" class="btn btn--ghost btn--sm" data-arc-fren title="' + esc(T("Rename", "غيّر الاسم")) + '">✏️</button><button type="button" class="btn btn--ghost btn--sm" data-arc-fdel title="' + esc(T("Delete", "امسح")) + '">🗑</button></li>';
+      }).join("") : '<li class="muted">' + esc(T("Empty folder.", "الفولدر فاضي.")) + "</li>") + "</ul></div>";
+  }
+  function arcModalClick(e) {
+    var t = e.target, M = document.getElementById("arcModal"), f = (ARC.folders || []).filter(function (x) { return x.id === ARC.open; })[0]; if (!f) return;
+    if (t === M || t.closest("[data-arc-close]")) { ARC.open = null; return arcModalDraw(); }
+    var c = t.closest("[data-arc-color]"); if (c) { arcCall("PATCH", "folder&id=" + f.id, { color: c.getAttribute("data-arc-color") }).then(arcLoad); return; }
+    if (t.closest("[data-arc-rename]")) { var nm = window.prompt(T("Folder name", "اسم الفولدر"), f.name); if (nm && nm.trim()) arcCall("PATCH", "folder&id=" + f.id, { name: nm.trim() }).then(arcLoad); return; }
+    if (t.closest("[data-arc-delfolder]")) {
+      if (!window.confirm(T('Delete the folder "' + f.name + '" and its ' + f.count + " files? This cannot be undone.", 'تمسح فولدر "' + f.name + '" و' + f.count + " ملف جواه؟ مش هتقدر ترجّعهم."))) return;
+      arcCall("DELETE", "folder&id=" + f.id).then(function () { ARC.open = null; arcModalDraw(); arcLoad(); }); return;
+    }
+    var li = t.closest("[data-arc-file]"); if (!li) return;
+    var file = ARC.files.filter(function (x) { return x.id === +li.getAttribute("data-arc-file"); })[0]; if (!file) return;
+    if (t.closest("[data-arc-view]")) return arcGet(file, false);
+    if (t.closest("[data-arc-dl]")) return arcGet(file, true);
+    if (t.closest("[data-arc-fren]")) { var n2 = window.prompt(T("File name", "اسم الملف"), file.name); if (n2 && n2.trim()) arcCall("PATCH", "file&id=" + file.id, { name: n2.trim() }).then(arcLoad); return; }
+    if (t.closest("[data-arc-fdel]")) { if (!window.confirm(T('Delete "' + file.name + '"? This cannot be undone.', 'تمسح "' + file.name + '"؟ مش هتقدر ترجّعه.'))) return; arcCall("DELETE", "file&id=" + file.id).then(arcLoad); }
+  }
+  function arcModalChange(e) {
+    var t = e.target;
+    if (t.matches("[data-arc-files]")) { arcUpload(ARC.open, t.files); t.value = ""; return; }
+    if (t.matches("[data-arc-move]") && t.value) { var li = t.closest("[data-arc-file]"); arcCall("PATCH", "file&id=" + li.getAttribute("data-arc-file"), { folder_id: +t.value }).then(arcLoad); }
+  }
+  // drop files from the computer straight onto a folder on the board
+  if (nowHost) {
+    nowHost.addEventListener("dragover", function (e) { var f = e.target.closest && e.target.closest("[data-arc-drop]"); if (f) { e.preventDefault(); f.classList.add("is-drop"); } });
+    nowHost.addEventListener("dragleave", function (e) { var f = e.target.closest && e.target.closest("[data-arc-drop]"); if (f) f.classList.remove("is-drop"); });
+    nowHost.addEventListener("drop", function (e) { var f = e.target.closest && e.target.closest("[data-arc-drop]"); if (!f) return; e.preventDefault(); f.classList.remove("is-drop"); arcUpload(+f.getAttribute("data-arc-drop"), e.dataTransfer.files); });
+  }
   function renderNow() {
     if (!nowHost || !W) return;
     if (nbDrag || tabDrag || nowHost.querySelector(".nt__text:focus") || nowHost.querySelector(".sndp :focus") || nowHost.querySelector(".nw__form :focus") || nowHost.querySelector("[contenteditable='true']")) return;   // not under a drag or the typing
@@ -1431,7 +1608,7 @@
         '<button type="button" class="btn btn--ghost btn--sm" data-theme-tg title="' + esc(T("Light / dark", "فاتح / غامق")) + '">' + (document.documentElement.getAttribute("data-theme") === "light" ? "🌙" : "☀️") + "</button>" +
         '<button type="button" class="btn btn--ghost btn--sm" data-snd title="' + esc(T("Sounds", "الأصوات")) + '">' + (SFX ? "🔊" : "🔇") + "</button>" +
         (sndOpen ? '<div class="sndp nw__form"><label class="al-on"><input type="checkbox" data-sfx-on' + (SFX ? " checked" : "") + "> 🔊 " + esc(T("Sound effects (clicks, coins, notes)", "مؤثرات صوتية (كليك، فلوس، نوتس)")) + "</label>" + alertBar() + "</div>" : "");
-      nowHost.innerHTML = boardHtml("full", isMainTab() ? wcard("pray", prayHtml) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml) : "", head);
+      nowHost.innerHTML = boardHtml("full", isMainTab() ? wcard("pray", prayHtml) + wcard("rem", remHtml()) + wcard("arc", arcHtml()) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml) : "", head);
       return calSetup(keepScroll);
     }
     nowHost.innerHTML = '<div class="card__head week__head"><h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
@@ -1707,7 +1884,7 @@
   var nowMin = -1;
   function tickNow() {
     if (!nowHost || !W) return;
-    boardTick();
+    boardTick(); remTick();
     var now = new Date(), m = now.getHours() * 60 + now.getMinutes();
     if (m !== nowMin) { nowMin = m; return renderNow(); }
     var cdEl = nowHost.querySelector(".nw__cd"); if (!cdEl) return;
@@ -1741,13 +1918,17 @@
   function board() { var R = boardRoot(); return R.tabs.filter(function (t) { return t.id === R.cur; })[0] || R.tabs[0]; }
   function isMainTab() { return board().id === "main"; }
   // three columns: the masjid | today's whiteboard | now, money, meeting; notes to the right
-  var WDEF = { pray: { x: 20, y: 20, w: 340 }, cal: { x: 390, y: 20, w: 380 }, do: { x: 800, y: 20, w: 380 }, money: { x: 800, y: 300, w: 380 }, meet: { x: 800, y: 660, w: 380 } };
+  var WDEF = { rem: { x: 20, y: 380, w: 340 }, arc: { x: 20, y: 640, w: 340 }, pray: { x: 20, y: 20, w: 340 }, cal: { x: 390, y: 20, w: 380 }, do: { x: 800, y: 20, w: 380 }, money: { x: 800, y: 300, w: 380 }, meet: { x: 800, y: 660, w: 380 } };
   // stack the third column by the cards' real heights so none covers another
   function stackCol3() {
-    var R = boardRoot(), y = 20;
-    ["do", "money", "meet"].forEach(function (k) {
-      var el = nowHost.querySelector('[data-w="' + k + '"]'), g = R.widgets[k]; if (!el || !g || g.locked) return;
-      g.x = WDEF[k].x; g.y = y; el.style.left = g.x + "px"; el.style.top = y + "px"; y += el.offsetHeight + 24;
+    var R = boardRoot();
+    [["pray", "rem", "arc"], ["do", "money", "meet"]].forEach(function (col) {
+      var y = 20;
+      col.forEach(function (k) {
+        var el = nowHost.querySelector('[data-w="' + k + '"]'), g = R.widgets[k]; if (!el || !g) return;
+        if (g.locked) { y = Math.max(y, g.y + el.offsetHeight + 24); return; }
+        g.x = WDEF[k].x; g.y = y; el.style.left = g.x + "px"; el.style.top = y + "px"; y += el.offsetHeight + 24;
+      });
     });
   }
   function boardWidgets() {
@@ -1758,7 +1939,9 @@
       setTimeout(function () { if (isMainTab()) { stackCol3(); bsave(); } }, 60);   // keep the notes clear of the cards
       setTimeout(function () { nbFit(); bsave(); }, 80);                 // and show all of it the first time
     }
-    Object.keys(WDEF).forEach(function (k) { if (!B.widgets[k]) B.widgets[k] = JSON.parse(JSON.stringify(WDEF[k])); });
+    var added = false;
+    Object.keys(WDEF).forEach(function (k) { if (!B.widgets[k]) { B.widgets[k] = JSON.parse(JSON.stringify(WDEF[k])); added = true; } });
+    if (added) setTimeout(function () { if (isMainTab()) { stackCol3(); bsave(); } }, 80);   // a new card: make room for it
     return B.widgets;
   }
   function bSnap() { undoStack.push(JSON.stringify(board().items)); if (undoStack.length > 50) undoStack.shift(); }
@@ -1896,6 +2079,10 @@
     nowHost.addEventListener("click", function (e) {
       var t = e.target, b;
       if (t.closest("[data-snd]")) { sndOpen = !sndOpen; return renderNow(); }
+      if ((b = t.closest("[data-rem-in]"))) { var rf = b.closest("form"); remAdd(rf.elements.text.value, +b.getAttribute("data-rem-in")); rf.reset(); if (document.activeElement) document.activeElement.blur(); return renderNow(); }
+      if ((b = t.closest("[data-rem-del]"))) { var rid = b.getAttribute("data-rem-del"); W.reminders = rems().filter(function (x) { return x.id !== rid; }); save(); return; }
+      if (t.closest("[data-arc-new]")) { var fn = window.prompt(T("New folder name", "اسم الفولدر الجديد"), ""); if (fn && fn.trim()) arcCall("POST", "folder", { name: fn.trim(), color: ARC_COLORS[(ARC.folders || []).length % ARC_COLORS.length] }).then(function () { sfx("pop"); arcLoad(); }).catch(function (x) { window.alert(x.message); }); return; }
+      if ((b = t.closest("[data-arc-open]"))) { ARC.open = +b.getAttribute("data-arc-open"); return arcModalDraw(); }
       if (t.closest("[data-theme-tg]")) {
         var th = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
         if (window.Theme) Theme.apply(th); else { document.documentElement.setAttribute("data-theme", th); try { localStorage.setItem("tools-theme", th); } catch (x) {} }
@@ -2227,6 +2414,12 @@
     });
     nowHost.addEventListener("submit", function (e) {
       var f = e.target; e.preventDefault();
+      if (f.matches("[data-rem]")) {
+        e.preventDefault();
+        var mins0 = (+f.elements.h.value || 0) * 60 + (+f.elements.m.value || 0);
+        if (!(mins0 > 0)) { note(T("Write hours or minutes.", "اكتب ساعات أو دقايق.")); return; }
+        remAdd(f.elements.text.value, mins0); f.reset(); if (document.activeElement) document.activeElement.blur(); return renderNow();
+      }
       if (f.matches("[data-money]")) {
         var amt = +String(f.elements.amount.value).replace(",", "."); if (!(amt > 0)) return;
         sfx(FIN.mt === "income" ? "coin" : "spend");
