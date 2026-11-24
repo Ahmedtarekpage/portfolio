@@ -1601,14 +1601,19 @@
     if (page) {
       // one full-screen board: the day's cards (prayer, now, today, money, meeting) sit on it with the
       // notes, drawings and Pomodoros; drag a card by its title, zoom and pan like the rest
-      var WG = boardWidgets(), wcard = function (k, html) { var g = WG[k]; return '<div class="bw bw--' + k + (g.locked ? " is-locked" : "") + '" data-w="' + k + '" style="left:' + g.x + "px;top:" + g.y + "px;width:" + g.w + "px;z-index:" + (g.z || 0) + '">' + html +
+      var WG = boardWidgets(), wcard = function (k, html) { var g = WG[k]; if (g.hidden) return ""; return '<div class="bw bw--' + k + (g.locked ? " is-locked" : "") + '" data-w="' + k + '" style="left:' + g.x + "px;top:" + g.y + "px;width:" + g.w + "px;z-index:" + (g.z || 0) + '">' + html +
+        '<button type="button" class="bw__hide" data-whide="' + k + '" title="' + esc(T("Hide this card (bring it back from 🧩 Cards)", "اخفي الكارت (ترجّعه من 🧩 الكروت)")) + '">✕</button>' +
         '<button type="button" class="bw__lock" data-wlock="' + k + '" title="' + esc(g.locked ? T("Locked: tap to unlock", "مقفول: دوس تفتحه") : T("Lock in place", "اقفله مكانه")) + '">' + (g.locked ? "🔒" : "🔓") + "</button></div>"; };
       var head = '<h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="nwp__nav"><a class="btn btn--ghost btn--sm" href="/time">⏱ ' + esc(T("Time", "الوقت")) + '</a><a class="btn btn--ghost btn--sm" href="/admin">← ' + esc(T("Home", "الرئيسية")) + "</a></span>";
+      var hiddenW = Object.keys(WG).filter(function (k) { return WG[k].hidden; }), WNAMES = { pray: T("🕌 Prayer", "🕌 الصلاة"), rem: T("⏰ Remind me", "⏰ فكّرني"), arc: T("🗄️ Archive", "🗄️ الأرشيف"), do: T("▶️ Now", "▶️ دلوقتي"), cal: T("📅 Today", "📅 النهارده"), money: T("💰 Money", "💰 الفلوس"), meet: T("🤝 Meeting", "🤝 ميعاد") };
+      if (isMainTab()) head += '<span class="wcards"><button type="button" class="btn btn--ghost btn--sm" data-wcards>🧩 ' + esc(T("Cards", "الكروت")) + (hiddenW.length ? " (" + hiddenW.length + ")" : "") + "</button>" +
+        (cardsOpen ? '<span class="wcards__menu">' + (hiddenW.length ? hiddenW.map(function (k) { return '<button type="button" data-wshow="' + k + '">＋ ' + esc(WNAMES[k] || k) + "</button>"; }).join("") : '<em>' + esc(T("All cards are showing.", "كل الكروت ظاهرة.")) + "</em>") + "</span>" : "") + "</span>";
       head += '<a class="btn btn--ghost btn--sm nw__notion" href="https://app.notion.com/p/awasisai/Workstation-75dde5a5cb184f0abc1aab133d9deb59" target="_blank" rel="noopener">📓 Notion</a>' +
         '<button type="button" class="btn btn--ghost btn--sm" data-theme-tg title="' + esc(T("Light / dark", "فاتح / غامق")) + '">' + (document.documentElement.getAttribute("data-theme") === "light" ? "🌙" : "☀️") + "</button>" +
         '<button type="button" class="btn btn--ghost btn--sm" data-snd title="' + esc(T("Sounds", "الأصوات")) + '">' + (SFX ? "🔊" : "🔇") + "</button>" +
         (sndOpen ? '<div class="sndp nw__form"><label class="al-on"><input type="checkbox" data-sfx-on' + (SFX ? " checked" : "") + "> 🔊 " + esc(T("Sound effects (clicks, coins, notes)", "مؤثرات صوتية (كليك، فلوس، نوتس)")) + "</label>" + alertBar() + "</div>" : "");
       nowHost.innerHTML = boardHtml("full", isMainTab() ? wcard("pray", prayHtml) + wcard("rem", remHtml()) + wcard("arc", arcHtml()) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml) : "", head);
+      setTimeout(selBar, 0);
       return calSetup(keepScroll);
     }
     nowHost.innerHTML = '<div class="card__head week__head"><h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
@@ -1925,7 +1930,7 @@
     [["pray", "rem", "arc"], ["do", "money", "meet"]].forEach(function (col) {
       var y = 20;
       col.forEach(function (k) {
-        var el = nowHost.querySelector('[data-w="' + k + '"]'), g = R.widgets[k]; if (!el || !g) return;
+        var el = nowHost.querySelector('[data-w="' + k + '"]'), g = R.widgets[k]; if (!el || !g || g.hidden) return;
         if (g.locked) { y = Math.max(y, g.y + el.offsetHeight + 24); return; }
         g.x = WDEF[k].x; g.y = y; el.style.left = g.x + "px"; el.style.top = y + "px"; y += el.offsetHeight + 24;
       });
@@ -2016,7 +2021,7 @@
       return '<span class="btab' + (t.id === R.cur ? " is-on" : "") + '" data-tab="' + t.id + '" title="' + esc(T("Tap to open · double tap to rename · drag to move", "دوس تفتح · دوس مرتين تغيّر الاسم · اسحب ترتّب")) + '"><b>' + esc(t.name) + "</b>" + (t.id !== "main" ? '<i data-tab-del aria-label="' + esc(T("Delete page", "امسح الصفحة")) + '">×</i>' : "") + "</span>";
     }).join("") + '<button type="button" class="btab btab--add" data-tab-add aria-label="' + esc(T("New page", "صفحة جديدة")) + '">＋</button></div>';
   }
-  var tabDrag = null, tabTap = null;
+  var tabDrag = null, tabTap = null, cardsOpen = false;
   function bLockToggle() {
     var it = BT.sel && bItem(BT.sel);
     if (!it) { note(T("Select something first, then press Lock.", "اختار حاجة الأول وبعدين دوس قفل.")); return; }
@@ -2034,7 +2039,7 @@
     var colors = BCOLORS.map(function (c) { return '<button type="button" class="bt__c' + (BT.color === c ? " is-on" : "") + '" style="--c:' + c + '" data-bcolor="' + c + '" aria-label="' + esc(T("Colour", "لون")) + '"></button>'; }).join("");
     var widths = [2, 4, 8].map(function (w) { return '<button type="button" class="bt__w' + (BT.width === w ? " is-on" : "") + '" data-bwidth="' + w + '" aria-label="' + w + '"><i style="width:' + (w + 4) + "px;height:" + (w + 4) + 'px"></i></button>'; }).join("");
     return '<section class="nw nw--notes' + (tall === "full" ? " nw--full" : "") + '"><div class="nw__k">' + (head || "🗒️ " + esc(T("Board", "البورد"))) +
-      '<span class="nb__tools"><button type="button" class="btn btn--ghost btn--sm" data-b-export="png" title="' + esc(T("Save this page as an image", "احفظ الصفحة دي صورة")) + '">🖼️ PNG</button><button type="button" class="btn btn--ghost btn--sm" data-b-export="pdf" title="' + esc(T("Save this page as a PDF", "احفظ الصفحة دي PDF")) + '">📄 PDF</button><button type="button" class="btn btn--ghost btn--sm" data-block title="' + esc(T("Lock / unlock the selected item (L)", "اقفل / افتح الحاجة المختارة (L)")) + '">🔒 ' + esc(T("Lock", "قفل")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-b-arrange title="' + esc(T("Tidy everything and fit it to the screen", "رتّب كل حاجة وخليها على قد الشاشة")) + '">✨ ' + esc(T("Auto arrange", "رتّب")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-pm-add>⏱️ ' + esc(T("Pomodoro", "بومودورو")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-bundo title="⌘/Ctrl+Z">↶</button><button type="button" class="btn btn--ghost btn--sm" data-bdel title="Delete">🗑</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="-1">−</button><button type="button" class="btn btn--ghost btn--sm" data-nb-fit>' + Math.round(NB.z * 100) + '%</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="1">+</button></span></div>' +
+      '<span class="nb__tools"><button type="button" class="btn btn--ghost btn--sm" data-b-export="png" title="' + esc(T("Save this page as an image", "احفظ الصفحة دي صورة")) + '">🖼️ PNG</button><button type="button" class="btn btn--ghost btn--sm" data-b-export="pdf" title="' + esc(T("Save this page as a PDF", "احفظ الصفحة دي PDF")) + '">📄 PDF</button><button type="button" class="btn btn--ghost btn--sm" data-bclear title="' + esc(T("Delete everything on this page", "امسح كل اللي في الصفحة دي")) + '">🧹 ' + esc(T("Clear page", "امسح الصفحة")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-block title="' + esc(T("Lock / unlock the selected item (L)", "اقفل / افتح الحاجة المختارة (L)")) + '">🔒 ' + esc(T("Lock", "قفل")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-b-arrange title="' + esc(T("Tidy everything and fit it to the screen", "رتّب كل حاجة وخليها على قد الشاشة")) + '">✨ ' + esc(T("Auto arrange", "رتّب")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-pm-add>⏱️ ' + esc(T("Pomodoro", "بومودورو")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-bundo title="⌘/Ctrl+Z">↶</button><button type="button" class="btn btn--ghost btn--sm" data-bdel title="Delete">🗑</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="-1">−</button><button type="button" class="btn btn--ghost btn--sm" data-nb-fit>' + Math.round(NB.z * 100) + '%</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="1">+</button></span></div>' +
       '<div class="nb' + (tall === "full" ? " nb--full" : tall ? " nb--tall" : "") + '" data-nb data-tool="' + BT.tool + '" tabindex="0">' +
         '<div class="bt"><div class="bt__g">' + tools + '</div><div class="bt__g bt__pens">' + PENS.map(function (q) { return '<button type="button" class="bt__t' + (BT.pen === q[0] ? " is-on" : "") + '" data-pen="' + q[0] + '" title="' + esc(T(q[2], q[3])) + '">' + q[1] + "</button>"; }).join("") + '</div><div class="bt__g">' + colors + '</div><div class="bt__g">' + widths + "</div></div>" +
         '<div class="nb__plane" style="transform:translate(' + NB.x + "px," + NB.y + "px) scale(" + NB.z + ')">' +
@@ -2072,6 +2077,32 @@
   function bSetTool(t) { BT.tool = t; var v = nowHost.querySelector("[data-nb]"); if (v) v.setAttribute("data-tool", t); [].forEach.call(nowHost.querySelectorAll("[data-tool]"), function (b) { if (b.classList.contains("bt__t")) b.classList.toggle("is-on", b.getAttribute("data-tool") === t); }); }
   function bSelect(id) {
     BT.sel = id; [].forEach.call(nowHost.querySelectorAll(".nb [data-item]"), function (el) { el.classList.toggle("is-sel", el.getAttribute("data-item") === id); });
+    selBar();
+  }
+  // a small bar over the selected item: edit, duplicate, lock, delete
+  function selBar() {
+    var old = nowHost.querySelector(".bsel"); if (old) old.remove();
+    var it = BT.sel && bItem(BT.sel), pl = nowHost.querySelector(".nb__plane"), el = it && pl && pl.querySelector('[data-item="' + it.id + '"]'); if (!el) return;
+    var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(), r = el.getBoundingClientRect();
+    var x = (r.left - v.left - NB.x) / NB.z, y = (r.top - v.top - NB.y) / NB.z;
+    var bar = document.createElement("div"); bar.className = "bsel"; bar.style.left = Math.round(x) + "px"; bar.style.top = Math.round(y - 44 / NB.z) + "px"; bar.style.transform = "scale(" + (1 / NB.z) + ")";
+    var canEdit = it.type === "note" || it.type === "text";
+    bar.innerHTML = (canEdit ? '<button type="button" data-bs="edit" title="' + esc(T("Edit", "عدّل")) + '">✏️</button>' : "") +
+      '<button type="button" data-bs="dup" title="' + esc(T("Duplicate", "نسخة")) + '">📄</button>' +
+      '<button type="button" data-bs="lock" title="' + esc(it.locked ? T("Unlock", "افتح") : T("Lock", "اقفل")) + '">' + (it.locked ? "🔒" : "🔓") + "</button>" +
+      '<button type="button" data-bs="del" title="' + esc(T("Delete", "امسح")) + '">🗑</button>';
+    pl.appendChild(bar);
+  }
+  function selAct(k) {
+    var it = BT.sel && bItem(BT.sel); if (!it) return;
+    var el = nowHost.querySelector('.nb__plane [data-item="' + it.id + '"]');
+    if (k === "edit") { if (it.type === "note" && el) el.querySelector(".nt__text").focus(); else if (it.type === "text" && el) bEditText(el); return; }
+    if (k === "dup") { bSnap(); var c = JSON.parse(JSON.stringify(it)); c.id = uid(); c.x += 28; c.y += 28; c.locked = false; c.z = bTop(); if (c.type === "timer") { c.running = false; c.endAt = null; } board().items.push(c); bsave(); sfx("pop"); renderNow(); return bSelect(c.id); }
+    if (k === "lock") return bLockToggle();
+    if (k === "del") {
+      if (it.locked) return note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول."));
+      bSnap(); bDel(it.id); bsave(); renderNow(); note(T("Deleted · ⌘Z / ↶ brings it back", "اتمسحت · ⌘Z أو ↶ ترجّعها"));
+    }
   }
   function bEditText(el) { el.setAttribute("contenteditable", "true"); el.focus(); var r = document.createRange(); r.selectNodeContents(el); r.collapse(false); var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r); }
   var nbDrag = null;
@@ -2090,6 +2121,16 @@
       }
       if ((b = t.closest("[data-wlock]"))) { var wl = boardWidgets()[b.getAttribute("data-wlock")]; wl.locked = !wl.locked; bsave(); return renderNow(); }
       if (t.closest("[data-block]")) return bLockToggle();
+      if ((b = t.closest("[data-bs]"))) return selAct(b.getAttribute("data-bs"));
+      if (t.closest("[data-bclear]")) {
+        var all = board().items, keep = all.filter(function (x) { return x.locked; }), gone = all.length - keep.length;
+        if (!gone) return note(T("Nothing to clear here.", "مفيش حاجة تتمسح هنا."));
+        if (!window.confirm(T("Delete all " + gone + " items on \"" + board().name + "\"?" + (keep.length ? " (" + keep.length + " locked stay.)" : "") + " You can undo with ⌘Z / ↶ until you leave the page.", "تمسح كل الـ" + gone + " حاجة في \"" + board().name + "\"؟" + (keep.length ? " (" + keep.length + " مقفولين هيفضلوا.)" : "") + " تقدر ترجّعهم بـ ⌘Z أو ↶ طول ما الصفحة مفتوحة."))) return;
+        bSnap(); board().items = keep; BT.sel = null; bsave(); sfx("spend"); return renderNow();
+      }
+      if ((b = t.closest("[data-whide]"))) { var wh = boardWidgets()[b.getAttribute("data-whide")]; if (wh.locked) return note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); wh.hidden = true; bsave(); return renderNow(); }
+      if (t.closest("[data-wcards]")) { cardsOpen = !cardsOpen; return renderNow(); }
+      if ((b = t.closest("[data-wshow]"))) { boardWidgets()[b.getAttribute("data-wshow")].hidden = false; bsave(); renderNow(); return stackCol3(); }
       if (t.closest("[data-al-test]")) { playAlert(); return; }
       if ((b = t.closest("[data-b-export]"))) return bExport(b.getAttribute("data-b-export"));
       if (t.closest("[data-tab-add]")) {
@@ -2268,7 +2309,7 @@
         if (n === 2) { dropDrag(); var ps = pinchState(v); pinch = { v: v, d0: ps.d, mx0: ps.mx, my0: ps.my, z0: NB.z, x0: NB.x, y0: NB.y }; try { v.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); return; }
         if (n > 2) { e.preventDefault(); return; }
       }
-      if (e.target.closest("button, input, select, a, label, .bt, .btabs, .sndp, [contenteditable='true']")) return;
+      if (e.target.closest("button, input, select, a, label, .bt, .btabs, .sndp, .bsel, [contenteditable='true']")) return;
       if (kind === "pen") e.preventDefault();   // no text selection or callout from the Pencil
       var penWrites = kind === "pen" && /^(select|pen)$/.test(BT.tool);
       var ta = e.target.tagName === "TEXTAREA" ? e.target : null;

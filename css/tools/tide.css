@@ -822,3 +822,20 @@ html:not([data-theme="light"]) .arcm__box { background: #17223f; color: #F4EDE0;
 .arcm__list small { opacity: 0.6; font: 600 0.72rem var(--font-ui); white-space: nowrap; }
 .arcm__list select { max-width: 110px; }
 @media (max-width: 640px) { .arcm__list li { grid-template-columns: auto 1fr auto auto; } .arcm__list small, .arcm__list select { display: none; } }
+/* v9: CRUD bar over the selected item, hide/show cards */
+.bsel { position: absolute; z-index: 9999; display: flex; gap: 4px; padding: 4px; border-radius: 12px; transform-origin: 0 100%;
+  background: #14213D; border: 1px solid rgba(244, 237, 224, 0.2); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45); }
+.bsel button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: rgba(244, 237, 224, 0.08); font-size: 1rem; cursor: pointer; }
+.bsel button:hover { background: rgba(244, 237, 224, 0.2); }
+.bsel button[data-bs="del"]:hover { background: rgba(255, 107, 91, 0.4); }
+@media (pointer: coarse) { .bsel button { width: 44px; height: 44px; } }
+.bw__hide { position: absolute; top: 8px; right: 40px; z-index: 3; width: 28px; height: 28px; border: 0; border-radius: 8px; background: rgba(127, 127, 127, 0.12); color: inherit; cursor: pointer; font-size: 0.8rem; opacity: 0; transition: opacity 0.15s ease; }
+.bw:hover .bw__hide { opacity: 0.8; }
+.bw.is-locked .bw__hide { display: none; }
+.bw--money .nw__link, .bw--arc .fl__ctl, .bw--cal .fl__ctl { margin-right: 64px; }
+@media (pointer: coarse) { .bw__hide { opacity: 0.7; width: 36px; height: 36px; right: 50px; } }
+.wcards { position: relative; }
+.wcards__menu { position: absolute; z-index: 50; top: calc(100% + 6px); left: 0; display: grid; gap: 4px; min-width: 190px; padding: 8px; border-radius: 12px; background: #fffdf8; color: #14213D; box-shadow: 0 20px 34px -12px rgba(0, 0, 0, 0.5); }
+html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4EDE0; }
+.wcards__menu button { text-align: start; border: 0; border-radius: 8px; padding: 8px 10px; background: rgba(127, 127, 127, 0.1); color: inherit; font: 700 0.85rem var(--font-ui); cursor: pointer; }
+.wcards__menu em { font: 600 0.8rem var(--font-ui); opacity: 0.7; padding: 4px; }
