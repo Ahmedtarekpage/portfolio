@@ -11,6 +11,7 @@ import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { finance } from "./_lib/finance.js";
 import { desk, deskCron } from "./_lib/desk.js";
+import { gcal } from "./_lib/gcal.js";
 
 // the finance AI agent (Claude Opus 5.5) can think for a while
 export const maxDuration = 60;
@@ -27,6 +28,8 @@ export default withErrors(async (req, res) => {
   if (req.query.finance) return finance(req, res, sql);
   // The product desk at /desk borrows it for the same reason. See _lib/desk.js.
   if (req.query.desk) return desk(req, res, sql);
+  // Google Calendar for the Time page borrows it too. See _lib/gcal.js.
+  if (req.query.gcal) return gcal(req, res, sql);
 
   if (req.method === "GET") {
     const ideas = await sql`SELECT * FROM ideas ORDER BY position, created_at`;

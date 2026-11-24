@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/gcal/callback",
+      "destination": "/api/ideas?gcal=callback"
+    },
+    {
       "source": "/cal/:token([^/]+)",
       "destination": "/api/share?calendar=:token"
     },
