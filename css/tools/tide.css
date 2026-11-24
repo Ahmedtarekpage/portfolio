@@ -355,3 +355,48 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-colo
 .tp__fold { font-style: normal; display: inline-block; width: 12px; color: var(--muted); font-size: 0.75rem; }
 .tp__count { font: 700 0.62rem var(--font-ui); color: var(--muted); background: var(--wash-strong); border-radius: 999px; padding: 1px 6px; margin-inline-start: 4px; }
 .tp__group.is-shut { padding: 2px 0; }
+
+/* Today view of the week card */
+.today-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -4px 0 12px; font: 600 0.8rem var(--font-ui); color: var(--muted); }
+.today-bar span { margin-inline-end: auto; }
+.week__head h2 small { font: 600 0.8rem var(--font-ui); margin-inline-start: 6px; }
+.day-tick { font-weight: 800; }
+.day-tick.is-on { color: #3aa682 !important; opacity: 1; }
+.week-row.is-done > span:not(.week-row__acts) .day-title { text-decoration: line-through; opacity: 0.6; }
+.week-row.is-done { opacity: 0.75; }
+.week-row.is-done .week-row__acts { opacity: 1; }
+
+/* Today: live progress */
+.pg { margin: 16px 0 6px; padding: 14px 16px; border: 1px solid var(--glass-brd); border-radius: 16px; background: var(--wash); }
+.pg__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font: 700 0.85rem var(--font-ui); color: var(--muted); }
+.pg__top b { color: var(--ink); font-size: 0.95rem; }
+.pg__nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.pg__nums > div { display: grid; gap: 2px; }
+.pg__nums small { font: 700 0.64rem var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.pg__nums strong { font: 800 1.6rem/1.1 var(--font-ui); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pg__nums strong i { font-style: normal; font-size: 0.55em; color: var(--muted); }
+.pg__nums em { font-style: normal; font-size: 0.74rem; color: var(--muted); }
+.pg__bar { position: relative; height: 10px; border-radius: 999px; background: var(--wash-strong); margin: 12px 0 4px; overflow: visible; }
+.pg__bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3aa682, #9CCC65); }
+.pg__bar b { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 2px; }
+.pg__chart { position: relative; margin-top: 10px; }
+.pg__graph { width: 100%; height: 150px; display: block; }
+.pg__plan { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 5; vector-effect: non-scaling-stroke; }
+.pg__done { fill: none; stroke: #3aa682; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.pg__now { stroke: var(--coral); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.pg__hours { position: relative; height: 16px; margin-top: 2px; }
+.pg__hours span { position: absolute; transform: translateX(-50%); font: 700 0.62rem var(--font-ui); color: var(--muted); }
+.pg__legend { margin: 6px 0 0; font: 600 0.72rem var(--font-ui); color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pg__k { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--muted); margin-inline-start: 6px; }
+.pg__k--done { border-top: 3px solid #3aa682; }
+.day-view { margin: 0 0 10px; }
+.pg { margin-top: 4px; margin-bottom: 14px; }
+/* the prayer bar card hides itself when it has nothing to show */
+.today-prayers:not(:has(#prayerBar:not([hidden]))):not(:has(#prayerSky:not([hidden]))) { display: none; }
+
+/* before-the-adhan reminder */
+.al-bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; background: rgba(58, 166, 130, 0.12); font: 600 0.8rem var(--font-ui); color: var(--ink); }
+.al-bar input[type="number"] { width: 52px; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--glass-brd); background: var(--glass); color: var(--ink); font: inherit; }
+.al-bar select { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--glass-brd); background: var(--glass); color: var(--ink); font: inherit; }
+.al-on { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; }
+.al-file { cursor: pointer; }

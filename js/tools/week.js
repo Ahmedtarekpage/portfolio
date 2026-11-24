@@ -56,7 +56,7 @@
      Gym 1 h 30, 3 evenings (Sun, Tue, Thu), before that; those nights sleep is
      at 11 PM so the 2 h with people still fit. Other nights sleep 10:30 PM.
      Prayers 30 min at most around the iqama. */
-  var WEEK_V = 25;
+  var WEEK_V = 26;
   function seed() {
     var d = function (sec, from, to, en, ar, more) { var o = it(from, to, en, ar, more); o.sec = sec; return o; };
     var i = function (en, ar, est, ai) { var o = { en: en, ar: ar, est: est }; if (ai !== false) o.ai = 1; return o; };
@@ -83,7 +83,7 @@
       var o = office();
       return [early(cat, before), o[0], food(), o[1], job(),
         d("w", "15:45", "17:30", aEn, aAr, { cat: catA || cat, pomo: 1, items: A }),
-        d("w", "18:00", "19:00", bEn, bAr, { cat: cat, pomo: 1, items: B.concat([comments()]) })];
+        d("w", "18:00", "18:45", bEn, bAr, { cat: cat, pomo: 1, items: B.concat([comments()]) })];
     };
     return { v: WEEK_V, jobs: { daily: 5, log: {} }, meetings: [],
       myday: [
@@ -106,6 +106,7 @@
         d("f", "21:15", "22:15", "🤝 With friends", "🤝 مع الصحاب", { on: [4] }),
         d("f", "19:30", "19:45", "🏠 Home (15 min)", "🏠 البيت (15 دقيقة)", { on: [6, 1, 3] }),
         d("f", "19:45", "22:15", "💑 With my wife: dinner and time together, phone away", "💑 مع مراتي: عشا ووقت مع بعض، والموبايل بعيد", { on: [6, 1, 3] }),
+        d("w", "18:45", "19:00", "📋 Plan tomorrow: open Tomorrow in the Today tab, move or add what you need", "📋 خطّط لبكرة: افتح بكرة في تاب النهارده، وحرّك أو ضيف اللي محتاجه", { cat: "plan" }),
         d("f", "22:15", "22:30", "🛟 Sleep buffer: wind down, wudu, sleep azkar, lights off at 10:30 PM", "🛟 احتياطي النوم: تهدية ووضوء وأذكار النوم والنور يتقفل 10:30", { cat: "bufSleep" })
       ],
       days: {
@@ -123,7 +124,7 @@
           d("w", "08:45", "12:15", "💑 With my wife: a morning out together", "💑 مع مراتي: خروجة الصبح مع بعض"),
           d("w", "12:45", "15:15", "👨‍👩‍👧 With the family: lunch and a visit", "👨‍👩‍👧 مع العيلة: غدا وزيارة"),
           d("w", "15:45", "17:30", "🤝 With friends", "🤝 مع الصحاب"),
-          d("w", "18:00", "19:00", "💑 With my wife: time together", "💑 مع مراتي: وقت مع بعض")
+          d("w", "18:00", "18:45", "💑 With my wife: time together", "💑 مع مراتي: وقت مع بعض")
         ],
         1: day("content", [
           i("6 video scripts with Claude: 3 English, 3 Arabic", "6 سكريبتات فيديو مع Claude: 3 إنجليزي و3 عربي", 35)
@@ -151,7 +152,7 @@
             i("Cold calls to UAE businesses, about 5", "مكالمات لشركات في الإمارات، حوالي 5", 25, false),
             i("Send the DMs", "ابعت الرسايل", 10, false)
           ] }),
-          d("w", "18:00", "19:00", "🇪🇬 Distribute: Egypt (4 PM Cairo, after school) + clients", "🇪🇬 التوزيع: مصر (4 العصر بتوقيت القاهرة، بعد المدرسة) + العملاء", { cat: "content", pomo: 1, items: [
+          d("w", "18:00", "18:45", "🇪🇬 Distribute: Egypt (4 PM Cairo, after school) + clients", "🇪🇬 التوزيع: مصر (4 العصر بتوقيت القاهرة، بعد المدرسة) + العملاء", { cat: "content", pomo: 1, items: [
             i("Replies to paying students + DMs to who tried and did not pay", "ردود للطلبة الدافعين + رسايل للي جرّبوا وما دفعوش", 30),
             i("Reply to current clients", "رد على العملاء الحاليين", 8, false),
             comments()
@@ -175,7 +176,7 @@
             i("What stops clients from paying", "اللي بيمنع العميل يدفع", 30),
             i("One new feature, tested on the live site", "ميزة جديدة واحدة، ومتجربة على الموقع الحقيقي", 30)
           ] }),
-          d("w", "18:00", "19:00", "🤖 One problem → one AI agent", "🤖 مشكلة واحدة ← AI agent واحد", { cat: "product", pomo: 1, items: [
+          d("w", "18:00", "18:45", "🤖 One problem → one AI agent", "🤖 مشكلة واحدة ← AI agent واحد", { cat: "product", pomo: 1, items: [
             i("Pick the problem from Saturday's list (GoBachaloria first)", "اختار المشكلة من ليستة السبت (GoBachaloria الأول)", 8, false),
             i("Build the agent with Claude", "ابني الـagent مع Claude", 30),
             i("Test it, switch it on, write how it works", "جرّبه وشغّله واكتب بيشتغل إزاي", 10)
@@ -265,7 +266,9 @@
   }
   // how long a block is: "30 min", "1 h", "1 h 30 min" (Arabic: دقيقة / ساعة)
   function howLong(a, b) {
-    var n = (typeof b === "number" ? b : mins(b)) - (typeof a === "number" ? a : mins(a)); if (n <= 0) n += 1440;
+    var n = (typeof b === "number" ? b : mins(b)) - (typeof a === "number" ? a : mins(a));
+    if (n === 0 && a === 0) return T("0 min", "0 دقيقة");
+    if (n <= 0) n += 1440;
     var h = Math.floor(n / 60), m = n % 60;
     return T((h ? h + " h" : "") + (h && m ? " " : "") + (m ? m + " min" : ""), (h ? (h === 1 ? "ساعة" : h === 2 ? "ساعتين" : h + " ساعات") : "") + (h && m ? " و" : "") + (m ? m + " دقيقة" : ""));
   }
@@ -469,9 +472,34 @@
     return (place().cc || "AE") === "EG" ? 5 : 0;
   }
   function tpl(d) { if (offDay() === 5) { if (d === 5) return 0; if (d === 0) return 5; } return d; }
-  function work() { var k = tpl(sel); if (!W.days[k]) W.days[k] = []; return W.days[k]; }
-  function find(id) { return W.myday.concat(work()).filter(function (x) { return x.id === id; })[0]; }
-  function drop1(id) { W.myday = W.myday.filter(function (x) { return x.id !== id; }); W.days[tpl(sel)] = work().filter(function (x) { return x.id !== id; }); }
+  /* Two views of one card (owner, 2026-11-24: "today is the day I am in from this week, but I can
+     add, remove, rearrange, change times"). In the Today tab ("today"), the card shows today from
+     the week, and the first change makes today's own copy (W.dates[date]: myday + work + done), so
+     the week itself is never touched. In the My week tab ("week") the card edits the week. */
+  var mode = "week", viewOff = 0;   // in the Today tab: 0 = today, 1 = tomorrow
+  function viewDow() { return (todayDow + viewOff) % 7; }
+  function todayKey() { return iso(new Date(Date.now() + viewOff * 864e5)); }
+  function curOv() { return mode === "today" && W.dates ? W.dates[todayKey()] || null : null; }
+  function ensureOv() {
+    if (mode !== "today") return null;
+    if (!W.dates) W.dates = {};
+    var k = todayKey();
+    if (!W.dates[k]) {
+      var copy = function (x) { var o = JSON.parse(JSON.stringify(x)); delete o.on; return o; };
+      W.dates[k] = { myday: W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(viewDow())) > -1; }).map(copy),
+        work: (W.days[tpl(viewDow())] || []).map(copy), done: {} };
+      // keep two weeks of days
+      var cut = iso(new Date(Date.now() - 14 * 864e5)); Object.keys(W.dates).forEach(function (d) { if (d < cut) delete W.dates[d]; });
+    }
+    return W.dates[k];
+  }
+  function mdRows() { var o = curOv(); return o ? o.myday : W.myday; }
+  function setMd(a) { var o = curOv(); if (o) o.myday = a; else W.myday = a; }
+  function work() { var o = curOv(); if (o) return o.work; var k = tpl(sel); if (!W.days[k]) W.days[k] = []; return W.days[k]; }
+  function setWork(a) { var o = curOv(); if (o) o.work = a; else W.days[tpl(sel)] = a; }
+  function find(id) { return mdRows().concat(work()).filter(function (x) { return x.id === id; })[0]; }
+  function drop1(id) { setMd(mdRows().filter(function (x) { return x.id !== id; })); setWork(work().filter(function (x) { return x.id !== id; })); }
+  function isDone(id) { var o = curOv(); return !!(o && o.done && o.done[id]); }
 
   /* ---------- storage ---------- */
   function adopt(d) {
@@ -557,12 +585,13 @@
     if (pm) pm.pauses.forEach(function (p) { extra += ' <i class="day-tag' + (p.kind === "pray" ? " day-tag--pray" : " day-tag--meet") + '">' + (p.kind === "pray" ? "🕌 " : "🤝 ") + esc(T("stop for " + p.en, "وقف عشان " + p.ar) + " " + ap(p.from)) + "</i>"; });
     if (pm && live && x.pomo && pm.pray) extra += '<em class="day-now day-now--pray">' + (pm.pray.kind === "pray" ? "🕌 " + esc(T("Prayer time: no work now", "وقت الصلاة: مفيش شغل دلوقتي")) : "🤝 " + esc(T(pm.pray.en + " now", pm.pray.ar + " دلوقتي"))) + "</em>";
     else if (pm && live && x.pomo && pm.cycle) extra += '<em class="day-now' + (pm.focus ? "" : " day-now--break") + '">' + (pm.focus ? "🍅 " + esc(T("Focus", "تركيز")) : "☕ " + esc(T("Break", "بريك"))) + " · " + pm.cycle + "/" + pm.cycles + " · " + esc(T(pm.left + " min left", "فاضل " + pm.left + " دقيقة")) + "</em>";
-    return '<li class="week-row has-cat' + (live ? " is-now" : "") + (past ? " is-past" : "") + '" data-id="' + x.id + '" style="--cat:' + CAT[cat].c + '">' +
+    var dn = mode === "today" && isDone(x.id);
+    return '<li class="week-row has-cat' + (live ? " is-now" : "") + (past ? " is-past" : "") + (dn ? " is-done" : "") + '" data-id="' + x.id + '" style="--cat:' + CAT[cat].c + '">' +
       '<button type="button" class="week-row__grip" data-drag aria-label="' + esc(T("Drag to move", "اسحب عشان تنقل")) + '" title="' + esc(T("Drag to move", "اسحب عشان تنقل")) + '">⠿</button>' +
       (x.from ? stub(x.from, x.to, cat) : '<b dir="ltr" class="cat-stub" style="--cat:' + CAT[cat].c + '" data-ico="' + CAT[cat].ico + '"><span class="cat-stub__ico">' + CAT[cat].ico + "</span><strong>--:--</strong></b>") +
       '<span><b class="day-title">' + esc(x.text || T(x.en, x.ar)) + "</b>" + extra + body + "</span>" +
       (live ? '<i class="badge">' + esc(T("now", "دلوقتي")) + "</i>" : "") +
-      '<span class="week-row__acts"><button type="button" class="iconbtn" data-edit aria-label="' + esc(T("Edit", "عدّل")) + '" title="' + esc(T("Edit", "عدّل")) + '">✎</button>' +
+      '<span class="week-row__acts">' + (mode === "today" && !viewOff ? '<button type="button" class="iconbtn day-tick' + (dn ? " is-on" : "") + '" data-done="' + x.id + '" aria-pressed="' + dn + '" title="' + esc(T("Done", "خلصت")) + '">' + (dn ? "✓" : "○") + "</button>" : "") + '<button type="button" class="iconbtn" data-edit aria-label="' + esc(T("Edit", "عدّل")) + '" title="' + esc(T("Edit", "عدّل")) + '">✎</button>' +
       '<button type="button" class="iconbtn" data-del aria-label="' + esc(T("Delete", "امسح")) + '" title="' + esc(T("Delete", "امسح")) + '">✕</button></span></li>';
   }
 
@@ -579,6 +608,7 @@
       "<span>" + ico + esc(title) + (p.sub && p.sub[0] ? ' <i class="day-tag' + (p.kind === "pray" ? " day-tag--pray" : "") + '">' + esc(T(p.sub[0], p.sub[1])) + "</i>" : "") +
         (p.kind === "pray" ? ' <i class="day-tag">' + esc(T("no work", "مفيش شغل")) + "</i>" : "") + "</span>" +
       (live ? '<i class="badge">' + esc(T("now", "دلوقتي")) + "</i>" : "") +
+      (mode === "today" && !viewOff && p.kind === "pray" ? '<span class="week-row__acts"><button type="button" class="iconbtn day-tick' + (isDone("pray:" + p.k) ? " is-on" : "") + '" data-done="pray:' + p.k + '" title="' + esc(T("Prayed", "صليت")) + '">' + (isDone("pray:" + p.k) ? "✓" : "○") + "</button></span>" : "") +
       (p.kind === "meet" && p.mine ? '<span class="week-row__acts"><button type="button" class="iconbtn" data-meet-del="' + esc(p.id) + '" aria-label="' + esc(T("Delete the meeting", "امسح الميعاد")) + '" title="' + esc(T("Delete the meeting", "امسح الميعاد")) + '">✕</button></span>' : "") +
       "</li>";
   }
@@ -593,6 +623,8 @@
     return best;
   }
   function rowsOf(dow) {
+    var o = mode === "today" && dow === viewDow() ? curOv() : null;
+    if (o) return o.myday.concat(o.work);
     return W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
   }
   // minutes per category over the 24 hours of a day: the rows, prayers and meetings on top, sleep around them
@@ -702,6 +734,52 @@
   // compact hours for tight places: 6h 24m
   function shortH(n) { var h = Math.floor(n / 60), m = n % 60; return (h ? h + "h" : "") + (h && m ? " " : "") + (m || !h ? m + "m" : ""); }
   function pct(n, all) { var p = n / all * 100; return (p >= 10 ? Math.round(p) : Math.round(p * 10) / 10) + "%"; }
+  /* Live progress for Today: done against what was planned up to now, and a graph of the day
+     (planned minutes building up as a dashed line, done minutes as a solid line, "now" marked).
+     A tick counts the whole block, at the time it was ticked. */
+  function progressPanel(groups, nowM) {
+    var ov = curOv(), done = (ov && ov.done) || {}, items = [];
+    ["m", "w", "f"].forEach(function (k) { groups[k].forEach(function (g) {
+      if (g.p && g.p.kind === "pray") items.push({ id: "pray:" + g.p.k, from: g.p.from, to: g.p.to });
+      else if (g.x && g.x.from && g.x.to) items.push({ id: g.x.id, from: mins(g.x.from), to: mins(g.x.to) });
+    }); });
+    if (!items.length) return "";
+    items.sort(function (a, b) { return a.from - b.from; });
+    var len = function (x) { return Math.max(0, x.to - x.from); };
+    var total = items.reduce(function (n, x) { return n + len(x); }, 0);
+    var soFar = items.reduce(function (n, x) { return n + Math.max(0, Math.min(nowM, x.to) - x.from > 0 ? Math.min(nowM, x.to) - x.from : 0); }, 0);
+    var did = items.filter(function (x) { return done[x.id]; }), doneMin = did.reduce(function (n, x) { return n + len(x); }, 0);
+    var dueBlocks = items.filter(function (x) { return x.to <= nowM; }).length;
+    var pctDay = total ? Math.round(doneMin / total * 100) : 0, pace = soFar ? doneMin / soFar : 1;
+    var mood = !soFar ? T("The day hasn't started yet", "اليوم لسه ما بدأش") : pace >= 0.9 ? T("✅ On track", "✅ ماشي تمام") : pace >= 0.6 ? T("🟡 A bit behind", "🟡 متأخر شوية") : T("🔴 Behind: pick the next block and start", "🔴 متأخر: خد البلوك الجاي وابدأ");
+    // the graph
+    var t0 = items[0].from, t1 = Math.max.apply(null, items.map(function (x) { return x.to; })), W2 = 600, H2 = 150, pad = 8;
+    var X = function (t) { return pad + (t - t0) / Math.max(1, t1 - t0) * (W2 - 2 * pad); };
+    var Y = function (m) { return H2 - pad - m / Math.max(1, total) * (H2 - 2 * pad); };
+    var planPts = [], step = 15;
+    for (var t = t0; t <= t1 + step; t += step) {
+      var tt = Math.min(t, t1), m = items.reduce(function (n, x) { return n + Math.max(0, Math.min(tt, x.to) - x.from > 0 ? Math.min(tt, x.to) - x.from : 0); }, 0);
+      planPts.push(X(tt).toFixed(1) + "," + Y(m).toFixed(1));
+    }
+    var ticks = did.map(function (x) { return { at: typeof done[x.id] === "number" ? done[x.id] : x.to, m: len(x) }; }).sort(function (a, b) { return a.at - b.at; });
+    var acc = 0, donePts = [X(t0).toFixed(1) + "," + Y(0).toFixed(1)];
+    ticks.forEach(function (k) { var at = Math.max(t0, Math.min(t1, k.at)); donePts.push(X(at).toFixed(1) + "," + Y(acc).toFixed(1)); acc += k.m; donePts.push(X(at).toFixed(1) + "," + Y(acc).toFixed(1)); });
+    var endAt = Math.max(t0, Math.min(t1, nowM)); donePts.push(X(endAt).toFixed(1) + "," + Y(acc).toFixed(1));
+    var hrs = []; for (var h = Math.ceil(t0 / 60) * 60; h <= t1; h += 180) hrs.push(h);
+    var svg = '<svg class="pg__graph" viewBox="0 0 ' + W2 + " " + H2 + '" preserveAspectRatio="none" role="img" aria-label="' + esc(T("Planned and done through the day", "المتخطط والمتعمل على مدار اليوم")) + '">' +
+      '<polyline points="' + planPts.join(" ") + '" class="pg__plan"/>' +
+      '<polyline points="' + donePts.join(" ") + '" class="pg__done"/>' +
+      (nowM > t0 && nowM < t1 ? '<line x1="' + X(nowM).toFixed(1) + '" x2="' + X(nowM).toFixed(1) + '" y1="0" y2="' + H2 + '" class="pg__now"/>' : "") + "</svg>" +
+      '<div class="pg__hours">' + hrs.map(function (h) { return '<span style="left:' + ((h - t0) / Math.max(1, t1 - t0) * 100).toFixed(1) + '%">' + esc(ap(h).replace(":00", "")) + "</span>"; }).join("") + "</div>";
+    return '<section class="pg"><div class="pg__top"><b>📈 ' + esc(T("Today's progress", "تقدّم النهارده")) + "</b><span>" + esc(mood) + "</span></div>" +
+      '<div class="pg__nums">' +
+        "<div><small>" + esc(T("Done", "خلصت")) + "</small><strong>" + did.length + "<i> / " + items.length + "</i></strong><em>" + esc(T("blocks", "بلوك")) + "</em></div>" +
+        "<div><small>" + esc(T("Of the day", "من اليوم")) + "</small><strong>" + pctDay + "%</strong><em>" + esc(howLong(0, doneMin) + T(" of ", " من ") + howLong(0, total)) + "</em></div>" +
+        "<div><small>" + esc(T("Should be done by now", "المفروض لحد دلوقتي")) + "</small><strong>" + esc(shortH(soFar)) + "</strong><em>" + esc(T(dueBlocks + " blocks ended", "خلص وقت " + dueBlocks + " بلوك")) + "</em></div>" +
+      "</div>" +
+      '<div class="pg__bar"><i style="width:' + Math.min(100, pctDay) + '%"></i><b style="left:' + (total ? Math.min(100, soFar / total * 100) : 0).toFixed(1) + '%" title="' + esc(T("where you should be now", "المفروض تكون فين دلوقتي")) + '"></b></div>' +
+      '<div class="pg__chart">' + svg + '</div><p class="pg__legend"><span class="pg__k pg__k--plan"></span>' + esc(T("planned", "المتخطط")) + ' <span class="pg__k pg__k--done"></span>' + esc(T("done (tick ○ on a block)", "اللي خلص (علّم ○ على البلوك)")) + "</p></section>";
+  }
   // in the office: how much is the part-time job and how much is my own work
   function officeSplit() {
     var off = 0, mine = 0;
@@ -710,7 +788,7 @@
   }
   // the day line says what kind of evening it is: gym, sport or off
   function gymNote() {
-    var f = W.myday.filter(function (x) { return x.on && x.on.indexOf(tpl(sel)) > -1 && catOf(x) === "fitness"; })[0];
+    var f = mdRows().filter(function (x) { return (!x.on || x.on.indexOf(tpl(sel)) > -1) && catOf(x) === "fitness"; })[0];
     var days = function (re) { return ORDER.filter(function (n) { return W.myday.some(function (x) { return x.on && x.on.indexOf(tpl(n)) > -1 && catOf(x) === "fitness" && re.test(x.en || ""); }); }).map(function (n) { return T(DAY[n].en, DAY[n].ar); }).join(" · "); };
     if (f) return "<b>" + esc((/sport/i.test(f.en) ? "⚽ " + T("Sport day: ", "يوم رياضة: ") : "🏋️ " + T("Gym day: ", "يوم جيم: ")) + ap(f.from) + " · " + howLong(f.from, f.to)) + "</b>";
     return esc("🛋️ " + T("Rest from sport today (gym: " + days(/gym/i) + " · sport: " + days(/sport/i) + ")", "راحة من الرياضة النهارده (جيم: " + days(/gym/i) + " · رياضة: " + days(/sport/i) + ")"));
@@ -723,18 +801,22 @@
     return '<div class="wk-end"><span>🌿 ' + esc(T("My weekend", "الإجازة بتاعتي")) + '</span><div class="tp__tabs">' + b("auto", autoLbl) + b("fri", T("Friday", "الجمعة")) + b("sun", T("Sunday", "الأحد")) + "</div></div>";
   }
   function render() {
+    if (mode === "today") sel = viewDow();
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
     var secOf = function (m) { return m < 600 ? "m" : m < 1140 ? "w" : "f"; };
     var groups = { m: [], w: [], f: [] };
     var free = tpl(sel) === 0;
     var shown = function (x) { return !x.on || x.on.indexOf(tpl(sel)) > -1; };
-    W.myday.filter(shown).forEach(function (x) { (groups[x.sec] || groups.f).push({ x: x }); });
+    var lateWork = [];
+    mdRows().filter(shown).forEach(function (x) { if (x.sec === "w") lateWork.push(x); else (groups[x.sec] || groups.f).push({ x: x }); });
     // a work row before the office opens (Wednesday's 8 AM emails) sits in the morning, in time order
     work().forEach(function (x) {
       if (x.from && mins(x.from) < 600) { var g = groups.m, k = 0; while (k < g.length && mins(g[k].x.from) <= mins(x.from)) k++; g.splice(k, 0, { x: x }); }
       else groups.w.push({ x: x });
     });
+    // a shared row that sits in the work part (Plan tomorrow) goes in by its time
+    lateWork.forEach(function (x) { var g = groups.w, k = 0; while (k < g.length && mins(g[k].x.from) <= mins(x.from)) k++; g.splice(k, 0, { x: x }); });
     // each prayer and meeting goes into its part of the day, before the first row that starts after it
     P.slice().sort(function (a, b) { return a.from - b.from; }).forEach(function (p) {
       var g = groups[secOf(p.from)], i = 0;
@@ -757,7 +839,7 @@
       g.splice(i, 0, { p: gp });
     });
     var nextP = isToday ? PR.filter(function (p) { return p.iq > nowM; })[0] : null;
-    var bed = W.myday.filter(function (x) { return x.sec === "f" && shown(x); }).map(function (x) { return mins(x.to); }).sort(function (a, b) { return b - a; })[0] || 1320;
+    var bed = mdRows().filter(function (x) { return x.sec === "f" && shown(x); }).map(function (x) { return mins(x.to); }).sort(function (a, b) { return b - a; })[0] || 1320;
     var sleep = (prayers((sel + 1) % 7)[0].from + 1440 - bed) % 1440;
     var j = jobs();
     // every block of the day, by time, for the strip and the totals
@@ -783,42 +865,109 @@
         '<div class="week__foot"><button type="button" class="btn btn--ghost btn--sm" data-add="' + k + '">+ ' + esc(T("Add a time", "ضيف وقت")) + "</button>" +
         (k === "w" ? '<button type="button" class="btn btn--ghost btn--sm" data-meet>🤝 ' + esc(T("Client meeting", "ميعاد عميل")) + "</button>" : "") + "</div>";
     };
-    host.innerHTML =
+    var tday = mode === "today", ov = curOv();
+    var doneN = ov && ov.done ? Object.keys(ov.done).length : 0;
+    var vd = new Date(Date.now() + viewOff * 864e5);
+    var headToday = '<div class="card__head week__head"><h2>' + (viewOff ? "🌙 " + esc(T("Tomorrow", "بكرة")) : "☀️ " + esc(T("Today", "النهارده"))) + ' <small class="muted">' + esc(T(DAY[sel].en, DAY[sel].ar) + " " + vd.getDate()) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
+      '<div class="tp__tabs day-view" role="tablist"><button type="button" data-view="0" class="' + (viewOff ? "" : "is-on") + '" aria-selected="' + !viewOff + '">☀️ ' + esc(T("Today", "النهارده")) + '</button><button type="button" data-view="1" class="' + (viewOff ? "is-on" : "") + '" aria-selected="' + !!viewOff + '">🌙 ' + esc(T("Tomorrow: plan it", "بكرة: خطّطله")) + "</button></div>" +
+      (viewOff ? "" : alertBar()) +
+      '<div class="today-bar"><span>' + esc(viewOff
+        ? (ov ? T("✎ Tomorrow is planned, the week is as it was", "✎ بكرة متخطط، والأسبوع زي ما هو") : T("Tomorrow from My week. Change anything: it changes tomorrow only", "بكرة من أسبوعي. عدّل أي حاجة: بتتغير بكرة بس"))
+        : (ov ? T("✎ Changed for today only, the week is as it was", "✎ متعدّل للنهارده بس، والأسبوع زي ما هو") : T("From My week. Change anything: it changes today only", "من أسبوعي. عدّل أي حاجة: بتتغير النهارده بس"))) + (doneN && !viewOff ? " · ✓ " + doneN : "") + "</span>" +
+      (ov ? '<button type="button" class="btn btn--ghost btn--sm" data-reset-today>↺ ' + esc(T("Back to the week", "رجّعه زي الأسبوع")) + "</button>" : "") +
+      '<button type="button" class="btn btn--ghost btn--sm" data-to-week>🗓️ ' + esc(T("Edit the week", "عدّل الأسبوع")) + "</button></div>";
+    host.innerHTML = (tday ? headToday :
       '<div class="card__head week__head"><h2>🗓️ ' + esc(T("My week", "أسبوعي")) + '</h2><span class="muted week__status">' + esc(status) + "</span></div>" +
-      weekendSwitch() +
+      weekendSwitch()) +
       jobsCard() +
-      '<p class="day-funnel">📈 ' + esc(T(
+      (tday ? "" : '<p class="day-funnel">📈 ') + (tday ? "" : esc(T(
         "The numbers: " + j.daily + " tailored a day × 26 working days = about " + (j.daily * 26) + " a month. Roughly 1 in 20 gets a reply → about " + Math.round(j.daily * 26 / 20) + " first calls → 2 final rounds → about 1 offer every 1–2 months. 25K AED a month ≈ €75K a year; in Europe aim for €70K+ with visa sponsorship (Netherlands, Germany, Ireland).",
-        "الأرقام: " + j.daily + " تقديمات متظبطة في اليوم × 26 يوم شغل = حوالي " + (j.daily * 26) + " في الشهر. تقريبًا واحد من كل 20 بيرد ← حوالي " + Math.round(j.daily * 26 / 20) + " مكالمات أولى ← 2 مقابلات نهائية ← حوالي عرض شغل كل شهر أو شهرين. 25 ألف درهم في الشهر ≈ 75 ألف يورو في السنة؛ في أوروبا خلّي هدفك 70 ألف يورو أو أكتر بكفالة فيزا (هولندا، ألمانيا، أيرلندا).")) + "</p>" +
-      '<p class="week__kicker">' + esc(T("Click a day to see its whole schedule", "دوس على أي يوم تشوف جدوله كله")) + "</p>" +
+        "الأرقام: " + j.daily + " تقديمات متظبطة في اليوم × 26 يوم شغل = حوالي " + (j.daily * 26) + " في الشهر. تقريبًا واحد من كل 20 بيرد ← حوالي " + Math.round(j.daily * 26 / 20) + " مكالمات أولى ← 2 مقابلات نهائية ← حوالي عرض شغل كل شهر أو شهرين. 25 ألف درهم في الشهر ≈ 75 ألف يورو في السنة؛ في أوروبا خلّي هدفك 70 ألف يورو أو أكتر بكفالة فيزا (هولندا، ألمانيا، أيرلندا).")) + "</p>") +
+      (tday ? "" : '<p class="week__kicker">' + esc(T("Click a day to see its whole schedule", "دوس على أي يوم تشوف جدوله كله")) + "</p>" +
       '<div class="week-days" role="tablist">' + ORDER.map(function (n) {
         var x = { en: DAY[n].en, ar: DAY[n].ar, ico: DAY[tpl(n)].ico, fen: DAY[tpl(n)].fen, far: DAY[tpl(n)].far };
         return '<button type="button" role="tab" class="week-day' + (n === sel ? " is-on" : "") + (n === todayDow ? " is-today" : "") + '" data-day="' + n + '" aria-selected="' + (n === sel) + '">' +
           "<small>" + esc(T(x.en, x.ar)) + "</small><em>" + x.ico + "</em><b>" + esc(T(x.fen, x.far)) + "</b></button>";
-      }).join("") + "</div>" +
+      }).join("") + "</div>") +
       '<p class="week__for"><b>' + esc(T(d.en, d.ar)) + " " + dateOf(sel).getDate() + ":</b> " + esc(T(d.len, d.lar)) +
         (nextP ? ' · <b>🕌 ' + esc(T(nextP.en + " iqama " + ap(nextP.iq), "إقامة " + nextP.ar + " " + ap(nextP.iq))) + "</b>" : "") +
-        " · " + gymNote() + " · 😴 " + esc(T("sleep ", "نوم ") + howLong(0, sleep)) + "</p>" + timePanel() + strip +
+        " · " + gymNote() + " · 😴 " + esc(T("sleep ", "نوم ") + howLong(0, sleep)) + "</p>" + (tday ? (viewOff ? "" : progressPanel(groups, nowM)) : timePanel()) + strip +
       sec("m", T(SEC.m.en, SEC.m.ar)) +
       sec("w", free ? T("🌿 " + DAY[sel].en + ": free day, no office, no business", "🌿 " + DAY[sel].ar + ": يوم حر، مفيش مكتب ولا بيزنس") : T(SEC.w.en, SEC.w.ar) + officeSplit()) +
       sec("f", T(SEC.f.en, SEC.f.ar)) +
+      // in Today the plan comes first, then live progress, then the analytics
+      (tday ? timePanel() : "") +
       '<p class="muted day-note">' + esc(T("Prayers: " + (got.place.name || "Dubai") + (got.src === "device" ? ", worked out on this device" : ", times from AlAdhan") + ". Each prayer is 30 min at most, from about 10 min before the iqama, on quarter hours (Jumu'ah is longer, for the khutba); change your mosque's wait on the Time page. Client meetings come from Clients by themselves, each with 30 min of prep before. Morning and evening are the same every day; the work part is this day's own. Every block = the work + 25% buffer (the bar under it). 🍅 = 25 min focus, 5 min break; the clock stops for prayer and meetings. Drag ⠿ to reorder.",
         "الصلاة: " + (got.place.name || "دبي") + (got.src === "device" ? "، محسوبة على الجهاز" : "، المواعيد من AlAdhan") + ". كل صلاة 30 دقيقة بالكتير، من قبل الإقامة بحوالي 10 دقايق، على أرباع الساعة (الجمعة أطول عشان الخطبة)؛ غيّر انتظار مسجدك من صفحة Time. مواعيد العملاء بتيجي من Clients لوحدها، وقبل كل واحد نص ساعة تحضير. الصبح والليل نفسهم كل يوم؛ جزء الشغل خاص باليوم ده. كل بلوك = الشغل + 25% وقت احتياطي (الشريط اللي تحته). 🍅 = 25 دقيقة تركيز و5 بريك؛ العداد بيقف للصلاة والمواعيد. اسحب ⠿ عشان ترتّب.")) + "</p>" +
-      '<div class="week-post"><span class="week-chip week-chip--uae">🇦🇪 ' + esc(T("Post, UAE time: LinkedIn Wed Thu Fri 4 PM · Instagram Tue Wed Thu 9 AM", "النشر بتوقيت الإمارات: LinkedIn الأربعاء والخميس والجمعة 4 العصر · Instagram الثلاثاء والأربعاء والخميس 9 الصبح")) + "</span>" +
+      (tday ? "" : '<div class="week-post"><span class="week-chip week-chip--uae">🇦🇪 ' + esc(T("Post, UAE time: LinkedIn Wed Thu Fri 4 PM · Instagram Tue Wed Thu 9 AM", "النشر بتوقيت الإمارات: LinkedIn الأربعاء والخميس والجمعة 4 العصر · Instagram الثلاثاء والأربعاء والخميس 9 الصبح")) + "</span>" +
         '<span class="week-chip week-chip--egy">🇪🇬 ' + esc(T("Post, Egypt time: TikTok Sat 1 PM · Sun 9 AM · Mon 1 PM", "النشر بتوقيت مصر: TikTok السبت 1 الضهر · الأحد 9 الصبح · الاثنين 1 الضهر")) + "</span></div>" +
       '<details class="week-pic"><summary>🖼️ ' + esc(T("The whole week as one picture", "الأسبوع كله في صورة واحدة")) + "</summary>" +
         '<a href="/assets/week/routine-waterfall-v2-k7q2.png" target="_blank" rel="noopener"><img loading="lazy" src="/assets/week/routine-waterfall-v2-k7q2.png" alt="' + esc(T("Weekly routine waterfall", "شلال الروتين الأسبوعي")) + '"></a>' +
         '<div class="week-pic__acts">' +
           '<a class="btn btn--primary btn--sm" href="/assets/week/routine-waterfall-v2-k7q2.png" download="my-week.png">⬇ ' + esc(T("Download the week", "نزّل صورة الأسبوع")) + "</a>" +
-        "</div></details>";
+        "</div></details>");
     // sounds (only for today): 3 notes when a prayer comes in; 2 when focus starts, 1 when a break starts
     if (!isToday) return;
     var TP = P;
     PR.forEach(function (p) { var key = ymd(now) + p.k; if ((hm === hhmm(p.at) || hm === hhmm(p.from)) && !alerted[key + hm]) { alerted[key + hm] = 1; beep(3); } });
-    var liveRow = W.myday.filter(shown).concat(work()).filter(function (x) { return x.pomo && hm >= x.from && hm < x.to; })[0], ph = "";
+    var liveRow = mdRows().filter(shown).concat(work()).filter(function (x) { return x.pomo && hm >= x.from && hm < x.to; })[0], ph = "";
     if (liveRow) { var pm = pomo(liveRow, TP, nowM); ph = liveRow.id + (pm.pray ? "p" : pm.focus ? "f" + pm.cycle : "b" + pm.cycle); }
     if (lastPhase && ph && ph !== lastPhase) beep(ph.indexOf("f") > -1 ? 2 : 1);
     lastPhase = ph;
+  }
+
+  /* Before-the-adhan reminder (owner, 2026-11-24): a sound N minutes before every adhan of today
+     (default 10), from where you are. The sound is chosen: three tones, a bell, beeps, or your own
+     file (an adhan recording you pick; kept in this browser only). Settings live in this browser.
+     A browser only plays sound after you have clicked on the page once. */
+  var AL = (function () { try { return JSON.parse(localStorage.getItem("week.alert") || "null") || {}; } catch (e) { return {}; } })();
+  if (AL.on == null) AL.on = true;
+  if (!(AL.before >= 0)) AL.before = 10;
+  if (["chime", "bell", "beeps", "custom"].indexOf(AL.sound) < 0) AL.sound = "chime";
+  var alFired = {};
+  function alSave() { try { localStorage.setItem("week.alert", JSON.stringify(AL)); } catch (e) {} }
+  function tone(seq) {
+    try {
+      var A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+      var ac = beep.ac || (beep.ac = new A()); if (ac.state === "suspended") ac.resume();
+      seq.forEach(function (n) {
+        var o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + n.t;
+        o.type = n.type || "sine"; o.frequency.value = n.f;
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(n.v || 0.3, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.d);
+        o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + n.d + 0.05);
+      });
+    } catch (e) {}
+  }
+  function playAlert() {
+    if (AL.sound === "custom") {
+      var src = ""; try { src = localStorage.getItem("week.alert.file") || ""; } catch (e) {}
+      if (src) { try { var a = new Audio(src); a.play().catch(function () {}); return; } catch (e) {} }
+    }
+    if (AL.sound === "bell") return tone([{ f: 523, d: 2.2, v: 0.35 }, { f: 1046, d: 1.6, v: 0.12 }, { f: 523, d: 2.2, t: 2.4, v: 0.35 }, { f: 1046, d: 1.6, t: 2.4, v: 0.12 }].map(function (n) { n.t = n.t || 0; return n; }));
+    if (AL.sound === "beeps") return tone([0, 0.45, 0.9, 1.35].map(function (t) { return { f: 880, d: 0.3, t: t, type: "square", v: 0.12 }; }));
+    tone([{ f: 659, d: 0.9, t: 0 }, { f: 784, d: 0.9, t: 0.45 }, { f: 988, d: 1.4, t: 0.9 }]);
+  }
+  function checkAlert() {
+    if (!AL.on || !W) return;
+    var now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), day = ymd(now);
+    prayers(todayDow).forEach(function (p) {
+      var at = p.at - (+AL.before || 0), key = day + p.k;
+      if (nowM >= at && nowM < at + 2 && !alFired[key]) {
+        alFired[key] = 1; playAlert();
+        var msg = T(p.en + " adhan in " + (AL.before || 0) + " min (" + ap(p.at) + ") · iqama " + ap(p.iq), "أذان " + p.ar + " بعد " + (AL.before || 0) + " دقيقة (" + ap(p.at) + ") · الإقامة " + ap(p.iq));
+        try { if (window.Notification && Notification.permission === "granted") new Notification("🕌 " + T(p.en, p.ar), { body: msg, tag: key }); } catch (e) {}
+        note("🕌 " + msg);
+      }
+    });
+  }
+  function alertBar() {
+    var o = function (v, l) { return '<option value="' + v + '"' + (AL.sound === v ? " selected" : "") + ">" + esc(l) + "</option>"; };
+    var has = false; try { has = !!localStorage.getItem("week.alert.file"); } catch (e) {}
+    return '<div class="al-bar"><label class="al-on"><input type="checkbox" data-al-on' + (AL.on ? " checked" : "") + "> 🔔 " + esc(T("Sound before the adhan", "صوت قبل الأذان")) + "</label>" +
+      '<label>' + '<input type="number" min="0" max="60" step="1" value="' + (+AL.before || 0) + '" data-al-before aria-label="' + esc(T("Minutes before", "دقايق قبل")) + '"> ' + esc(T("min before", "دقيقة قبل")) + "</label>" +
+      '<select data-al-sound aria-label="' + esc(T("Sound", "الصوت")) + '">' + o("chime", T("🎵 Three tones", "🎵 تلات نغمات")) + o("bell", T("🔔 Bell", "🔔 جرس")) + o("beeps", T("📢 Beeps", "📢 تنبيه")) + o("custom", T("🕌 My own adhan file", "🕌 ملف أذان من عندي")) + "</select>" +
+      (AL.sound === "custom" ? '<label class="btn btn--ghost btn--sm al-file">' + esc(has ? T("Change the file", "غيّر الملف") : T("Choose a file", "اختار ملف")) + '<input type="file" accept="audio/*" data-al-file hidden></label>' : "") +
+      '<button type="button" class="btn btn--ghost btn--sm" data-al-test>▶ ' + esc(T("Test", "جرّب")) + "</button></div>";
   }
 
   // "2:30 PM", "2:30 م", "14:30", "2 pm" → minutes; null if it cannot be read
@@ -829,9 +978,51 @@
     return h * 60 + mm;
   }
 
+  /* What the Today tab takes from the week (js/tools/time.js prayerPlan): that date's breakfast,
+     gym or sport, and sleep from bedtime to the next Fajr. null until the week has loaded. */
+  window.MyWeek = {
+    life: function (date) {
+      if (!W) return null;
+      var dow = new Date(date + "T12:00:00").getDay(), rows = rowsOf(dow);
+      var bf = rows.filter(function (x) { return catOf(x) === "food" && /breakfast|فطار/i.test(x.en || ""); })[0];
+      var gym = rows.filter(function (x) { return catOf(x) === "fitness"; })[0];
+      var ends = rows.filter(function (x) { return x.sec === "f" && x.to; }).map(function (x) { return mins(x.to); });
+      var bed = ends.length ? Math.max.apply(null, ends) : 1350, wake = prayers((dow + 1) % 7)[0].from, len = (wake + 1440 - bed) % 1440;
+      return {
+        breakfast: bf ? { from: bf.from, to: bf.to } : null,
+        gym: gym ? { from: gym.from, to: gym.to, note: T(/sport/i.test(gym.en) ? "Sport · from My week" : "Gym · from My week", /sport/i.test(gym.en) ? "رياضة · من أسبوعي" : "جيم · من أسبوعي") } : null,
+        sleep: { from: hhmm(bed), to: hhmm(wake), note: T(howLong(0, len) + " · wake for Fajr", howLong(0, len) + " · اصحى للفجر") }
+      };
+    }
+  };
+  // every block of My week on that date, as tasks for the Today tab (prayers, meetings and the
+  // free-time fillers are not rows; the morning azkar is already Today's own)
+  window.MyWeek.today = function (date) {
+    if (!W) return null;
+    var dow = new Date(date + "T12:00:00").getDay();
+    return rowsOf(dow).filter(function (x) { return x.from && x.to && !/^📿 Morning azkar/.test(x.en || ""); }).map(function (x) {
+      var cat = catOf(x), name = x.text || T(x.en, x.ar), m = name.match(/^(\S+)\s+(.*)$/);
+      var lead = m && !/[A-Za-z0-9\u0600-\u06FF]/.test(m[1]) ? m[1] : "";
+      var its = Array.isArray(x.items) ? x.items.map(function (y) { return T(y.en, y.ar); }) : [];
+      var note = (CAT[cat] ? T(CAT[cat].en, CAT[cat].ar) : "") + (its.length ? " · " + its.join(" · ") : "");
+      return { key: "week:" + x.id, title: (lead ? m[2] : name).slice(0, 140), icon: lead || (CAT[cat] ? CAT[cat].ico : "🗓️"),
+        from: x.from, to: x.to, note: note.slice(0, 118) };
+    });
+  };
+  // a "see the whole day" link anywhere on the page opens the My week tab
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("[data-goto-week]"); if (!a) return;
+    e.preventDefault(); var tab = document.querySelector('#tabbar [data-tab="week"]'); if (tab) tab.click();
+  });
+
   /* ---------- actions ---------- */
   host.addEventListener("click", function (e) {
     var t = e.target, b;
+    if ((b = t.closest("[data-done]"))) { var ov = ensureOv(); if (!ov.done) ov.done = {}; var did = b.getAttribute("data-done"); if (ov.done[did]) delete ov.done[did]; else { var nw = new Date(); ov.done[did] = nw.getHours() * 60 + nw.getMinutes() || 1; } save(); return render(); }
+    if (t.closest("[data-al-test]")) { playAlert(); try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} return; }
+    if ((b = t.closest("[data-view]"))) { viewOff = +b.getAttribute("data-view") ? 1 : 0; editing = null; return render(); }
+    if (t.closest("[data-reset-today]")) { if (!window.confirm(T("Undo today's changes and take today from the week again?", "ترجع النهارده زي الأسبوع وتلغي تعديلات النهارده؟"))) return; delete W.dates[todayKey()]; save(); return render(); }
+    if (t.closest("[data-to-week]")) { var wt = document.querySelector('#tabbar [data-tab="week"]'); if (wt) wt.click(); return; }
     if ((b = t.closest("[data-weekend]"))) { var v = b.getAttribute("data-weekend"); if (v === "auto") delete W.weekend; else W.weekend = v; editing = null; save(); return render(); }
     if (t.closest("[data-tp-open]")) { TP.open = !TP.open; tpSave(); return render(); }
     if ((b = t.closest("[data-tp-group]"))) { var gid = b.getAttribute("data-tp-group"); if (TP.shut[gid]) delete TP.shut[gid]; else TP.shut[gid] = 1; tpSave(); return render(); }
@@ -860,7 +1051,8 @@
       var mid = b.getAttribute("data-meet-del"); W.meetings = (W.meetings || []).filter(function (m) { return m.id !== mid; }); save(); return render();
     }
     if ((b = t.closest("[data-add]"))) {
-      var sec = b.getAttribute("data-add"), arr = sec === "w" ? work() : W.myday;
+      ensureOv();
+      var sec = b.getAttribute("data-add"), arr = sec === "w" ? work() : mdRows();
       var mine = arr.filter(function (y) { return (y.sec || "w") === sec; });
       var last = mine[mine.length - 1], from = last && last.to ? last.to : { m: "06:00", w: "10:00", f: "19:35" }[sec];
       var h = Math.min(23, +from.slice(0, 2) + 1), x = { id: uid(), sec: sec, from: from, to: ("0" + h).slice(-2) + from.slice(2), text: "" };
@@ -870,6 +1062,7 @@
     }
     var li = t.closest(".week-row"); if (!li) return;
     var id = li.getAttribute("data-id"); if (!id) return;
+    if (t.closest("[data-edit]") || t.closest("[data-del]")) ensureOv();
     if (t.closest("[data-edit]")) { editing = id; render(); var i2 = host.querySelector('.week-form input[name="text"]'); if (i2) i2.focus(); return; }
     if (t.closest("[data-cancel]")) {
       var cur = find(id);
@@ -881,9 +1074,22 @@
       drop1(id); save(); render();
     }
   });
+  host.addEventListener("change", function (e) {
+    var el = e.target;
+    if (el.matches("[data-al-on]")) { AL.on = el.checked; alSave(); if (AL.on) { try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (x) {} } return render(); }
+    if (el.matches("[data-al-before]")) { AL.before = Math.max(0, Math.min(60, Math.round(+el.value) || 0)); alSave(); return; }
+    if (el.matches("[data-al-sound]")) { AL.sound = el.value; alSave(); return render(); }
+    if (el.matches("[data-al-file]") && el.files && el.files[0]) {
+      var f = el.files[0];
+      if (f.size > 3 * 1024 * 1024) { window.alert(T("Please choose a file under 3 MB.", "اختار ملف أقل من 3 ميجا.")); return; }
+      var rd = new FileReader();
+      rd.onload = function () { try { localStorage.setItem("week.alert.file", rd.result); note(T("Saved: your adhan sound", "اتحفظ صوت الأذان بتاعك")); playAlert(); } catch (x) { window.alert(T("This browser could not keep the file; try a shorter one.", "المتصفح ما قدرش يحفظ الملف؛ جرّب واحد أقصر.")); } render(); };
+      rd.readAsDataURL(f);
+    }
+  });
   host.addEventListener("submit", function (e) {
     var f = e.target.closest(".week-form"); if (!f) return;
-    e.preventDefault();
+    e.preventDefault(); ensureOv();
     var x = find(f.closest(".week-row").getAttribute("data-id"));
     if (!x) return;
     var text = f.elements.text.value.trim();
@@ -937,20 +1143,39 @@
     if (!drag) return;
     var sec = drag.ol.getAttribute("data-sec"), by = {};
     var ids = [].map.call(drag.ol.querySelectorAll(".week-row[data-id]"), function (li) { return li.getAttribute("data-id"); });
-    var arr = sec === "w" ? work() : W.myday;
+    ensureOv();
+    var arr = sec === "w" ? work() : mdRows();
     arr.forEach(function (x) { by[x.id] = x; });
     var moved2 = ids.map(function (id) { return by[id]; }).filter(Boolean);
-    if (sec === "w") W.days[tpl(sel)] = moved2.concat(arr.filter(function (x) { return ids.indexOf(x.id) < 0; }));
-    else W.myday = W.myday.filter(function (x) { return ids.indexOf(x.id) < 0; }).concat(moved2);
+    if (sec === "w") setWork(moved2.concat(arr.filter(function (x) { return ids.indexOf(x.id) < 0; })));
+    else setMd(mdRows().filter(function (x) { return ids.indexOf(x.id) < 0; }).concat(moved2));
     drag = null; save(); render();
   }
   host.addEventListener("pointerup", drop);
   host.addEventListener("pointercancel", drop);
 
+  function placeCard() {
+    var tp = document.querySelector('.tabpanel[data-tabpanel="today"]'), wp = document.querySelector('.tabpanel[data-tabpanel="week"]');
+    var want = tp && !tp.hidden ? "today" : "week", box = want === "today" ? tp : wp;
+    if (!box) return;
+    // in Today: under the prayer times, above everything else
+    if (want === "today" && host.parentNode !== box) { var pr = box.querySelector(".today-prayers"); box.insertBefore(host, pr ? pr.nextSibling : box.firstChild); }
+    if (want === "week" && host.parentNode !== box) box.appendChild(host);
+    if (want !== mode) { mode = want; viewOff = 0; editing = null; if (W) render(); }
+  }
+  ["today", "week"].forEach(function (n) {
+    var el = document.querySelector('.tabpanel[data-tabpanel="' + n + '"]');
+    if (el && window.MutationObserver) new MutationObserver(placeCard).observe(el, { attributes: true, attributeFilter: ["hidden"] });
+  });
+  placeCard();
+
   load(function () {
     if (moved) { moved = false; save(); }
     render(); loadMeetings();
-    setInterval(function () { if (!editing && !drag) render(); }, 20000);
+    window.MyWeek.ready = true;
+    try { window.dispatchEvent(new CustomEvent("myweek:ready")); } catch (e) {}
+    setInterval(function () { if (!editing && !drag) render(); checkAlert(); }, 20000);
+    checkAlert();
     setInterval(loadMeetings, 10 * 60000);
   });
 })();

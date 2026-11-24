@@ -863,6 +863,7 @@
   $("#btnPrevDay").addEventListener("click", function () { loadDay(addDays(state.currentDate, -1)); });
   $("#btnNextDay").addEventListener("click", function () { loadDay(addDays(state.currentDate, 1)); });
   $("#btnToday").addEventListener("click", function () { loadDay(todayISO()); });
+  window.addEventListener("myweek:ready", function () { if (state.currentDate && state.currentDate >= todayISO()) loadDay(state.currentDate, { skipEnterAnimation: true }); });
 
   function loadDay(date, opts) {
     opts = opts || {};
@@ -1206,6 +1207,16 @@
       var bed = Math.floor((nf - set.sleepH * 60) / 15) * 15;
       plan["life:sleep"] = { from: minToHm(bed), to: minToHm(nf), note: T(set.sleepH + "h · wake for Fajr " + clock12(minToHm(nf)), set.sleepH + " ساعات · اصحى للفجر " + clock12(minToHm(nf))) };
     }
+    // My week is the one plan of the day (owner, 2026-11-24: "today is duplicated"): once it has
+    // loaded, breakfast, gym or sport and sleep are taken from it, and there is no separate nap
+    var wk = window.MyWeek && window.MyWeek.life ? window.MyWeek.life(date) : null;
+    if (wk) {
+      delete plan["life:nap"];
+      var fromWeek = T("from My week", "من أسبوعي");
+      if (wk.breakfast) plan["life:breakfast"] = { from: wk.breakfast.from, to: wk.breakfast.to, note: fromWeek }; else delete plan["life:breakfast"];
+      if (wk.gym) plan["life:gym"] = { from: wk.gym.from, to: wk.gym.to, note: wk.gym.note }; else delete plan["life:gym"];
+      if (wk.sleep) plan["life:sleep"] = { from: wk.sleep.from, to: wk.sleep.to, note: wk.sleep.note };
+    }
     return { times: pt, plan: plan, place: place, set: set, friday: friday };
   }
   // the week card (js/tools/week.js) uses the same place, times and iqama rule
@@ -1230,31 +1241,39 @@
       renderPrayerBar(date);
       var made = lsGet("time-prayer-made") || {};
       var used = {}, jobs = [];
-      Object.keys(day.plan).forEach(function (key) {
-        var want = day.plan[key];
+      // Today is this date's day from My week (owner, 2026-11-24): every block of the week becomes a
+      // task you can tick, move, re-time or delete for today only; the week itself is not changed
+      // the day itself (prayers, azkar, breakfast, sport, sleep, every block) now lives in the My week
+      // card at the top of this tab, so once it is on the page this list adds nothing by itself
+      var plan = window.MyWeek && window.MyWeek.ready ? {} : Object.assign({}, day.plan);
+      // in time order, one after the other, so a new day's list comes out sorted by time
+      Object.keys(plan).sort(function (a, b) { return String(plan[a].from).localeCompare(String(plan[b].from)); }).forEach(function (key) {
+        var want = plan[key], fixed = /^prayer:/.test(key);
         var t = tasks.filter(function (x) { return x.auto_key && x.auto_key.replace(/:hand$/, "") === key; })[0] ||
-          tasks.filter(function (x) { return !x.auto_key && !used[x.id] && PRAYER_MATCH[key].test(x.title || ""); })[0];
+          tasks.filter(function (x) { return !x.auto_key && !used[x.id] && PRAYER_MATCH[key] && PRAYER_MATCH[key].test(x.title || ""); })[0];
         if (t) {
           used[t.id] = true;
           made[date + "|" + key] = 1; // seen on this day: if you delete it later, it stays deleted
-          if (t.done || /:hand$/.test(t.auto_key || "")) return;
+          // prayers are fixed: their time always follows your place and the iqama, even if moved by hand
+          if (t.done || (!fixed && /:hand$/.test(t.auto_key || ""))) return;
           if (t.time_from === want.from && t.time_to === want.to && t.time_note === want.note && t.auto_key === key) return;
-          jobs.push(api("/api/tasks?id=" + t.id, { method: "PATCH", body: { time_from: want.from, time_to: want.to, time_note: want.note, auto_key: key } }));
+          jobs.push(function () { return api("/api/tasks?id=" + t.id, { method: "PATCH", body: { time_from: want.from, time_to: want.to, time_note: want.note, auto_key: key } }); });
           return;
         }
-        // missing: added once a day (if you delete it, it stays deleted)
-        if (made[date + "|" + key] || (state.daySkips || []).indexOf(key) >= 0) return;
+        // missing: added once a day (if you delete it, it stays deleted); a prayer always comes back
+        if (!fixed && (made[date + "|" + key] || (state.daySkips || []).indexOf(key) >= 0)) return;
         made[date + "|" + key] = 1;
-        jobs.push(api("/api/tasks", { method: "POST", body: {
-          task_date: date, title: PRAYER_TITLE[key], icon: AUTO_ICON[key] || (/^azkar/.test(key) ? "📿" : "🕌"), category_id: religionCategoryId(),
-          time_from: want.from, time_to: want.to, time_note: want.note, auto_key: key } }));
+        jobs.push(function () { return api("/api/tasks", { method: "POST", body: {
+          task_date: date, title: want.title || PRAYER_TITLE[key], icon: want.icon || AUTO_ICON[key] || (/^azkar/.test(key) ? "📿" : "🕌"),
+          category_id: /^week:/.test(key) ? null : religionCategoryId(),
+          time_from: want.from, time_to: want.to, time_note: want.note, auto_key: key } }); });
       });
       // only the last two weeks of "added" marks are kept
       var cut = addDays(todayISO(), -14);
       Object.keys(made).forEach(function (k) { if (k.slice(0, 10) < cut) delete made[k]; });
       lsSet("time-prayer-made", made);
       if (!jobs.length) return false;
-      return Promise.all(jobs).then(function () { return true; });
+      return jobs.reduce(function (p, job) { return p.then(job); }, Promise.resolve()).then(function () { return true; });
     }).catch(function () { return false; });
   }
 

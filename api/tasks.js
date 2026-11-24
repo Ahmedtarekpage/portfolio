@@ -27,7 +27,7 @@ function hhmm(v) {
   return m ? m[0] : false;
 }
 // ":hand" = its time was changed by hand, so the page stops moving it
-const AUTO_KEYS = /^(prayer:(fajr|dhuhr|asr|maghrib|isha)|azkar:(morning|evening)|routine:\d+|meeting:\d+|prep:\d+|life:(sleep|nap|gym|breakfast))(:hand)?$/;
+const AUTO_KEYS = /^(prayer:(fajr|dhuhr|asr|maghrib|isha)|azkar:(morning|evening)|routine:\d+|meeting:\d+|prep:\d+|life:(sleep|nap|gym|breakfast)|week:[a-z0-9]{2,20})(:hand)?$/;
 const cleanLink = (v) => (v && /^https?:\/\/\S+$/i.test(String(v)) ? String(v).slice(0, 500) : null);
 
 function isDate(s) {

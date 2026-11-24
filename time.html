@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="css/tools/go.css?v=19" />
   <link rel="stylesheet" href="css/tools/time-3d.css?v=11" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
-  <link rel="stylesheet" href="css/tools/tide.css?v=16" />
+  <link rel="stylesheet" href="css/tools/tide.css?v=20" />
   <script src="/js/tools/icons.js?v=2" defer></script>
 </head>
 <body>
@@ -149,24 +149,10 @@
         </div>
       </div>
 
-      <div class="card">
-        <details class="section-collapse milestone-ladder">
-          <summary data-ar="🪜 الخطوات لحد $500K في السنة">🪜 Milestones to $500K/yr</summary>
-          <div class="section-collapse__body">
-            <!-- the pace line is written by the script: the steps are spread
-                 between today and the age target above (owner, 2026-10-17) -->
-            <p class="muted" id="milestonePace" style="margin:0 0 10px"></p>
-            <p class="milestone-total muted"><span data-ar="💵 إجمالي اللي دخل في كل الخطوات:">💵 Total entered across all milestones:</span> <b id="milestoneTotalAmount">$0</b></p>
-            <div class="milestone-list" id="milestoneList"></div>
-          </div>
-        </details>
-      </div>
-
-      <!-- the weekly routine: what each day is for, today's list, the picture (js/tools/week.js) -->
-      <div class="card week" id="weekCard"></div>
 
       <nav class="tabbar" id="tabbar">
         <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label" data-ar="النهارده">Today</span></button>
+        <button type="button" class="tab" data-tab="week"><span class="tab__icon">🗓️</span><span class="tab__label" data-ar="أسبوعي">My week</span></button>
         <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label" data-ar="ربع السنة">Quarter</span></button>
         <button type="button" class="tab" data-tab="focus"><span class="tab__icon">🍅</span><span class="tab__label" data-ar="تركيز">Focus</span></button>
         <button type="button" class="tab" data-tab="days"><span class="tab__icon">🖼️</span><span class="tab__label" data-ar="الأيام">Days</span></button>
@@ -177,9 +163,16 @@
 
       <!-- ---- Today ---- -->
       <section class="tabpanel" data-tabpanel="today">
-      <div class="card">
+      <!-- the prayer times of the day (where you are, adhan and iqama) and the sky, always at the top of Today -->
+      <div class="card today-prayers">
+            <div class="sky" id="prayerSky" hidden aria-hidden="true"></div>
+            <div class="prayer-bar" id="prayerBar" hidden></div>
+      </div>
+      <!-- the old to-do list: replaced by today's plan from My week (js/tools/week.js), kept hidden
+           because time.js still writes into it -->
+      <div class="card old-todo" hidden>
         <div class="card__head">
-          <h2 data-ar="مهام النهارده">Today's to-do</h2>
+          <h2 data-ar="مهام تانية للنهارده">Other to-dos today</h2>
           <div class="day-nav">
             <button id="btnPrevDay" class="iconbtn" aria-label="Previous day" data-ar-aria-label="اليوم اللي قبله" data-ar="→">←</button>
             <input type="date" id="dayPicker" />
@@ -364,8 +357,6 @@
               </div>
             </div>
             <div class="cal-panel" id="calPanel" hidden></div>
-            <div class="sky" id="prayerSky" hidden aria-hidden="true"></div>
-            <div class="prayer-bar" id="prayerBar" hidden></div>
             <div class="cal-view" id="calView" hidden></div>
             <div class="task-list" id="taskList"></div>
             <p id="tasksEmpty" class="muted center" hidden data-ar="مفيش مهام لليوم ده لسه.">No tasks for this day yet.</p>
@@ -390,6 +381,11 @@
           </div>
         </details>
       </div>
+      </section>
+
+      <!-- ---- My week: the whole day for every day, where the time goes (js/tools/week.js) ---- -->
+      <section class="tabpanel" data-tabpanel="week" hidden>
+      <div class="card week" id="weekCard"></div>
       </section>
 
       <!-- ---- Quarters ---- -->
@@ -735,6 +731,19 @@
 
       <!-- ---- Plan: the owner's own plan page (khatet), served at /plan behind the passkey ---- -->
       <section class="tabpanel" data-tabpanel="plan" hidden>
+      <div class="card">
+        <details class="section-collapse milestone-ladder">
+          <summary data-ar="🪜 الخطوات لحد $500K في السنة">🪜 Milestones to $500K/yr</summary>
+          <div class="section-collapse__body">
+            <!-- the pace line is written by the script: the steps are spread
+                 between today and the age target above (owner, 2026-10-17) -->
+            <p class="muted" id="milestonePace" style="margin:0 0 10px"></p>
+            <p class="milestone-total muted"><span data-ar="💵 إجمالي اللي دخل في كل الخطوات:">💵 Total entered across all milestones:</span> <b id="milestoneTotalAmount">$0</b></p>
+            <div class="milestone-list" id="milestoneList"></div>
+          </div>
+        </details>
+      </div>
+
       <div class="card plan-card">
         <div class="card__head">
           <h2 data-ar="🗺️ الخطة">🗺️ Plan</h2>
@@ -838,10 +847,10 @@
   <script src="js/tools/chart.js?v=21"></script>
   <script src="js/tools/prayer.js?v=2"></script>
   <script src="js/tools/time-fx.js?v=2"></script>
-  <script src="js/tools/time.js?v=91"></script>
+  <script src="js/tools/time.js?v=94"></script>
   <script src="js/tools/time-cal.js?v=6"></script>
   <script src="js/tools/time-clock.js?v=2"></script>
   <script type="module" src="js/tools/time-sky.js?v=3"></script>
-  <script src="js/tools/week.js?v=11"></script>
+  <script src="js/tools/week.js?v=19"></script>
 </body>
 </html>
