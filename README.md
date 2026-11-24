@@ -1,24 +1,25 @@
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=210&section=header&text=ahmedtarek.tech&fontSize=58&fontColor=ffffff&animation=fadeIn&desc=A%20portfolio%20in%20front.%20A%20whole%20private%20workshop%20behind%20it.&descAlignY=72" alt="ahmedtarek.tech banner" /></p>
+<p align="center"><img src="branding/assets/hero-animated.svg" width="100%" alt="ahmedtarek.tech: Tracks, not courses. A portfolio in front, a private workshop behind it." /></p>
 
-<p align="center"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1200&color=8B5CF6&center=true&vCenter=true&width=600&lines=One+passkey.+Twelve+functions.+Zero+build+step.;Clients%2C+prayers%2C+bugs+and+money+in+one+database;Meet+Shark+%F0%9F%A6%88+the+money+agent+that+asks+first" alt="Typing intro" /></p>
+<p align="center"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1200&color=7263C9&center=true&vCenter=true&width=600&lines=One+passkey.+Twelve+functions.+Zero+build+step.;Clients%2C+prayers%2C+bugs+and+money+in+one+database;Meet+Shark+%F0%9F%A6%88+the+money+agent+that+asks+first" alt="Typing intro" /></p>
 
 <p align="center">
-  <a href="https://ahmedtarek.tech"><img src="https://img.shields.io/badge/Live-ahmedtarek.tech-22c55e?logo=googlechrome&logoColor=white" alt="Live site" /></a>
+  <a href="https://ahmedtarek.tech"><img src="https://img.shields.io/badge/Live-ahmedtarek.tech-17A34A?logo=googlechrome&logoColor=white" alt="Live site" /></a>
   <img src="https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white" alt="HTML5" />
   <img src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white" alt="CSS3" />
   <img src="https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black" alt="Vanilla JavaScript" />
   <img src="https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22" />
   <img src="https://img.shields.io/badge/Vercel-functions-black?logo=vercel&logoColor=white" alt="Vercel" />
   <img src="https://img.shields.io/badge/Neon-Postgres-00E599?logo=postgresql&logoColor=white" alt="Neon Postgres" />
-  <img src="https://img.shields.io/badge/Passkeys-WebAuthn-3423A6?logo=webauthn&logoColor=white" alt="WebAuthn passkeys" />
+  <img src="https://img.shields.io/badge/Passkeys-WebAuthn-7263C9?logo=webauthn&logoColor=white" alt="WebAuthn passkeys" />
   <img src="https://img.shields.io/badge/Claude-agent-D97757?logo=anthropic&logoColor=white" alt="Claude" />
   <img src="https://img.shields.io/badge/Gemini-fallback-8E75B2?logo=googlegemini&logoColor=white" alt="Google Gemini" />
   <img src="https://img.shields.io/badge/ElevenLabs-voice-000000?logo=elevenlabs&logoColor=white" alt="ElevenLabs" />
   <img src="https://img.shields.io/badge/Three.js-3D-000000?logo=threedotjs&logoColor=white" alt="Three.js" />
   <img src="https://img.shields.io/badge/Chart.js-charts-FF6384?logo=chartdotjs&logoColor=white" alt="Chart.js" />
   <img src="https://img.shields.io/badge/MediaPipe-pose-0097A7?logo=mediapipe&logoColor=white" alt="MediaPipe" />
-  <img src="https://img.shields.io/badge/PWA-Floosy-5A0FC8?logo=pwa&logoColor=white" alt="PWA" />
-  <img src="https://img.shields.io/badge/build%20step-none-f59e0b" alt="No build step" />
+  <img src="https://img.shields.io/badge/PWA-Floosy-FF6B5B?logo=pwa&logoColor=white" alt="PWA" />
+  <img src="https://img.shields.io/badge/build%20step-none-4C3FA0" alt="No build step" />
+  <a href="branding/BRAND.md"><img src="https://img.shields.io/badge/brand-book-9184D9?logo=googlefonts&logoColor=white" alt="Brand book" /></a>
 </p>
 
 <p align="center"><b>A public portfolio, with a set of private, passkey-protected tools behind it:</b><br/>
@@ -27,7 +28,23 @@ client hours · daily planning · product triage · personal finance with an AI 
 > [!NOTE]
 > **There is no build step.** The repository is what gets served: HTML, CSS and plain browser JavaScript, plus twelve Vercel serverless functions in [`api/`](api/). Clone it, serve the folder, and you have the site. 🎉
 
----
+### 👀 Take a look
+
+<table>
+  <tr>
+    <td width="50%"><img src="branding/assets/home-track-method.gif" alt="Scrolling the live home page: the How can I help cards and the six-step Track Method timeline" /></td>
+    <td width="50%"><img src="branding/assets/product-toolkit.gif" alt="Scrolling the live /product page: the skills and toolkit cards and the contact headline" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>🏠 Home: "How can I help" and the Track Method</sub></td>
+    <td align="center"><sub>🧭 <code>/product</code>: skills, toolkit and "Let's build something great"</sub></td>
+  </tr>
+</table>
+
+> [!NOTE]
+> These GIFs show **public pages only**. The private tools are never recorded.
+
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 🗂 Contents
 
@@ -57,9 +74,10 @@ client hours · daily planning · product triage · personal finance with an AI 
 - [📂 8. Project structure](#-8-project-structure)
 - [🚀 9. Running, configuring, deploying and testing](#-9-running-configuring-deploying-and-testing)
 - [📏 10. Conventions](#-10-conventions)
-- [🚧 11. Known limits and roadmap](#-11-known-limits-and-roadmap)
+- [🎨 11. Brand identity](#-11-brand-identity)
+- [🚧 12. Known limits and roadmap](#-12-known-limits-and-roadmap)
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 📖 1. The story
 
@@ -102,7 +120,7 @@ So he built his own.
 5. 🎓 **Afternoon.** He runs the client session and records it in `/admin`. The client's hours chart drops, and their share page updates on its own.
 6. 🌙 **Evening.** "End of day" lists what slipped and moves it to tomorrow. The Quarter tab shows the goals moving. 📈 Done. Go to sleep. (The app has already scheduled that too.) 😴
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 🧭 2. Product tour
 
@@ -267,7 +285,7 @@ Files: [`admin.html`](admin.html), [`js/tools/admin.js`](js/tools/admin.js), [`j
 **Reminder emails (built, switched off).**
 
 - Reminders go out one day before and two hours before, to the client and to the owner.
-- See [Known limits](#-11-known-limits-and-roadmap) for how to switch them on.
+- See [Known limits](#-12-known-limits-and-roadmap) for how to switch them on.
 
 ### 🔗 2.3 /c/:token and /cal/:token: what clients see
 
@@ -708,14 +726,14 @@ Used across the private pages:
   - [`go.css`](css/tools/go.css): the house style
   - [`tide.css`](css/tools/tide.css): the palette, loaded last, with contrast notes
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 🧠 3. How it works
 
 ### 🌐 3.1 System context
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#8b5cf6','primaryTextColor':'#fff','primaryBorderColor':'#6d28d9','lineColor':'#f59e0b','secondaryColor':'#14b8a6','tertiaryColor':'#fef3c7','actorBkg':'#8b5cf6','actorTextColor':'#fff','noteBkgColor':'#fef3c7','fontFamily':'Inter'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#7263C9','primaryTextColor':'#ffffff','primaryBorderColor':'#4C3FA0','lineColor':'#FF6B5B','secondaryColor':'#E3E0F6','tertiaryColor':'#F4EDE0','actorBkg':'#7263C9','actorBorder':'#4C3FA0','actorTextColor':'#ffffff','signalColor':'#FF6B5B','noteBkgColor':'#F4EDE0','noteTextColor':'#14213D','fontFamily':'Inter'}}}%%
 flowchart LR
   V["Visitor"] -->|HTTPS| EDGE
   C["Client (share link)"] -->|HTTPS| EDGE
@@ -741,10 +759,10 @@ flowchart LR
   V -.browser calls.-> YT["YouTube oEmbed / thumbnails"]
   GHA["GitHub Actions (optional, every 10 min)"] -.-> FN
 
-  classDef people fill:#f59e0b,stroke:#b45309,color:#fff
-  classDef vercel fill:#8b5cf6,stroke:#6d28d9,color:#fff
-  classDef data fill:#14b8a6,stroke:#0f766e,color:#fff
-  classDef ext fill:#ec4899,stroke:#be185d,color:#fff
+  classDef people fill:#FF6B5B,stroke:#BF3A2A,color:#14213D
+  classDef vercel fill:#7263C9,stroke:#4C3FA0,color:#ffffff
+  classDef data fill:#262757,stroke:#191A3C,color:#ffffff
+  classDef ext fill:#F4EDE0,stroke:#14213D,color:#14213D
   class V,C,O,CAL people
   class EDGE,FN,CRON vercel
   class DB data
@@ -758,7 +776,7 @@ Static pages are served directly. Friendly URLs are rewrites in [`vercel.json`](
 Vercel's Hobby plan publishes at most twelve functions, so several features share one function and are told apart by a query parameter:
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#8b5cf6','primaryTextColor':'#fff','primaryBorderColor':'#6d28d9','lineColor':'#f59e0b','secondaryColor':'#14b8a6','tertiaryColor':'#fef3c7','actorBkg':'#8b5cf6','actorTextColor':'#fff','noteBkgColor':'#fef3c7','fontFamily':'Inter'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#7263C9','primaryTextColor':'#ffffff','primaryBorderColor':'#4C3FA0','lineColor':'#FF6B5B','secondaryColor':'#E3E0F6','tertiaryColor':'#F4EDE0','actorBkg':'#7263C9','actorBorder':'#4C3FA0','actorTextColor':'#ffffff','signalColor':'#FF6B5B','noteBkgColor':'#F4EDE0','noteTextColor':'#14213D','fontFamily':'Inter'}}}%%
 flowchart TD
   subgraph Browser
     P1["/admin"] & P2["/time"] & P3["/desk"] & P4["/finance"] & P5["/dashboard"] & P6["public pages"]
@@ -781,10 +799,10 @@ flowchart TD
   cms --> L6["_lib/mail.js"]
   auth --> L7["_lib/intruder.js"]
 
-  classDef page fill:#f59e0b,stroke:#b45309,color:#fff
-  classDef fn fill:#8b5cf6,stroke:#6d28d9,color:#fff
-  classDef lib fill:#14b8a6,stroke:#0f766e,color:#fff
-  classDef pub fill:#ec4899,stroke:#be185d,color:#fff
+  classDef page fill:#FF6B5B,stroke:#BF3A2A,color:#14213D
+  classDef fn fill:#7263C9,stroke:#4C3FA0,color:#ffffff
+  classDef lib fill:#262757,stroke:#191A3C,color:#ffffff
+  classDef pub fill:#9184D9,stroke:#4C3FA0,color:#17181F
   class P1,P2,P3,P4,P5,P6 page
   class clients,packages,sessions,pdf,tasks,quarters,goals,ideas,dayphotos,cms,auth fn
   class share pub
@@ -801,7 +819,7 @@ flowchart TD
 ### 🔑 3.3 Auth flow
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#8b5cf6','primaryTextColor':'#fff','primaryBorderColor':'#6d28d9','lineColor':'#f59e0b','secondaryColor':'#14b8a6','tertiaryColor':'#fef3c7','actorBkg':'#8b5cf6','actorTextColor':'#fff','noteBkgColor':'#fef3c7','fontFamily':'Inter'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#7263C9','primaryTextColor':'#ffffff','primaryBorderColor':'#4C3FA0','lineColor':'#FF6B5B','secondaryColor':'#E3E0F6','tertiaryColor':'#F4EDE0','actorBkg':'#7263C9','actorBorder':'#4C3FA0','actorTextColor':'#ffffff','signalColor':'#FF6B5B','noteBkgColor':'#F4EDE0','noteTextColor':'#14213D','fontFamily':'Inter'}}}%%
 sequenceDiagram
   autonumber
   participant B as Browser (/admin, /time, …)
@@ -810,7 +828,7 @@ sequenceDiagram
   B->>A: GET ?action=me
   A->>D: count credentials
   A-->>B: {authed, hasCredentials}
-  rect rgba(139,92,246,0.12)
+  rect rgba(114,99,201,0.12)
   alt no passkey yet (first device only)
     B->>A: POST ?action=register-options
     A-->>B: options + signed challenge cookie (5 min)
@@ -835,7 +853,7 @@ Every private endpoint calls `requireAuth()`. It verifies the HMAC-signed sessio
 ### 🦈 3.4 Key journey: asking the Shark agent about a purchase
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#8b5cf6','primaryTextColor':'#fff','primaryBorderColor':'#6d28d9','lineColor':'#f59e0b','secondaryColor':'#14b8a6','tertiaryColor':'#fef3c7','actorBkg':'#8b5cf6','actorTextColor':'#fff','noteBkgColor':'#fef3c7','fontFamily':'Inter'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#7263C9','primaryTextColor':'#ffffff','primaryBorderColor':'#4C3FA0','lineColor':'#FF6B5B','secondaryColor':'#E3E0F6','tertiaryColor':'#F4EDE0','actorBkg':'#7263C9','actorBorder':'#4C3FA0','actorTextColor':'#ffffff','signalColor':'#FF6B5B','noteBkgColor':'#F4EDE0','noteTextColor':'#14213D','fontFamily':'Inter'}}}%%
 sequenceDiagram
   autonumber
   participant U as Owner
@@ -853,7 +871,7 @@ sequenceDiagram
   S->>C: continue
   C-->>S: tool_use record_expense / add_goal
   S-->>F: assistant message
-  rect rgba(245,158,11,0.15)
+  rect rgba(255,107,91,0.15)
   F->>U: confirm button ("Yes, do it / No")
   U->>F: taps Yes
   F->>F: apply change, PUT ?finance=data (If-Match rev)
@@ -867,7 +885,7 @@ sequenceDiagram
 ### 📆 3.5 Key journey: a meeting becomes a task, a feed event and a reminder
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#8b5cf6','primaryTextColor':'#fff','primaryBorderColor':'#6d28d9','lineColor':'#f59e0b','secondaryColor':'#14b8a6','tertiaryColor':'#fef3c7','actorBkg':'#8b5cf6','actorTextColor':'#fff','noteBkgColor':'#fef3c7','fontFamily':'Inter'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#7263C9','primaryTextColor':'#ffffff','primaryBorderColor':'#4C3FA0','lineColor':'#FF6B5B','secondaryColor':'#E3E0F6','tertiaryColor':'#F4EDE0','actorBkg':'#7263C9','actorBorder':'#4C3FA0','actorTextColor':'#ffffff','signalColor':'#FF6B5B','noteBkgColor':'#F4EDE0','noteTextColor':'#14213D','fontFamily':'Inter'}}}%%
 sequenceDiagram
   autonumber
   participant O as Owner (/admin)
@@ -885,14 +903,14 @@ sequenceDiagram
   M->>D: claim remind_day_at / remind_2h_at, then send email
 ```
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 💾 4. Data model
 
 All tables live in Neon Postgres and are created lazily (see [`api/_lib/db.js`](api/_lib/db.js) and the per-feature modules named below).
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#8b5cf6','primaryTextColor':'#fff','primaryBorderColor':'#6d28d9','lineColor':'#f59e0b','secondaryColor':'#14b8a6','tertiaryColor':'#fef3c7','actorBkg':'#8b5cf6','actorTextColor':'#fff','noteBkgColor':'#fef3c7','fontFamily':'Inter'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#7263C9','primaryTextColor':'#ffffff','primaryBorderColor':'#4C3FA0','lineColor':'#FF6B5B','secondaryColor':'#E3E0F6','tertiaryColor':'#F4EDE0','actorBkg':'#7263C9','actorBorder':'#4C3FA0','actorTextColor':'#ffffff','signalColor':'#FF6B5B','noteBkgColor':'#F4EDE0','noteTextColor':'#14213D','fontFamily':'Inter'}}}%%
 erDiagram
   clients ||--o{ hour_packages : buys
   clients ||--o{ client_sessions : attends
@@ -1039,7 +1057,7 @@ Uploaded files (payment proofs, session files, media, photos) are stored in Post
 </details>
 
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 📡 5. API reference
 
@@ -1157,7 +1175,7 @@ Every endpoint is `api/<name>.js`, and each file opens with its own route list. 
 </details>
 
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 🧱 6. Tech stack and third-party services
 
@@ -1198,7 +1216,7 @@ The npm dependencies are only the three the functions need (see [`package.json`]
 - Calendars: Google Calendar and Apple Calendar (feed subscription, `.ics` import).
 - Optional: GitHub Actions (reminder clock).
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 🔒 7. Security and privacy design
 
@@ -1270,7 +1288,7 @@ The npm dependencies are only the three the functions need (see [`package.json`]
 
 **Crawlers.** Private paths are disallowed in every crawler group in `robots.txt`, and private pages are `noindex` and never linked from the public site.
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 📂 8. Project structure
 
@@ -1340,7 +1358,7 @@ The npm dependencies are only the three the functions need (see [`package.json`]
 > [!WARNING]
 > Anything marked GENERATED is written by the design tool. Do not edit it by hand; a re-export discards the changes.
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 🚀 9. Running, configuring, deploying and testing
 
@@ -1426,7 +1444,7 @@ There is no automated test suite or CI in this repository. Verification is manua
 - The meeting form previews a repeat series before saving.
 - `ls api/*.js | wc -l` must stay at 12 or fewer (see below).
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
 ## 📏 10. Conventions
 
@@ -1452,9 +1470,34 @@ There is no automated test suite or CI in this repository. Verification is manua
 - **A masked icon paints with `background-color`**, so a filled pill behind it needs a second element.
 - **A missing YouTube `maxresdefault.jpg` is a grey placeholder, not a 404.** Measure `naturalWidth`.
 
----
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
 
-## 🚧 11. Known limits and roadmap
+## 🎨 11. Brand identity
+
+Two moods, one family, all read straight from the CSS. The full guide (logo, palette, type, voice, UI, do and don't) is in **[`branding/BRAND.md`](branding/BRAND.md)** 📘.
+
+| 🌐 Public site: *Summit* | | | |
+|:---:|:---:|:---:|:---:|
+| <img src="branding/assets/color-summit-violet.svg" width="150" alt="Summit Violet #7263C9" /> | <img src="branding/assets/color-deep-violet.svg" width="150" alt="Deep Violet #4C3FA0" /> | <img src="branding/assets/color-peak-lilac.svg" width="150" alt="Peak Lilac #9184D9" /> | <img src="branding/assets/color-lavender-wash.svg" width="150" alt="Lavender Wash #E3E0F6" /> |
+| <img src="branding/assets/color-ink.svg" width="150" alt="Ink #17181F" /> | <img src="branding/assets/color-mist.svg" width="150" alt="Mist #F4F4F9" /> | <img src="branding/assets/color-night-indigo.svg" width="150" alt="Night Indigo #262757" /> | <img src="branding/assets/color-live-green.svg" width="150" alt="Live Green #17A34A" /> |
+
+| 🔒 Private tools: *Tide* | | | |
+|:---:|:---:|:---:|:---:|
+| <img src="branding/assets/color-tide-navy.svg" width="150" alt="Tide Navy #14213D" /> | <img src="branding/assets/color-tide-cream.svg" width="150" alt="Tide Cream #F4EDE0" /> | <img src="branding/assets/color-tide-coral.svg" width="150" alt="Tide Coral #FF6B5B" /> | <img src="branding/assets/color-coral-ink.svg" width="150" alt="Coral Ink #BF3A2A" /> |
+
+| | |
+|---|---|
+| 🔺 **Logo** | The *Summit*: two strokes and a lilac peak dot, in [`logo/`](logo/) (`summit-light.svg`, `summit-dark.svg`, `summit-mono-white.svg`, app marks) |
+| 🔤 **Type** | Inter on the public site, Cairo for Arabic, Bricolage Grotesque over Quicksand in the tools |
+| 💬 **Tagline** | *"Tracks, not courses."* Plain, direct, kind, a little funny |
+| 🌈 **Signature gradient** | `linear-gradient(110deg, #7263C9, #4C3FA0)` |
+
+> [!IMPORTANT]
+> In the tools, text on Coral is always **Navy** (white on Coral fails contrast). Coral as text on Cream steps down to **Coral Ink**.
+
+<p align="center"><img src="branding/assets/divider-animated.svg" width="100%" alt="" /></p>
+
+## 🚧 12. Known limits and roadmap
 
 These come from the code and from [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
 
@@ -1477,6 +1520,6 @@ These come from the code and from [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 📚 **Further reading:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) covers the content overlay internals, the hours and meeting engines, the plan page, the video hub and the newsletter in more depth.
 
-<p align="center"><b>Built with one passkey, twelve functions and zero build steps. 🚀 If a button does nothing, check <code>elementFromPoint</code> first. 😉</b></p>
+<p align="center"><b>Tracks, not courses. 🏔 Built with one passkey, twelve functions and zero build steps. If a button does nothing, check <code>elementFromPoint</code> first. 😉</b></p>
 
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=120&section=footer" alt="footer" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:7263C9,100:191A3C&height=120&section=footer" alt="footer" /></p>

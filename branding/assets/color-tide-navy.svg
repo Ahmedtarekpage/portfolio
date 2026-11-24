@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 240 120" role="img" aria-label="Tide Navy #14213D">
+  <rect x="1" y="1" width="238" height="118" rx="18" fill="#14213D"/>
+  <text x="20" y="48" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">Tide Navy</text>
+  <text x="20" y="78" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="16" fill="#FFFFFF" opacity="0.9">#14213D</text>
+  <text x="20" y="100" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" fill="#FFFFFF" opacity="0.7">rgb(20, 33, 61)</text>
+</svg>

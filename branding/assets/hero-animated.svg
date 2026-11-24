@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="ahmedtarek.tech: Tracks, not courses.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7263C9">
+        <animate attributeName="stop-color" values="#7263C9;#4C3FA0;#262757;#7263C9" dur="10s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#191A3C">
+        <animate attributeName="stop-color" values="#191A3C;#4C3FA0;#7263C9;#191A3C" dur="10s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#9184D9" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#9184D9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="320" rx="24" fill="url(#bg)"/>
+  <circle cx="980" cy="60" r="220" fill="url(#glow)">
+    <animate attributeName="cx" values="980;880;980" dur="12s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="160" cy="300" r="180" fill="url(#glow)" opacity="0.6">
+    <animate attributeName="cy" values="300;250;300" dur="9s" repeatCount="indefinite"/>
+  </circle>
+  <!-- the Summit mark, drawn on -->
+  <g transform="translate(96 92) scale(1.15)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="9">
+    <path d="M20 94 L60 26 L100 94" stroke="#FFFFFF" stroke-opacity="0.45" stroke-dasharray="160" stroke-dashoffset="160">
+      <animate attributeName="stroke-dashoffset" values="160;0;0" keyTimes="0;0.25;1" dur="6s" repeatCount="indefinite"/>
+    </path>
+    <path d="M20 94 L60 26" stroke="#FFFFFF" stroke-dasharray="80" stroke-dashoffset="80">
+      <animate attributeName="stroke-dashoffset" values="80;0;0" keyTimes="0;0.2;1" dur="6s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="60" cy="26" r="9.5" fill="#9184D9" stroke="none">
+      <animate attributeName="r" values="0;0;12;9.5;9.5" keyTimes="0;0.2;0.27;0.32;1" dur="6s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  <text x="270" y="150" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#FFFFFF" letter-spacing="-1.5">ahmedtarek.tech</text>
+  <text x="272" y="200" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="28" font-weight="500" fill="#E3E0F6">Tracks, not courses.
+    <animate attributeName="opacity" values="0;1;1" keyTimes="0;0.15;1" dur="6s" repeatCount="indefinite"/>
+  </text>
+  <text x="272" y="244" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" fill="#FFFFFF" fill-opacity="0.75">A portfolio in front. A private workshop behind it.</text>
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600">
+    <rect x="272" y="262" width="96" height="28" rx="14" fill="#FFFFFF" fill-opacity="0.14"/>
+    <text x="320" y="281" text-anchor="middle" fill="#FFFFFF">passkeys</text>
+    <rect x="378" y="262" width="110" height="28" rx="14" fill="#FFFFFF" fill-opacity="0.14"/>
+    <text x="433" y="281" text-anchor="middle" fill="#FFFFFF">no build step</text>
+    <rect x="498" y="262" width="96" height="28" rx="14" fill="#FF6B5B"/>
+    <text x="546" y="281" text-anchor="middle" fill="#14213D">AI agent</text>
+  </g>
+</svg>
