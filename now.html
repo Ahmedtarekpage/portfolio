@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Now: one screen while working (owner, 2026-11-24). The next prayer, money left today with a
+       quick add into Floosy, a quick client meeting, the day as a 3D vertical calendar that stays on
+       now and the next 2 hours, and a Miro-like notes board. The logic is in js/tools/week.js
+       (renderNow); the week card it shares data with is kept hidden here. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#14213D" />
+  <title>Now</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="96x96" href="/logo/icon-96.png">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("tools-theme");
+        if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
+      } catch (e) {}
+    })();
+  </script>
+  <script src="js/tools/i18n.js?v=1"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tools/app.css?v=15" />
+  <link rel="stylesheet" href="css/tools/time.css?v=57" />
+  <link rel="stylesheet" href="css/tools/tide.css?v=28" />
+  <script src="/js/tools/icons.js?v=2" defer></script>
+</head>
+<body class="now-page">
+  <div class="wrap now-wrap">
+    <section id="view-loading" class="view">
+      <p class="muted center" data-ar="بيحمّل…">Loading…</p>
+    </section>
+    <section id="view-app" class="view" hidden>
+      <div class="card week now" id="nowCard" data-layout="page"></div>
+      <!-- the week card: not shown here, it only shares the week's data with Now -->
+      <div class="card week" id="weekCard" hidden></div>
+    </section>
+  </div>
+  <script>I18N.apply(document);</script>
+  <script src="js/tools/theme.js?v=5"></script>
+  <script>
+    // signed in? otherwise sign in on /admin and come back here
+    fetch("/api/auth?action=me", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (me) {
+      var local = /^(localhost|127\.0\.0\.1|\[::1\]|)$/.test(location.hostname);
+      if (!local && (!me || !me.authed)) { location.replace("/admin?next=now"); return; }
+      document.getElementById("view-loading").hidden = true;
+      document.getElementById("view-app").hidden = false;
+    }).catch(function () {
+      document.getElementById("view-loading").hidden = true;
+      document.getElementById("view-app").hidden = false;
+    });
+  </script>
+  <script src="js/tools/prayer.js?v=2"></script>
+  <script src="js/tools/week.js?v=25"></script>
+</body>
+</html>

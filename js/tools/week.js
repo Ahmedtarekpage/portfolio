@@ -596,6 +596,7 @@
   function save() {
     doc.week = W;
     gcSync();
+    if (nowHost) setTimeout(renderNow, 0);
     if (LOCAL) { try { localStorage.setItem(KEY, JSON.stringify(doc)); status = T("Saved", "اتحفظ"); } catch (e) { status = T("Could not save in this browser.", "ما اتحفظش في المتصفح ده."); } return; }
     if (rev === "offline") return;
     clearTimeout(saveTimer);
@@ -868,7 +869,6 @@
     return '<div class="wk-end"><span>🌿 ' + esc(T("My weekend", "الإجازة بتاعتي")) + '</span><div class="tp__tabs">' + b("auto", autoLbl) + b("fri", T("Friday", "الجمعة")) + b("sun", T("Sunday", "الأحد")) + "</div></div>";
   }
   function render() {
-    if (nowHost) setTimeout(renderNow, 0);
     if (mode === "today") sel = viewDow();
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
@@ -1377,7 +1377,16 @@
           '<button type="button" class="nt__x" data-note-del aria-label="' + esc(T("Delete", "امسح")) + '">✕</button></div>' +
           '<textarea class="nt__text" rows="5" placeholder="' + esc(T("Write…", "اكتب…")) + '">' + esc(n.text || "") + "</textarea></div>";
       }).join("") + '</div><p class="nb__hint">' + esc(T("Double-click to add · drag the board to move · ctrl/⌘ + wheel to zoom", "دبل كليك تضيف · اسحب البورد تتحرك · ctrl/⌘ + العجلة تكبّر")) + "</p></div></section>";
-    var fl = nowHost.querySelector(".fl__track"), keepScroll = fl ? fl.scrollLeft : null;
+    var page = nowHost.getAttribute("data-layout") === "page";
+    var calHtml = page ? calDay(items, m) : "";
+    if (page) notesHtml = notesHtml.replace('<div class="nb" data-nb>', '<div class="nb nb--tall" data-nb>');
+    var fl = nowHost.querySelector(page ? ".cl" : ".fl__track"), keepScroll = fl ? (page ? fl.scrollTop : fl.scrollLeft) : null;
+    if (page) {
+      nowHost.innerHTML = '<div class="card__head week__head"><h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="muted week__status">' + esc(status) + '</span><span class="nwp__nav"><a class="btn btn--ghost btn--sm" href="/time">⏱ ' + esc(T("Time", "الوقت")) + '</a><a class="btn btn--ghost btn--sm" href="/admin">← ' + esc(T("Home", "الرئيسية")) + "</a></span></div>" +
+        '<div class="nwp__top">' + prayHtml + moneyHtml + meetHtml + "</div>" +
+        '<div class="nwp__main"><div class="nwp__left">' + doHtml + calHtml + '</div><div class="nwp__right">' + notesHtml + "</div></div>";
+      return calSetup(keepScroll);
+    }
     nowHost.innerHTML = '<div class="card__head week__head"><h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
       '<div class="nw__grid">' + prayHtml + doHtml + "</div>" + flowHtml + '<div class="nw__grid">' + moneyHtml + meetHtml + "</div>" + notesHtml;
     // back to where the cards were, or to now if you have not moved them for a while
@@ -1390,6 +1399,50 @@
   function nbZoom(f, cx, cy) {
     var z = Math.max(0.3, Math.min(2.5, NB.z * f)), k = z / NB.z;
     NB.x = cx - (cx - NB.x) * k; NB.y = cy - (cy - NB.y) * k; NB.z = z; nbApply(); nbSave();
+  }
+  /* The day standing in 3D, like a Google Calendar day: blocks by their real time, hours down
+     the side, a red line for now, the next 2 hours lit. It moves 30 minutes per wheel notch,
+     arrow key or button, and goes back to now by itself after 20 seconds. */
+  var CAL_PX = 2.2, calMoved = 0, calLock = 0, calStart = 0;
+  function calDay(items, m) {
+    var evs = items.filter(function (x) { return x.to > x.from; });
+    var d0 = Math.floor(Math.min(evs.length ? evs[0].from : m, m - 60) / 60) * 60, d1 = Math.ceil(Math.max.apply(null, evs.map(function (x) { return x.to; }).concat([m + 180])) / 60) * 60;
+    d0 = Math.max(0, d0); d1 = Math.min(1440, d1); calStart = d0;
+    var Y = function (t) { return ((t - d0) * CAL_PX).toFixed(1); };
+    // side by side when blocks overlap (a prayer inside a work block, a meeting)
+    var lanes = [], cluster = [], clEnd = -1, out = [];
+    var flush = function () { var n = cluster.reduce(function (a, e) { return Math.max(a, e.lane + 1); }, 1); cluster.forEach(function (e) { e.n = n; }); cluster = []; lanes = []; };
+    evs.slice().sort(function (a, b) { return a.from - b.from || b.to - a.to; }).forEach(function (e) {
+      if (e.from >= clEnd) { flush(); clEnd = -1; }
+      var l = 0; while (lanes[l] > e.from) l++; lanes[l] = e.to;
+      var o = { e: e, lane: l }; cluster.push(o); out.push(o); clEnd = Math.max(clEnd, e.to);
+    });
+    flush();
+    var hours = ""; for (var h = d0; h <= d1; h += 60) hours += '<div class="cl__hr" style="top:' + Y(h) + 'px"><span>' + esc(ap(h).replace(":00", "")) + "</span></div>";
+    var snaps = ""; for (var t = d0; t < d1; t += 30) snaps += '<i class="cl__snap" style="top:' + Y(t) + 'px"></i>';
+    var evHtml = out.map(function (o) {
+      var e = o.e, c = CAT[e.cat] || CAT.product, isNow = m >= e.from && m < e.to, past = e.to <= m, soon = !isNow && !past && e.from < m + 120;
+      var h = Math.max(22, (e.to - e.from) * CAL_PX - 3), w = 100 / o.n;
+      return '<div class="cl__ev ' + (isNow ? "is-now" : past ? "is-past" : soon ? "is-soon" : "is-later") + (h < 44 ? " is-short" : "") + '" style="--cat:' + c.c + ";top:" + Y(e.from) + "px;height:" + h.toFixed(1) + "px;left:calc(" + (o.lane * w) + "% + 2px);width:calc(" + w + '% - 4px)">' +
+        '<b dir="ltr">' + esc(ap(e.from)) + " – " + esc(ap(e.to)) + "</b><span>" + (/^[\u0000-\u024F\u0600-\u06FF]/.test(e.title) ? c.ico + " " : "") + esc(e.title) + "</span>" +
+        (isNow ? '<i class="cl__prog"><em style="width:' + Math.round((m - e.from) / Math.max(1, e.to - e.from) * 100) + '%"></em></i>' : "") + "</div>";
+    }).join("");
+    return '<section class="nw nw--cal"><div class="nw__k">📅 ' + esc(T("Today", "النهارده")) + " · " + esc(T("now and the next 2 hours", "دلوقتي والساعتين الجايين")) +
+      '<span class="fl__ctl"><button type="button" class="btn btn--ghost btn--sm" data-cl-step="-1" aria-label="' + esc(T("Earlier", "قبل")) + '">▲</button><button type="button" class="btn btn--ghost btn--sm" data-cl-now>' + esc(T("Now", "دلوقتي")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-cl-step="1" aria-label="' + esc(T("Later", "بعد")) + '">▼</button></span></div>' +
+      '<div class="cl" tabindex="0"><div class="cl__plane" style="height:' + ((d1 - d0) * CAL_PX).toFixed(0) + 'px">' + hours + snaps +
+        '<div class="cl__win" style="top:' + Y(m) + "px;height:" + (120 * CAL_PX).toFixed(0) + 'px"><span>' + esc(T("next 2 h", "الساعتين الجايين")) + "</span></div>" +
+        '<div class="cl__lanes">' + evHtml + "</div>" +
+        '<div class="cl__now" style="top:' + Y(m) + 'px"><span>' + esc(ap(m)) + "</span></div></div></div></section>";
+  }
+  function calSetup(keep) {
+    var cl = nowHost.querySelector(".cl"); if (!cl) return;
+    var now = new Date(), m = now.getHours() * 60 + now.getMinutes();
+    if (keep != null && Date.now() - calMoved < 20000) cl.scrollTop = keep;
+    else cl.scrollTop = Math.max(0, (m - calStart) * CAL_PX - 50);
+    cl.addEventListener("wheel", function () { calMoved = Date.now(); }, { passive: true });
+    cl.addEventListener("keydown", function (e) { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); calMoved = Date.now(); cl.scrollBy({ top: (e.key === "ArrowDown" ? 1 : -1) * 30 * CAL_PX, behavior: "smooth" }); } });
+    cl.addEventListener("pointerdown", function () { calMoved = Date.now(); });
+    cl.addEventListener("touchmove", function () { calMoved = Date.now(); }, { passive: true });
   }
   var flowMoved = 0, flowLock = 0;
   function flowApply() {
@@ -1447,6 +1500,8 @@
       if ((b = t.closest("[data-mt]"))) { FIN.mt = b.getAttribute("data-mt"); return renderNow(); }
       if (t.closest("[data-fin-undo]")) return finUndo();
       if ((b = t.closest("[data-fl-step]"))) return flowStep(+b.getAttribute("data-fl-step"));
+      if ((b = t.closest("[data-cl-step]"))) { var clx = nowHost.querySelector(".cl"); calMoved = Date.now(); if (clx) clx.scrollBy({ top: +b.getAttribute("data-cl-step") * 30 * CAL_PX, behavior: "smooth" }); return; }
+      if (t.closest("[data-cl-now]")) { var cly = nowHost.querySelector(".cl"), nn = new Date(); calMoved = 0; if (cly) cly.scrollTo({ top: Math.max(0, (nn.getHours() * 60 + nn.getMinutes() - calStart) * CAL_PX - 50), behavior: "smooth" }); return; }
       if (t.closest("[data-fl-now]")) { flowMoved = 0; return flowTo(nowHost.querySelector("[data-fl-current]") || nowHost.querySelector(".fl__card"), true); }
       if ((b = t.closest("[data-nb-zoom]"))) { var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(); return nbZoom(+b.getAttribute("data-nb-zoom") > 0 ? 1.2 : 1 / 1.2, v.width / 2, v.height / 2); }
       if (t.closest("[data-nb-fit]")) { NB = { x: 0, y: 0, z: 1 }; nbApply(); return nbSave(); }
@@ -1551,7 +1606,7 @@
     gcStatus();
     if (nowHost) {
       renderNow(); finLoad(); clientsLoad();
-      setInterval(function () { var np = document.querySelector('.tabpanel[data-tabpanel="now"]'); if (np && !np.hidden) tickNow(); }, 1000);
+      setInterval(function () { var np = document.querySelector('.tabpanel[data-tabpanel="now"]'); if (!np || !np.hidden) tickNow(); }, 1000);
       setInterval(finLoad, 5 * 60000);
     }
     setInterval(function () { gcEvents(); gcSync(); }, 10 * 60000);

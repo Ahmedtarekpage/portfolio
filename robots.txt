@@ -20,6 +20,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -32,6 +33,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -44,6 +46,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -56,6 +59,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -68,6 +72,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -80,6 +85,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -92,6 +98,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -104,6 +111,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -116,6 +124,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -128,6 +137,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -140,6 +150,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/
@@ -152,6 +163,7 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /time
 Disallow: /desk
+Disallow: /now
 Disallow: /finance
 Disallow: /security
 Disallow: /c/

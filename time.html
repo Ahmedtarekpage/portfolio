@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="css/tools/go.css?v=19" />
   <link rel="stylesheet" href="css/tools/time-3d.css?v=11" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
-  <link rel="stylesheet" href="css/tools/tide.css?v=24" />
+  <link rel="stylesheet" href="css/tools/tide.css?v=28" />
   <script src="/js/tools/icons.js?v=2" defer></script>
 </head>
 <body>
@@ -151,7 +151,6 @@
 
 
       <nav class="tabbar" id="tabbar">
-        <button type="button" class="tab" data-tab="now"><span class="tab__icon">⏱️</span><span class="tab__label" data-ar="دلوقتي">Now</span></button>
         <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label" data-ar="النهارده">Today</span></button>
         <button type="button" class="tab" data-tab="week"><span class="tab__icon">🗓️</span><span class="tab__label" data-ar="أسبوعي">My week</span></button>
         <button type="button" class="tab" data-tab="quarter"><span class="tab__icon">🎯</span><span class="tab__label" data-ar="ربع السنة">Quarter</span></button>
@@ -161,11 +160,6 @@
         <button type="button" class="tab" data-tab="analytics"><span class="tab__icon">📊</span><span class="tab__label" data-ar="التحليلات">Analytics</span></button>
         <button type="button" class="tab" data-tab="plan"><span class="tab__icon">🗺️</span><span class="tab__label" data-ar="الخطة">Plan</span></button>
       </nav>
-
-      <!-- ---- Now: next prayer, now + next 2 hours, money, quick meeting, sticky notes (js/tools/week.js) ---- -->
-      <section class="tabpanel" data-tabpanel="now" hidden>
-      <div class="card week now" id="nowCard"></div>
-      </section>
 
       <!-- ---- Today ---- -->
       <section class="tabpanel" data-tabpanel="today">
@@ -857,6 +851,6 @@
   <script src="js/tools/time-cal.js?v=6"></script>
   <script src="js/tools/time-clock.js?v=2"></script>
   <script type="module" src="js/tools/time-sky.js?v=3"></script>
-  <script src="js/tools/week.js?v=22"></script>
+  <script src="js/tools/week.js?v=25"></script>
 </body>
 </html>

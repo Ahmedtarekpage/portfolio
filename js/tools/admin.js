@@ -132,7 +132,7 @@
   /* ---------------- auth ---------------- */
 
   // after sign-in, go back to the page that sent you here (allow-list only, so it can't be used as an open redirect)
-  var NEXT = { finance: "/finance" }[new URLSearchParams(location.search).get("next")] || "";
+  var NEXT = { finance: "/finance", now: "/now" }[new URLSearchParams(location.search).get("next")] || "";
 
   function boot() {
     api("/api/auth?action=me").then(function (me) {
