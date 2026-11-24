@@ -102,23 +102,6 @@ export function isAuthed(req) {
   return !!payload && payload.t === "sess";
 }
 
-// Security-log unlock (owner, 2026-11-18): being signed in is not enough to
-// open /security — it asks for a passcode every time it is opened. The right
-// code (intruder.js securityUnlock) returns this token; the page
-// keeps it in memory only (never a cookie), so a refresh or a new tab asks
-// again, and the log endpoints refuse requests without it.
-const UNLOCK_HEADER = "x-security-unlock";
-const UNLOCK_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-export function createUnlockToken() {
-  return sign({ t: "secu", exp: Date.now() + UNLOCK_TTL_MS });
-}
-
-export function hasUnlock(req) {
-  const payload = verifyToken(String(req.headers[UNLOCK_HEADER] || ""));
-  return !!payload && payload.t === "secu";
-}
-
 /** Guard: responds 401 and returns false when not logged in. */
 export function requireAuth(req, res) {
   if (isAuthed(req)) return true;

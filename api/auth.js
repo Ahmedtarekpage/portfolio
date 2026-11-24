@@ -6,17 +6,9 @@
 //   POST /api/auth?action=register-options -> WebAuthn registration options (ONLY while no device is registered)
 //   POST /api/auth?action=register-verify  -> verify attestation, save credential, start session
 //   POST /api/auth?action=logout
-//   POST /api/auth?action=snap             -> record a failed attempt (+ camera frame); open to anyone, see _lib/intruder.js
-//   GET  /api/auth?action=snaps            -> the security log (owner + fresh passkey unlock)
-//   POST /api/auth?action=snaps-clear      -> empty it (owner + unlock)
-//   POST /api/auth?action=block            -> { ip, on } block or unblock an address (owner + unlock)
-//   POST /api/auth?action=security-unlock  -> { code } the security-log passcode -> { unlock } (owner only)
 //
-// The unlock is a 10-minute token the security page keeps in memory and sends
-// as X-Security-Unlock (see util.js hasUnlock), so every open asks for the code.
-//
-// A blocked address is refused by every sign-in step below (403), so it cannot
-// even be offered a passkey prompt.
+// The camera snapshots, the security log (/security) and address blocking were
+// removed at the owner's request on 2026-11-24.
 //
 // Registration is first-device-only: once one passkey exists, registration is
 // permanently closed (enforced with a guarded INSERT). To reset, delete the
@@ -36,7 +28,6 @@ import {
   withErrors, json, rp, sign, verifyToken, parseCookies, setCookie, clearCookie,
   createSession, destroySession, isAuthed, safeEqual,
 } from "./_lib/util.js";
-import { snapSave, snapList, snapClear, blockSet, isBlocked, securityUnlock } from "./_lib/intruder.js";
 
 const RP_NAME = "Ahmed Tarek — Admin";
 const CHALLENGE_COOKIE = "wa_challenge";
@@ -70,14 +61,7 @@ export default withErrors(async (req, res) => {
     return json(res, 200, { authed: isAuthed(req), hasCredentials: (await credentialCount(sql)) > 0 });
   }
 
-  if (action === "snaps" && req.method === "GET") return snapList(req, res, await db());
-
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-
-  if (action === "snap") return snapSave(req, res, await db());
-  if (action === "snaps-clear") return snapClear(req, res, await db());
-  if (action === "block") return blockSet(req, res, await db());
-  if (action === "security-unlock") return securityUnlock(req, res, await db());
 
   if (action === "logout") {
     destroySession(res);
@@ -96,10 +80,6 @@ export default withErrors(async (req, res) => {
     await sql`DELETE FROM wa_credentials`;
     destroySession(res);
     return json(res, 200, { ok: true, message: "Passkeys wiped — first-time setup is open again" });
-  }
-
-  if (["login-options", "login-verify", "register-options", "register-verify"].includes(action) && await isBlocked(req, await db())) {
-    return json(res, 403, { error: "This address has been blocked" });
   }
 
   if (action === "login-options") {

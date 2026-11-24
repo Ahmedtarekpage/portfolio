@@ -808,9 +808,8 @@
     api("/api/auth?action=login-options", { method: "POST", body: {} })
       .then(function (options) { return SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options }); })
       .then(function (response) { return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } }); })
-      .then(function () { if (window.Snap) Snap.ok("login"); initApp(); })
-      // a second failed sign-in is recorded for the security log (js/tools/snap.js)
-      .catch(function (e) { if (window.Snap) Snap.fail("login", e && e.name); if (e.name !== "NotAllowedError") showErr("#loginError", e.message || T("Sign-in failed", "الدخول فشل")); })
+      .then(function () { initApp(); })
+      .catch(function (e) { if (e.name !== "NotAllowedError") showErr("#loginError", e.message || T("Sign-in failed", "الدخول فشل")); })
       .finally(function () { busy(btn, false); });
   });
 
@@ -1209,6 +1208,8 @@
     }
     return { times: pt, plan: plan, place: place, set: set, friday: friday };
   }
+  // the week card (js/tools/week.js) uses the same place, times and iqama rule
+  window.TimePrayer = { place: prayerPlace, timesFor: prayerTimesFor, settings: prayerSettings };
 
   function religionCategoryId() {
     var cats = (state.quarterDetail && state.quarterDetail.categories) || [];

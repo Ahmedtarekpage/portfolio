@@ -86,10 +86,8 @@
     api("/api/auth?action=login-options", { method: "POST", body: {} })
       .then(function (options) { return SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options }); })
       .then(function (response) { return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } }); })
-      .then(function (r) { if (window.Snap) Snap.ok("login"); return start(r); })
+      .then(function (r) { return start(r); })
       .catch(function (e) {
-        // a second failed sign-in is recorded for the security log (js/tools/snap.js)
-        if (window.Snap) Snap.fail("login", e && e.name);
         if (e.name === "NotAllowedError") return;
         err.textContent = e.message || T("Sign-in failed", "الدخول فشل");
         err.hidden = false;

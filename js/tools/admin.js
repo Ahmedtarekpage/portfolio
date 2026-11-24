@@ -163,12 +163,8 @@
       .then(function (response) {
         return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } });
       })
-      .then(function () { if (window.Snap) Snap.ok("login"); if (NEXT) return location.replace(NEXT); loadClients(); })
+      .then(function () { if (NEXT) return location.replace(NEXT); loadClients(); })
       .catch(function (e) {
-        // a second failed sign-in is recorded for the security log, with a camera
-        // frame if the browser allows one (js/tools/snap.js). A cancelled passkey
-        // prompt counts: that is what someone without the passkey ends up doing.
-        if (window.Snap) Snap.fail("login", e && e.name);
         if (e.name !== "NotAllowedError") showErr("#loginError", e.message || T("Sign-in failed", "الدخول فشل"));
       })
       .finally(function () { busy(btn, false); });

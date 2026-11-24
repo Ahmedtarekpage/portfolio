@@ -1617,8 +1617,7 @@ function askPin(msg) {
 function closePin(ok) { pinEl.hidden = true; pinIn.value = ''; const r = pinRes; pinRes = null; r?.(ok); }
 $('#pinForm').addEventListener('submit', e => {
   e.preventDefault();
-  if (norm(pinIn.value).trim() === String(S.pin || '')) { sfx.ok(); window.Snap?.ok('pin'); return closePin(true); }
-  window.Snap?.fail('pin'); // على الموقع: تاني غلطة بتتسجل في سجل الأمان ومعاها صورة لو الكاميرا مسموحة
+  if (norm(pinIn.value).trim() === String(S.pin || '')) { sfx.ok(); return closePin(true); }
   sfx.err(); $('#pinErr').textContent = HOSTED && FILE.missing ? L('مفيش بيانات على الموقع لسه، فالرقم المؤقت 0000. استورد ملفك من 📥 عشان رقمك يشتغل.', 'There is no data on the site yet, so the temporary PIN is 0000. Import your file with 📥 and your own PIN will work.') : pick(PIN_BAD()); pinIn.value = '';
   const f = $('#pinForm'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake');
 });

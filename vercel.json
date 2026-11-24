@@ -47,10 +47,6 @@
     {
       "source": "/full",
       "destination": "/journey.html"
-    },
-    {
-      "source": "/security",
-      "destination": "/security.html"
     }
   ],
   "headers": [
