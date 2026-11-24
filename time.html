@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/logo/icon-96.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/logo/icon-192.png">
   <link rel="apple-touch-icon" href="/logo/favicon-180.png">
-  <meta name="theme-color" content="#161826" />
+  <meta name="theme-color" content="#14213D" />
   <script>
     // set the theme before CSS applies, so there's no flash of the wrong theme.
     // One key across /admin, /dashboard and /time; "time-theme" is the key this
@@ -34,10 +34,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=14" />
-  <link rel="stylesheet" href="css/tools/time.css?v=53" />
-  <link rel="stylesheet" href="css/tools/go.css?v=17" />
+  <link rel="stylesheet" href="css/tools/app.css?v=15" />
+  <link rel="stylesheet" href="css/tools/time.css?v=57" />
+  <link rel="stylesheet" href="css/tools/go.css?v=19" />
+  <link rel="stylesheet" href="css/tools/time-3d.css?v=11" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
+  <link rel="stylesheet" href="css/tools/tide.css?v=5" />
+  <script src="/js/tools/icons.js?v=2" defer></script>
 </head>
 <body>
 
@@ -89,6 +92,7 @@
         <div class="topbar__actions">
           <button id="btnTheme" class="btn btn--ghost btn--sm theme-toggle" aria-label="Toggle light/dark theme" title="Toggle light/dark theme" data-ar-title="غيّر الثيم فاتح/غامق">🌙</button>
           <a class="btn btn--ghost btn--sm" href="/admin" data-sound="page" data-ar="→ الرئيسية">← Home</a>
+          <a class="btn btn--ghost btn--sm" href="/desk" data-ar="المكتب">Desk</a>
           <button id="btnLogout" class="btn btn--ghost btn--sm" data-ar="خروج">Log out</button>
         </div>
       </header>
@@ -157,6 +161,9 @@
           </div>
         </details>
       </div>
+
+      <!-- the weekly routine: what each day is for, today's list, the picture (js/tools/week.js) -->
+      <div class="card week" id="weekCard"></div>
 
       <nav class="tabbar" id="tabbar">
         <button type="button" class="tab tab--active" data-tab="today"><span class="tab__icon">📅</span><span class="tab__label" data-ar="النهارده">Today</span></button>
@@ -270,6 +277,8 @@
                 <select name="category_id"><option value="">— none —</option></select>
               </label>
               <label><span data-ar="الساعات المخططة">Planned hours</span><input name="planned_hours" type="number" min="0" step="0.25" placeholder="optional" data-ar-placeholder="اختياري" /></label>
+              <label><span data-ar="من الساعة">From</span><input name="time_from" type="time" /></label>
+              <label><span data-ar="لحد الساعة">To</span><input name="time_to" type="time" /></label>
               <label id="actualHoursField" hidden><span data-ar="الساعات الفعلية">Actual hours</span><input name="actual_hours" type="number" min="0" step="0.25" placeholder="optional" data-ar-placeholder="اختياري" /></label>
               <div class="span2">
                 <button type="submit" class="btn btn--primary" id="btnTaskSubmit" data-ar="إضافة مهمة">Add task</button>
@@ -341,6 +350,23 @@
                 <button type="button" id="btnCancelSelect" class="btn btn--ghost btn--sm" data-ar="تمام">Done</button>
               </div>
             </div>
+            <div class="cal-bar" id="calBar">
+              <div class="cal-views" role="group" aria-label="View" data-ar-aria-label="العرض">
+                <button type="button" data-view="list" aria-pressed="true" data-ar="📋 قايمة">📋 List</button>
+                <button type="button" data-view="day" aria-pressed="false" data-ar="🕒 يوم">🕒 Day</button>
+                <button type="button" data-view="week" aria-pressed="false" data-ar="🗓️ أسبوع">🗓️ Week</button>
+                <button type="button" data-view="month" aria-pressed="false" data-ar="📅 شهر">📅 Month</button>
+              </div>
+              <div class="cal-actions">
+                <button type="button" id="btnPlanDay" class="btn btn--primary btn--sm" aria-expanded="false" data-ar="🧠 خطّط يومي">🧠 Plan my day</button>
+                <button type="button" id="btnRepeat" class="btn btn--ghost btn--sm" aria-expanded="false" data-ar="🔁 بيتكرر">🔁 Repeating</button>
+                <button type="button" id="btnReview" class="btn btn--ghost btn--sm" aria-expanded="false" data-ar="🌙 آخر اليوم">🌙 End of day</button>
+              </div>
+            </div>
+            <div class="cal-panel" id="calPanel" hidden></div>
+            <div class="sky" id="prayerSky" hidden aria-hidden="true"></div>
+            <div class="prayer-bar" id="prayerBar" hidden></div>
+            <div class="cal-view" id="calView" hidden></div>
             <div class="task-list" id="taskList"></div>
             <p id="tasksEmpty" class="muted center" hidden data-ar="مفيش مهام لليوم ده لسه.">No tasks for this day yet.</p>
 
@@ -389,6 +415,13 @@
               <button type="button" class="go-pick" data-days="21" data-ar="21 يوم">21 days</button>
               <button type="button" class="go-pick" data-days="30" data-ar="30 يوم">30 days</button>
               <button type="button" class="go-pick" data-days="90" data-ar="90 يوم">90 days</button>
+            </div>
+            <!-- the quarter's own days off, and how many working days that leaves
+                 (owner, 2026-11-21: "see total days, working days, sat sun friday free by selecting for every quarter") -->
+            <div class="q-off">
+              <span class="q-off__label" data-ar="أيام الإجازة (دوس تختار)">Days off (tap to choose)</span>
+              <div class="q-off__days" id="quarterWeekend" role="group" aria-label="Days off" data-ar-aria-label="أيام الإجازة"></div>
+              <p class="q-off__sum" id="quarterDaysInfo" aria-live="polite"></p>
             </div>
             <!-- which plan phase's hours a day the goals' due dates are counted with -->
             <label class="quarter-phase-field"><span data-ar="مرحلة الخطة لحساب مواعيد التسليم">Plan phase for the due dates</span>
@@ -799,11 +832,17 @@
 
   <script>I18N.apply(document);</script>
 
-  <script src="js/tools/snap.js?v=3"></script>
+  <script src="js/tools/snap.js?v=4"></script>
 
-  <script src="js/tools/theme.js?v=3"></script>
-  <script src="js/tools/go.js?v=4"></script>
-  <script src="js/tools/chart.js?v=20"></script>
-  <script src="js/tools/time.js?v=82"></script>
+  <script src="js/tools/theme.js?v=5"></script>
+  <script src="js/tools/go.js?v=6"></script>
+  <script src="js/tools/chart.js?v=21"></script>
+  <script src="js/tools/prayer.js?v=2"></script>
+  <script src="js/tools/time-fx.js?v=2"></script>
+  <script src="js/tools/time.js?v=90"></script>
+  <script src="js/tools/time-cal.js?v=6"></script>
+  <script src="js/tools/time-clock.js?v=2"></script>
+  <script type="module" src="js/tools/time-sky.js?v=3"></script>
+  <script src="js/tools/week.js?v=3"></script>
 </body>
 </html>

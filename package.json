@@ -6,6 +6,7 @@
     "node": "22.x"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
     "@neondatabase/serverless": "^1.0.1",
     "@simplewebauthn/server": "^13.1.1"
   }

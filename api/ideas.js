@@ -5,18 +5,28 @@
 //   PATCH  /api/ideas?id=N          -> { text }
 //   DELETE /api/ideas?id=N
 //
-// Also carries the finance planner's storage (?finance=data|fx) — see _lib/finance.js.
+// Also carries the finance planner's storage (?finance=data|fx) — see _lib/finance.js —
+// and the product desk's (?desk=data|pull) — see _lib/desk.js.
 import { db } from "./_lib/db.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { finance } from "./_lib/finance.js";
+import { desk, deskCron } from "./_lib/desk.js";
+
+// the finance AI agent (Claude Opus 5.5) can think for a while
+export const maxDuration = 60;
 
 export default withErrors(async (req, res) => {
+  // The desk's weekly capture is called by Vercel Cron, which has no session:
+  // it carries CRON_SECRET instead, checked inside. Everything else needs the passkey.
+  if (req.query.desk === "cron") return deskCron(req, res, await db());
   if (!requireAuth(req, res)) return;
   const sql = await db();
 
   // The finance planner at /finance borrows this function: api/ is at the
   // 12-function limit, so it cannot have one of its own. See _lib/finance.js.
   if (req.query.finance) return finance(req, res, sql);
+  // The product desk at /desk borrows it for the same reason. See _lib/desk.js.
+  if (req.query.desk) return desk(req, res, sql);
 
   if (req.method === "GET") {
     const ideas = await sql`SELECT * FROM ideas ORDER BY position, created_at`;

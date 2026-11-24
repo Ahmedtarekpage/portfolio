@@ -54,7 +54,7 @@
 .mascot__face { position: relative; width: 34px; height: 26px; }
 .mascot__eye {
   position: absolute; top: 0; width: 7px; height: 7px; border-radius: 50%;
-  background: #12141c; animation: mascotBlink 4.5s ease-in-out infinite;
+  background: #12151C; animation: mascotBlink 4.5s ease-in-out infinite;
 }
 .mascot__eye--left { left: 1px; }
 .mascot__eye--right { right: 1px; }
@@ -64,16 +64,16 @@
 }
 .mascot__mouth { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); transition: all 0.3s ease; }
 .mascot__mouth--sad {
-  width: 18px; height: 8px; border: none; border-top: 3px solid #12141c;
+  width: 18px; height: 8px; border: none; border-top: 3px solid #12151C;
   border-radius: 18px 18px 0 0; bottom: -2px;
 }
-.mascot__mouth--neutral { width: 14px; height: 0; border-top: 3px solid #12141c; }
+.mascot__mouth--neutral { width: 14px; height: 0; border-top: 3px solid #12151C; }
 .mascot__mouth--happy {
-  width: 18px; height: 10px; border: 3px solid #12141c; border-top: none;
+  width: 18px; height: 10px; border: 3px solid #12151C; border-top: none;
   border-radius: 0 0 18px 18px;
 }
 .mascot__mouth--excited {
-  width: 14px; height: 14px; border-radius: 50%; background: #12141c;
+  width: 14px; height: 14px; border-radius: 50%; background: #12151C;
 }
 .mascot__char--celebrate { animation: mascotCelebrate 0.6s ease 2; }
 @keyframes mascotCelebrate {
@@ -146,7 +146,7 @@
   background: rgba(var(--accent-2-rgb), 0.08);
 }
 .badge-chip--unlocked .badge-chip__glyph { filter: none; opacity: 1; }
-.badge-chip--open { border-color: var(--blue-2); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25); }
+.badge-chip--open { border-color: var(--blue-2); box-shadow: 0 0 0 2px rgba(96, 121, 176, 0.25); }
 .badge-chip--tuned::after { content: ""; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--blue-2); }
 
 /* One badge, opened: its goal, and a restart from today. */
@@ -393,7 +393,7 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 400;
     margin: 0; gap: 0; overflow-x: visible;
     border-bottom: none; border-top: 1px solid var(--glass-brd);
-    background: rgba(35, 37, 50, 0.92);
+    background: rgba(35, 40, 50, 0.92);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     padding: 4px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom, 0)) max(4px, env(safe-area-inset-left));
   }
@@ -945,7 +945,7 @@
   font: 600 6rem var(--font-ui); font-variant-numeric: tabular-nums; line-height: 1;
   background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.pomodoro-overlay--break .pomodoro__time { background: linear-gradient(120deg, #34d399, #22d3ee); -webkit-background-clip: text; background-clip: text; }
+.pomodoro-overlay--break .pomodoro__time { background: linear-gradient(120deg, #34d399, #6079B0); -webkit-background-clip: text; background-clip: text; }
 .pomodoro-overlay--running .pomodoro__time { animation: cdPulse 1s ease infinite; }
 .pomodoro__dots { display: flex; gap: 7px; }
 .pomodoro__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--glass-brd); transition: background-color 0.25s ease, transform 0.2s ease; }
@@ -1033,7 +1033,7 @@
   color: var(--ink);
   box-shadow: var(--shadow-pop);
 }
-.copy-dialog::backdrop { background: rgba(10, 11, 20, 0.55); backdrop-filter: blur(3px); }
+.copy-dialog::backdrop { background: rgba(10, 13, 20, 0.55); backdrop-filter: blur(3px); }
 .copy-dialog[open] { animation: copyDialogIn var(--t-mid) var(--ease); }
 .copy-dialog[open]::backdrop { animation: copyBackdropIn var(--t-mid) ease; }
 @keyframes copyDialogIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
@@ -1131,3 +1131,48 @@
 [dir="rtl"] .milestone-row__pct { text-align: left; }
 [dir="rtl"] .copy-dialog__name { margin-right: 0; margin-left: auto; }
 /* ============================ end RTL overrides ============================ */
+
+/* days off per quarter + the day count (owner, 2026-11-21) */
+.q-off { display: grid; gap: 8px; margin: 4px 0 2px; }
+.q-off__label { font-weight: 700; font-size: .9rem; }
+.q-off__days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.q-off__day.go-pick { min-height: 42px; padding: 6px 4px; font-size: .82rem; justify-content: center; }
+.q-off .q-off__day.go-pick[aria-pressed="true"] { background: #fee2e2; border-color: #f87171; color: #b91c1c; }
+.q-off__sum { margin: 0; font-size: .9rem; color: var(--muted, #64708B); }
+.q-off__sum b { color: var(--ink, #0f172a); }
+.q-off__sum .q-off__work { color: #6079B0; }
+@media (max-width: 560px) { .q-off__days { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+:root[data-theme="dark"] .q-off .q-off__day.go-pick[aria-pressed="true"] { background: rgba(248,113,113,.18); color: #fca5a5; } :root[data-theme="dark"] .q-off__sum b { color: inherit; }
+
+/* ---- prayer times bar + a task's own from–to (owner, 2026-11-21) ---- */
+.task-row__slot { font-weight: 600; color: var(--text, inherit); font-variant-numeric: tabular-nums; }
+.task-row__note { color: var(--faint); font-variant-numeric: tabular-nums; }
+.prayer-bar { margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(135, 154, 196, .28);
+  background: linear-gradient(135deg, rgba(135, 154, 196, .10), rgba(58, 166, 130, .08)); }
+.prayer-bar__times { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.prayer-bar__t { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 10px; font-variant-numeric: tabular-nums; }
+.prayer-bar__t small { font-size: .72rem; color: var(--faint); }
+.prayer-bar__t b { font-size: .95rem; }
+.prayer-bar__t.is-sun { opacity: .6; }
+.prayer-bar__t.is-next { background: rgba(135, 154, 196, .22); box-shadow: inset 0 0 0 1px rgba(135, 154, 196, .55); }
+.prayer-bar__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; font-size: .8rem; color: var(--faint); }
+.prayer-bar__foot span { margin-inline-end: auto; }
+.prayer-bar__set { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
+.prayer-bar__set label { display: flex; align-items: center; gap: 6px; font-size: .85rem; }
+.prayer-bar__set label span { min-width: 4.5em; }
+.prayer-bar__set input { width: 4.2em; min-height: 36px; }
+.prayer-bar__set input[type="time"] { width: auto; }
+.prayer-bar__btns, .prayer-bar__hint { grid-column: 1 / -1; display: flex; gap: 8px; margin: 0; }
+.prayer-bar__hint { font-size: .78rem; }
+@media (max-width: 560px) {
+  .prayer-bar__times { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .prayer-bar__foot .btn { min-height: 40px; }
+}
+/* phone: the row's buttons drop to a second line so the title and its time get the width */
+@media (max-width: 560px) {
+  .task-row { flex-wrap: wrap; row-gap: 4px; }
+  .task-row__body { flex: 1 1 calc(100% - 120px); }
+  .task-row__body + * { margin-inline-start: auto; }
+}
+.prayer-bar__set label:has(input[type="time"]) { grid-column: span 2; }
+.prayer-bar__src { display: block; font-size: .72rem; opacity: .8; margin-top: 2px; }

@@ -8,24 +8,24 @@
 
 :root {
   color-scheme: dark;
-  --bg: #161826;              /* --color-bg */
-  --bg-2: #232532;            /* --color-surface */
+  --bg: #161B26;              /* --color-bg */
+  --bg-2: #232832;            /* --color-surface */
   --ink: #e9e9ed;             /* --color-text */
-  --muted: #b2b6ca;           /* --color-neutral-400 */
+  --muted: #B2BACA;           /* --color-neutral-400 */
   --faint: #75798c;           /* --color-neutral-600 */
-  --blue: #9184d9;            /* --color-accent */
-  --blue-2: #b5abfc;          /* --color-accent-400 */
+  --blue: #93A4CA;            /* --color-accent */
+  --blue-2: #C5CEE2;          /* --color-accent-400 */
   --accent-rgb: 145, 132, 217;
   --accent-2-rgb: 167, 161, 219;
-  --grad: linear-gradient(110deg, #b5abfc 0%, #9184d9 55%, #796cbf 100%);
-  --glass: #232532;
+  --grad: linear-gradient(110deg, #C5CEE2 0%, #93A4CA 55%, #7288B9 100%);
+  --glass: #232832;
   --glass-brd: rgba(233, 233, 237, 0.16); /* --color-divider */
-  --btn-ink: #191a24;
+  --btn-ink: #191C24;
   --shadow-card: 0 0 0 1px rgba(233, 233, 237, 0.05), 0 16px 40px rgba(0, 0, 0, 0.5);
   --shadow-pop: 0 18px 44px rgba(0, 0, 0, 0.55);
   --chart-grid: rgba(233, 233, 237, 0.09);
   --chart-marker: rgba(233, 233, 237, 0.26);
-  --chart-line: #9184d9;
+  --chart-line: #93A4CA;
   --chart-focus: #d9a441;
   --chart-goals: #3aa682;     /* goals reached, beside execution in --chart-line */
   --wash: rgba(233, 233, 237, 0.06);
@@ -39,9 +39,9 @@
   --t-fast: 0.15s;
   --t-mid: 0.28s;
   /* chart palette */
-  --c-line: #9184d9;
+  --c-line: #93A4CA;
   --c-purchase: #3aa682;
-  --c-session: #8477d4;
+  --c-session: #879AC4;
   --c-expiry: #c98a2b;
   --c-danger: #e2586a;
 }
@@ -49,31 +49,31 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #ffffff;
-  --bg-2: #f4f4f9;            /* --color-neutral-900 */
+  --bg-2: #F9F7F4;            /* --color-neutral-900 */
   --ink: #17181f;             /* --color-text */
   --muted: #5c5e70;           /* --color-neutral-400 */
   /* the site's neutral-600 is a border tone at 2.47:1 on white; --faint carries
      axis labels and kickers here, so it steps toward neutral-500 for 4.75:1 */
   --faint: #6f7285;
-  --blue: #7263c9;            /* --color-accent */
-  --blue-2: #5e50b5;          /* --color-accent-400 */
+  --blue: #7289BA;            /* --color-accent */
+  --blue-2: #5873AD;          /* --color-accent-400 */
   --accent-rgb: 114, 99, 201;
   --accent-2-rgb: 139, 127, 214;
-  --grad: linear-gradient(110deg, #8b7fd6 0%, #7263c9 55%, #5e50b5 100%);
+  --grad: linear-gradient(110deg, #8EA0C7 0%, #7289BA 55%, #5873AD 100%);
   --glass: #ffffff;
-  --glass-brd: #c9cad8;       /* --color-neutral-700 */
+  --glass-brd: #C9CED8;       /* --color-neutral-700 */
   --btn-ink: #ffffff;
   --shadow-card: 0 1px 3px rgba(23, 24, 31, 0.08);    /* --shadow-sm */
   --shadow-pop: 0 18px 50px -16px rgba(23, 24, 31, 0.2); /* --shadow-lg */
   --chart-grid: rgba(23, 24, 31, 0.08);
   --chart-marker: rgba(23, 24, 31, 0.22);
-  --chart-line: #7263c9;
+  --chart-line: #7289BA;
   --chart-focus: #b8791f;
   --chart-goals: #2a8265;     /* 4.69:1 on white; the dark theme's green is 3.02 */
   --wash: rgba(23, 24, 31, 0.045);
   --wash-strong: rgba(23, 24, 31, 0.075);
-  --c-line: #7263c9;
-  --c-session: #7263c9;
+  --c-line: #7289BA;
+  --c-session: #7289BA;
   /* the dark theme's green and amber sit at 3.02 and 2.94 on white — under the
      3:1 a chart mark needs — so the light theme darkens both */
   --c-purchase: #2a8265;
@@ -645,7 +645,7 @@ button.meet__who:hover strong { color: var(--blue-2); }
 @starting-style {
   .dialog[open] { opacity: 0; transform: scale(0.96); }
 }
-.dialog::backdrop { background: rgba(10, 11, 18, 0.55); }
+.dialog::backdrop { background: rgba(10, 13, 18, 0.55); }
 .dialog p { margin-top: 6px; font-size: 0.9rem; line-height: 1.55; }
 .dialog__actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
 .meet-preview__warn { color: var(--c-expiry); }

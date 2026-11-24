@@ -17,7 +17,7 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/logo/icon-96.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/logo/icon-192.png">
   <link rel="apple-touch-icon" href="/logo/favicon-180.png">
-  <meta name="theme-color" content="#161826" />
+  <meta name="theme-color" content="#14213D" />
   <script>
     // set the theme before CSS applies, so there's no flash of the wrong theme.
     // One key across /admin, /dashboard and /time; "time-theme" is the key this
@@ -34,9 +34,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Quicksand:wght@500;600;700&family=Cairo:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/tools/app.css?v=14" />
-  <link rel="stylesheet" href="css/tools/go.css?v=17" />
+  <link rel="stylesheet" href="css/tools/app.css?v=15" />
+  <link rel="stylesheet" href="css/tools/go.css?v=19" />
   <script src="/vendor/simplewebauthn-browser-13.1.0.umd.min.js"></script>
+  <link rel="stylesheet" href="css/tools/tide.css?v=5" />
+  <script src="/js/tools/icons.js?v=2" defer></script>
 </head>
 <body>
 
@@ -92,6 +94,15 @@
         <span class="go-hero__bar" aria-hidden="true"></span>
       </div>
       <div class="go-home">
+        <a class="go-home__tile" href="/desk" id="goDesk">
+          <span class="go-home__icon" aria-hidden="true">🎫</span>
+          <span>
+            <span class="go-home__name" data-ar="مكتب المنتجات">Product desk</span>
+            <span class="go-home__sub" data-ar="تذاكر المنتجات، يوم التصليح، وأرقام كل منصة">Tickets for every product, fix day, and each platform's numbers</span>
+            <span class="go-home__facts"><span class="go-home__fact" data-ar="النهارده · يوم التصليح · الأرقام · المنتجات">Today · Fix day · Numbers · Products</span></span>
+          </span>
+          <span class="go-home__go" aria-hidden="true" data-ar="←">→</span>
+        </a>
         <button type="button" class="go-home__tile" id="goClients">
           <span class="go-home__icon" aria-hidden="true">👥</span>
           <span>
@@ -508,14 +519,14 @@
 
   <script>I18N.apply(document);</script>
 
-  <script src="js/tools/snap.js?v=3"></script>
+  <script src="js/tools/snap.js?v=4"></script>
 
-  <script src="js/tools/chart.js?v=20"></script>
-  <script src="js/tools/theme.js?v=3"></script>
-  <script src="js/tools/meetings.js?v=4"></script>
-  <script src="js/tools/go.js?v=4"></script>
-  <script src="js/tools/country.js?v=1"></script>
-  <script src="js/tools/files.js?v=2"></script>
-  <script src="js/tools/admin.js?v=18"></script>
+  <script src="js/tools/chart.js?v=21"></script>
+  <script src="js/tools/theme.js?v=5"></script>
+  <script src="js/tools/meetings.js?v=5"></script>
+  <script src="js/tools/go.js?v=6"></script>
+  <script src="js/tools/country.js?v=2"></script>
+  <script src="js/tools/files.js?v=3"></script>
+  <script src="js/tools/admin.js?v=20"></script>
 </body>
 </html>

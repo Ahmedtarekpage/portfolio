@@ -1,0 +1,197 @@
+/* Tide: the one palette for every private tool (/admin, /time, /dashboard,
+   /desk). Three colours and nothing else carries the brand:
+
+     Navy  #14213D   the ground by night, the ink by day
+     Cream #F4EDE0   the ink by night, the ground by day
+     Coral #FF6B5B   the single accent: buttons, the active tab, focus
+
+   Loaded LAST on each page so it wins over the palettes app.css, go.css and
+   desk.css each declare for themselves. Coral under text sits at 2.9:1 with
+   white, so anything written on coral is navy (5.9:1); coral used AS text on
+   cream is stepped down to #BF3A2A (4.7:1). Status colours (green, amber,
+   red) and the chart series palette are not brand colours and stay as they are. */
+
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --navy: #14213D; --cream: #F4EDE0; --coral: #FF6B5B;
+  --bg: #14213D; --bg-2: #101B33; --glass: #1B2A4B; --glass-brd: rgba(244, 237, 224, 0.16);
+  --ink: #F4EDE0; --muted: #C5C2BC; --faint: #949BAD;
+  --blue: #FF6B5B; --blue-2: #FF9486; --accent-rgb: 255, 107, 91; --accent-2-rgb: 255, 148, 134;
+  --grad: linear-gradient(180deg, #FF8172 0%, #FF6B5B 100%); --btn-ink: #14213D;
+  --wash: rgba(244, 237, 224, 0.06); --wash-strong: rgba(244, 237, 224, 0.11);
+  --shadow-card: 0 1px 0 rgba(244, 237, 224, 0.05) inset, 0 12px 32px rgba(6, 12, 28, 0.45);
+  --shadow-pop: 0 18px 44px rgba(6, 12, 28, 0.6);
+  --chart-grid: rgba(244, 237, 224, 0.09); --chart-marker: rgba(244, 237, 224, 0.26);
+  --chart-line: #FF6B5B; --c-line: #FF6B5B; --c-session: #FF9486;
+  /* go.css */
+  --go-blue: #FF6B5B; --go-blue-dark: #FF9486; --go-blue-tint: rgba(255, 107, 91, 0.2);
+  --night-navy: #14213D; --ice: #14213D; --border: rgba(244, 237, 224, 0.16); --dot: rgba(244, 237, 224, 0.1);
+  /* desk.css */
+  --tk-body: #1B2A4B; --tex: rgba(244, 237, 224, 0.04);
+  --flute: rgba(244, 237, 224, 0.028);
+  --ground:
+    repeating-linear-gradient(90deg, var(--flute) 0 1px, transparent 1px 8px),
+    radial-gradient(900px 440px at 82% -120px, rgba(255, 107, 91, 0.34), transparent 70%),
+    radial-gradient(760px 420px at 8% -160px, rgba(244, 237, 224, 0.1), transparent 70%),
+    #14213D;
+  --hero:
+    repeating-linear-gradient(90deg, rgba(244, 237, 224, 0.045) 0 1px, transparent 1px 7px),
+    radial-gradient(120% 150% at 62% 118%, rgba(255, 107, 91, 0.85), rgba(255, 107, 91, 0) 58%),
+    radial-gradient(90% 120% at 12% -30%, rgba(244, 237, 224, 0.2), rgba(244, 237, 224, 0) 60%),
+    #14213D;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --navy: #14213D; --cream: #F4EDE0; --coral: #FF6B5B;
+  --bg: #F4EDE0; --bg-2: #ECE3D3; --glass: #FFFBF4; --glass-brd: #DDD2BF;
+  --ink: #14213D; --muted: #4C5670; --faint: #636A7E;
+  --blue: #BF3A2A; --blue-2: #A33022; --accent-rgb: 255, 107, 91; --accent-2-rgb: 191, 58, 42;
+  --grad: linear-gradient(180deg, #FF8172 0%, #FF6B5B 100%); --btn-ink: #14213D;
+  --wash: rgba(20, 33, 61, 0.045); --wash-strong: rgba(20, 33, 61, 0.085);
+  --shadow-card: 0 1px 2px rgba(20, 33, 61, 0.07), 0 8px 24px rgba(20, 33, 61, 0.07);
+  --shadow-pop: 0 18px 50px -16px rgba(20, 33, 61, 0.28);
+  --chart-grid: rgba(20, 33, 61, 0.09); --chart-marker: rgba(20, 33, 61, 0.24);
+  --chart-line: #BF3A2A; --c-line: #BF3A2A; --c-session: #BF3A2A;
+  --go-blue: #FF6B5B; --go-blue-dark: #A33022; --go-blue-tint: #FBDCD5;
+  --night-navy: #14213D; --ice: #F4EDE0; --border: #DDD2BF; --dot: rgba(20, 33, 61, 0.12);
+  --tk-body: #FFFBF4; --tex: rgba(20, 33, 61, 0.035);
+  --flute: rgba(20, 33, 61, 0.022);
+  --ground:
+    repeating-linear-gradient(90deg, var(--flute) 0 1px, transparent 1px 8px),
+    radial-gradient(900px 440px at 82% -120px, rgba(255, 107, 91, 0.22), transparent 70%),
+    #F4EDE0;
+  --hero:
+    repeating-linear-gradient(90deg, rgba(244, 237, 224, 0.045) 0 1px, transparent 1px 7px),
+    radial-gradient(120% 150% at 62% 118%, rgba(255, 107, 91, 0.85), rgba(255, 107, 91, 0) 58%),
+    radial-gradient(90% 120% at 12% -30%, rgba(244, 237, 224, 0.2), rgba(244, 237, 224, 0) 60%),
+    #14213D;
+}
+
+html body { background: var(--ground); background-attachment: fixed; }
+::selection { background: rgba(255, 107, 91, 0.3); }
+
+/* the filled accent button: coral, navy writing, in both themes */
+.btn--primary, .btn--hero { background: var(--grad); color: #14213D; }
+:root[data-theme="light"] .btn--ghost:hover { border-color: #BF3A2A; }
+
+/* the dark panels that open a page wear the signature: navy, a coral swell
+   from below, fine vertical fluting */
+.go-hero, .countdown, .client-hero,
+:root[data-theme="dark"] .go-hero, :root[data-theme="dark"] .countdown, :root[data-theme="dark"] .client-hero {
+  background: var(--hero); color: #F4EDE0;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline-color: var(--coral); }
+
+/* the way back to the admin home is the one outlined button in every top bar */
+.topbar a[href="/admin"], #btnHome { border-color: var(--coral); background: rgba(255, 107, 91, 0.12); }
+
+/* ---------- My week, on /time (js/tools/week.js) ---------- */
+.week { margin-bottom: 16px; }
+.week__head h2 { margin: 0; }
+.week__kicker { margin: 2px 0 10px; font: 700 0.7rem var(--font-ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue); }
+.week-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.week-day {
+  appearance: none; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 10px 4px 9px; min-width: 0;
+  border: 1.5px solid var(--glass-brd); border-radius: 14px; background: var(--wash); color: var(--ink); font-family: var(--font-ui);
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.week-day:hover { transform: translateY(-2px); border-color: var(--coral); }
+.week-day small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.week-day em { font-style: normal; font-size: 1.35rem; line-height: 1.2; }
+.week-day b { font-size: 0.78rem; font-weight: 700; text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
+.week-day.is-today { border-color: var(--coral); }
+.week-day.is-today small::after { content: " \2022"; color: var(--coral); }
+.week-day.is-on.is-today small::after { color: #14213D; }
+.week-day.is-on { background: var(--grad); border-color: transparent; color: #14213D; }
+.week-day.is-on small { color: #14213D; }
+.week__for { margin: 12px 0 10px; color: var(--muted); font-size: 0.92rem; }
+.week__for b { color: var(--ink); }
+.week-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.week-row {
+  display: grid; grid-template-columns: 30px 128px minmax(0, 1fr) auto auto; align-items: stretch;
+  border: 1px solid var(--glass-brd); border-radius: 12px; overflow: hidden; background: var(--tk-body, var(--glass));
+}
+.week-row > b {
+  display: grid; place-items: center; padding: 13px 8px; color: #14213D;
+  font: 600 0.86rem ui-monospace, "SF Mono", Menlo, monospace;
+  background: linear-gradient(180deg, #FF8172 0%, #FF6B5B 100%); border-inline-end: 2px dashed rgba(255, 255, 255, 0.65);
+}
+/* the time stub: six textures, one per row for life (picked from the row's id) */
+.week-row > b { align-content: center; gap: 1px; line-height: 1.1; background-color: #FF6B5B; }
+.week-row > b strong { font: 800 1.12rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: -0.02em; }
+.week-row > b small { font: 700 0.7rem ui-monospace, "SF Mono", Menlo, monospace; opacity: 0.78; }
+.week-row > b.tx0 { background: repeating-linear-gradient(135deg, rgba(20, 33, 61, 0.1) 0 6px, transparent 6px 14px), linear-gradient(180deg, #FF8172, #FF6B5B); }
+.week-row > b.tx1 { background: radial-gradient(rgba(20, 33, 61, 0.2) 1.500px, transparent 2px) 0 0 / 11px 11px, linear-gradient(180deg, #F8F2E8, #EDE3D0); }
+.week-row > b.tx2 { background: linear-gradient(rgba(20, 33, 61, 0.13) 1px, transparent 1px) 0 0 / 100% 10px, linear-gradient(90deg, rgba(20, 33, 61, 0.13) 1px, transparent 1px) 0 0 / 10px 100%, linear-gradient(180deg, #A6B4D3, #7F94C2); }
+.week-row > b.tx3 { background: radial-gradient(circle at 50% 100%, transparent 9px, rgba(20, 33, 61, 0.14) 9px 11px, transparent 11px) 0 0 / 22px 12px, linear-gradient(180deg, #f9b233, #e39411); }
+.week-row > b.tx4 { background: repeating-linear-gradient(45deg, rgba(244, 237, 224, 0.12) 0 2px, transparent 2px 9px), repeating-linear-gradient(-45deg, rgba(244, 237, 224, 0.12) 0 2px, transparent 2px 9px), linear-gradient(180deg, #33477A, #25345C); color: #F4EDE0; }
+.week-row > b.tx5 { background: repeating-linear-gradient(90deg, rgba(20, 33, 61, 0.12) 0 3px, transparent 3px 9px), linear-gradient(180deg, #FFB199, #FF8A6B); }
+.week-row > b { transform-origin: center; }
+.week-row:nth-child(odd) > b strong { transform: rotate(-2deg); }
+.week-row:nth-child(even) > b strong { transform: rotate(1.500deg); }
+
+/* job applications counter */
+.week-jobs { border: 1.5px solid var(--glass-brd); border-radius: 16px; padding: 14px 16px; margin: 4px 0 16px; background: var(--wash); }
+.week-jobs.is-done { border-color: #3aa682; }
+.week-jobs__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.week-jobs__target { appearance: none; border: 0; background: var(--wash-strong); color: var(--ink); font: 700 0.78rem var(--font-ui); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.week-jobs__nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.week-jobs__nums > div { display: grid; gap: 2px; align-content: start; }
+.week-jobs__nums small { font: 700 0.66rem var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.week-jobs__nums strong { font: 800 1.9rem/1.1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--ink); }
+.week-jobs__nums > div:first-child strong { color: var(--blue); }
+.week-jobs__nums strong i { font-style: normal; font-size: 0.5em; font-weight: 700; color: var(--muted); }
+.week-jobs__nums em { font-style: normal; font-size: 0.74rem; color: var(--muted); }
+.week-jobs__btns { display: flex; gap: 6px; margin-top: 4px; }
+.week-jobs__btns button { appearance: none; border: 1.5px solid var(--glass-brd); background: var(--glass); color: var(--ink); font: 800 0.85rem var(--font-ui); min-width: 40px; height: 34px; border-radius: 10px; cursor: pointer; }
+.week-jobs__btns button:hover { border-color: var(--coral); }
+.week-jobs__btns button:nth-child(2), .week-jobs__btns button:nth-child(3) { background: var(--grad); border-color: transparent; color: #14213D; }
+.week-jobs__bar { height: 8px; border-radius: 999px; background: var(--wash-strong); overflow: hidden; margin-top: 12px; }
+.week-jobs__bar i { display: block; height: 100%; border-radius: inherit; background: var(--grad); transition: width 0.3s ease; }
+.week-jobs__note { margin: 8px 0 0; font-size: 0.78rem; }
+.week-row > span:not(.week-row__acts) { align-self: center; padding: 12px 16px; font-weight: 500; min-width: 0; overflow-wrap: anywhere; unicode-bidi: plaintext; }
+.week-row__grip {
+  appearance: none; border: 0; background: var(--wash); color: var(--faint); cursor: grab; font-size: 1rem; touch-action: none;
+  display: grid; place-items: center;
+}
+.week-row__grip:hover { color: var(--ink); background: var(--wash-strong); }
+.week-row.is-drag { opacity: 0.75; box-shadow: 0 0 0 2px var(--coral), var(--shadow-pop); }
+.week-row.is-drag .week-row__grip { cursor: grabbing; }
+.week-row .badge { align-self: center; margin: 0 8px; background: var(--coral); color: #14213D; font-style: normal; }
+.week-row__acts { display: flex; align-items: center; gap: 2px; padding-inline-end: 8px; opacity: 0.55; transition: opacity 0.15s ease; }
+.week-row:hover .week-row__acts, .week-row:focus-within .week-row__acts { opacity: 1; }
+.week-row__acts .iconbtn { appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer; width: 32px; height: 32px; border-radius: 8px; font-size: 0.95rem; }
+.week-row__acts .iconbtn:hover { background: var(--wash-strong); color: var(--ink); }
+.week-row.is-now { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255, 107, 91, 0.22); }
+.week-row.is-now > span:not(.week-row__acts) { font-weight: 700; }
+.week-row.is-past { opacity: 0.55; }
+.week-row.is-later { opacity: 0.5; }
+.week-row__turn { font-style: normal; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--wash-strong); color: var(--muted); white-space: nowrap; }
+.week-row.is-edit { display: block; padding: 12px; border-color: var(--coral); }
+.week-form { display: grid; gap: 10px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+.week-form input { font: 500 0.95rem var(--font-ui); padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--glass-brd); background: var(--bg-2); color: var(--ink); min-width: 0; }
+.week-form input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255, 107, 91, 0.2); }
+.week-form__time { display: flex; align-items: center; gap: 6px; }
+.week-form__acts { display: flex; gap: 6px; }
+.week__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-size: 0.82rem; }
+.week__empty { padding: 14px 4px; }
+.week-post { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.week-chip { font: 700 0.78rem var(--font-ui); padding: 6px 12px; border-radius: 10px; color: #14213D; }
+.week-chip--uae { background: #FF6B5B; }
+.week-chip--egy { background: #F4EDE0; }
+.week-pic { margin-top: 14px; border-top: 1px solid var(--glass-brd); padding-top: 12px; }
+.week-pic summary { cursor: pointer; font-weight: 600; }
+.week-pic img { display: block; width: 100%; max-width: 760px; height: auto; margin: 12px auto 0; border-radius: 14px; border: 1px solid var(--glass-brd); }
+.week-pic__acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+@media (max-width: 720px) {
+  .week-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .week-row { grid-template-columns: 26px 88px minmax(0, 1fr); }
+  .week-row > .week-row__grip { grid-row: 1 / span 2; }
+  .week-row > b { grid-row: 1 / span 2; font-size: 0.72rem; padding: 10px 4px; }
+  .week-row > span:not(.week-row__acts) { grid-column: 3; padding: 10px 12px 2px; }
+  .week-row .badge { display: none; }
+  .week-row__acts { grid-column: 3; justify-content: flex-end; padding: 0 6px 4px; opacity: 0.8; }
+  .week-form { grid-template-columns: minmax(0, 1fr); }
+}

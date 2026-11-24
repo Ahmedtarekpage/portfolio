@@ -87,7 +87,7 @@ const AR_VIDEO = {
     ['بطّل تلعب في المحفظة وزوّد دخلك', 'اللي بيبني ثروة هو اللي بيحط أكتر بانتظام، مش اللي بيختار أشطر سهم.'],
   ],
   stability: [
-    ['احسب الرقم', 'أساسيات الشهر × عدد الشهور. الفيديو بيقول 5، وإنت اخترت 12 على محطات.'],
+    ['احسب الرقم', 'أساسيات الشهر × عدد الشهور. الفيديو بيقول 5، وفلوسي بيحسبها 5 شهور × أغلى وضع (بكل البنود كاملة)، ووقت الدين الأمان صفر ونصيبه للدين.'],
     ['خزّنه صح', 'تقدر توصله في 24 ساعة، صفر مخاطرة (مش بورصة ولا كريبتو)، وفي حساب بيدّي عائد عشان التضخم.'],
     ['كبّره بسرعة', 'كنسة القبض (أول ما الفلوس تنزل)، وعد التعويض (لو سحبت رجّع من أول قبض)، وأي كاش باك يروح للأمان.'],
   ],
@@ -98,7 +98,7 @@ const AR_VIDEO = {
   ],
   reward: [
     ['من غير ذنب', 'سفر، هوايات، خروجات، وهدايا للي بتحبهم.'],
-    ['حصّالة المتعة', 'حساب لوحده بياخد نصيبه كل شهر. لو خلص تستنى الشهر الجاي، ومفيش سحب من البنود التانية.'],
+    ['حصّالة الفلوس الحرّة', 'حساب لوحده بياخد نصيبه كل شهر. لو خلص تستنى الشهر الجاي، ومفيش سحب من البنود التانية.'],
     ['التجارب أولًا', 'لو الحصّالة صغيرة، خلّيها على حاجة هتفتكرها مش حاجة هتتركن.'],
   ],
 };
@@ -188,7 +188,7 @@ const EN_VIDEO = {
     ['Stop fiddling with the portfolio and raise your income', 'Wealth is built by whoever puts in more, regularly, not by whoever picks the cleverest stock.'],
   ],
   stability: [
-    ['Work out the number', 'Monthly essentials × number of months. The video says 5, and you chose 12, in milestones.'],
+    ['Work out the number', 'Monthly essentials × number of months. The video says 5; Floosy uses 5 months × the most expensive situation (every item in full), and while in debt Safety gets 0 and its share pays the debt.'],
     ['Store it properly', 'Reachable within 24 hours, zero risk (no stocks, no crypto), and in an account that pays a return to keep up with inflation.'],
     ['Grow it fast', 'The payday sweep (as soon as the money lands), the payback promise (if you withdraw, refill from the next payday), and any cashback goes to Safety.'],
   ],
@@ -199,7 +199,7 @@ const EN_VIDEO = {
   ],
   reward: [
     ['Guilt-free', 'Travel, hobbies, outings, and gifts for the people you love.'],
-    ['Fun jar', 'A separate account that gets its share every month. If it runs out you wait for next month, and nothing gets pulled from the other buckets.'],
+    ['Fun free money jar', 'A separate account that gets its share every month. If it runs out you wait for next month, and nothing gets pulled from the other buckets.'],
     ['Experiences first', 'If the jar is small, spend it on something you will remember, not something that will gather dust.'],
   ],
 };

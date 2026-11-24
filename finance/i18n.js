@@ -2,19 +2,19 @@
 // الترجمة بتشتغل على النصوص الثابتة (التنقل، العناوين، الزراير). أي نص مش في القاموس بيفضل عربي.
 const EN = {
   // التنقل والهيكل
-  'فلوسي': 'Floosy', 'الرئيسية': 'Home', 'التحليلات': 'Analytics', 'تمام': 'OK', 'إلغاء': 'Cancel', 'رجوع': 'Back',
+  'فلوسي': 'Floosy', 'قرش 🦈': 'Shark 🦈', '· الـ Agent المالي بتاعك 🤖': '· your money Agent 🤖', 'الرئيسية': 'Home', 'التحليلات': 'Analytics', 'السجل': 'Log', '📒 السجل': '📒 Log', 'تمام': 'OK', 'إلغاء': 'Cancel', 'رجوع': 'Back',
   'اكتب الرقم السري': 'Enter your PIN', 'بجيب الأسعار…': 'Loading prices…', 'محفوظ في data.json': 'Saved to data.json',
   // الهيرو
   'إجمالي اللي معاك': 'Total you have', 'الصافي بعد الدين': 'Net after debt', 'الصافي بكل عملة': 'Net in each currency', 'الإجمالي بكل عملة': 'Total in each currency',
   'الكل': 'All', 'دهب': 'Gold', 'القبض الجاي': 'Next payday', 'بداية الاستثمار': 'Investing starts', 'الهدف 50% أو أقل': 'Target: 50% or less',
   'مفيش مرتب': 'No salary', 'سجّل شغلك لو فيه': 'Register a job if you have one', 'مستحق دلوقتي': 'Due now', 'مفيش ديون': 'No debt', 'مفيش ديون ✅': 'No debt ✅',
   // البنود
-  'الأساسيات': 'Essentials', 'النمو': 'Growth', 'الأمان': 'Safety', 'المتعة': 'Fun', 'الصدقة': 'Sadaqa',
-  'صندوق الطوارئ': 'Emergency fund', 'حصّالة المتعة': 'Fun jar', 'مستنية تطلع': 'Waiting to be given', 'بيسدّ الكارد': 'Paying the card', 'استثمار': 'Investing',
+  'الأساسيات': 'Essentials', 'النمو': 'Growth', 'الأمان': 'Safety', 'الفلوس الحرّة': 'Fun free money', 'الصدقة': 'Sadaqa',
+  'صندوق الطوارئ': 'Emergency fund', 'حصّالة الفلوس الحرّة': 'Fun free money jar', 'مستنية تطلع': 'Waiting to be given', 'بيسدّ الكارد': 'Paying the card', 'استثمار': 'Investing',
   'مستني القبض': 'Waiting for payday', 'فاضية': 'Empty', 'كل الدخل': 'All income', 'ثابتة': 'Fixed',
   // عناوين الكروت
   'اعمل إيه دلوقتي': 'What to do now', '(اللي بيأكّلك مش اللي بيفشخرك)': '(needs, not ego)', 'المحافظ والعملات': 'Wallets & currencies',
-  'مستوى المعيشة': 'Living level', 'محطات الأمان': 'Safety milestones', '(12 شهر لكل محطة)': '(12 months each)', 'الخروج والسفر': 'Outings & travel', '(حصّالة المتعة)': '(fun jar)',
+  'مستوى المعيشة': 'Living level', 'محطات الأمان': 'Safety milestones', '(12 شهر لكل محطة)': '(12 months each)', 'الخروج والسفر': 'Outings & travel', '(حصّالة الفلوس الحرّة)': '(fun jar)',
   'الاستثمار (بند النمو)': 'Investing (growth bucket)', 'قواعد الفيديو': 'Rules from the video', 'المعاملات': 'Transactions',
   'عجز': 'Deficit', 'وضع الباقي': 'Leftover mode', 'النسب الأصلية': 'Original ratios', 'متوقع': 'Expected',
   // عناوين فرعية
@@ -31,7 +31,7 @@ const EN = {
   'سجّل شغل ومرتب': 'Register job & salary', 'سجّل المرتب دلوقتي': 'Record salary now', 'غيّر': 'Change', 'يدوي': 'Manual', 'أوتوماتيك': 'Automatic', 'جاي منين': 'Where from',
   // الشات
   'قبضت المرتب': 'Got my salary', 'جالي دخل جانبي': 'Got side income', 'صرفت': 'I spent', 'الدهب': 'Gold', 'يوم القبض': 'Payday', 'أعمل إيه دلوقتي؟': 'What should I do now?',
-  'دخل جانبي': 'Side income', 'مرتب': 'Salary', 'مصروف': 'Expense', 'أساسيات': 'Essentials', 'متعة وخروج': 'Fun & outings', 'صدقة': 'Sadaqa', 'طوارئ من الأمان': 'Emergency from Safety',
+  'دخل جانبي': 'Side income', 'مرتب': 'Salary', 'مصروف': 'Expense', 'أساسيات': 'Essentials', 'فلوس حرّة وخروج': 'Fun free money & outings', 'صدقة': 'Sadaqa', 'طوارئ من الأمان': 'Emergency from Safety',
   // التحليلات
   'أهم الأرقام': 'Key numbers', 'دخل الدورة': 'Cycle income', 'بعد الصدقة': 'After sadaqa', 'اتصرف': 'Spent', 'نسبة الادخار': 'Savings rate', 'الصافي': 'Net worth',
   'اللي معاك − الدين': 'What you have − debt', 'الخط الزمني المتوقع': 'Expected timeline', 'دين + أمان + استثمار': 'Debt + safety + investing',

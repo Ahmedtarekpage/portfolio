@@ -1,5 +1,6 @@
 // Neon Postgres client + lazy schema creation (runs once per lambda instance).
 import { neon } from "@neondatabase/serverless";
+import { ensureRoutineTables } from "./routines.js";
 import { backfillGoalHistory } from "./goal-backfill.js";
 
 let _sql = null;
@@ -158,6 +159,14 @@ async function migrate(sql) {
   // half done: counts as 0.5 of a task in the day's % (owner, 2026-11-04);
   // never true together with done — PATCH clears one when the other is set
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS half BOOLEAN NOT NULL DEFAULT false`;
+  // a time of day for a task, "HH:MM" from–to, plus a note beside it (owner, 2026-11-21:
+  // prayers get their half hour and the real adhan/iqama time). auto_key marks the rows
+  // the page fills by itself ("prayer:fajr", "azkar:morning"), so it can update them.
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS time_from TEXT`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS time_to TEXT`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS time_note TEXT`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS auto_key TEXT`;
+  await ensureRoutineTables(sql);
   // the abandoned rebuild also re-pointed tasks.category_id at its new "categories"
   // table -- re-point it back at quarter_categories, nulling out any rows whose
   // id no longer resolves (those two tables use unrelated id sequences)
@@ -207,6 +216,9 @@ async function migrate(sql) {
   // which plan phase's hours a day the quarter runs on (1-4); null follows the
   // plan's ticked milestones (owner, 2026-10-21: "choose from plan the phase")
   await sql`ALTER TABLE quarters ADD COLUMN IF NOT EXISTS plan_phase INTEGER`;
+  // the quarter's own days off (0 = Sunday … 6 = Saturday); null follows the plan's weekend
+  // (owner, 2026-11-21: "make sat sun friday free time by selecting for every quarter")
+  await sql`ALTER TABLE quarters ADD COLUMN IF NOT EXISTS weekend INTEGER[]`;
   // A goal row only holds its value now; this holds what it was on each day,
   // so the Days graph can draw goals reached over time beside execution. One
   // row per goal per day — a day's last change wins.

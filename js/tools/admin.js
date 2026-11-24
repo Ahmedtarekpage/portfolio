@@ -131,8 +131,12 @@
 
   /* ---------------- auth ---------------- */
 
+  // after sign-in, go back to the page that sent you here (allow-list only, so it can't be used as an open redirect)
+  var NEXT = { finance: "/finance" }[new URLSearchParams(location.search).get("next")] || "";
+
   function boot() {
     api("/api/auth?action=me").then(function (me) {
+      if (me.authed && NEXT) return location.replace(NEXT);
       if (me.authed) return nav(routeFromHash(), false);
       // one-device policy: setup is only offered while NO passkey exists yet
       show(me.hasCredentials ? "view-login" : "view-setup");
@@ -159,7 +163,7 @@
       .then(function (response) {
         return api("/api/auth?action=login-verify", { method: "POST", body: { response: response } });
       })
-      .then(function () { if (window.Snap) Snap.ok("login"); loadClients(); })
+      .then(function () { if (window.Snap) Snap.ok("login"); if (NEXT) return location.replace(NEXT); loadClients(); })
       .catch(function (e) {
         // a second failed sign-in is recorded for the security log, with a camera
         // frame if the browser allows one (js/tools/snap.js). A cancelled passkey

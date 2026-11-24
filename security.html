@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <!-- The security log: failed logins and wrong finance PINs, with the camera
        frame taken at the time. Static shell only — the entries come from
-       /api/auth?action=snaps, which needs the admin passkey session. -->
+       /api/auth?action=snaps, which needs the admin passkey session AND the
+       security passcode, asked on every open (kept in memory only). -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
   <title>Security log</title>
@@ -37,6 +38,13 @@
     #blocks ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
     #blocks li { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
     #blocks code { direction: ltr; unicode-bidi: isolate; }
+    #lock { max-width: 340px; margin: 40px auto; padding: 22px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; text-align: center; }
+    #lock b { display: block; font-size: 1.1rem; margin-bottom: 12px; }
+    #lock input { width: 100%; padding: 12px; font: inherit; font-size: 1.4rem; letter-spacing: .3em; text-align: center; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; direction: ltr; }
+    #lock small { display: block; min-height: 1.4em; margin: 8px 0; color: var(--bad); }
+    #lock button { width: 100%; }
+    .shake { animation: shake .35s; }
+    @keyframes shake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
     .empty { padding: 40px 16px; text-align: center; color: var(--mute); border: 1px dashed var(--line); border-radius: 16px; }
   </style>
 </head>
@@ -48,9 +56,16 @@
     <button class="btn danger" id="clear" type="button" hidden data-ar="امسح السجل">Clear log</button>
   </header>
   <p class="sub" data-ar="أي محاولة دخول أو رقم سري غلط مرتين بتتسجل هنا: الوقت، الصورة، وعنوان الـIP. تقدر تحظر أي عنوان من الدخول. بنحتفظ بآخر 60 محاولة.">Two failed logins, or two wrong PINs, are recorded here: the time, the photo and the IP address. You can block any address from signing in. The newest 60 are kept.</p>
+  <form id="lock" hidden autocomplete="off">
+    <b data-ar="🔒 اكتب الرقم السري">🔒 Enter the passcode</b>
+    <input id="code" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-label="Passcode">
+    <small id="codeErr"></small>
+    <button class="btn" type="submit" data-ar="افتح">Open</button>
+  </form>
   <div id="blocks"></div>
   <div id="list" class="grid"></div>
 </main>
+<script src="js/tools/snap.js?v=3"></script>
 <script>
 (function () {
   "use strict";
@@ -58,11 +73,50 @@
   var KIND = { login: T("Failed login", "دخول فاشل"), pin: T("Wrong finance PIN", "رقم سري غلط في الفلوس") };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
   function empty(msg) { list.className = ""; list.innerHTML = '<div class="empty">' + esc(msg) + "</div>"; }
-  function load() {
-    fetch("/api/auth?action=snaps", { cache: "no-store" }).then(function (r) {
+  // the passcode unlock lives only in this variable: a refresh or new tab asks again
+  var unlock = "", lock = document.getElementById("lock"), codeIn = document.getElementById("code"), codeErr = document.getElementById("codeErr");
+  function call(url, opts) {
+    opts = opts || {};
+    opts.cache = "no-store";
+    opts.headers = Object.assign({ "X-Security-Unlock": unlock }, opts.headers || {});
+    return fetch(url, opts).then(function (r) {
       // not signed in: the admin page is where the passkey prompt lives
       if (r.status === 401) { location.replace("/admin"); return null; }
-      return r.json();
+      if (r.status === 423) { showLock(); return null; }
+      return r;
+    });
+  }
+  function showLock() {
+    unlock = ""; list.innerHTML = ""; blocksEl.innerHTML = ""; clearBtn.hidden = true;
+    lock.hidden = false; codeIn.value = ""; codeIn.focus();
+  }
+  lock.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var code = codeIn.value.trim();
+    if (!code) return;
+    fetch("/api/auth?action=security-unlock", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) })
+      .then(function (r) {
+        if (r.status === 401) { location.replace("/admin"); return; }
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (r.ok && d.unlock) {
+            unlock = d.unlock; lock.hidden = true; codeErr.textContent = "";
+            if (window.Snap) Snap.ok("pin");
+            return load();
+          }
+          // a second wrong code is photographed into this same log
+          if (window.Snap) Snap.fail("pin", "security log passcode");
+          codeIn.value = "";
+          codeErr.textContent = r.status === 429
+            ? T("Too many wrong codes. Try again in an hour.", "غلطت كتير. جرّب تاني بعد ساعة.")
+            : T("Wrong code", "الرقم غلط") + (d.left != null ? " · " + T(d.left + " tries left", "فاضل " + d.left + " محاولات") : "");
+          lock.classList.remove("shake"); void lock.offsetWidth; lock.classList.add("shake");
+        });
+      }).catch(function () { codeErr.textContent = T("Could not check the code.", "مقدرناش نتأكد من الرقم."); });
+  });
+  function load() {
+    if (!unlock) return showLock();
+    call("/api/auth?action=snaps").then(function (r) {
+      return r ? r.json() : null;
     }).then(function (d) {
       if (!d) return;
       var snaps = d.snaps || [], blocks = d.blocks || [], you = d.you || "", blocked = {};
@@ -92,7 +146,7 @@
   }
   clearBtn.addEventListener("click", function () {
     if (!confirm(T("Delete every entry and photo in the log? This cannot be undone.", "تمسح كل المحاولات والصور من السجل؟ مش هينفع ترجّعها."))) return;
-    fetch("/api/auth?action=snaps-clear", { method: "POST" }).then(load);
+    call("/api/auth?action=snaps-clear", { method: "POST" }).then(function (r) { if (r) load(); });
   });
   // block / unblock: a blocked address is refused at every sign-in step
   document.addEventListener("click", function (e) {
@@ -100,8 +154,8 @@
     if (!b) return;
     var on = b.hasAttribute("data-block"), ip = b.getAttribute(on ? "data-block" : "data-unblock");
     if (on && !confirm(T("Block " + ip + " from signing in? You can undo this here.", "تحظر " + ip + " من الدخول؟ تقدر تفكه من هنا."))) return;
-    fetch("/api/auth?action=block", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ip: ip, on: on }) })
-      .then(function (r) { if (r.status === 409) alert(T("That is the address you are using right now, so it was not blocked.", "ده العنوان اللي إنت داخل منه دلوقتي، فما اتحظرش.")); load(); });
+    call("/api/auth?action=block", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ip: ip, on: on }) })
+      .then(function (r) { if (!r) return; if (r.status === 409) alert(T("That is the address you are using right now, so it was not blocked.", "ده العنوان اللي إنت داخل منه دلوقتي، فما اتحظرش.")); load(); });
   });
   load();
 })();

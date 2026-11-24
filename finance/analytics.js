@@ -2,9 +2,9 @@
 // الألوان من لوحة متراجَعة لوضع الداكن (فحص عمى الألوان والتباين نجح)
 import { L as tr } from './i18n.js'; // اسمه tr هنا عشان L مستخدم كهامش في الرسوم
 
-const C = { blue: '#3987e5', orange: '#d95926', aqua: '#199e70', yellow: '#c98500', magenta: '#d55181', violet: '#9085e9', blueSoft: '#86b6ef' };
+const C = { blue: '#6981B5', orange: '#d95926', aqua: '#199e70', yellow: '#c98500', magenta: '#D55E51', violet: '#9FAECF', blueSoft: '#A3B2D2' };
 const BUCKET = { essentials: C.yellow, growth: C.aqua, stability: C.blue, reward: C.magenta, sadaqa: C.violet };
-const GRID = 'rgba(255,255,255,.09)', INK2 = '#9aa4c7';
+const GRID = 'rgba(255,255,255,.09)', INK2 = '#9AA8C7';
 
 /** عمود بحواف مدوّرة من ناحية القيمة بس */
 function barPath(x, y, w, h, r = 4) {
@@ -18,7 +18,7 @@ function kpis(D, h) {
   const t = (label, value, sub, cls = '') => `<div class="kpi ${cls}"><small>${label}</small><b dir="ltr">${value}</b><small>${sub}</small></div>`;
   return `<div class="kpis">
     ${t(tr('دخل الدورة', 'Cycle income'), h.fmt(D.kpi.income) + ' Đ', tr('بعد الصدقة', 'After sadaqa'))}
-    ${t(tr('اتصرف', 'Spent'), h.fmt(D.kpi.spent) + ' Đ', tr('أساسيات + متعة (من غير الصدقة)', 'Essentials + Fun (excluding sadaqa)'))}
+    ${t(tr('اتصرف', 'Spent'), h.fmt(D.kpi.spent) + ' Đ', tr('كل المصاريف (من غير الصدقة)', 'All expenses (excluding sadaqa)'))}
     ${t(tr('نسبة الادخار', 'Savings rate'), h.fmt(D.kpi.saveRate * 100) + '%', tr('دين + أمان + استثمار', 'Debt + safety + investing'))}
     ${t(tr('الصافي', 'Net worth'), h.fmt(D.kpi.net) + ' Đ', tr('اللي معاك − الدين', 'What you have − debt'), D.kpi.net < -0.5 ? 'bad' : 'good')}
   </div>`;
@@ -48,10 +48,13 @@ function chartCycles(D, h) {
 }
 
 function chartAlloc(D, h) {
-  const parts = D.alloc.filter(p => p.v > 0.5), total = parts.reduce((a, p) => a + p.v, 0);
+  const parts = D.alloc.filter(p => p.v > 0.5 && !p.out), total = parts.reduce((a, p) => a + p.v, 0), out = D.alloc.filter(p => p.out && p.v > 0.5);
   if (!total) return `<p class="note">${tr('لسه مفيش دخل اتوزع في الدورة دي.', 'No income has been split in this cycle yet.')}</p>`;
   return `<div class="seg-bar">${parts.map(p => `<i style="flex:${p.v};background:${BUCKET[p.k]}" data-tip="${p.n} · ${h.fmt(p.v)} Đ · ${h.fmt(p.v / total * 100, 1)}%"></i>`).join('')}</div>
-    <ul class="leg-list">${D.alloc.map(p => `<li><i style="background:${BUCKET[p.k]}"></i><span>${p.n}</span><b dir="ltr">${h.fmt(p.v)} Đ</b><small dir="ltr">${h.fmt(total ? p.v / total * 100 : 0, 1)}%</small></li>`).join('')}</ul>`;
+    <ul class="leg-list">${D.alloc.filter(p => !p.out).map(p => `<li><i style="background:${BUCKET[p.k]}"></i><span>${p.n}</span><b dir="ltr">${h.fmt(p.v)} Đ</b><small dir="ltr">${h.fmt(total ? p.v / total * 100 : 0, 1)}%</small></li>`).join('')}
+      <li class="tot"><i></i><span>${tr('المجموع = صافي دخل الدورة', "Total = this cycle's net income")}</span><b dir="ltr">${h.fmt(total)} Đ</b><small dir="ltr">100%</small></li>
+      ${out.map(p => `<li class="mu"><i style="background:${BUCKET[p.k]}"></i><span>${p.n}</span><b dir="ltr">${h.fmt(p.v)} Đ</b><small></small></li>`).join('')}</ul>
+    ${D.allocNote ? `<p class="note">ℹ️ ${D.allocNote}</p>` : ''}`;
 }
 
 function hbars(list, color, h, empty) {

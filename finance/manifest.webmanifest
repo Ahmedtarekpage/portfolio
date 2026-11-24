@@ -1,0 +1,17 @@
+{
+  "name": "فلوسي — مدير فلوسك",
+  "short_name": "فلوسي",
+  "lang": "ar",
+  "dir": "rtl",
+  "id": "/finance",
+  "start_url": "/finance",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "icons": [
+    { "src": "/finance/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/finance/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

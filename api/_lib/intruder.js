@@ -11,7 +11,17 @@
 // An endpoint that accepts writes from anyone is an invitation to fill the
 // database, so it is boxed in on every side: one small JPEG per request, a
 // ceiling on entries per hour across everyone, and only the newest rows kept.
-import { json, isAuthed } from "./util.js";
+import crypto from "node:crypto";
+import { json, isAuthed, hasUnlock, createUnlockToken, safeEqual } from "./util.js";
+
+// The log, clearing it and blocking all need a signed-in owner AND a passkey
+// passcode entered just now on the security page (util.js hasUnlock). 423 tells the
+// page to ask for the passcode; 401 sends it to /admin to sign in.
+function ownerUnlocked(req, res) {
+  if (!isAuthed(req)) { json(res, 401, { error: "Not authenticated" }); return false; }
+  if (!hasUnlock(req)) { json(res, 423, { error: "Passcode needed" }); return false; }
+  return true;
+}
 
 const KINDS = ["login", "pin"];
 const MAX_PHOTO_CHARS = 220_000;   // ~160 KB of JPEG as a data: URL
@@ -32,6 +42,10 @@ function ensure(sql) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`.then(() => sql`CREATE TABLE IF NOT EXISTS security_blocks (
       ip TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`).then(() => sql`CREATE TABLE IF NOT EXISTS security_code_fails (
+      id SERIAL PRIMARY KEY,
+      ip TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`).catch((err) => { _ready = null; throw err; });
   }
@@ -76,7 +90,7 @@ export async function snapSave(req, res, sql) {
 
 /** GET ?action=snaps — the owner's view of the log. */
 export async function snapList(req, res, sql) {
-  if (!isAuthed(req)) return json(res, 401, { error: "Not authenticated" });
+  if (!ownerUnlocked(req, res)) return;
   await ensure(sql);
   const snaps = await sql`SELECT id, kind, page, photo, note, ua, ip, created_at FROM security_snaps ORDER BY id DESC`;
   const blocks = await sql`SELECT ip, created_at FROM security_blocks ORDER BY created_at DESC`;
@@ -87,7 +101,7 @@ export async function snapList(req, res, sql) {
 
 /** POST ?action=snaps-clear — empty the log. */
 export async function snapClear(req, res, sql) {
-  if (!isAuthed(req)) return json(res, 401, { error: "Not authenticated" });
+  if (!ownerUnlocked(req, res)) return;
   await ensure(sql);
   await sql`DELETE FROM security_snaps`;
   return json(res, 200, { ok: true });
@@ -95,7 +109,7 @@ export async function snapClear(req, res, sql) {
 
 /** POST ?action=block { ip, on } — block or unblock an address. Owner only. */
 export async function blockSet(req, res, sql) {
-  if (!isAuthed(req)) return json(res, 401, { error: "Not authenticated" });
+  if (!ownerUnlocked(req, res)) return;
   const b = req.body || {};
   const ip = clip(b.ip, 64);
   if (!ip || !/^[0-9a-fA-F:.]+$/.test(ip)) return json(res, 400, { error: "bad ip" });
@@ -109,4 +123,34 @@ export async function blockSet(req, res, sql) {
   if (ip === ipOf(req)) return json(res, 409, { error: "That is the address you are using now" });
   await sql`INSERT INTO security_blocks (ip) VALUES (${ip}) ON CONFLICT (ip) DO NOTHING`;
   return json(res, 200, { ok: true });
+}
+
+// The security-log passcode (owner, 2026-11-18). Only its SHA-256 is kept here;
+// set SECURITY_PASSCODE in Vercel to change it without touching code.
+const PASSCODE_SHA256 = "81e94e735f39887ded997fa2e7aaaf319416006ac6252fbb9010197f8facc2da";
+const CODE_FAILS_PER_HOUR = 5; // a 6-digit code must not be guessable by trying
+
+function passcodeOk(code) {
+  const env = process.env.SECURITY_PASSCODE;
+  if (env) return safeEqual(code, env);
+  return safeEqual(crypto.createHash("sha256").update(code).digest("hex"), PASSCODE_SHA256);
+}
+
+/** POST ?action=security-unlock { code } — owner only; returns { unlock }. */
+export async function securityUnlock(req, res, sql) {
+  if (!isAuthed(req)) return json(res, 401, { error: "Not authenticated" });
+  await ensure(sql);
+  const ip = ipOf(req) || null;
+  const [{ n }] = await sql`SELECT count(*)::int AS n FROM security_code_fails
+    WHERE ip IS NOT DISTINCT FROM ${ip} AND created_at > now() - interval '1 hour'`;
+  if (n >= CODE_FAILS_PER_HOUR) return json(res, 429, { error: "Too many wrong codes — try again in an hour" });
+  const code = String((req.body || {}).code || "").trim().slice(0, 32);
+  if (!passcodeOk(code)) {
+    await sql`INSERT INTO security_code_fails (ip) VALUES (${ip})`;
+    await sql`DELETE FROM security_code_fails WHERE created_at < now() - interval '1 day'`;
+    return json(res, 403, { error: "Wrong code", left: Math.max(0, CODE_FAILS_PER_HOUR - n - 1) });
+  }
+  await sql`DELETE FROM security_code_fails WHERE ip IS NOT DISTINCT FROM ${ip}`;
+  res.setHeader("Cache-Control", "no-store");
+  return json(res, 200, { ok: true, unlock: createUnlockToken() });
 }

@@ -177,6 +177,8 @@
   /* ---------------- tabs: Today / Quarter / Analytics ---------------- */
 
   function showTab(name) {
+    // each tab has its own colours in time-3d.css
+    document.documentElement.setAttribute("data-tab", name);
     document.querySelectorAll("#tabbar .tab").forEach(function (btn) {
       btn.classList.toggle("tab--active", btn.dataset.tab === name);
     });
@@ -869,9 +871,19 @@
     if (date !== state.currentDate && state.selectingTasks) exitTaskSelect();
     state.currentDate = date;
     $("#dayPicker").value = date;
-    return api("/api/tasks?date=" + date).then(function (data) {
+    // today or later: the server first puts the repeating events and the meetings on the day
+    var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    var sync = date >= todayISO() && !opts.noSync ? "&sync=1&tz=" + encodeURIComponent(tz) : "";
+    return api("/api/tasks?date=" + date + sync).then(function (data) {
+      state.daySkips = data.skips || [];
       renderTasks(data.tasks, { animate: !opts.skipEnterAnimation });
+      window.dispatchEvent(new CustomEvent("time:tasks", { detail: { date: date, tasks: data.tasks } }));
       renderTodayChart(date, data.tasks);
+      if (opts.noPrayer) { renderPrayerBar(date); return; }
+      // prayers fill themselves in: their half hour and the real adhan / iqama time
+      return prayerSync(date, data.tasks).then(function (changed) {
+        if (changed && state.currentDate === date) return loadDay(date, { skipEnterAnimation: true, noPrayer: true, noSync: true });
+      });
     }).catch(function (e) { toast(e.message, true); });
   }
 
@@ -985,6 +997,470 @@
     return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   }
 
+  /* ---------------- prayers and azkar fill themselves in (owner, 2026-11-21) ----------------
+     Rules (the business logic, in short):
+     1. Where you are: the phone's location, named by OpenStreetMap (free, no key) down to
+        the neighbourhood. Times for that exact spot from AlAdhan (free, no key), which picks
+        the official method of that country by itself. Offline → worked out on the phone
+        (js/tools/prayer.js); no location → the last place, else your clock's capital.
+     2. Iqama = adhan + the wait in that country's rule (no free API publishes mosque iqama
+        times): UAE Fajr 20, Dhuhr 20, Asr 20, Maghrib 5, Isha 20. Editable, kept per country.
+     3. Each prayer gets the half hour (on :00 or :30) that the iqama falls in:
+        adhan 3:22 + 30 → iqama 3:52 → 3:30–4:00. The real adhan and iqama are written beside it.
+     4. Friday: Dhuhr becomes Jumu'ah, a full hour from the half hour before the khutba
+        (UAE khutba 12:45 since Jan 2026 → 12:30–1:30).
+     5. Morning azkar right after the Fajr half hour; evening azkar right after Asr's
+        (15 minutes each by default).
+     6. Today and later days only — a past day is what it was. An existing task with the
+        prayer's name is used (and timed); a missing one is added once. A prayer whose time
+        you changed by hand is left alone. Done tasks are never touched. */
+  var PRAYER_KEYS = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
+  var PRAYER_AR = { fajr: "الفجر", sunrise: "الشروق", dhuhr: "الظهر", asr: "العصر", maghrib: "المغرب", isha: "العشاء", jumuah: "الجمعة" };
+  var PRAYER_EN = { fajr: "Fajr", sunrise: "Sunrise", dhuhr: "Dhuhr", asr: "Asr", maghrib: "Maghrib", isha: "Isha", jumuah: "Jumu'ah" };
+  // the names the daily routine already uses, in either language
+  var PRAYER_MATCH = {
+    "prayer:fajr": /fajr|fajer|فجر/i, "prayer:dhuhr": /dohr|dhuhr|duhr|zuhr|dhur|ظهر|جمع/i, "prayer:asr": /\basr\b|عصر/i,
+    "prayer:maghrib": /maghrib|magrib|مغرب/i, "prayer:isha": /isha|eshaa|عشاء|عشا/i,
+    "azkar:morning": /(azkar|adhkar|athkar|أذكار|اذكار).*(sbah|sabah|morning|صباح)|(sbah|sabah|صباح).*(azkar|أذكار|اذكار)/i,
+    "azkar:evening": /(azkar|adhkar|athkar|أذكار|اذكار).*(msaa|masaa|massa|evening|مساء)|(msaa|masaa|مساء).*(azkar|أذكار|اذكار)/i,
+    "life:breakfast": /breakfast|فطار|إفطار/i, "life:nap": /\bnap\b|qailul|قيلول|قيلوله/i,
+    "life:gym": /\bgym\b|workout|جيم|تمرين/i, "life:sleep": /\bsleep\b|نوم|أنام|انام/i,
+  };
+  var PRAYER_TITLE = {
+    "prayer:fajr": "Pray Fajr on Time", "prayer:dhuhr": "Pray Dohr on Time", "prayer:asr": "Pray Asr on Time",
+    "prayer:maghrib": "Pray Maghrib on Time", "prayer:isha": "Pray Isha on Time",
+    "azkar:morning": "Azkar Elsbah", "azkar:evening": "Azkar Elmsaa",
+    "life:breakfast": T("Breakfast", "الفطار"), "life:nap": T("Qailula (nap)", "القيلولة"), "life:gym": T("Gym", "الجيم"), "life:sleep": T("Sleep", "النوم"),
+  };
+  var AUTO_ICON = { "life:breakfast": "🍳", "life:nap": "💤", "life:gym": "🏋️", "life:sleep": "😴" };
+  // each country's usual wait from adhan to iqama (by country code); "" = Jumu'ah at Dhuhr's adhan
+  var IQAMA_DEFAULT = {
+    AE: { fajr: 20, dhuhr: 20, asr: 20, maghrib: 5, isha: 20, jumuah: "12:45" },
+    EG: { fajr: 20, dhuhr: 10, asr: 10, maghrib: 7, isha: 10, jumuah: "" },
+    SA: { fajr: 25, dhuhr: 20, asr: 20, maghrib: 10, isha: 20, jumuah: "" },
+    "*": { fajr: 20, dhuhr: 15, asr: 15, maghrib: 10, isha: 15, jumuah: "" },
+  };
+  var CAPITAL = { uae: { lat: 25.2048, lng: 55.2708, name: "Dubai", cc: "AE" }, egypt: { lat: 30.0444, lng: 31.2357, name: "Cairo", cc: "EG" }, mwl: { lat: 21.4225, lng: 39.8262, name: "Makkah", cc: "SA" } };
+  var REGION_CC = { uae: "AE", egypt: "EG", mwl: "*" };
+
+  function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  // the country the iqama rule follows: the place found, else your clock's country
+  function placeCC() {
+    var loc = lsGet("time-prayer-loc");
+    if (loc && loc.cc) return loc.cc;
+    return REGION_CC[window.Prayer ? window.Prayer.regionOf() : "uae"] || "*";
+  }
+  function prayerSettings() {
+    var region = placeCC();
+    var saved = lsGet("time-prayer") || {};
+    var d = IQAMA_DEFAULT[region] || IQAMA_DEFAULT["*"];
+    var mine = saved[region] || {};
+    var out = { region: region, on: saved.on !== false, azkar: saved.azkar > 0 ? saved.azkar : 15 };
+    ["fajr", "dhuhr", "asr", "maghrib", "isha"].forEach(function (k) { out[k] = mine[k] != null ? mine[k] : d[k]; });
+    out.jumuah = mine.jumuah != null ? mine.jumuah : d.jumuah;
+    // the day's rhythm around the prayers (owner's email, 2026-11-21): wake at Fajr wherever he is,
+    // 6 hours' sleep before it, an hour's qailula, breakfast after the morning azkar, gym 3 days a week
+    var life = saved.life || {};
+    out.sleepH = life.sleepH > 0 ? life.sleepH : 6;
+    out.nap = life.nap != null ? life.nap : 60;
+    out.breakfast = life.breakfast != null ? life.breakfast : 15;
+    out.gymDays = Array.isArray(life.gymDays) ? life.gymDays : [0, 2, 5]; // Sun, Tue, Fri
+    out.gymWhen = life.gymWhen || "isha"; // "isha" = after everything · "slump" = after Asr, when the head switches off
+    out.gymMin = life.gymMin > 0 ? life.gymMin : 60;
+    return out;
+  }
+  function savePrayerSettings(patch) {
+    var saved = lsGet("time-prayer") || {}, region = placeCC();
+    saved[region] = Object.assign({}, saved[region] || {}, patch.region || {});
+    if (patch.on != null) saved.on = patch.on;
+    if (patch.azkar != null) saved.azkar = patch.azkar;
+    if (patch.life) saved.life = Object.assign({}, saved.life || {}, patch.life);
+    lsSet("time-prayer", saved);
+  }
+
+  // where you are: the phone's location (asked at most every 30 minutes), else the last one, else your clock's capital
+  var locAsk = null, geoErr = 0; // 1 = blocked by the browser, 2 = off on the device, 3 = took too long
+  function prayerPlace(fresh) {
+    var saved = lsGet("time-prayer-loc");
+    var region = window.Prayer ? window.Prayer.regionOf() : "uae";
+    var fallback = saved && saved.region === region ? saved : Object.assign({ region: region, guess: true }, CAPITAL[region] || CAPITAL.uae);
+    if (!navigator.geolocation) return Promise.resolve(fallback);
+    if (!fresh && saved && saved.region === region && Date.now() - (saved.at || 0) < 30 * 60000) return Promise.resolve(saved);
+    // a place picked by hand stays until the phone's own location is asked for
+    if (!fresh && saved && saved.manual) return Promise.resolve(saved);
+    if (locAsk) return locAsk;
+    locAsk = new Promise(function (resolve) {
+      var done = false, finish = function (v) { if (!done) { done = true; locAsk = null; resolve(v); } };
+      var failed = function (code) { geoErr = code; finish(Object.assign({}, fallback, { failed: true })); };
+      setTimeout(function () { failed(3); }, 9000);
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var here = { lat: +pos.coords.latitude.toFixed(4), lng: +pos.coords.longitude.toFixed(4), region: region, at: Date.now() };
+        var old = saved && Math.abs(saved.lat - here.lat) < 0.005 && Math.abs(saved.lng - here.lng) < 0.005 && saved.name ? saved : null;
+        (old ? Promise.resolve(old) : placeName(here.lat, here.lng)).then(function (n) {
+          if (n) { here.name = n.name; here.full = n.full; here.cc = n.cc; }
+          geoErr = 0;
+          lsSet("time-prayer-loc", here);
+          finish(here);
+        });
+      }, function (err) { failed(err && err.code || 2); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30 * 60000 });
+    });
+    return locAsk;
+  }
+
+  function getJSON(url, ms) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 6000);
+    return fetch(url, ctl ? { signal: ctl.signal } : {}).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .finally(function () { clearTimeout(timer); });
+  }
+  // the name of the spot: OpenStreetMap (neighbourhood, area, city), else BigDataCloud (city)
+  function placeName(lat, lng) {
+    var lang = T("en", "ar");
+    return getJSON("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&lat=" + lat + "&lon=" + lng + "&accept-language=" + lang)
+      .then(function (d) {
+        var a = d.address || {};
+        var parts = [a.neighbourhood || a.quarter || a.residential, a.suburb || a.city_district, a.city || a.town || a.village || a.county, a.state]
+          .filter(function (x, i, all) { return x && all.indexOf(x) === i; });
+        if (!parts.length) throw new Error("no name");
+        return { name: parts.slice(0, 3).join(T(", ", "، ")), full: d.display_name, cc: String(a.country_code || "").toUpperCase() || null };
+      })
+      .catch(function () {
+        return getJSON("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lng + "&localityLanguage=" + lang)
+          .then(function (d) { return { name: [d.locality, d.city, d.countryName].filter(function (x, i, all) { return x && all.indexOf(x) === i; }).join(T(", ", "، ")), cc: d.countryCode || null }; });
+      })
+      .catch(function () { return null; });
+  }
+  // that day's times for that spot: AlAdhan (official method of the country, chosen by it),
+  // kept per day and place; offline → worked out on the phone
+  function prayerTimesFor(date, place) {
+    var key = "time-prayer-times";
+    var cache = lsGet(key) || {};
+    var id = date + "|" + place.lat.toFixed(2) + "," + place.lng.toFixed(2);
+    if (cache[id]) return Promise.resolve(cache[id]);
+    var d = date.split("-");
+    return getJSON("https://api.aladhan.com/v1/timings/" + d[2] + "-" + d[1] + "-" + d[0] + "?latitude=" + place.lat + "&longitude=" + place.lng)
+      .then(function (r) {
+        var t = r.data.timings, hm = function (x) { return String(x).slice(0, 5); };
+        var out = { fajr: hm(t.Fajr), sunrise: hm(t.Sunrise), dhuhr: hm(t.Dhuhr), asr: hm(t.Asr), maghrib: hm(t.Maghrib), isha: hm(t.Isha),
+          source: "AlAdhan", method: ((r.data.meta && r.data.meta.method && r.data.meta.method.name) || "").replace(/\s*\(experimental\)/i, "").replace(/^Dubai$/, "UAE") };
+        if (!/^\d\d:\d\d$/.test(out.fajr)) throw new Error("bad times");
+        Object.keys(cache).forEach(function (k) { if (k.slice(0, 10) < addDays(todayISO(), -2)) delete cache[k]; });
+        cache[id] = out; lsSet(key, cache);
+        return out;
+      })
+      .catch(function () {
+        var pt = window.Prayer.times(date, place.lat, place.lng);
+        pt.source = "device"; pt.method = "";
+        return pt;
+      });
+  }
+
+  function hmToMin(hm) { var p = String(hm).split(":"); return (+p[0]) * 60 + (+p[1]); }
+  function minToHm(m) { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+  // "15:22" -> "3:22"; the from–to says ص/م (AM/PM) once, at the end
+  function clock12(hm) { var m = hmToMin(hm), h = Math.floor(m / 60) % 12 || 12; return h + ":" + String(m % 60).padStart(2, "0"); }
+  function ampm(hm) { return hmToMin(hm) < 720 ? T("AM", "ص") : T("PM", "م"); }
+  function fmtSlot(from, to) {
+    if (!to) return clock12(from) + " " + ampm(from);
+    return clock12(from) + "–" + clock12(to) + " " + ampm(to);
+  }
+
+  // the plan for one day: each prayer's half hour, the azkar after Fajr and Asr
+  function prayerPlan(date, place, pt) {
+    var set = prayerSettings();
+    var friday = new Date(date + "T12:00:00").getDay() === 5;
+    var plan = {};
+    PRAYER_KEYS.forEach(function (k) {
+      var adhan = hmToMin(pt[k]);
+      if (k === "dhuhr" && friday) {
+        var kh = set.jumuah ? hmToMin(set.jumuah) : adhan;
+        var start = Math.floor(kh / 30) * 30;
+        plan["prayer:dhuhr"] = { from: minToHm(start), to: minToHm(Math.ceil((kh + 40) / 30) * 30),
+          note: T("Jumu'ah · khutba " + clock12(minToHm(kh)), "الجمعة · الخطبة " + clock12(minToHm(kh))), adhan: pt[k] };
+        return;
+      }
+      var iqama = adhan + (Number(set[k]) || 0);
+      var from = Math.floor(iqama / 30) * 30;
+      plan["prayer:" + k] = { from: minToHm(from), to: minToHm(from + 30), adhan: pt[k],
+        note: T("Adhan " + clock12(pt[k]) + " · Iqama " + clock12(minToHm(iqama)), "أذان " + clock12(pt[k]) + " · إقامة " + clock12(minToHm(iqama))) };
+    });
+    var az = set.azkar;
+    var fe = hmToMin(plan["prayer:fajr"].to), ae = hmToMin(plan["prayer:asr"].to);
+    plan["azkar:morning"] = { from: minToHm(fe), to: minToHm(fe + az), note: T("after Fajr · sunrise " + clock12(pt.sunrise), "بعد الفجر · الشروق " + clock12(pt.sunrise)) };
+    plan["azkar:evening"] = { from: minToHm(ae), to: minToHm(ae + az), note: T("after Asr · Maghrib " + clock12(pt.maghrib), "بعد العصر · المغرب " + clock12(pt.maghrib)) };
+    // breakfast right after the morning azkar; work starts when it ends
+    var me = fe + az;
+    if (set.breakfast > 0) plan["life:breakfast"] = { from: minToHm(me), to: minToHm(me + set.breakfast), note: T("then work starts", "وبعدها الشغل") };
+    // qailula: an hour after the Dhuhr (or Jumu'ah) block
+    if (set.nap > 0) { var de = hmToMin(plan["prayer:dhuhr"].to); plan["life:nap"] = { from: minToHm(de), to: minToHm(de + set.nap), note: T("qailula", "القيلولة") }; }
+    // gym on its days: after everything (after Isha) or in the slump after Asr
+    var dow = new Date(date + "T12:00:00").getDay();
+    if (set.gymDays.indexOf(dow) >= 0) {
+      var gs = set.gymWhen === "slump" ? hmToMin(plan["azkar:evening"].to) : hmToMin(plan["prayer:isha"].to);
+      plan["life:gym"] = { from: minToHm(gs), to: minToHm(gs + set.gymMin), note: set.gymWhen === "slump" ? T("when the head switches off", "وقت ما الدماغ بتفصل") : T("after everything", "بعد كل حاجة") };
+    }
+    // sleep: 6 hours, ending at tomorrow's Fajr adhan where you are
+    if (set.sleepH > 0 && window.Prayer) {
+      var nf = hmToMin(window.Prayer.times(addDays(date, 1), place.lat, place.lng).fajr);
+      var bed = Math.floor((nf - set.sleepH * 60) / 15) * 15;
+      plan["life:sleep"] = { from: minToHm(bed), to: minToHm(nf), note: T(set.sleepH + "h · wake for Fajr " + clock12(minToHm(nf)), set.sleepH + " ساعات · اصحى للفجر " + clock12(minToHm(nf))) };
+    }
+    return { times: pt, plan: plan, place: place, set: set, friday: friday };
+  }
+
+  function religionCategoryId() {
+    var cats = (state.quarterDetail && state.quarterDetail.categories) || [];
+    var c = cats.filter(function (x) { return /relig|islam|deen|faith|spirit|prayer|دين|عباد|صلا|روح/i.test(x.name || ""); })[0];
+    return c ? c.id : null;
+  }
+
+  var lastPrayer = null; // { date, ... } what the bar shows
+  function prayerSync(date, tasks) {
+    var set = prayerSettings();
+    if (!window.Prayer || !set.on || date < todayISO()) { lastPrayer = null; renderPrayerBar(date); return Promise.resolve(false); }
+    var placeP = prayerPlace(false), timesP = placeP.then(function (place) { return prayerTimesFor(date, place); });
+    return Promise.all([placeP, timesP]).then(function (both) {
+      var place = both[0];
+      if (state.currentDate !== date) return false;
+      var day = prayerPlan(date, place, both[1]);
+      lastPrayer = Object.assign({ date: date }, day);
+      renderPrayerBar(date);
+      var made = lsGet("time-prayer-made") || {};
+      var used = {}, jobs = [];
+      Object.keys(day.plan).forEach(function (key) {
+        var want = day.plan[key];
+        var t = tasks.filter(function (x) { return x.auto_key && x.auto_key.replace(/:hand$/, "") === key; })[0] ||
+          tasks.filter(function (x) { return !x.auto_key && !used[x.id] && PRAYER_MATCH[key].test(x.title || ""); })[0];
+        if (t) {
+          used[t.id] = true;
+          made[date + "|" + key] = 1; // seen on this day: if you delete it later, it stays deleted
+          if (t.done || /:hand$/.test(t.auto_key || "")) return;
+          if (t.time_from === want.from && t.time_to === want.to && t.time_note === want.note && t.auto_key === key) return;
+          jobs.push(api("/api/tasks?id=" + t.id, { method: "PATCH", body: { time_from: want.from, time_to: want.to, time_note: want.note, auto_key: key } }));
+          return;
+        }
+        // missing: added once a day (if you delete it, it stays deleted)
+        if (made[date + "|" + key] || (state.daySkips || []).indexOf(key) >= 0) return;
+        made[date + "|" + key] = 1;
+        jobs.push(api("/api/tasks", { method: "POST", body: {
+          task_date: date, title: PRAYER_TITLE[key], icon: AUTO_ICON[key] || (/^azkar/.test(key) ? "📿" : "🕌"), category_id: religionCategoryId(),
+          time_from: want.from, time_to: want.to, time_note: want.note, auto_key: key } }));
+      });
+      // only the last two weeks of "added" marks are kept
+      var cut = addDays(todayISO(), -14);
+      Object.keys(made).forEach(function (k) { if (k.slice(0, 10) < cut) delete made[k]; });
+      lsSet("time-prayer-made", made);
+      if (!jobs.length) return false;
+      return Promise.all(jobs).then(function () { return true; });
+    }).catch(function () { return false; });
+  }
+
+  function renderPrayerBar(date) {
+    var bar = $("#prayerBar");
+    if (!bar) return;
+    var set = prayerSettings();
+    if (!lastPrayer || lastPrayer.date !== date) {
+      window.__timePrayer = null;
+      window.dispatchEvent(new CustomEvent("time:prayer", { detail: null }));
+      bar.hidden = !(!set.on && date >= todayISO());
+      if (!bar.hidden) bar.innerHTML = '<button type="button" class="btn btn--ghost btn--sm" data-prayer="on">' + T("🕌 Turn prayer times on", "🕌 شغّل مواقيت الصلاة") + '</button>';
+      return;
+    }
+    var pt = lastPrayer.times, now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+    window.__timePrayer = { times: pt, date: date, today: date === todayISO(), friday: lastPrayer.friday,
+      names: { fajr: T("Fajr", "الفجر"), sunrise: T("Sunrise", "الشروق"), dhuhr: lastPrayer.friday ? T("Jumu'ah", "الجمعة") : T("Dhuhr", "الظهر"), asr: T("Asr", "العصر"), maghrib: T("Maghrib", "المغرب"), isha: T("Isha", "العشاء") } };
+    window.dispatchEvent(new CustomEvent("time:prayer", { detail: window.__timePrayer }));
+    var isToday = date === todayISO(), next = null;
+    var keys = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"];
+    if (isToday) next = keys.filter(function (k) { return k !== "sunrise" && hmToMin(pt[k]) > nowMin; })[0] || null;
+    var name = function (k) { return k === "dhuhr" && lastPrayer.friday ? T(PRAYER_EN.jumuah, PRAYER_AR.jumuah) : T(PRAYER_EN[k], PRAYER_AR[k]); };
+    var pl = lastPrayer.place;
+    var where = pl.guess ? T(pl.name + " (guess — allow location)", pl.name + " (تقريبي — اسمح بالموقع)")
+      : (pl.name || T("your location", "مكانك دلوقتي")) + (pl.manual ? T(" (set by hand)", " (متحدد بإيدك)") : "");
+    var src = pt.source === "AlAdhan" ? T("Times: AlAdhan", "المواقيت: AlAdhan") + (pt.method ? " · " + pt.method : "")
+      : T("Times: worked out on this phone (offline)", "المواقيت: محسوبة على الموبايل (من غير نت)");
+    var rule = IQAMA_DEFAULT[lastPrayer.set.region] ? T("Iqama: " + ({ AE: "UAE", EG: "Egypt", SA: "Saudi" }[lastPrayer.set.region] || lastPrayer.set.region) + " rule", "الإقامة: قاعدة " + ({ AE: "الإمارات", EG: "مصر", SA: "السعودية" }[lastPrayer.set.region] || lastPrayer.set.region))
+      : T("Iqama: general rule", "الإقامة: قاعدة عامة");
+    bar.hidden = false;
+    bar.innerHTML =
+      '<div class="prayer-bar__times">' + keys.map(function (k) {
+        return '<span class="prayer-bar__t' + (k === next ? " is-next" : "") + (k === "sunrise" ? " is-sun" : "") + '"><small>' + esc(name(k)) + '</small><b>' + clock12(pt[k]) + '</b></span>';
+      }).join("") + '</div>' +
+      '<div class="prayer-bar__foot"><span title="' + esc(pl.full || "") + '">📍 ' + esc(where) + '<small class="prayer-bar__src">' + esc(src) + ' · ' + esc(rule) + '</small></span>' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-prayer="locate">' + T("Update location", "حدّث المكان") + '</button>' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-prayer="edit" aria-expanded="false">' + T("⚙️ Prayers & my day", "⚙️ الصلاة ويومي") + '</button></div>' +
+      '<form class="prayer-bar__set" hidden>' +
+        PRAYER_KEYS.map(function (k) {
+          return '<label><span>' + esc(T(PRAYER_EN[k], PRAYER_AR[k])) + '</span><input type="number" min="0" max="60" step="1" name="' + k + '" value="' + set[k] + '" /><small>' + T("min", "دقيقة") + '</small></label>';
+        }).join("") +
+        '<label><span>' + T("Jumu'ah khutba", "خطبة الجمعة") + '</span><input type="time" name="jumuah" value="' + esc(set.jumuah || "") + '" /></label>' +
+        '<label><span>' + T("Azkar", "الأذكار") + '</span><input type="number" min="5" max="60" step="5" name="azkar" value="' + set.azkar + '" /><small>' + T("min", "دقيقة") + '</small></label>' +
+        '<h4 class="prayer-bar__h">' + T("My day around the prayers", "يومي حوالين الصلاة") + '</h4>' +
+        '<label><span>😴 ' + T("Sleep", "النوم") + '</span><input type="number" min="0" max="10" step="0.5" name="sleepH" value="' + set.sleepH + '" /><small>' + T("h before Fajr", "ساعات قبل الفجر") + '</small></label>' +
+        '<label><span>💤 ' + T("Qailula", "القيلولة") + '</span><input type="number" min="0" max="120" step="15" name="nap" value="' + set.nap + '" /><small>' + T("min after Dhuhr", "دقيقة بعد الضهر") + '</small></label>' +
+        '<label><span>🍳 ' + T("Breakfast", "الفطار") + '</span><input type="number" min="0" max="60" step="5" name="breakfast" value="' + set.breakfast + '" /><small>' + T("min after azkar", "دقيقة بعد الأذكار") + '</small></label>' +
+        '<div class="prayer-bar__gym"><span>🏋️ ' + T("Gym days", "أيام الجيم") + '</span><div class="cal-days">' + [6, 0, 1, 2, 3, 4, 5].map(function (d) {
+          return '<button type="button" class="cal-dchip" data-gym="' + d + '" aria-pressed="' + (set.gymDays.indexOf(d) >= 0) + '">' + [T("Sun", "حد"), T("Mon", "اتنين"), T("Tue", "تلات"), T("Wed", "أربع"), T("Thu", "خميس"), T("Fri", "جمعة"), T("Sat", "سبت")][d] + '</button>';
+        }).join("") + '</div>' +
+        '<select name="gymWhen"><option value="isha"' + (set.gymWhen === "isha" ? " selected" : "") + '>' + T("After everything (after Isha)", "بعد كل حاجة (بعد العشا)") + '</option>' +
+        '<option value="slump"' + (set.gymWhen === "slump" ? " selected" : "") + '>' + T("When my head switches off (after Asr)", "وقت ما دماغي بتفصل (بعد العصر)") + '</option></select></div>' +
+        '<div class="prayer-bar__btns"><button type="submit" class="btn btn--primary btn--sm">' + T("Save", "حفظ") + '</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-prayer="off">' + T("Turn off", "اقفلها") + '</button></div>' +
+        '<p class="muted prayer-bar__hint">' + T("Minutes from adhan to iqama at your mosque. Each prayer gets the half hour the iqama falls in.",
+          "الدقايق من الأذان للإقامة في مسجدك. كل صلاة بتاخد نص الساعة اللي الإقامة جواها.") + '</p>' +
+      '</form>';
+  }
+
+  /* when the location can't be read: say where to allow it for this browser and device,
+     open the Mac's own setting when the Mac has it off, or let the place be typed in */
+  function geoHelp(code) {
+    var bar = $("#prayerBar"); if (!bar) return;
+    var box = document.getElementById("geoHelp");
+    if (!code) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement("div"); box.id = "geoHelp"; box.className = "geo-help"; bar.parentNode.insertBefore(box, bar.nextSibling); }
+    var ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+    var mac = !ios && /Mac/.test(ua), edge = /Edg\//.test(ua), safari = /Safari/.test(ua) && !/Chrome|Chromium|Edg\//.test(ua);
+    var app = edge ? "Microsoft Edge" : safari ? "Safari" : "Google Chrome";
+    var steps;
+    if (code === 1 && ios) steps = [
+      T("Open the iPhone <b>Settings</b> app → <b>Privacy & Security</b> → <b>Location Services</b> → make sure it's on.", "افتح <b>الإعدادات</b> في الآيفون ← <b>الخصوصية والأمان</b> ← <b>خدمات الموقع</b> ← اتأكد إنها شغالة."),
+      T("In the same list: <b>Safari Websites</b> → <b>While Using the App</b>.", "في نفس القايمة: <b>مواقع Safari</b> ← <b>أثناء استخدام التطبيق</b>."),
+      T("Back in Safari on this page: tap <b>aA</b> → <b>Website Settings</b> → <b>Location</b> → <b>Allow</b>.", "ارجع للصفحة في Safari: دوس <b>aA</b> ← <b>إعدادات الموقع الإلكتروني</b> ← <b>الموقع</b> ← <b>سماح</b>.")];
+    else if (code === 1 && safari) steps = [
+      T("Top menu: <b>Safari</b> → <b>Settings for ahmedtarek.tech…</b>", "من القايمة اللي فوق: <b>Safari</b> ← <b>Settings for ahmedtarek.tech…</b>"),
+      T("<b>Location</b> → <b>Allow</b>, then press <b>Try again</b> below.", "<b>Location</b> ← <b>Allow</b>، وبعدين دوس <b>جرّب تاني</b> تحت.")];
+    else if (code === 1) steps = [
+      T("Click the <b>🔒 lock</b> (or <b>ⓘ</b>) at the left of the address bar, where it says ahmedtarek.tech.", "دوس على <b>🔒 القفل</b> (أو <b>ⓘ</b>) على شمال شريط العنوان، جنب ahmedtarek.tech."),
+      T("Find <b>Location</b> and switch it to <b>Allow</b>.", "دوّر على <b>Location / الموقع</b> وخليها <b>Allow / سماح</b>."),
+      T("Press <b>Try again</b> below (or reload the page).", "دوس <b>جرّب تاني</b> تحت (أو اعمل reload للصفحة).")];
+    else if (mac) steps = [
+      T("Your Mac has location off for " + app + ". Press the button below — it opens the Mac's Location Services.", "الماك قافل الموقع عن " + app + ". دوس الزرار اللي تحت، هيفتحلك إعدادات خدمات الموقع في الماك."),
+      T("Turn on <b>Location Services</b>, then turn on <b>" + app + "</b> in the list.", "شغّل <b>Location Services</b>، وبعدين شغّل <b>" + app + "</b> في القايمة."),
+      T("Come back and press <b>Try again</b>.", "ارجع هنا ودوس <b>جرّب تاني</b>.")];
+    else steps = [
+      T("Turn on your device's location, then press <b>Try again</b>.", "شغّل الموقع في جهازك، وبعدين دوس <b>جرّب تاني</b>."),
+      T("Or type your area below.", "أو اكتب منطقتك تحت.")];
+    box.innerHTML = '<button type="button" class="iconbtn geo-help__x" data-geo="close" aria-label="' + T("Close", "قفل") + '">✕</button>' +
+      '<h4>📍 ' + (code === 1 ? T("Location is blocked for this site", "الموقع مقفول للموقع ده") : T("Couldn't get your location", "مقدرتش أجيب مكانك")) + '</h4>' +
+      '<ol>' + steps.map(function (x) { return '<li>' + x + '</li>'; }).join("") + '</ol>' +
+      '<div class="geo-help__btns">' +
+        (mac && code !== 1 ? '<a class="btn btn--primary btn--sm" href="x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices">⚙️ ' + T("Open Mac location settings", "افتح إعدادات الموقع في الماك") + '</a>' : '') +
+        '<button type="button" class="btn btn--primary btn--sm" data-geo="retry">🔄 ' + T("Try again", "جرّب تاني") + '</button></div>' +
+      '<form class="geo-help__find"><label>' + T("Or type your area / city:", "أو اكتب منطقتك أو مدينتك:") + '</label>' +
+        '<div><input name="q" placeholder="' + T("e.g. Al Barsha, Dubai", "مثلاً: البرشاء، دبي") + '" autocomplete="off"><button type="submit" class="btn btn--ghost btn--sm">' + T("Search", "دوّر") + '</button></div>' +
+        '<ul class="geo-help__res"></ul></form>';
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  document.addEventListener("click", function (ev) {
+    var g = ev.target.closest && ev.target.closest("[data-geo]");
+    if (!g) return;
+    if (g.dataset.geo === "close") { geoHelp(0); return; }
+    if (g.dataset.geo === "retry") { var lb = document.querySelector('#prayerBar [data-prayer="locate"]'); if (lb) lb.click(); return; }
+    if (g.dataset.geo === "pick") {
+      var r = JSON.parse(g.dataset.place);
+      var region = window.Prayer ? window.Prayer.regionOf() : "uae";
+      lsSet("time-prayer-loc", { lat: r.lat, lng: r.lng, name: r.name, full: r.full, cc: r.cc, region: region, at: Date.now(), manual: true });
+      geoHelp(0);
+      toast(T("📍 Set to " + r.name + " — prayer times updated ✓", "📍 اتظبط على " + r.name + " — المواقيت اتحدّثت ✓"));
+      loadDay(state.currentDate, { skipEnterAnimation: true });
+    }
+  });
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target;
+    if (!f.classList || !f.classList.contains("geo-help__find")) return;
+    ev.preventDefault();
+    var q = f.elements.q.value.trim(), list = f.querySelector(".geo-help__res");
+    if (q.length < 2) return;
+    list.innerHTML = '<li class="muted">' + T("Searching…", "بدوّر…") + '</li>';
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=" + T("en", "ar") + "&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!rows.length) { list.innerHTML = '<li class="muted">' + T("Nothing found — try the city name", "ملقتش حاجة — جرّب اسم المدينة") + '</li>'; return; }
+        list.innerHTML = rows.map(function (x) {
+          var a = x.address || {};
+          var name = [a.neighbourhood || a.suburb || a.quarter, a.city || a.town || a.village || a.state].filter(Boolean).join(T(", ", "، ")) || x.name || x.display_name.split(",")[0];
+          var place = { lat: +(+x.lat).toFixed(4), lng: +(+x.lon).toFixed(4), name: name, full: x.display_name, cc: String(a.country_code || "").toUpperCase() || null };
+          return '<li><button type="button" data-geo="pick" data-place="' + esc(JSON.stringify(place)) + '"><b>' + esc(name) + '</b><small>' + esc(x.display_name) + '</small></button></li>';
+        }).join("");
+      })
+      .catch(function () { list.innerHTML = '<li class="muted">' + T("Search failed — check the internet", "البحث وقع — اتأكد من النت") + '</li>'; });
+  });
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("[data-prayer]");
+    if (!b || !$("#prayerBar").contains(b)) return;
+    var what = b.dataset.prayer;
+    if (what === "gymday") return;
+    if (what === "edit") {
+      var f = $("#prayerBar .prayer-bar__set");
+      f.hidden = !f.hidden; b.setAttribute("aria-expanded", String(!f.hidden));
+      return;
+    }
+    if (what === "locate") {
+      busy(b, true);
+      // blocked already: asking again shows nothing, so say how to allow it
+      var perm = navigator.permissions && navigator.permissions.query ? navigator.permissions.query({ name: "geolocation" }).then(function (r) { return r.state; }).catch(function () { return ""; }) : Promise.resolve("");
+      perm.then(function (state0) {
+        if (state0 === "denied") { geoErr = 1; geoHelp(1); return; }
+        return prayerPlace(true).then(function (p) {
+          if (p.failed || p.guess) { geoHelp(geoErr || 2); return; }
+          geoHelp(0);
+          toast(T("📍 You're in " + (p.name || "this spot") + " — prayer times updated ✓", "📍 إنت في " + (p.name || "المكان ده") + " — المواقيت اتحدّثت ✓"));
+          return loadDay(state.currentDate, { skipEnterAnimation: true });
+        });
+      }).finally(function () { busy(b, false); });
+      return;
+    }
+    if (what === "off" || what === "on") {
+      savePrayerSettings({ on: what === "on" });
+      loadDay(state.currentDate, { skipEnterAnimation: true });
+    }
+  });
+  document.addEventListener("click", function (ev) {
+    var g = ev.target.closest && ev.target.closest("[data-gym]");
+    if (g) g.setAttribute("aria-pressed", String(g.getAttribute("aria-pressed") !== "true"));
+  });
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target;
+    if (!f.classList || !f.classList.contains("prayer-bar__set")) return;
+    ev.preventDefault();
+    var v = {};
+    PRAYER_KEYS.forEach(function (k) { v[k] = Math.max(0, Math.min(60, Math.round(Number(f.elements[k].value) || 0))); });
+    v.jumuah = f.elements.jumuah.value || "";
+    var gym = [].map.call(f.querySelectorAll('[data-gym][aria-pressed="true"]'), function (b) { return +b.dataset.gym; });
+    savePrayerSettings({ region: v, azkar: Math.max(5, Math.min(60, Number(f.elements.azkar.value) || 15)), life: {
+      sleepH: Math.max(0, Math.min(10, Number(f.elements.sleepH.value) || 0)), nap: Math.max(0, Math.min(120, Number(f.elements.nap.value) || 0)),
+      breakfast: Math.max(0, Math.min(60, Number(f.elements.breakfast.value) || 0)), gymDays: gym, gymWhen: f.elements.gymWhen.value } });
+    toast(T("Iqama times saved ✓", "مواعيد الإقامة اتحفظت ✓"));
+    loadDay(state.currentDate, { skipEnterAnimation: true });
+  });
+
+  // what time-cal.js (calendar views, repeating events, plan my day) uses from here
+  window.__time = {
+    openDaySettings: function () {
+      var b = document.querySelector('#prayerBar [data-prayer="edit"]'), f = document.querySelector("#prayerBar .prayer-bar__set");
+      if (b && f && f.hidden) b.click();
+      if (f) f.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+    api: api, state: state, toast: toast, esc: esc, T: T, todayISO: todayISO, addDays: addDays,
+    loadDay: loadDay, afterTaskChange: afterTaskChange, startEditTask: startEditTask, fmtSlot: fmtSlot,
+    clock12: clock12, hmToMin: hmToMin, minToHm: minToHm, playAdd: function () { playAddSound(); },
+    categories: function () { return (state.quarterDetail && state.quarterDetail.categories) || []; },
+    // a later day's prayers and azkar, worked out on the phone (for the week / month views)
+    prayerPlanFor: function (date) {
+      var set = prayerSettings();
+      if (!set.on || !window.Prayer) return null;
+      var region = window.Prayer.regionOf();
+      var place = lsGet("time-prayer-loc") || CAPITAL[region] || CAPITAL.uae;
+      var pt = window.Prayer.times(date, place.lat, place.lng);
+      return prayerPlan(date, place, pt).plan;
+    },
+    prayerTitle: PRAYER_TITLE,
+    autoIcon: AUTO_ICON,
+  };
+
   function renderTasks(tasks, opts) {
     opts = opts || {};
     state.dayTasks = tasks;
@@ -993,6 +1469,7 @@
     // a half-done task counts as half a task
     var done = tasks.reduce(function (n, t) { return n + (t.done ? 1 : t.half ? 0.5 : 0); }, 0);
     animateCount($("#dayPercent"), total ? Math.round((done / total) * 100) : 0, "%");
+    window.dispatchEvent(new CustomEvent("time:day", { detail: { pct: total ? Math.round((done / total) * 100) : 0, done: done, total: total } }));
     $("#dayCount").textContent = T(done + " of " + total + " task" + (total === 1 ? "" : "s"), done + " من " + total + " " + (total >= 3 && total <= 10 ? "مهام" : "مهمة"));
 
     var list = $("#taskList");
@@ -1002,7 +1479,10 @@
       var row = document.createElement("div");
       row.className = "task-row" + (t.done ? " task-row--done" : "") + (t.half ? " task-row--half" : "") + (animate ? " task-row--enter" : "");
       row.dataset.id = t.id;
+      if (t.auto_key) row.dataset.auto = String(t.auto_key).split(":")[0];
       var meta = [];
+      if (t.time_from) meta.push('<b class="task-row__slot">🕒 ' + esc(fmtSlot(t.time_from, t.time_to)) + '</b>' +
+        (t.time_note ? ' <span class="task-row__note">' + esc(t.time_note) + '</span>' : ''));
       if (t.category_name) meta.push(esc(t.category_name));
       if (t.planned_hours != null) meta.push(fmtH(t.planned_hours) + T(" planned", " مخطط"));
       if (state.selectedTaskIds[t.id]) row.classList.add("task-row--selected");
@@ -1015,6 +1495,7 @@
         (meta.length ? '<div class="task-row__meta">' + meta.join(" · ") + '</div>' : '') + '</div>' +
         ((t.done || t.half) && t.completed_at ? '<button type="button" class="task-row__time" title="' + T("Done at — click to change it", "وقت ما خلصت — دوس عشان تغيّره") + '">🕒 ' +
           clockOf(t.completed_at) + '</button>' : '') +
+        (t.link ? '<a class="iconbtn task-row__link" href="' + esc(t.link) + '" target="_blank" rel="noopener" title="' + T("Open the meeting link", "افتح لينك الميعاد") + '">🔗</a>' : '') +
         (t.done ? '<input type="number" min="0" step="0.25" class="task-row__actual" title="' + T("Actual hours", "الساعات الفعلية") + '" value="' +
           (t.actual_hours != null ? Number(t.actual_hours) : '') + '" />' : '') +
         '<button type="button" class="iconbtn iconbtn--half" aria-pressed="' + !!t.half + '" title="' +
@@ -1414,10 +1895,17 @@
       start.setMinutes(start.getMinutes() < 30 ? 30 : 60);
     }
     return tasks.map(function (t) {
+      var title = (t.done ? "✓ " : t.half ? "½ " : "") + (t.icon ? t.icon + " " : "") + t.title;
+      // a task with its own from–to keeps it, and doesn't move the others along
+      if (t.time_from) {
+        var s0 = new Date(date + "T" + t.time_from + ":00");
+        var e0 = t.time_to ? new Date(date + "T" + t.time_to + ":00") : new Date(s0.getTime() + 30 * 60000);
+        return { task: t, title: title + (t.time_note ? " (" + t.time_note + ")" : ""), start: s0, end: e0 };
+      }
       var end = new Date(start.getTime() + Math.round((Number(t.planned_hours) || 0.5) * 60) * 60000);
       var ev = {
         task: t,
-        title: (t.done ? "✓ " : t.half ? "½ " : "") + (t.icon ? t.icon + " " : "") + t.title,
+        title: title,
         start: start,
         end: end
       };
@@ -1565,6 +2053,8 @@
     form.elements.icon.value = t.icon || "";
     form.elements.category_id.value = t.category_id || "";
     form.elements.planned_hours.value = t.planned_hours != null ? Number(t.planned_hours) : "";
+    form.elements.time_from.value = t.time_from || "";
+    form.elements.time_to.value = t.time_to || "";
     form.elements.actual_hours.value = t.actual_hours != null ? Number(t.actual_hours) : "";
     $("#actualHoursField").hidden = false;
     $("#btnTaskSubmit").textContent = T("Update task", "تحديث المهمة");
@@ -1594,8 +2084,23 @@
       icon: b.icon || null,
       category_id: b.category_id ? Number(b.category_id) : null,
       planned_hours: b.planned_hours ? Number(b.planned_hours) : null,
+      time_from: b.time_from || null,
+      time_to: b.time_to || null,
     };
-    if (editingId) body.actual_hours = b.actual_hours ? Number(b.actual_hours) : null;
+    if (body.time_from && body.time_to && body.time_to <= body.time_from) {
+      toast(T("The end time has to come after the start", "وقت النهاية لازم يكون بعد البداية"), true);
+      return;
+    }
+    if (!body.time_from) body.time_to = null;
+    if (editingId) {
+      body.actual_hours = b.actual_hours ? Number(b.actual_hours) : null;
+      // a prayer whose time was moved by hand keeps that time: the page stops moving it
+      var was = (state.dayTasks || []).filter(function (x) { return x.id === editingId; })[0];
+      if (was && was.auto_key && !/:hand$/.test(was.auto_key) &&
+          ((was.time_from || null) !== body.time_from || (was.time_to || null) !== body.time_to)) {
+        body.auto_key = was.auto_key + ":hand";
+      }
+    }
     else body.task_date = state.currentDate;
 
     busy(btn, true);
@@ -1669,18 +2174,33 @@
 
   /* ---------------- mascot: reacts to today's completion %, with a streak + confetti ---------------- */
 
+  // a few lines per mood, one picked at random — the mascot jokes a little (owner, 2026-11-21)
   var MASCOT_MOODS = [
-    { max: 0, mouth: "sad", caption: T("Let's get started! 💪", "يلا نبدأ! 💪") },
-    { max: 49, mouth: "neutral", caption: T("Building momentum…", "الحماس بيزيد…") },
-    { max: 99, mouth: "happy", caption: T("You're doing great!", "إنت ماشي كويس!") },
-    { max: 100, mouth: "excited", caption: T("Perfect day! 🎉", "يوم مثالي! 🎉") },
+    { max: 0, mouth: "sad", captions: [
+      T("Let's go, boss — the day is waiting 💪", "يلا يا معلم، اليوم مستنيك 💪"),
+      T("Good morning! First task is on you ☕", "صباح الفل! أول مهمة عليك ☕"),
+      T("The couch won't finish the tasks 😅", "الكنبة مش هتخلّص المهام 😅") ] },
+    { max: 49, mouth: "neutral", captions: [
+      T("Warming up 🔥", "بدأنا نسخن 🔥"),
+      T("Nice start… keep going", "بداية حلوة.. كمّل"),
+      T("Momentum's climbing, champ 📈", "الحماس بيعلى يا وحش 📈") ] },
+    { max: 99, mouth: "happy", captions: [
+      T("You're flying today ✈️", "إنت طاير النهارده ✈️"),
+      T("A little more and it's a wrap 💯", "فاضل شوية وتقفلها 💯"),
+      T("Strong strong, keep it up!", "جامد جامد، كمّل!") ] },
+    { max: 100, mouth: "excited", captions: [
+      T("Perfect day! 🎉 Treat yourself", "يوم مثالي! 🎉 دلّع نفسك بحاجة حلوة"),
+      T("100%! You're a legend 🏆", "100%! ده إنت أسطورة 🏆") ] },
   ];
+  var lastMood = null;
   var mascotHit100Today = false;
 
   function updateMascot(pct, streak) {
     var mood = MASCOT_MOODS.filter(function (m) { return pct <= m.max; })[0] || MASCOT_MOODS[MASCOT_MOODS.length - 1];
     $("#mascotMouth").className = "mascot__mouth mascot__mouth--" + mood.mouth;
-    $("#mascotCaption").textContent = mood.caption;
+    // a new line only when the mood changes, so it doesn't flicker on every re-render
+    if (lastMood !== mood) { lastMood = mood; $("#mascotCaption").textContent = mood.captions[Math.floor(Math.random() * mood.captions.length)]; }
+    window.dispatchEvent(new CustomEvent("time:mood", { detail: { pct: pct, streak: streak, mood: mood.mouth } }));
 
     var streakBox = $("#mascotStreak");
     if (streak > 0) { streakBox.hidden = false; $("#streakCount").textContent = streak; }
@@ -1705,7 +2225,7 @@
   }
 
   function burstConfetti(count) {
-    var colors = ["#60a5fa", "#a78bfa", "#34d399", "#f59e0b", "#f472b6"];
+    var colors = ["#91A3C9", "#FA968B", "#34d399", "#f59e0b", "#F47F72"];
     for (var i = 0; i < (count || 18); i++) {
       var piece = document.createElement("div");
       piece.className = "confetti-piece";
@@ -2314,13 +2834,13 @@
 
   var PACE_LABEL = { ahead: T("Ahead", "سابق"), "on-track": T("On track", "ماشي تمام"), behind: T("Behind", "متأخر"), "not-started": T("Not started", "لسه ما بدأش") };
   var PACE_CLASS = { ahead: "badge--good", "on-track": "badge--muted", behind: "badge--danger", "not-started": "badge--muted" };
-  var PACE_DONUT_COLOR = { ahead: "#1fa876", "on-track": "#60a5fa", behind: "#e2586a", "not-started": "#5f6b7d" };
+  var PACE_DONUT_COLOR = { ahead: "#1fa876", "on-track": "#91A3C9", behind: "#e2586a", "not-started": "#5f6b7d" };
   // Categorical palette led by the site's blurple accent. Every hue sits at a
   // similar mid lightness so the same swatch reads on the white ground and on
   // the dark one, without a per-theme second palette.
-  var CATEGORY_PALETTE = ["#8477d4", "#3aa682", "#c98a2b", "#4f93d1", "#c4649b", "#3fadaf", "#d1704f", "#8b8fa3"];
+  var CATEGORY_PALETTE = ["#879AC4", "#3aa682", "#c98a2b", "#6A82B6", "#C46E64", "#4F689F", "#d1704f", "#8b8fa3"];
   var GOAL_STATUS_LABEL = { done: T("Completed", "خلصت"), "in-progress": T("In progress", "شغال عليه"), "not-started": T("Not started", "لسه ما بدأش") };
-  var GOAL_STATUS_COLOR = { done: "#1fa876", "in-progress": "#60a5fa", "not-started": "#5f6b7d" };
+  var GOAL_STATUS_COLOR = { done: "#1fa876", "in-progress": "#91A3C9", "not-started": "#5f6b7d" };
 
   function fmtNum(n) {
     n = Number(n) || 0;
@@ -2359,7 +2879,7 @@
      the due date"). */
   var TRACK_KEYS = ["biz", "brand", "job", "learn"];
   var TRACK_NAME = { biz: T("Business", "البيزنس"), brand: T("Branding", "البراند"), job: T("Job", "الوظيفة"), learn: T("Learning", "التعلّم") };
-  var TRACK_COLOR = { biz: "#e0652f", brand: "#15966b", job: "#2a78d6", learn: "#d99a00" };
+  var TRACK_COLOR = { biz: "#e0652f", brand: "#15966b", job: "#5570AB", learn: "#d99a00" };
   var TRACK_WORDS = { biz: /business|biz|startup|company|product|cashflow|sales|client/i, brand: /brand|content|linkedin|youtube|social|writing|audience/i, job: /job|work|career|interview|applications?|cv|resume/i, learn: /learn|study|course|read|book|skill|english/i };
   // the plan's own starting numbers, per phase, for when it has not been saved yet
   var PLAN_DEFAULT_HOURS = { 1: { biz: 5, brand: 3, job: 2.5, learn: 1.5 }, 2: { biz: 2, brand: 1.5, job: 8, learn: 0.5 }, 3: { biz: 2.5, brand: 1, job: 8, learn: 0.5 }, 4: { biz: 6, brand: 4, job: 0, learn: 2 } };
@@ -2380,7 +2900,7 @@
   // hours a day per track and the weekend, from a plan phase (the quarter's
   // chosen one, else the plan's current one), its "in series" override if set,
   // else the numbers the plan was born with
-  function planRhythm(chosenPhase) {
+  function planRhythm(chosenPhase, ownWeekend) {
     var ps = state.planState, weekend = [5, 6];
     var phase = chosenPhase >= 1 && chosenPhase <= 4 ? Number(chosenPhase) : planPhaseNow();
     var hours = PLAN_DEFAULT_HOURS[phase];
@@ -2390,13 +2910,14 @@
       hours = (sr && sr.hours) || ps.hours[p] || hours;
       if (sr && Array.isArray(sr.weekend)) weekend = sr.weekend;
     }
+    if (Array.isArray(ownWeekend)) weekend = ownWeekend; // the quarter picked its own days off
     return { hours: hours, weekend: weekend, phase: phase, chosen: !!chosenPhase };
   }
 
   // the quarter's working days (ISO), its tracks' stretches, and a due date on every goal in play
   function computeDueDates(data) {
     if (!data) return null;
-    var r = planRhythm(data.quarter.plan_phase);
+    var r = planRhythm(data.quarter.plan_phase, data.quarter.weekend);
     var days = [];
     for (var iso = String(data.quarter.start_date).slice(0, 10), end = String(data.quarter.end_date).slice(0, 10); iso <= end; iso = addDays(iso, 1)) {
       if (r.weekend.indexOf(new Date(iso + "T00:00:00Z").getUTCDay()) < 0) days.push(iso);
@@ -3129,10 +3650,10 @@
     var form = $("#quarterForm");
     if (!form.elements.start_date.value) form.elements.start_date.value = todayISO();
     form.elements.end_date.value = addDays(form.elements.start_date.value, Number(btn.dataset.days) - 1);
-    syncLengthPicks();
+    syncLengthPicks(); syncDaysOff();
   });
   ["start_date", "end_date"].forEach(function (n) {
-    $("#quarterForm").elements[n].addEventListener("input", syncLengthPicks);
+    $("#quarterForm").elements[n].addEventListener("input", function () { syncLengthPicks(); syncDaysOff(); });
   });
 
   /* A new cycle can be born as a copy of an earlier one — its categories and
@@ -3151,6 +3672,38 @@
 
   $("#quarterCopyFrom").addEventListener("change", syncCopyFrom);
 
+  /* Days off per quarter: 7 day buttons (Sat first, the week as it's lived here), and a live
+     count — total days, working days, days off — for the dates in the form. */
+  var DAY_ORDER = [6, 0, 1, 2, 3, 4, 5];
+  var DAY_N = function (d) { return [T("Sun", "الأحد"), T("Mon", "الاتنين"), T("Tue", "التلات"), T("Wed", "الأربع"), T("Thu", "الخميس"), T("Fri", "الجمعة"), T("Sat", "السبت")][d]; };
+  function setDaysOff(list) {
+    state.quarterWeekend = (list || []).slice();
+    $("#quarterWeekend").innerHTML = DAY_ORDER.map(function (d) {
+      return '<button type="button" class="go-pick q-off__day" data-wd="' + d + '" aria-pressed="' + (state.quarterWeekend.indexOf(d) >= 0) + '">' + DAY_N(d) + "</button>";
+    }).join("");
+    syncDaysOff();
+  }
+  function syncDaysOff() {
+    var form = $("#quarterForm"), from = form.elements.start_date.value, to = form.elements.end_date.value, out = $("#quarterDaysInfo");
+    if (!from || !to || to < from) { out.textContent = T("Pick the start and end dates to see the days.", "اختار البداية والنهاية عشان تشوف عدد الأيام."); return; }
+    var total = 0, work = 0, d = new Date(from + "T00:00:00Z"), end = new Date(to + "T00:00:00Z");
+    for (; d <= end; d.setUTCDate(d.getUTCDate() + 1)) { total++; if (state.quarterWeekend.indexOf(d.getUTCDay()) < 0) work++; }
+    out.innerHTML = '<b>' + T(total + " days total", I18N.N(total, "", "", ["يوم", "يومين", "أيام", "يوم"]) + " إجمالي") + '</b> · <b class="q-off__work">' +
+      T(work + " working days", I18N.N(work, "", "", ["يوم شغل", "يومين شغل", "أيام شغل", "يوم شغل"])) + '</b> · ' +
+      T((total - work) + " days off", I18N.N(total - work, "", "", ["يوم إجازة", "يومين إجازة", "أيام إجازة", "يوم إجازة"])) +
+      (state.quarterWeekend.length ? " (" + DAY_ORDER.filter(function (x) { return state.quarterWeekend.indexOf(x) >= 0; }).map(DAY_N).join(T(", ", "، ")) + ")" : "");
+  }
+  $("#quarterWeekend").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-wd]"); if (!b) return;
+    var d = Number(b.dataset.wd), i = state.quarterWeekend.indexOf(d);
+    if (i >= 0) state.quarterWeekend.splice(i, 1); else state.quarterWeekend.push(d);
+    if (state.quarterWeekend.length > 6) state.quarterWeekend.splice(state.quarterWeekend.indexOf(d), 1); // at least one working day
+    b.setAttribute("aria-pressed", String(state.quarterWeekend.indexOf(d) >= 0));
+    syncDaysOff();
+  });
+  state.quarterWeekend = [];
+  setDaysOff(planRhythm(0).weekend);
+
   function resetQuarterForm() {
     var form = $("#quarterForm");
     form.reset();
@@ -3165,6 +3718,7 @@
     fillCopyFrom();
     syncCopyFrom();
     syncLengthPicks();
+    setDaysOff(planRhythm(0).weekend); // a new quarter starts with the plan's weekend
   }
 
   $("#btnCancelQuarterEdit").addEventListener("click", function () {
@@ -3182,6 +3736,7 @@
     form.elements.end_date.value = String(q.end_date).slice(0, 10);
     form.elements.anti_perfectionist.checked = !!q.anti_perfectionist;
     form.elements.plan_phase.value = q.plan_phase ? String(q.plan_phase) : "";
+    setDaysOff(planRhythm(q.plan_phase, q.weekend).weekend);
     $("#categoryRows").innerHTML = "";
     (state.quarterDetail.categories || []).forEach(function (c) { addCategoryRow(c); });
     if (!state.quarterDetail.categories.length) addCategoryRow();
@@ -3310,6 +3865,7 @@
       name: b.name, start_date: b.start_date, end_date: b.end_date,
       anti_perfectionist: form.elements.anti_perfectionist.checked,
       plan_phase: form.elements.plan_phase.value ? Number(form.elements.plan_phase.value) : null,
+      weekend: (state.quarterWeekend || []).slice().sort(),
       categories: categories,
     };
 

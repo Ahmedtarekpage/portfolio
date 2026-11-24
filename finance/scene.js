@@ -2,9 +2,9 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
 const KEYS = ['essentials', 'growth', 'stability', 'reward', 'sadaqa'];
-const COLORS = { essentials: 0xfbbf24, growth: 0x34d399, stability: 0x60a5fa, reward: 0xf472b6, sadaqa: 0xa78bfa };
+const COLORS = { essentials: 0xfbbf24, growth: 0x34d399, stability: 0xF4EDE0, reward: 0xFF6B5B, sadaqa: 0x94A5CA };
 const COIN_S = 0.7; // العملة أصغر وفوق، ومحفظة الصدقة في النص
-const NOTE = { AED: ['#0f766e', 'Đ'], EGP: ['#b45309', 'E£'], USD: ['#15803d', '$'], EUR: ['#1d4ed8', '€'], SAR: ['#4d7c0f', 'SR'] };
+const NOTE = { AED: ['#1E3567', 'Đ'], EGP: ['#b45309', 'E£'], USD: ['#15803d', '$'], EUR: ['#516BA4', '€'], SAR: ['#4d7c0f', 'SR'] };
 
 function roundedRect(w, h, r) {
   const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
@@ -41,7 +41,7 @@ export function initScene(canvas, host, onLabel) {
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.85));
   const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(3, 6, 8); scene.add(key);
-  const rim = new THREE.PointLight(0x8b5cf6, 60, 40); rim.position.set(-6, -2, 4); scene.add(rim);
+  const rim = new THREE.PointLight(0xF66B5C, 60, 40); rim.position.set(-6, -2, 4); scene.add(rim);
   const warm = new THREE.PointLight(0xffc857, 40, 30); warm.position.set(5, 3, 3); scene.add(warm);
 
   // العملة اللي في النص

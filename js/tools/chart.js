@@ -13,7 +13,7 @@
   var I18N = window.I18N || { ar: false, loc: function (l) { return l || "en-GB"; }, N: function (n, one, many) { return n + " " + (n === 1 ? one : many); } };
   var T = window.T || function (en) { return en; };
 
-  var COLORS = { line: "#60a5fa", purchase: "#1fa876", session: "#3b82f6", expiry: "#d97706", danger: "#e2586a", surface: "#131822" };
+  var COLORS = { line: "#91A3C9", purchase: "#1fa876", session: "#768CBB", expiry: "#d97706", danger: "#e2586a", surface: "#131822" };
   var DAY = 86400000;
 
   function esc(s) {
@@ -183,10 +183,10 @@
     // today marker + current balance label (only when today is inside the window)
     if (todayT >= minT && todayT <= maxT) {
       svg.appendChild(svgEl("line", { x1: x(todayT), x2: x(todayT), y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.18)", "stroke-width": 1, "stroke-dasharray": "2 4" }));
-      var tl = svgEl("text", { x: x(todayT), y: M.t - 3, "text-anchor": "middle", fill: "#9aa6b8", "font-size": 10 });
+      var tl = svgEl("text", { x: x(todayT), y: M.t - 3, "text-anchor": "middle", fill: "#9AA3B8", "font-size": 10 });
       tl.textContent = T("today", "النهارده");
       svg.appendChild(tl);
-      var bl = svgEl("text", { x: Math.min(x(todayT) + 7, W - M.r - 30), y: y(balAtToday) - 8, fill: "#eef2f8", "font-size": 12, "font-weight": 600 });
+      var bl = svgEl("text", { x: Math.min(x(todayT) + 7, W - M.r - 30), y: y(balAtToday) - 8, fill: "#F8F4EE", "font-size": 12, "font-weight": 600 });
       bl.textContent = fmtH(balAtToday);
       svg.appendChild(bl);
     }
@@ -211,7 +211,7 @@
 
     // hover layer: crosshair + tooltip on nearest event
     var cross = svgEl("line", { y1: M.t, y2: H - M.b, stroke: "rgba(255,255,255,0.25)", "stroke-width": 1, visibility: "hidden" });
-    var ring = svgEl("circle", { r: 9, fill: "none", stroke: "#eef2f8", "stroke-width": 1.5, visibility: "hidden" });
+    var ring = svgEl("circle", { r: 9, fill: "none", stroke: "#F8F4EE", "stroke-width": 1.5, visibility: "hidden" });
     svg.appendChild(cross);
     svg.appendChild(ring);
 
@@ -434,7 +434,7 @@
     box.innerHTML = "";
     var cs = getComputedStyle(document.documentElement);
     var trackColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
-    var ink = (cs.getPropertyValue("--ink") || "#e7ebf3").trim() || "#e7ebf3";
+    var ink = (cs.getPropertyValue("--ink") || "#F3EEE7").trim() || "#F3EEE7";
 
     var clean = (slices || []).filter(function (s) { return Number(s.value) > 0; });
     var total = clean.reduce(function (sum, s) { return sum + Number(s.value); }, 0);
@@ -522,7 +522,7 @@
     var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
     // a page that defines --chart-line gets its own accent; one that doesn't
     // (/admin, /dashboard, /share) keeps the blue this chart has always drawn
-    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#91A3C9";
 
     var dayStart = new Date(String(opts.date).slice(0, 10) + "T00:00:00");
     var start = dayStart.getTime();
@@ -668,7 +668,7 @@
     var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
     // a page that defines --chart-line gets its own accent; one that doesn't
     // (/admin, /dashboard, /share) keeps the blue this chart has always drawn
-    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#91A3C9";
     var focusDefault = (cs.getPropertyValue("--chart-focus") || "").trim() || "#f5a524";
     var goalsColor = (cs.getPropertyValue("--chart-goals") || "").trim() || "#3aa682";
 
@@ -937,7 +937,7 @@
     var gridColor = (cs.getPropertyValue("--chart-grid") || "").trim() || "rgba(255,255,255,0.06)";
     var markerColor = (cs.getPropertyValue("--chart-marker") || "").trim() || "rgba(255,255,255,0.18)";
     var surface = (cs.getPropertyValue("--bg") || "#131822").trim() || "#131822";
-    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#60a5fa";
+    var lineColor = (cs.getPropertyValue("--chart-line") || "").trim() || "#91A3C9";
     var goalsColor = (cs.getPropertyValue("--chart-goals") || "").trim() || "#3aa682";
 
     // a quarter earns a place on the axis if either line has something to say

@@ -6,7 +6,8 @@
 //   POST   /api/tasks                        -> { task_date, title, category_id?, planned_hours?, icon?, estimated? }
 //   PATCH  /api/tasks?estimate=1          -> { from, to, estimated? }: mark (or unmark) a stretch of days as written in afterwards
 //   PATCH  /api/tasks?reorder=1             -> { ids: [id, ...] }: persist new drag order for those tasks
-//   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, half?, actual_hours?, completed_at?, icon? }
+//   PATCH  /api/tasks?id=N                   -> { title?, category_id?, planned_hours?, done?, half?, actual_hours?, completed_at?, icon?,
+//                                                time_from?, time_to? ("HH:MM"), time_note?, auto_key? }
 //   DELETE /api/tasks?date=YYYY-MM-DD        -> delete every task on that day
 //   DELETE /api/tasks?ids=1,2,3              -> delete a hand-picked set in one go -> { count }
 //   DELETE /api/tasks?id=N
@@ -14,8 +15,20 @@
 //   GET    /api/tasks?plan=state             -> { state } the plan's saved numbers and ticks
 //   PUT    /api/tasks?plan=state             -> save them
 import { db } from "./_lib/db.js";
+import { handleRoutines, syncDay, rememberSkips, rangeData } from "./_lib/routines.js";
 import { withErrors, json, requireAuth } from "./_lib/util.js";
 import { handlePlan } from "./_lib/plan.js";
+
+// "HH:MM" (24h) or null; undefined when not sent; false when invalid
+function hhmm(v) {
+  if (v === undefined) return undefined;
+  if (v === null || v === "") return null;
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(v));
+  return m ? m[0] : false;
+}
+// ":hand" = its time was changed by hand, so the page stops moving it
+const AUTO_KEYS = /^(prayer:(fajr|dhuhr|asr|maghrib|isha)|azkar:(morning|evening)|routine:\d+|meeting:\d+|prep:\d+|life:(sleep|nap|gym|breakfast))(:hand)?$/;
+const cleanLink = (v) => (v && /^https?:\/\/\S+$/i.test(String(v)) ? String(v).slice(0, 500) : null);
 
 function isDate(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
@@ -75,6 +88,15 @@ export default withErrors(async (req, res) => {
 
   if (req.query.pomodoros) return pomodoros(req, res, sql);
   if (req.query.plan) return handlePlan(req, res, sql);
+  if (req.query.routines) return handleRoutines(req, res, sql);
+
+  // a calendar's worth (week / month): tasks, repeating rules, skipped days, meetings in the viewer's zone
+  if (req.method === "GET" && req.query.range) {
+    const from = String(req.query.from || "").slice(0, 10), to = String(req.query.to || "").slice(0, 10);
+    if (!isDate(from) || !isDate(to) || from > to) return json(res, 400, { error: "from/to must be YYYY-MM-DD" });
+    if ((new Date(to) - new Date(from)) / 86400000 > 62) return json(res, 400, { error: "At most 62 days at a time" });
+    return json(res, 200, await rangeData(sql, from, to, String(req.query.tz || "")));
+  }
 
   if (req.method === "GET" && req.query.totals) {
     const [row] = await sql`SELECT (COUNT(*) FILTER (WHERE done) + COUNT(*) FILTER (WHERE half) * 0.5)::float8 AS "totalDone",
@@ -98,23 +120,27 @@ export default withErrors(async (req, res) => {
   if (req.method === "GET") {
     const date = String(req.query.date || "").slice(0, 10);
     if (!isDate(date)) return json(res, 400, { error: "date must be YYYY-MM-DD" });
+    // today or later: the repeating rules and the meetings put their tasks on the day first
+    if (req.query.sync) await syncDay(sql, date, String(req.query.tz || ""));
+    const skips = (await sql`SELECT auto_key FROM task_skips WHERE task_date = ${date}::date`).map((r) => r.auto_key);
     const tasks = await sql`SELECT t.*, c.name AS category_name
       FROM tasks t LEFT JOIN quarter_categories c ON c.id = t.category_id
       WHERE t.task_date = ${date}::date ORDER BY t.position, t.created_at`;
-    return json(res, 200, { tasks });
+    return json(res, 200, { tasks, skips });
   }
 
   if (req.method === "POST" && req.query.duplicate) {
     const b = req.body || {};
     if (!isDate(b.from_date) || !isDate(b.to_date)) return json(res, 400, { error: "from_date/to_date must be YYYY-MM-DD" });
-    const source = await sql`SELECT title, category_id, planned_hours, icon FROM tasks
+    const source = await sql`SELECT title, category_id, planned_hours, icon, time_from, time_to, auto_key FROM tasks
       WHERE task_date = ${b.from_date}::date ORDER BY position, created_at`;
     if (!source.length) return json(res, 200, { count: 0 });
     const [{ next }] = await sql`SELECT COALESCE(MAX(position), -1) + 1 AS next FROM tasks WHERE task_date = ${b.to_date}::date`;
     let pos = Number(next);
     for (const t of source) {
-      await sql`INSERT INTO tasks (task_date, title, category_id, planned_hours, icon, position)
-        VALUES (${b.to_date}::date, ${t.title}, ${t.category_id}, ${t.planned_hours}, ${t.icon}, ${pos})`;
+      await sql`INSERT INTO tasks (task_date, title, category_id, planned_hours, icon, position, time_from, time_to, auto_key)
+        VALUES (${b.to_date}::date, ${t.title}, ${t.category_id}, ${t.planned_hours}, ${t.icon}, ${pos},
+          ${t.auto_key ? null : t.time_from}, ${t.auto_key ? null : t.time_to}, ${t.auto_key})`;
       pos++;
     }
     return json(res, 201, { count: source.length });
@@ -127,10 +153,21 @@ export default withErrors(async (req, res) => {
     const categoryId = b.category_id ? Number(b.category_id) : null;
     const plannedHours = b.planned_hours != null && b.planned_hours !== "" ? Number(b.planned_hours) : null;
     const icon = b.icon ? String(b.icon).slice(0, 8) : null;
+    const from = hhmm(b.time_from) ?? null, to = hhmm(b.time_to) ?? null;
+    if (from === false || to === false) return json(res, 400, { error: "time_from/time_to must be HH:MM" });
+    const note = b.time_note ? String(b.time_note).slice(0, 120) : null;
+    const autoKey = b.auto_key && AUTO_KEYS.test(String(b.auto_key)) ? String(b.auto_key) : null;
+    const link = cleanLink(b.link);
+    // one automatic row per prayer per day: a second add of the same one is the first one
+    if (autoKey) {
+      const [had] = await sql`SELECT * FROM tasks WHERE task_date = ${b.task_date}::date AND auto_key = ${autoKey} LIMIT 1`;
+      if (had) return json(res, 200, { task: had });
+    }
 
-    const [task] = await sql`INSERT INTO tasks (task_date, title, category_id, planned_hours, icon, estimated, position)
+    const [task] = await sql`INSERT INTO tasks (task_date, title, category_id, planned_hours, icon, estimated, position, time_from, time_to, time_note, auto_key, link)
       VALUES (${b.task_date}::date, ${String(b.title).trim()}, ${categoryId}, ${plannedHours}, ${icon}, ${b.estimated === true},
-        (SELECT COALESCE(MAX(position), -1) + 1 FROM tasks WHERE task_date = ${b.task_date}::date))
+        (SELECT COALESCE(MAX(position), -1) + 1 FROM tasks WHERE task_date = ${b.task_date}::date),
+        ${from}, ${to}, ${note}, ${autoKey}, ${link})
       RETURNING *`;
     return json(res, 201, { task });
   }
@@ -167,14 +204,15 @@ export default withErrors(async (req, res) => {
     // them one request at a time could stop halfway and leave half a selection
     const ids = String(req.query.ids).split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
     if (!ids.length) return json(res, 400, { error: "ids must be a comma-separated list of task ids" });
-    const rows = await sql`DELETE FROM tasks WHERE id = ANY(${ids}) RETURNING id`;
+    const rows = await sql`DELETE FROM tasks WHERE id = ANY(${ids}) RETURNING id, auto_key, task_date::text AS task_date`;
+    await rememberSkips(sql, rows);
     return json(res, 200, { ok: true, count: rows.length });
   }
 
   if (req.method === "DELETE" && req.query.date) {
     const date = String(req.query.date).slice(0, 10);
     if (!isDate(date)) return json(res, 400, { error: "date must be YYYY-MM-DD" });
-    await sql`DELETE FROM tasks WHERE task_date = ${date}::date`;
+    await rememberSkips(sql, await sql`DELETE FROM tasks WHERE task_date = ${date}::date RETURNING auto_key, task_date::text AS task_date`);
     return json(res, 200, { ok: true });
   }
 
@@ -214,8 +252,26 @@ export default withErrors(async (req, res) => {
       completedAt = at.toISOString();
     }
 
+    const from = hhmm(b.time_from), to = hhmm(b.time_to);
+    if (from === false || to === false) return json(res, 400, { error: "time_from/time_to must be HH:MM" });
+    const timeFrom = from === undefined ? existing.time_from : from;
+    const timeTo = to === undefined ? existing.time_to : to;
+    const timeNote = b.time_note !== undefined ? (b.time_note ? String(b.time_note).slice(0, 120) : null) : existing.time_note;
+    const autoKey = b.auto_key !== undefined
+      ? (b.auto_key && AUTO_KEYS.test(String(b.auto_key)) ? String(b.auto_key) : null)
+      : existing.auto_key;
+
+    // dragged to another day in the week view
+    if (b.task_date !== undefined && !isDate(b.task_date)) return json(res, 400, { error: "task_date must be YYYY-MM-DD" });
+    const taskDate = b.task_date !== undefined ? b.task_date : null;
     const [task] = await sql`UPDATE tasks SET
+        task_date = COALESCE(${taskDate}::date, task_date),
         title = COALESCE(${b.title ?? null}, title),
+        time_from = ${timeFrom},
+        time_to = ${timeTo},
+        time_note = ${timeNote},
+        auto_key = ${autoKey},
+        link = ${b.link !== undefined ? cleanLink(b.link) : existing.link},
         category_id = ${categoryId},
         planned_hours = ${plannedHours},
         actual_hours = ${actualHours},
@@ -228,7 +284,7 @@ export default withErrors(async (req, res) => {
   }
 
   if (req.method === "DELETE") {
-    await sql`DELETE FROM tasks WHERE id = ${id}`;
+    await rememberSkips(sql, await sql`DELETE FROM tasks WHERE id = ${id} RETURNING auto_key, task_date::text AS task_date`);
     return json(res, 200, { ok: true });
   }
 

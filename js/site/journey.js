@@ -41,6 +41,12 @@ const AR = {
   // --- roles ---
   "AI Product Manager": "مدير منتج ذكاء اصطناعي",
   "Product Manager": "مدير منتج",
+  "Product Lead (side project)": "قائد منتج (مشروع جانبي)",
+  "Dubai, UAE · Hybrid (company HQ: Estonia)": "دبي، الإمارات · هجين (مقر الشركة: إستونيا)",
+  "Dubai, UAE · Remote": "دبي، الإمارات · عن بُعد",
+  "Saudi Arabia · Remote": "السعودية · عن بُعد",
+  "Online · Part-time": "أونلاين · دوام جزئي",
+  "Alpha M Educational and Sporting Services": "Alpha M Educational and Sporting Services",
   "Founder & AI Product Lead": "مؤسس وقائد منتج ذكاء اصطناعي",
   "Python Developer & Product Consultant": "مطوّر بايثون ومستشار منتج",
   "Associate Product Manager": "مدير منتج مساعد",
@@ -347,7 +353,7 @@ const STATIC = {
 const JOBS = [
   {
     date: "Aug 2025 — Oct 2026",
-    place: "Dubai, UAE · On-site",
+    place: "Dubai, UAE",
     role: "Product Manager (Full-time)",
     company: "GoBachaloria",
     kind: "AI learning platform",
@@ -365,8 +371,9 @@ const JOBS = [
   {
     date: "Jun 2025 — Oct 2025",
     place: "Remote · Side project",
-    role: "Founder (side project)",
+    role: "Product Lead (side project)",
     company: "Ashrhly.com",
+    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "AI tutoring MVP",
     what: "Adaptive bilingual (EN/AR) AI tutor for pre-university students: re-explains in a different format when a student is stuck and auto-generates quizzes and exams. Built with Claude; pitching at Web Summit Qatar.",
     built: [
@@ -380,7 +387,7 @@ const JOBS = [
   },
   {
     date: "Jan 2024 — Jul 2025",
-    place: "Dubai, UAE (company HQ: Estonia) · On-site",
+    place: "Dubai, UAE · Hybrid (company HQ: Estonia)",
     role: "Product Manager (Contract)",
     company: "Inkrypt Videos",
     kind: "Secure video hosting & DRM",
@@ -394,6 +401,22 @@ const JOBS = [
     tags: ["Product Strategy", "DRM", "Microservices", "DevOps", "n8n"],
     images: ["assets/inkrypt-1.jpg"],
     links: [{ url: "https://inkryptvideos.com", label: "Visit Inkrypt Videos" }],
+  },
+  {
+    date: "Jul 2021 — Dec 2023",
+    place: "Saudi Arabia · Remote",
+    role: "Product Manager (Full-time)",
+    company: "Fira AI",
+    kind: "GovTech · Saudi government national digitization programme (NDA)",
+    what: "Saudi government national digitization programme under NDA: 3D scanning (Matterport) and a VR/3D web archive of sensitive national records.",
+    built: [
+      "Led a team of 11 engineers and designers; owned scope, prioritisation and the release roadmap with the government stakeholder; managed timeline, NDA compliance and reporting.",
+      "Introduced Jira-based sprint planning across teams: 18% less delivery slippage.",
+      "Ran discovery with archive staff and translated their workflows into product requirements for a two-and-a-half-year, multi-phase delivery.",
+    ],
+    impact: ["Team of 11", "18% less delivery slippage"],
+    tags: ["GovTech", "Jira", "Agile", "Roadmap"],
+    nda: true,
   },
   {
     date: "Aug 2021 — Jul 2024",
@@ -414,7 +437,7 @@ const JOBS = [
   },
   {
     date: "Jul 2020 — Jun 2021",
-    place: "Dubai, UAE · Hybrid",
+    place: "Dubai, UAE · Remote",
     role: "Product Manager",
     company: "SakeenahTours",
     kind: "B2C booking platform",
@@ -446,22 +469,6 @@ const JOBS = [
       { url: "https://apps.apple.com/eg/app/alafein/id1611144819", label: "App Store" },
       { url: "https://www.linkedin.com/showcase/alafein/posts/?feedView=all", label: "LinkedIn" },
     ],
-  },
-  {
-    date: "Jul 2021 — Dec 2023",
-    place: "Saudi Arabia · Remote (from Dubai)",
-    role: "Product Manager (Full-time)",
-    company: "Fira AI",
-    kind: "GovTech · Saudi government national digitization programme (NDA)",
-    what: "Saudi government national digitization programme under NDA: 3D scanning (Matterport) and a VR/3D web archive of sensitive national records.",
-    built: [
-      "Led a team of 11 engineers and designers; owned scope, prioritisation and the release roadmap with the government stakeholder; managed timeline, NDA compliance and reporting.",
-      "Introduced Jira-based sprint planning across teams: 18% less delivery slippage.",
-      "Ran discovery with archive staff and translated their workflows into product requirements for a two-and-a-half-year, multi-phase delivery.",
-    ],
-    impact: ["Team of 11", "18% less delivery slippage"],
-    tags: ["GovTech", "Jira", "Agile", "Roadmap"],
-    nda: true,
   },
 ];
 
@@ -509,11 +516,10 @@ const EDUCATOR = [
     links: [],
   },
   {
-    date: "2024",
+    date: "Jul 2024 — Sep 2024",
     place: "Dubai, UAE",
     role: "STEAM & Robotics Instructor",
-    company: "Alpha M Educational Services",
-    notOnCv: true, // not on the CV: hidden on /product, kept on /full
+    company: "Alpha M Educational and Sporting Services",
     kind: "Robotics · Top Schools",
     what: "Taught robotics and programming to teenagers in Dubai's top-tier schools — American School of Dubai (ASD), JESS and Kings' Schools.",
     built: [
@@ -543,11 +549,10 @@ const EDUCATOR = [
     links: [],
   },
   {
-    date: "2020 — 2022",
-    place: "Global · Remote",
+    date: "Feb 2020 — Jul 2022",
+    place: "Online · Part-time",
     role: "Super Tutor & Python Instructor",
     company: "Preply · almentor · Robokids",
-    notOnCv: true, // not on the CV: hidden on /product, kept on /full
     kind: "Tutoring at Scale",
     what: "Independent teaching across leading platforms — 1,000+ tutoring hours on Preply, 650+ students on almentor, and LEGO robotics coaching for WRO competitions.",
     built: [
@@ -733,10 +738,21 @@ function renderInto(id, list) {
   el.innerHTML = sorted.map(cardHTML).join("");
 }
 function renderCards() {
-  renderInto("eduTimeline", EDUCATOR);
-  renderInto("buildTimeline", BUILDER);
+  // Only what the CVs carry is shown, on every view (owner, 2026-11-23). An entry
+  // marked notOnCv stays in this file but is not drawn; a chapter left empty is hidden.
+  const onCv = (list) => list.filter((j) => !j.notOnCv);
+  renderInto("eduTimeline", onCv(EDUCATOR));
+  renderInto("buildTimeline", onCv(BUILDER));
+  const buildSec = document.getElementById("builder");
+  if (buildSec && !onCv(BUILDER).length) {
+    buildSec.style.display = "none";
+    document.querySelectorAll('a[href="#builder"]').forEach((a) => { a.style.display = "none"; });
+    // with the middle chapter gone, the product chapter is the second one
+    const idx = document.querySelector("#work .section__index");
+    if (idx) { idx.removeAttribute("data-i18n"); idx.textContent = document.documentElement.lang === "ar" ? "الفصل الثاني" : "CHAPTER TWO"; }
+  }
   // /product shows only what is on the CV; /full keeps the whole story
-  renderInto("timeline", VIEW === "product" ? JOBS.filter((j) => !j.notOnCv) : JOBS);
+  renderInto("timeline", onCv(JOBS));
   const skillsGrid = document.getElementById("skillsGrid");
   if (skillsGrid) {
     skillsGrid.innerHTML = SKILLS.map(

@@ -29,7 +29,7 @@
       btn.setAttribute("aria-label", theme === "light" ? T("Switch to dark theme", "حوّل للوضع الغامق") : T("Switch to light theme", "حوّل للوضع الفاتح"));
     }
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "light" ? "#f4f8ff" : "#0b1220");
+    if (meta) meta.setAttribute("content", theme === "light" ? "#F4EDE0" : "#14213D");
     try { localStorage.setItem(KEY, theme); } catch (e) {}
     listeners.forEach(function (fn) { try { fn(theme); } catch (e) {} });
   }

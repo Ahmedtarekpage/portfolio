@@ -514,7 +514,7 @@
   }
 
   // confetti: dots in the brand colours and a few sparkles, from a point
-  var BITS = ["#2563eb", "#ffb020", "#1fa876", "#5b93ff", "#ffcf6b"];
+  var BITS = ["#FF6B5B", "#ffb020", "#1fa876", "#F4EDE0", "#ffcf6b"];
   function burst(x, y, n, glyphs) {
     if (calm) return;
     n = n || 22;

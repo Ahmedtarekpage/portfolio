@@ -5,30 +5,40 @@
 <!-- Private money planner. Static shell only: every number comes from /api/ideas?finance=data, which needs the admin passkey session. -->
 <base href="/finance/">
 <meta name="robots" content="noindex, nofollow">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 📱 تطبيق على الشاشة الرئيسية للآيفون (Safari ← مشاركة ← Add to Home Screen): بيفتح شاشة كاملة، والدخول بالـPasskey بتاعك بس -->
+<link rel="manifest" href="/finance/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/finance/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="فلوسي">
+<meta name="theme-color" content="#14213D">
 <title>فلوسي — مدير فلوسك</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=tide3">
+  <script src="/js/tools/icons.js?v=2" defer></script>
 </head>
 <body class="first">
 <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
 
 <main class="app">
   <nav class="nav glass" id="nav" aria-label="التنقل">
-    <a class="back" href="/admin" aria-label="Admin" title="Admin">←</a>
+    <a class="back" href="/admin" aria-label="رجوع للأدمن" title="رجوع للأدمن · Back to Admin">← 🏠</a>
     <b class="logo">🪙 فلوسي</b>
-    <div class="tabs"><button type="button" data-page="home" class="on">🏠 الرئيسية</button><button type="button" data-page="stats">📊 التحليلات</button></div>
+    <div class="tabs"><button type="button" data-page="home" class="on">🏠 الرئيسية</button><button type="button" data-page="stats">📊 التحليلات</button><button type="button" data-page="log">📒 السجل</button></div>
     <button type="button" id="lang" class="lang" aria-label="اللغة">English</button>
   </nav>
   <aside class="chat glass" id="chat">
     <header class="chat-head">
-      <div class="avatar">🪙</div>
-      <div class="grow"><b>فلوسي</b><small id="rateInfo">بجيب الأسعار…</small><small id="saveInfo"></small></div>
+      <div class="agent" id="agent" aria-hidden="true"><svg viewBox="0 0 64 64"><defs><radialGradient id="ag" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#B5C1DB"/><stop offset=".6" stop-color="#768CBB"/><stop offset="1" stop-color="#445A89"/></radialGradient></defs><path d="M25 12 L37 -1 Q39 7 41 13 Z" fill="#445A89"/><circle cx="32" cy="35" r="27" fill="url(#ag)" stroke="#374A71" stroke-width="2.5"/><ellipse cx="32" cy="47" rx="19" ry="11" fill="#F7F1E7"/><g stroke="#374A71" stroke-width="1.6" stroke-linecap="round" opacity=".55"><path d="M10 31 q2 3 0 6"/><path d="M13 30 q2 3 0 6"/><path d="M54 31 q-2 3 0 6"/><path d="M51 30 q-2 3 0 6"/></g><g class="eyes"><ellipse cx="23" cy="29" rx="3.6" ry="4.6" fill="#152238"/><ellipse cx="41" cy="29" rx="3.6" ry="4.6" fill="#152238"/><circle cx="24.3" cy="27.4" r="1.2" fill="#fff"/><circle cx="42.3" cy="27.4" r="1.2" fill="#fff"/></g><g class="mouth"><path d="M21 42 Q32 53 43 42 Z" fill="#152238"/><path d="M23 43 l2.5 3 2.5 -2.6 2.5 3 2.5 -3 2.5 3 2.5 -2.6 2.5 3 1.5 -3.8 Z" fill="#fff"/></g><circle cx="16" cy="39" r="3" fill="#FF6B5B" opacity=".4"/><circle cx="48" cy="39" r="3" fill="#FF6B5B" opacity=".4"/></svg></div>
+      <div class="grow"><b>قرش 🦈 <span class="agent-role">· الـ Agent المالي بتاعك 🤖</span></b><small id="rateInfo">بجيب الأسعار…</small><small id="saveInfo"></small></div>
       <button id="imp" class="pill" type="button" aria-label="استيراد البيانات" title="استيراد البيانات">📥</button>
       <button id="exp" class="pill" type="button" aria-label="تصدير البيانات" title="تصدير البيانات">📤</button>
       <input id="impFile" type="file" accept="application/json,.json" hidden>
+      <button id="ctl" class="pill" type="button" aria-label="التحكم" title="التحكم">🎛</button>
       <button id="mute" class="pill" type="button" aria-label="الصوت" title="الصوت">🔊</button>
     </header>
     <div class="log" id="log" aria-live="polite"></div>
@@ -40,6 +50,7 @@
   </aside>
 
   <section class="col">
+    <div class="today glass" id="today" hidden></div>
     <div class="stage glass" id="stage">
       <div class="view" id="view">
         <canvas id="gl"></canvas>
@@ -55,6 +66,7 @@
     </div>
     <div id="cards"></div>
     <div id="stats" class="stats-page" hidden></div>
+    <div id="logs" class="log-page" hidden></div>
   </section>
 </main>
 
@@ -64,6 +76,16 @@
     <input id="pinIn" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-label="الرقم السري">
     <small id="pinErr"></small>
     <div class="pin-btns"><button class="btn primary">تمام</button><button class="btn ghost" type="button" data-cancel>إلغاء</button></div>
+  </form>
+</div>
+<div id="ctlBox" class="pin" hidden>
+  <form id="ctlForm" class="glass ctl" autocomplete="off">
+    <b id="ctlTitle">🎛 التحكم</b>
+    <label class="ctl-row"><span><span id="ctlSoundL">🔊 أصوات الموقع</span><small id="ctlSoundS">نقرات وتنبيهات، مجانًا</small></span><input type="checkbox" id="ctlSound"></label>
+    <label class="ctl-row"><span><span id="ctlVoiceL">🗣 صوت قرش وكتابة كلامك</span><small id="ctlVoiceS">ElevenLabs، بفلوس</small></span><input type="checkbox" id="ctlVoice"></label>
+    <label class="ctl-row"><span><span id="ctlAiL">🤖 الذكاء الاصطناعي</span><small id="ctlAiS">Claude، بفلوس</small></span><input type="checkbox" id="ctlAi"></label>
+    <small id="ctlNote"></small>
+    <div class="pin-btns"><button class="btn primary" type="button" data-ctlclose>تمام</button></div>
   </form>
 </div>
 <div id="tip" class="tip" hidden></div>

@@ -25,6 +25,10 @@
       "destination": "/time.html"
     },
     {
+      "source": "/desk",
+      "destination": "/desk.html"
+    },
+    {
       "source": "/finance",
       "destination": "/finance/index.html"
     },
@@ -81,7 +85,7 @@
       ]
     },
     {
-      "source": "/((?!api/|games/|(?:admin|dashboard|time|finance|security)(?:\\.html|/|$)).*)",
+      "source": "/((?!api/|games/|(?:admin|dashboard|time|desk|finance|security)(?:\\.html|/|$)).*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
@@ -106,7 +110,7 @@
       ]
     },
     {
-      "source": "/(admin|dashboard|time|finance|security)(\\.html|/.*)?",
+      "source": "/(admin|dashboard|desk|security)(\\.html|/.*)?",
       "headers": [
         {
           "key": "X-Content-Type-Options",
@@ -131,6 +135,56 @@
       ]
     },
     {
+      "source": "/time(\\.html|/.*)?",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), interest-cohort=()"
+        }
+      ]
+    },
+    {
+      "source": "/finance(\\.html|/.*)?",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()"
+        }
+      ]
+    },
+    {
       "source": "/api/(.*)",
       "headers": [
         {
@@ -148,7 +202,7 @@
       ]
     },
     {
-      "source": "/(admin|dashboard|time|plan|finance|security)",
+      "source": "/(admin|dashboard|time|desk|plan|finance|security)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -182,6 +236,21 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/assets/week/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, noimageindex"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/ideas?desk=cron",
+      "schedule": "0 6 * * 4"
     }
   ]
 }
