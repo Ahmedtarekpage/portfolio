@@ -555,3 +555,76 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-colo
 .cl__win { left: 50px; right: -2px; }
 .cl__now { left: 50px; right: -2px; }
 .cl__now span { left: -48px; }
+
+/* ================= /now v3: everything a little 3D, a navy board, fits any width ================= */
+.now-page .wrap.now-wrap { max-width: min(1500px, 100%); padding-inline: 12px; box-sizing: border-box; }
+.now-page .now { padding: 14px; overflow: hidden; }
+.now-page .nw { min-width: 0; position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015)), #17223f;
+  border: 1px solid rgba(244, 237, 224, 0.1); border-top-color: rgba(244, 237, 224, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 22px 34px -22px rgba(0, 0, 0, 0.85), 0 2px 0 rgba(0, 0, 0, 0.25);
+  transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.now-page .nwp__top .nw:hover, .now-page .nw--do:hover { transform: perspective(900px) translateZ(8px) rotateX(1.5deg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 30px 40px -22px rgba(0, 0, 0, 0.9); }
+.now-page .nwp__top { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.now-page .nwp__main { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.4fr); perspective: 1800px; }
+.now-page .nwp__left { transform: rotateY(3deg); transform-origin: right center; }
+.now-page .nwp__right { transform: rotateY(-2deg); transform-origin: left center; }
+@media (max-width: 1100px) { .now-page .nwp__top { grid-template-columns: repeat(2, minmax(0, 1fr)); } .now-page .nwp__top .nw--meet { grid-column: 1 / -1; } }
+@media (max-width: 860px) { .now-page .nwp__top, .now-page .nwp__main { grid-template-columns: minmax(0, 1fr); } .now-page .nwp__left, .now-page .nwp__right { transform: none; } }
+.now-page .nw__form { min-width: 0; }
+.now-page .nw__form input, .now-page .nw__form select { flex: 1 1 100px; min-width: 0; }
+.now-page .nw__form .tp__tabs button { cursor: pointer; position: relative; z-index: 1; }
+.now-page .week__head { flex-wrap: wrap; gap: 8px; }
+/* the board: navy with a dot grid, toolbar floating on top */
+.nb { background: radial-gradient(rgba(244, 237, 224, 0.16) 1px, transparent 1.5px) 0 0 / 22px 22px, linear-gradient(180deg, #13203f, #0e1832) !important; border: 1px solid rgba(244, 237, 224, 0.1); box-shadow: inset 0 10px 30px rgba(0, 0, 0, 0.35); }
+.nb[data-tool="pen"], .nb[data-tool="rect"], .nb[data-tool="ellipse"], .nb[data-tool="arrow"] { cursor: crosshair; }
+.nb[data-tool="eraser"] { cursor: cell; }
+.nb[data-tool="text"] { cursor: text; }
+.nb[data-tool="note"] { cursor: copy; }
+.bt { position: absolute; z-index: 20; left: 50%; top: 10px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; border-radius: 14px;
+  background: rgba(20, 33, 61, 0.92); border: 1px solid rgba(244, 237, 224, 0.15); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.7); max-width: calc(100% - 20px); overflow-x: auto; scrollbar-width: none; }
+.bt__g { display: flex; gap: 2px; align-items: center; padding-inline-end: 6px; border-inline-end: 1px solid rgba(244, 237, 224, 0.12); }
+.bt__g:last-child { border: 0; padding: 0; }
+.bt__t { width: 32px; height: 32px; border: 0; border-radius: 9px; background: none; color: #F4EDE0; font-size: 1rem; cursor: pointer; flex: none; }
+.bt__t:hover { background: rgba(244, 237, 224, 0.1); }
+.bt__t.is-on { background: var(--coral); color: #14213D; box-shadow: 0 4px 12px rgba(255, 107, 91, 0.45); }
+.bt__c { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(244, 237, 224, 0.3); background: var(--c); cursor: pointer; padding: 0; flex: none; }
+.bt__c.is-on { box-shadow: 0 0 0 2px #F4EDE0; }
+.bt__w { width: 26px; height: 26px; border: 0; border-radius: 8px; background: none; cursor: pointer; display: grid; place-items: center; flex: none; }
+.bt__w i { display: block; border-radius: 50%; background: #F4EDE0; }
+.bt__w.is-on { background: rgba(244, 237, 224, 0.15); }
+.nb__ink { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.nb__ink .bi { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: visibleStroke; cursor: pointer; }
+.nb__ink .bi--shape { fill: rgba(255, 255, 255, 0.001); pointer-events: visible; }
+.nb__ink .bi.is-sel { filter: drop-shadow(0 0 4px #4F7CFF) drop-shadow(0 0 1px #fff); }
+.btx { position: absolute; min-width: 40px; padding: 2px 4px; font: 700 22px/1.25 var(--font-ui); white-space: pre-wrap; outline: none; border-radius: 6px; cursor: move; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.btx[contenteditable="true"] { cursor: text; background: rgba(20, 33, 61, 0.6); box-shadow: 0 0 0 1px rgba(244, 237, 224, 0.35); }
+.nb [data-item].is-sel:not(.bi) { box-shadow: 0 0 0 2px #4F7CFF, 0 18px 30px rgba(0, 0, 0, 0.4) !important; }
+.nb .nt { cursor: move; }
+/* the 3D Pomodoro timer */
+.pm3 { position: absolute; width: 240px; padding: 10px 12px 12px; border-radius: 22px; color: #F4EDE0; cursor: move;
+  background: linear-gradient(160deg, #2a3a66, #141f3c 70%); border: 1px solid rgba(244, 237, 224, 0.15);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.08) inset, 0 28px 40px -16px rgba(0, 0, 0, 0.8), 0 0 0 6px rgba(255, 107, 91, 0.08);
+  transform: perspective(700px) rotateX(10deg); transform-origin: 50% 100%; }
+.pm3.is-run { box-shadow: 0 2px 0 rgba(255, 255, 255, 0.08) inset, 0 28px 40px -16px rgba(0, 0, 0, 0.8), 0 0 0 6px rgba(255, 107, 91, 0.25), 0 0 40px rgba(255, 107, 91, 0.35); }
+.pm3.is-short, .pm3.is-long { background: linear-gradient(160deg, #1f5a4b, #12302a 70%); }
+.pm3__bar { display: flex; align-items: center; justify-content: space-between; font: 800 0.72rem var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; }
+.pm3__bar .nt__x { color: #F4EDE0; }
+.pm3__ring { position: relative; margin: 10px auto 8px; width: 170px; height: 170px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--coral) calc(var(--p) * 1%), rgba(244, 237, 224, 0.12) 0); box-shadow: 0 14px 24px -10px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.pm3.is-short .pm3__ring, .pm3.is-long .pm3__ring { background: conic-gradient(#3aa682 calc(var(--p) * 1%), rgba(244, 237, 224, 0.12) 0); }
+.pm3__ring::after { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #2f4170, #121c37 70%); box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.6); }
+.pm3__digits { position: relative; z-index: 1; display: flex; align-items: center; gap: 3px; }
+.pm3__d { display: grid; place-items: center; width: 28px; height: 42px; border-radius: 7px; font: 800 1.6rem var(--font-ui); font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #2b3b66 50%, #22305a 50%); box-shadow: 0 6px 10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12); transform: perspective(200px) rotateX(-8deg); }
+.pm3__colon { font: 800 1.4rem var(--font-ui); font-style: normal; opacity: 0.8; }
+.pm3__modes, .pm3__acts { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
+.pm3__modes button, .pm3__acts button { border: 0; border-radius: 10px; min-width: 40px; height: 32px; background: rgba(244, 237, 224, 0.1); color: #F4EDE0; font: 800 0.8rem var(--font-ui); cursor: pointer; }
+.pm3__modes button.is-on { background: rgba(244, 237, 224, 0.25); }
+.pm3__acts .pm3__go { min-width: 64px; background: var(--coral); color: #14213D; font-size: 1rem; box-shadow: 0 6px 14px rgba(255, 107, 91, 0.45); }
+.pm3__acts button.is-on { background: rgba(58, 166, 130, 0.35); }
+/* light theme: cards stay light (dark text), with the same raised 3D feel; the board stays navy */
+html[data-theme="light"] .now-page .nw { background: linear-gradient(180deg, #ffffff, #fbf7ef); border-color: rgba(20, 33, 61, 0.1); border-top-color: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 #fff, 0 22px 34px -22px rgba(20, 33, 61, 0.45), 0 2px 0 rgba(20, 33, 61, 0.06); }
+html[data-theme="light"] .now-page .nwp__top .nw:hover, html[data-theme="light"] .now-page .nw--do:hover { box-shadow: inset 0 1px 0 #fff, 0 30px 40px -22px rgba(20, 33, 61, 0.55); }
+.btx { white-space: pre; }
