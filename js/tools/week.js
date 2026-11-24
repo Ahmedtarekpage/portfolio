@@ -1787,12 +1787,14 @@
     var px0 = (x0 - vr.left - NB.x) / NB.z, py0 = (y0 - vr.top - NB.y) / NB.z, pw = (x1 - x0) / NB.z, ph = (y1 - y0) / NB.z;
     var z = Math.max(ZMIN, Math.min(1.2, Math.min((vr.width - 40) / pw, (vr.height - 90) / ph)));
     NB = { z: z, x: Math.round((vr.width - pw * z) / 2 - px0 * z), y: Math.round(20 - py0 * z) };
-    nbApply(); nbSave();
+    nbGlide(); nbApply(); nbSave();
   }
-  function nbZoom(f, cx, cy) {
+  function nbZoom(f, cx, cy, live) {
     var z = Math.max(ZMIN, Math.min(ZMAX, NB.z * f)), k = z / NB.z;
-    NB.x = cx - (cx - NB.x) * k; NB.y = cy - (cy - NB.y) * k; NB.z = z; nbApply(); nbSave();
+    NB.x = cx - (cx - NB.x) * k; NB.y = cy - (cy - NB.y) * k; NB.z = z;
+    if (!live) nbGlide(); nbApply(); if (!live) nbSave();
   }
+  function nbGlide() { var pl = nowHost.querySelector(".nb__plane"); if (!pl) return; pl.classList.add("is-glide"); clearTimeout(nbGlide.t); nbGlide.t = setTimeout(function () { pl.classList.remove("is-glide"); }, 260); }
   /* The day standing in 3D, like a Google Calendar day: blocks by their real time, hours down
      the side, a red line for now, the next 2 hours lit. It moves 30 minutes per wheel notch,
      arrow key or button, and goes back to now by itself after 20 seconds. */
@@ -2159,7 +2161,7 @@
       if ((b = t.closest("[data-cl-step]"))) { var clx = nowHost.querySelector(".cl"); calMoved = Date.now(); if (clx) clx.scrollBy({ top: +b.getAttribute("data-cl-step") * 30 * CAL_PX, behavior: "smooth" }); return; }
       if (t.closest("[data-cl-now]")) { var cly = nowHost.querySelector(".cl"), nn = new Date(); calMoved = 0; if (cly) cly.scrollTo({ top: Math.max(0, (nn.getHours() * 60 + nn.getMinutes() - calStart) * CAL_PX - 50), behavior: "smooth" }); return; }
       if (t.closest("[data-fl-now]")) { flowMoved = 0; return flowTo(nowHost.querySelector("[data-fl-current]") || nowHost.querySelector(".fl__card"), true); }
-      if ((b = t.closest("[data-nb-zoom]"))) { var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(); return nbZoom(+b.getAttribute("data-nb-zoom") > 0 ? 1.2 : 1 / 1.2, v.width / 2, v.height / 2); }
+      if ((b = t.closest("[data-nb-zoom]"))) { var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(); return nbZoom(+b.getAttribute("data-nb-zoom") > 0 ? 1.15 : 1 / 1.15, v.width / 2, v.height / 2); }
       if (t.closest("[data-nb-fit]")) return nbFit();
       if (t.closest("[data-b-arrange]")) return bArrange();
       if ((b = t.closest("[data-pen]"))) { BT.pen = b.getAttribute("data-pen"); try { localStorage.setItem("now.pen", BT.pen); } catch (x) {} [].forEach.call(nowHost.querySelectorAll("[data-pen]"), function (x) { x.classList.toggle("is-on", x === b); }); return bSetTool("pen"); }
@@ -2253,13 +2255,20 @@
       var it = bItem(tx.getAttribute("data-item")); if (it && !String(it.text || "").trim()) { bDel(it.id); tx.remove(); }
       bsave();
     });
+    var wheelZ = { f: 1, x: 0, y: 0, px: 0, py: 0, raf: 0, t: 0 };
     nowHost.addEventListener("wheel", function (e) {
       var v = e.target.closest("[data-nb]"); if (!v) return;
       if (e.target.closest(".nt__text, .cl") && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       var r = v.getBoundingClientRect();
-      if (e.ctrlKey || e.metaKey) nbZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top);
-      else { NB.x -= e.deltaX; NB.y -= e.deltaY; nbApply(); nbSave(); }
+      var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, dx = e.deltaMode === 1 ? e.deltaX * 16 : e.deltaX;
+      if (e.ctrlKey || e.metaKey) { wheelZ.f *= Math.exp(-Math.max(-60, Math.min(60, dy)) * 0.006); wheelZ.x = e.clientX - r.left; wheelZ.y = e.clientY - r.top; }
+      else { wheelZ.px -= dx; wheelZ.py -= dy; }
+      if (!wheelZ.raf) wheelZ.raf = requestAnimationFrame(function () {
+        wheelZ.raf = 0; NB.x += wheelZ.px; NB.y += wheelZ.py; wheelZ.px = wheelZ.py = 0;
+        if (wheelZ.f !== 1) { var f0 = wheelZ.f; wheelZ.f = 1; nbZoom(f0, wheelZ.x, wheelZ.y, true); } else nbApply();
+        clearTimeout(wheelZ.t); wheelZ.t = setTimeout(nbSave, 300);
+      });
     }, { passive: false });
     var ERASE_R = 12;
     function eraseAt(e) {

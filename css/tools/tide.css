@@ -839,3 +839,11 @@ html:not([data-theme="light"]) .arcm__box { background: #17223f; color: #F4EDE0;
 html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4EDE0; }
 .wcards__menu button { text-align: start; border: 0; border-radius: 8px; padding: 8px 10px; background: rgba(127, 127, 127, 0.1); color: inherit; font: 700 0.85rem var(--font-ui); cursor: pointer; }
 .wcards__menu em { font: 600 0.8rem var(--font-ui); opacity: 0.7; padding: 4px; }
+/* v10: the board always fits the screen (toolbar and pages never cut off), smooth zoom */
+.now-page .wrap.now-wrap { height: 100vh; height: 100dvh; padding: 8px; box-sizing: border-box; }
+.now-page #view-app, .now-page #nowCard { height: 100%; }
+.now-page .nw--full { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+.now-page .nb--full { flex: 1 1 auto; height: auto; min-height: 0; }
+.nb__plane { will-change: transform; transform-origin: 0 0; }
+.nb__plane.is-glide { transition: transform 0.24s cubic-bezier(.2, .8, .2, 1); }
+.now-page .nw--full > .nw__k { flex: none; row-gap: 6px; }
