@@ -699,3 +699,59 @@ html[data-theme="light"] .now-page .nwp__top .nw:hover, html[data-theme="light"]
 .wb__tray b { display: block; margin-left: auto; width: 32px; height: 11px; border-radius: 3px; transform: translateY(-5px); background: linear-gradient(180deg, #3a3f4a 0 45%, #d9d1bd 45%); box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35); }
 .bw--cal .cl__ev .cl__prog { position: absolute; left: 8px; right: 22px; bottom: 4px; margin: 0; }
 .bw--cal .cl__ev.is-now { padding-bottom: 10px; }
+
+/* ================= /now v6: iPad + Apple Pencil, pages (tabs), pens, sounds ================= */
+.nb, .nb * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.nb textarea, .nb input, .nb select, .nb [contenteditable="true"] { -webkit-user-select: text; user-select: text; touch-action: manipulation; }
+.nb .cl { touch-action: pan-y; }
+.now-page { touch-action: manipulation; overscroll-behavior: none; }
+.nb__ink .bi--fill { stroke: none; pointer-events: visiblePainted; }
+.nb__ink .bi--hl { fill: none; stroke-opacity: 0.38; stroke-linecap: round; stroke-linejoin: round; pointer-events: visibleStroke; }
+.nb:not([data-tool="pen"]) .bt__pens { display: none; }
+/* pages strip at the bottom-left of the board */
+.btabs { position: absolute; z-index: 21; left: 10px; bottom: 10px; display: flex; gap: 4px; align-items: center; max-width: calc(50% - 200px); overflow-x: auto; scrollbar-width: none;
+  padding: 4px; border-radius: 12px; background: rgba(20, 33, 61, 0.92); border: 1px solid rgba(244, 237, 224, 0.15); box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.7); }
+.btab { position: relative; display: inline-flex; align-items: center; gap: 6px; flex: none; height: 32px; padding: 0 10px; border-radius: 9px; border: 0; cursor: pointer;
+  color: #F4EDE0; background: rgba(244, 237, 224, 0.06); font: 700 0.8rem var(--font-ui); touch-action: none; transition: transform 0.12s ease; }
+.btab b { font-weight: 800; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.btab.is-on { background: #F4EDE0; color: #14213D; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.12); }
+.btab i { font-style: normal; font-size: 1rem; line-height: 1; opacity: 0.6; padding: 2px 2px; }
+.btab i:hover { opacity: 1; color: var(--coral); }
+.btab.is-drag { z-index: 2; opacity: 0.9; transition: none; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); }
+.btab.is-over { box-shadow: inset 3px 0 0 var(--coral); }
+.btab--add { font-size: 1.1rem; padding: 0 12px; }
+@media (max-width: 1100px) { .btabs { max-width: calc(100% - 20px); bottom: 64px; } }
+/* sounds panel */
+.now-page .nw--full > .nw__k { position: relative; }
+.sndp { position: absolute; z-index: 40; right: 0; top: calc(100% + 6px); display: grid; gap: 8px; padding: 12px; border-radius: 14px; width: min(520px, 92vw);
+  background: var(--card, #fff); color: inherit; border: 1px solid rgba(127, 127, 127, 0.25); box-shadow: 0 24px 40px -16px rgba(0, 0, 0, 0.5); font: 600 0.85rem var(--font-ui); text-transform: none; letter-spacing: 0; }
+html[data-theme="light"] .sndp { background: #fffdf8; color: #14213D; }
+.sndp .al-bar { margin: 0; flex-wrap: wrap; }
+/* fingers: bigger targets on iPad */
+@media (pointer: coarse) {
+  .bt { gap: 8px; padding: 8px; }
+  .bt__t { width: 44px; height: 44px; font-size: 1.25rem; }
+  .bt__c { width: 28px; height: 28px; }
+  .bt__w { width: 38px; height: 38px; }
+  .btab { height: 40px; padding: 0 14px; font-size: 0.9rem; }
+  .btab i { font-size: 1.3rem; padding: 4px; }
+  .now-page .nw--full > .nw__k .btn { min-height: 40px; padding-inline: 12px; }
+  .nt__x, .nt__c { min-width: 28px; min-height: 28px; }
+  .pm3__modes button, .pm3__acts button { height: 40px; min-width: 48px; }
+  .bw > .nw > .nw__k { padding-block: 10px; }
+  .now-page .nwp__top .nw:hover, .now-page .nw--do:hover, .bw--pray:hover .nw__scene { transform: none; }
+}
+/* lock */
+.bw__lock { position: absolute; top: 8px; right: 8px; z-index: 3; width: 28px; height: 28px; border: 0; border-radius: 8px; background: rgba(127, 127, 127, 0.12); cursor: pointer; font-size: 0.85rem; opacity: 0.35; transition: opacity 0.15s ease; }
+.bw:hover .bw__lock, .bw.is-locked .bw__lock { opacity: 1; }
+.bw.is-locked .bw__lock { background: rgba(255, 107, 91, 0.18); }
+.bw--money .nw__link { margin-right: 30px; }
+.bw > .nw { cursor: grab; }
+.bw.is-locked > .nw, .bw.is-locked > .nw > .nw__k { cursor: default; }
+.bw > .nw > .nw__k { cursor: inherit; }
+.nb .is-locked:not(.bi)::after { content: "🔒"; position: absolute; top: -10px; left: -10px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 0.7rem; background: #F4EDE0; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35); }
+.nb .nt.is-locked, .nb .pm3.is-locked, .nb .btx.is-locked { cursor: default; }
+.nb__ink .bi.is-locked { stroke-dasharray: none; }
+.nb .nt__text { cursor: grab; }
+.nb .nt__text:focus { cursor: text; }
+@media (pointer: coarse) { .bw__lock { opacity: 0.8; width: 36px; height: 36px; } }
