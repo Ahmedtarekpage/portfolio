@@ -1426,6 +1426,31 @@
   if (!(NB.z > 0)) NB = { x: 0, y: 0, z: 1 };
   function nbSave() { try { localStorage.setItem("now.board", JSON.stringify(NB)); } catch (e) {} }
   function nbApply() { var pl = nowHost.querySelector(".nb__plane"); if (pl) pl.style.transform = "translate(" + NB.x + "px," + NB.y + "px) scale(" + NB.z + ")"; var f = nowHost.querySelector("[data-nb-fit]"); if (f) f.textContent = Math.round(NB.z * 100) + "%"; }
+  // auto arrange: the day's cards back in their three columns, notes/timers/text in a neat grid to
+  // the right, drawings kept together under them; then zoom to fit the screen (undo brings it back)
+  function bArrange() {
+    var B = board(); bSnap();
+    if (B.widgets) B.widgets = JSON.parse(JSON.stringify(WDEF)), B.widgetsV = 2;
+    var X0 = B.widgets ? 1210 : 20, COLS = 3, GAP = 24, x = X0, y = 20, rowH = 0, col = 0, maxX = X0;
+    var size = function (it) { var el = nowHost.querySelector('.nb__plane [data-item="' + it.id + '"]'); return el ? [el.offsetWidth || 220, el.offsetHeight || 180] : [220, 180]; };
+    B.items.filter(function (it) { return /^(note|timer|text)$/.test(it.type); }).sort(function (a, b) { return (a.type === "timer") - (b.type === "timer") || a.y - b.y || a.x - b.x; }).forEach(function (it) {
+      var sz = size(it);
+      if (col === COLS) { col = 0; x = X0; y += rowH + GAP; rowH = 0; }
+      it.x = x; it.y = y; x += Math.max(sz[0], 200) + GAP; maxX = Math.max(maxX, x); rowH = Math.max(rowH, sz[1]); col++;
+    });
+    var inkTop = y + rowH + (rowH ? GAP * 2 : 0);
+    var ink = B.items.filter(function (it) { return /^(path|rect|ellipse|arrow)$/.test(it.type); });
+    if (ink.length) {
+      var minX = 1e9, minY = 1e9;
+      ink.forEach(function (it) {
+        var xs = [it.x], ys = [it.y];
+        if (it.pts) it.pts.forEach(function (q) { xs.push(it.x + q[0]); ys.push(it.y + q[1]); }); else { xs.push(it.x + (it.dx || 0)); ys.push(it.y + (it.dy || 0)); }
+        minX = Math.min(minX, Math.min.apply(null, xs)); minY = Math.min(minY, Math.min.apply(null, ys));
+      });
+      var sx = X0 - minX, sy = inkTop - minY; ink.forEach(function (it) { it.x += sx; it.y += sy; });
+    }
+    save(); renderNow(); setTimeout(nbFit, 30);
+  }
   // fit everything on the board (cards, notes, drawings, timers) to the screen
   function nbFit() {
     var v = nowHost.querySelector("[data-nb]"), pl = v && v.querySelector(".nb__plane"); if (!pl) return;
@@ -1625,7 +1650,7 @@
     var colors = BCOLORS.map(function (c) { return '<button type="button" class="bt__c' + (BT.color === c ? " is-on" : "") + '" style="--c:' + c + '" data-bcolor="' + c + '" aria-label="' + esc(T("Colour", "لون")) + '"></button>'; }).join("");
     var widths = [2, 4, 8].map(function (w) { return '<button type="button" class="bt__w' + (BT.width === w ? " is-on" : "") + '" data-bwidth="' + w + '" aria-label="' + w + '"><i style="width:' + (w + 4) + "px;height:" + (w + 4) + 'px"></i></button>'; }).join("");
     return '<section class="nw nw--notes' + (tall === "full" ? " nw--full" : "") + '"><div class="nw__k">' + (head || "🗒️ " + esc(T("Board", "البورد"))) +
-      '<span class="nb__tools"><button type="button" class="btn btn--ghost btn--sm" data-pm-add>⏱️ ' + esc(T("Pomodoro", "بومودورو")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-bundo title="⌘/Ctrl+Z">↶</button><button type="button" class="btn btn--ghost btn--sm" data-bdel title="Delete">🗑</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="-1">−</button><button type="button" class="btn btn--ghost btn--sm" data-nb-fit>' + Math.round(NB.z * 100) + '%</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="1">+</button></span></div>' +
+      '<span class="nb__tools"><button type="button" class="btn btn--ghost btn--sm" data-b-arrange title="' + esc(T("Tidy everything and fit it to the screen", "رتّب كل حاجة وخليها على قد الشاشة")) + '">✨ ' + esc(T("Auto arrange", "رتّب")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-pm-add>⏱️ ' + esc(T("Pomodoro", "بومودورو")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-bundo title="⌘/Ctrl+Z">↶</button><button type="button" class="btn btn--ghost btn--sm" data-bdel title="Delete">🗑</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="-1">−</button><button type="button" class="btn btn--ghost btn--sm" data-nb-fit>' + Math.round(NB.z * 100) + '%</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="1">+</button></span></div>' +
       '<div class="nb' + (tall === "full" ? " nb--full" : tall ? " nb--tall" : "") + '" data-nb data-tool="' + BT.tool + '" tabindex="0">' +
         '<div class="bt"><div class="bt__g">' + tools + '</div><div class="bt__g">' + colors + '</div><div class="bt__g">' + widths + "</div></div>" +
         '<div class="nb__plane" style="transform:translate(' + NB.x + "px," + NB.y + "px) scale(" + NB.z + ')">' +
@@ -1675,6 +1700,7 @@
       if (t.closest("[data-fl-now]")) { flowMoved = 0; return flowTo(nowHost.querySelector("[data-fl-current]") || nowHost.querySelector(".fl__card"), true); }
       if ((b = t.closest("[data-nb-zoom]"))) { var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(); return nbZoom(+b.getAttribute("data-nb-zoom") > 0 ? 1.2 : 1 / 1.2, v.width / 2, v.height / 2); }
       if (t.closest("[data-nb-fit]")) return nbFit();
+      if (t.closest("[data-b-arrange]")) return bArrange();
       if ((b = t.closest(".bt__t"))) return bSetTool(b.getAttribute("data-tool"));
       if ((b = t.closest("[data-bcolor]"))) {
         BT.color = b.getAttribute("data-bcolor"); [].forEach.call(nowHost.querySelectorAll(".bt__c"), function (x) { x.classList.toggle("is-on", x === b); });
