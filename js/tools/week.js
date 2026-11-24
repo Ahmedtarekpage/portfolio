@@ -1365,14 +1365,16 @@
         '<input name="topic" type="text" maxlength="120" placeholder="' + esc(T("Topic (optional)", "الموضوع (اختياري)")) + '"><button class="btn btn--primary btn--sm" type="submit">' + esc(T("Add meeting", "ضيف الميعاد")) + "</button></form>" +
         '<p class="muted nw__hint">' + esc(T("It goes to that client's page, into Today/Tomorrow with 30 min of prep, and to Google Calendar.", "بيروح لصفحة العميل، وللنهارده/بكرة ومعاه نص ساعة تحضير، ولجوجل كالندر.")) + "</p>") + "</section>";
     // 5) the board (whiteboard: notes, text, pen, shapes, eraser, Pomodoro timers)
-    var notesHtml = boardHtml(nowHost.getAttribute("data-layout") === "page");
     var page = nowHost.getAttribute("data-layout") === "page";
+    var notesHtml = page ? "" : boardHtml(false);
     var calHtml = page ? calDay(items, m) : "";
     var fl = nowHost.querySelector(page ? ".cl" : ".fl__track"), keepScroll = fl ? (page ? fl.scrollTop : fl.scrollLeft) : null;
     if (page) {
-      nowHost.innerHTML = '<div class="card__head week__head"><h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="muted week__status">' + esc(status) + '</span><span class="nwp__nav"><a class="btn btn--ghost btn--sm" href="/time">⏱ ' + esc(T("Time", "الوقت")) + '</a><a class="btn btn--ghost btn--sm" href="/admin">← ' + esc(T("Home", "الرئيسية")) + "</a></span></div>" +
-        '<div class="nwp__top">' + prayHtml + moneyHtml + meetHtml + "</div>" +
-        '<div class="nwp__main"><div class="nwp__left">' + doHtml + calHtml + '</div><div class="nwp__right">' + notesHtml + "</div></div>";
+      // one full-screen board: the day's cards (prayer, now, today, money, meeting) sit on it with the
+      // notes, drawings and Pomodoros; drag a card by its title, zoom and pan like the rest
+      var WG = boardWidgets(), wcard = function (k, html) { var g = WG[k]; return '<div class="bw bw--' + k + '" data-w="' + k + '" style="left:' + g.x + "px;top:" + g.y + "px;width:" + g.w + "px;z-index:" + (g.z || 0) + '">' + html + "</div>"; };
+      var head = '<h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="nwp__nav"><a class="btn btn--ghost btn--sm" href="/time">⏱ ' + esc(T("Time", "الوقت")) + '</a><a class="btn btn--ghost btn--sm" href="/admin">← ' + esc(T("Home", "الرئيسية")) + "</a></span>";
+      nowHost.innerHTML = boardHtml("full", wcard("pray", prayHtml) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml), head);
       return calSetup(keepScroll);
     }
     nowHost.innerHTML = '<div class="card__head week__head"><h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
@@ -1384,6 +1386,21 @@
   if (!(NB.z > 0)) NB = { x: 0, y: 0, z: 1 };
   function nbSave() { try { localStorage.setItem("now.board", JSON.stringify(NB)); } catch (e) {} }
   function nbApply() { var pl = nowHost.querySelector(".nb__plane"); if (pl) pl.style.transform = "translate(" + NB.x + "px," + NB.y + "px) scale(" + NB.z + ")"; var f = nowHost.querySelector("[data-nb-fit]"); if (f) f.textContent = Math.round(NB.z * 100) + "%"; }
+  // fit everything on the board (cards, notes, drawings, timers) to the screen
+  function nbFit() {
+    var v = nowHost.querySelector("[data-nb]"), pl = v && v.querySelector(".nb__plane"); if (!pl) return;
+    var vr = v.getBoundingClientRect(), x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    [].forEach.call(pl.querySelectorAll(".bw, .nt, .btx, .pm3, .nb__ink [data-item]"), function (el) {
+      var r = el.getBoundingClientRect(); if (!r.width) return;
+      x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+    });
+    if (x1 < x0) { NB = { x: 0, y: 0, z: 1 }; nbApply(); return nbSave(); }
+    // back to plane units, then scale to fit with a margin (and room for the toolbar at the bottom)
+    var px0 = (x0 - vr.left - NB.x) / NB.z, py0 = (y0 - vr.top - NB.y) / NB.z, pw = (x1 - x0) / NB.z, ph = (y1 - y0) / NB.z;
+    var z = Math.max(0.3, Math.min(1.2, Math.min((vr.width - 40) / pw, (vr.height - 90) / ph)));
+    NB = { z: z, x: Math.round((vr.width - pw * z) / 2 - px0 * z), y: Math.round(20 - py0 * z) };
+    nbApply(); nbSave();
+  }
   function nbZoom(f, cx, cy) {
     var z = Math.max(0.3, Math.min(2.5, NB.z * f)), k = z / NB.z;
     NB.x = cx - (cx - NB.x) * k; NB.y = cy - (cy - NB.y) * k; NB.z = z; nbApply(); nbSave();
@@ -1510,9 +1527,20 @@
     }
     return W.board;
   }
+  var WDEF = { pray: { x: 20, y: 20, w: 360 }, do: { x: 20, y: 215, w: 360 }, cal: { x: 20, y: 380, w: 360 }, money: { x: 400, y: 20, w: 380 }, meet: { x: 400, y: 330, w: 380 } };
+  function boardWidgets() {
+    var B = board();
+    if (!B.widgets) {
+      B.widgets = JSON.parse(JSON.stringify(WDEF));
+      B.items.forEach(function (it) { it.x = (it.x || 0) + 820; });   // keep the notes clear of the cards
+      setTimeout(function () { nbFit(); save(); }, 80);                 // and show all of it the first time
+    }
+    Object.keys(WDEF).forEach(function (k) { if (!B.widgets[k]) B.widgets[k] = JSON.parse(JSON.stringify(WDEF[k])); });
+    return B.widgets;
+  }
   function bSnap() { undoStack.push(JSON.stringify(board().items)); if (undoStack.length > 50) undoStack.shift(); }
   function bUndo() { if (!undoStack.length) return; W.board.items = JSON.parse(undoStack.pop()); BT.sel = null; save(); renderNow(); }
-  function bTop() { return board().items.reduce(function (a, x) { return Math.max(a, x.z || 1); }, 1) + 1; }
+  function bTop() { var B = board(), w = B.widgets || {}; return Object.keys(w).reduce(function (a, k) { return Math.max(a, w[k].z || 0); }, B.items.reduce(function (a, x) { return Math.max(a, x.z || 1); }, 1)) + 1; }
   function bItem(id) { return board().items.filter(function (x) { return x.id === id; })[0]; }
   function bDel(id) { board().items = board().items.filter(function (x) { return x.id !== id; }); if (BT.sel === id) BT.sel = null; }
   function arrowD(it) {
@@ -1549,17 +1577,17 @@
     }
     return "";
   }
-  function boardHtml(tall) {
+  function boardHtml(tall, widgets, head) {
     var B = board(), ink = B.items.filter(function (x) { return /^(path|rect|ellipse|arrow)$/.test(x.type); }), boxes = B.items.filter(function (x) { return /^(note|text|timer)$/.test(x.type); });
     var tools = BTOOLS.map(function (t) { return '<button type="button" class="bt__t' + (BT.tool === t[0] ? " is-on" : "") + '" data-tool="' + t[0] + '" title="' + esc(T(t[3], t[3])) + " (" + t[2] + ')">' + t[1] + "</button>"; }).join("");
     var colors = BCOLORS.map(function (c) { return '<button type="button" class="bt__c' + (BT.color === c ? " is-on" : "") + '" style="--c:' + c + '" data-bcolor="' + c + '" aria-label="' + esc(T("Colour", "لون")) + '"></button>'; }).join("");
     var widths = [2, 4, 8].map(function (w) { return '<button type="button" class="bt__w' + (BT.width === w ? " is-on" : "") + '" data-bwidth="' + w + '" aria-label="' + w + '"><i style="width:' + (w + 4) + "px;height:" + (w + 4) + 'px"></i></button>'; }).join("");
-    return '<section class="nw nw--notes"><div class="nw__k">🗒️ ' + esc(T("Board", "البورد")) +
+    return '<section class="nw nw--notes' + (tall === "full" ? " nw--full" : "") + '"><div class="nw__k">' + (head || "🗒️ " + esc(T("Board", "البورد"))) +
       '<span class="nb__tools"><button type="button" class="btn btn--ghost btn--sm" data-pm-add>⏱️ ' + esc(T("Pomodoro", "بومودورو")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-bundo title="⌘/Ctrl+Z">↶</button><button type="button" class="btn btn--ghost btn--sm" data-bdel title="Delete">🗑</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="-1">−</button><button type="button" class="btn btn--ghost btn--sm" data-nb-fit>' + Math.round(NB.z * 100) + '%</button><button type="button" class="btn btn--ghost btn--sm" data-nb-zoom="1">+</button></span></div>' +
-      '<div class="nb' + (tall ? " nb--tall" : "") + '" data-nb data-tool="' + BT.tool + '" tabindex="0">' +
+      '<div class="nb' + (tall === "full" ? " nb--full" : tall ? " nb--tall" : "") + '" data-nb data-tool="' + BT.tool + '" tabindex="0">' +
         '<div class="bt"><div class="bt__g">' + tools + '</div><div class="bt__g">' + colors + '</div><div class="bt__g">' + widths + "</div></div>" +
         '<div class="nb__plane" style="transform:translate(' + NB.x + "px," + NB.y + "px) scale(" + NB.z + ')">' +
-          '<svg class="nb__ink" width="1" height="1" overflow="visible">' + ink.map(inkSvg).join("") + "</svg>" +
+          (widgets || "") + '<svg class="nb__ink" width="1" height="1" overflow="visible">' + ink.map(inkSvg).join("") + "</svg>" +
           boxes.map(itemHtml).join("") +
         '</div><p class="nb__hint">' + esc(T("V select · N note · T text · P pen · R box · O circle · A arrow · E eraser · ⌘Z undo · ⌘/Ctrl + wheel zoom", "V تحديد · N نوت · T كلام · P قلم · R مربع · O دايرة · A سهم · E أستيكة · ⌘Z تراجع · ⌘/Ctrl + العجلة زوم")) + "</p></div></section>";
   }
@@ -1604,7 +1632,7 @@
       if (t.closest("[data-cl-now]")) { var cly = nowHost.querySelector(".cl"), nn = new Date(); calMoved = 0; if (cly) cly.scrollTo({ top: Math.max(0, (nn.getHours() * 60 + nn.getMinutes() - calStart) * CAL_PX - 50), behavior: "smooth" }); return; }
       if (t.closest("[data-fl-now]")) { flowMoved = 0; return flowTo(nowHost.querySelector("[data-fl-current]") || nowHost.querySelector(".fl__card"), true); }
       if ((b = t.closest("[data-nb-zoom]"))) { var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(); return nbZoom(+b.getAttribute("data-nb-zoom") > 0 ? 1.2 : 1 / 1.2, v.width / 2, v.height / 2); }
-      if (t.closest("[data-nb-fit]")) { NB = { x: 0, y: 0, z: 1 }; nbApply(); return nbSave(); }
+      if (t.closest("[data-nb-fit]")) return nbFit();
       if ((b = t.closest(".bt__t"))) return bSetTool(b.getAttribute("data-tool"));
       if ((b = t.closest("[data-bcolor]"))) {
         BT.color = b.getAttribute("data-bcolor"); [].forEach.call(nowHost.querySelectorAll(".bt__c"), function (x) { x.classList.toggle("is-on", x === b); });
@@ -1644,7 +1672,7 @@
     nowHost.addEventListener("dblclick", function (e) {
       var v = e.target.closest("[data-nb]"); if (!v) return;
       var tx = e.target.closest(".btx"); if (tx) return bEditText(tx);
-      if (e.target.closest("[data-item], .bt")) return;
+      if (e.target.closest("[data-item], .bt, [data-w]")) return;
       var p = bPoint(e); bSnap();
       var n = { id: uid(), type: "note", text: "", color: NOTE_COLORS[board().items.length % NOTE_COLORS.length], x: p[0] - 20, y: p[1] - 20, z: bTop() };
       board().items.push(n); save(); renderNow();
@@ -1665,7 +1693,7 @@
     });
     nowHost.addEventListener("wheel", function (e) {
       var v = e.target.closest("[data-nb]"); if (!v) return;
-      if (e.target.closest(".nt__text") && !e.ctrlKey && !e.metaKey) return;
+      if (e.target.closest(".nt__text, .cl") && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       var r = v.getBoundingClientRect();
       if (e.ctrlKey || e.metaKey) nbZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top);
@@ -1678,7 +1706,16 @@
     }
     nowHost.addEventListener("pointerdown", function (e) {
       var v = e.target.closest("[data-nb]"); if (!v || e.button !== 0) return;
-      if (e.target.closest("button, textarea, input, select, .bt, [contenteditable='true']")) return;
+      if (e.target.closest("button, textarea, input, select, a, .bt, [contenteditable='true']")) return;
+      var wEl = e.target.closest("[data-w]");
+      if (wEl) {
+        if (!e.target.closest(".nw__k")) return;
+        var wg = boardWidgets()[wEl.getAttribute("data-w")];
+        wg.z = bTop(); wEl.style.zIndex = wg.z;
+        nbDrag = { kind: "wmove", g: wg, el: wEl, sx: e.clientX, sy: e.clientY, x0: wg.x, y0: wg.y, moved: false };
+        try { v.setPointerCapture(e.pointerId); } catch (x) {}
+        e.preventDefault(); return;
+      }
       var tool = BT.tool, p = bPoint(e), el = e.target.closest("[data-item]"), it;
       if (tool === "select") {
         if (el) {
@@ -1707,6 +1744,10 @@
     nowHost.addEventListener("pointermove", function (e) {
       if (!nbDrag) return;
       var d = nbDrag, it = d.it;
+      if (d.kind === "wmove") {
+        var wx = (e.clientX - d.sx) / NB.z, wy = (e.clientY - d.sy) / NB.z; if (Math.abs(wx) + Math.abs(wy) > 2) d.moved = true;
+        d.g.x = Math.round(d.x0 + wx); d.g.y = Math.round(d.y0 + wy); d.el.style.left = d.g.x + "px"; d.el.style.top = d.g.y + "px"; return;
+      }
       if (d.kind === "move") {
         var dx = (e.clientX - d.sx) / NB.z, dy = (e.clientY - d.sy) / NB.z; if (Math.abs(dx) + Math.abs(dy) > 2) d.moved = true;
         it.x = Math.round(d.x0 + dx); it.y = Math.round(d.y0 + dy);
@@ -1721,6 +1762,7 @@
     var nbUp = function () {
       if (!nbDrag) return;
       var d = nbDrag; nbDrag = null;
+      if (d.kind === "wmove") { save(); return; }
       if (d.kind === "move") { if (!d.moved) undoStack.pop(); else save(); }
       else if (d.kind === "pan") { d.v.classList.remove("is-pan"); nbSave(); }
       else if (d.kind === "pen") { if (d.it.pts.length < 2) { bDel(d.it.id); bRedrawInk(d.it); var g = nowHost.querySelector('.nb__ink [data-item="' + d.it.id + '"]'); if (g) g.remove(); undoStack.pop(); } else save(); }

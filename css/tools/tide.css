@@ -628,3 +628,23 @@ html[data-theme="light"] .now-page .nw { background: linear-gradient(180deg, #ff
   box-shadow: inset 0 1px 0 #fff, 0 22px 34px -22px rgba(20, 33, 61, 0.45), 0 2px 0 rgba(20, 33, 61, 0.06); }
 html[data-theme="light"] .now-page .nwp__top .nw:hover, html[data-theme="light"] .now-page .nw--do:hover { box-shadow: inset 0 1px 0 #fff, 0 30px 40px -22px rgba(20, 33, 61, 0.55); }
 .btx { white-space: pre; }
+
+/* ================= /now v4: one full-screen board, the day's cards live on it ================= */
+.now-page .wrap.now-wrap { max-width: none; padding: 8px; }
+.now-page .now { padding: 0; background: none; border: 0; box-shadow: none; }
+.now-page .nw--full { padding: 10px; transform: none !important; }
+.now-page .nw--full > .nw__k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; text-transform: none; letter-spacing: 0; }
+.now-page .nw--full > .nw__k h2 { margin: 0; font-size: 1.15rem; }
+.now-page .nw--full > .nw__k .nwp__nav { display: flex; gap: 6px; }
+.now-page .nw--full > .nw__k .nb__tools { margin-inline-start: auto; }
+.nb--full { height: calc(100vh - 74px); height: calc(100dvh - 74px); min-height: 480px; margin-top: 8px; }
+.nb--full .bt { top: auto; bottom: 12px; }
+.nb--full .nb__hint { display: none; }
+/* the cards on the board: raised, a 3D lift while dragged by the title */
+.bw { position: absolute; }
+.bw > .nw { margin: 0; transform: none !important; box-shadow: 0 2px 0 rgba(255, 255, 255, 0.5) inset, 0 26px 40px -18px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(0, 0, 0, 0.08) !important; }
+.bw > .nw > .nw__k { cursor: grab; user-select: none; padding-bottom: 6px; margin: -4px -4px 4px; padding: 4px 4px 6px; border-radius: 8px; }
+.bw > .nw > .nw__k:hover { background: rgba(127, 127, 127, 0.1); }
+.nb.is-pan .bw, .bw:active { transition: none; }
+.bw--cal .cl { height: 460px; max-height: none; }
+.bw--cal .nw--cal { padding-bottom: 10px; }
