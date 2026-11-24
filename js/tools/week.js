@@ -56,58 +56,66 @@
      Gym 1 h 30, 3 evenings (Sun, Tue, Thu), before that; those nights sleep is
      at 11 PM so the 2 h with people still fit. Other nights sleep 10:30 PM.
      Prayers 30 min at most around the iqama. */
-  var WEEK_V = 18;
+  var WEEK_V = 25;
   function seed() {
     var d = function (sec, from, to, en, ar, more) { var o = it(from, to, en, ar, more); o.sec = sec; return o; };
     var i = function (en, ar, est, ai) { var o = { en: en, ar: ar, est: est }; if (ai !== false) o.ai = 1; return o; };
     var P = { pomo: 1 }, GYM = [0, 2, 4], NOGYM = [6, 1, 3, 5];
     var comments = function () { return i("Answer comments and messages on today's posts", "رد على التعليقات والرسايل على بوستات النهارده", 10, false); };
-    var job = function (f, t) { return d("w", f || "13:00", t || "13:30", "🎯 Job hunt with Claude (30 min, buffer included)", "🎯 التقديم على الوظايف مع Claude (30 دقيقة بالاحتياطي)", { items: [
+    var job = function (f, t) { return d("w", f || "14:45", t || "15:15", "🎯 Job hunt with Claude (30 min)", "🎯 التقديم على الوظايف مع Claude (30 دقيقة)", { items: [
       i("3 UAE product manager jobs (25K+ AED)", "3 وظايف مدير منتج في الإمارات (25 ألف درهم أو أكتر)", 12),
       i("2 Europe jobs with visa sponsorship", "2 وظايف أوروبا بكفالة فيزا", 8),
       i("Udacity mentor jobs: check", "شغل منتور يوداسيتي: شوف لو فيه", 4, false)
     ] }); };
     var food = function () { return d("w", "12:45", "13:00", "🥗 Food at the desk", "🥗 أكل على المكتب"); };
-    // the part-time job: 4 h of work + 25% buffer = 5 h
-    var office = function () { return [
-      d("w", "10:00", "12:15", "🏢 Part-time job: the urgent things first, then the day's work", "🏢 البارت تايم: المستعجل الأول وبعدين شغل اليوم", { cat: "office", est: 108, pomo: 1 }),
-      d("w", "15:45", "17:30", "🏢 Part-time job work", "🏢 شغل البارت تايم", { cat: "office", est: 84, pomo: 1 }),
-      d("w", "18:00", "19:00", "🏢 Part-time job: finish and wrap up the day", "🏢 البارت تايم: خلّص وقفّل اليوم", { cat: "office", est: 48, pomo: 1 })
+    // the part-time job first: exactly 4 h, no buffer (10:00–12:15 + 1:00–2:45; Friday around Jumu'ah),
+    // then my business right after it (2:45–3:15, 3:45–5:30, 6:00–7:00)
+    var office = function (fri) { return fri ? [
+      d("w", "10:00", "12:15", "🏢 Part-time job: the urgent things first, then the day's work", "🏢 البارت تايم: المستعجل الأول وبعدين شغل اليوم", { cat: "office", pomo: 1 }),
+      d("w", "13:45", "15:15", "🏢 Part-time job work", "🏢 شغل البارت تايم", { cat: "office", pomo: 1 }),
+      d("w", "15:45", "16:00", "🏢 Part-time job: wrap up", "🏢 البارت تايم: قفّل", { cat: "office" })
+    ] : [
+      d("w", "10:00", "12:15", "🏢 Part-time job: the urgent things first, then the day's work", "🏢 البارت تايم: المستعجل الأول وبعدين شغل اليوم", { cat: "office", pomo: 1 }),
+      d("w", "13:00", "14:45", "🏢 Part-time job work, then wrap up", "🏢 شغل البارت تايم وبعدين قفّل", { cat: "office", pomo: 1 })
     ]; };
-    // before the office (8:45–9:30, 36 min of work) and the main task (1:30–3:15, 84 min of work)
     var early = function (cat, items) { return d("w", "08:45", "09:30", "⭐ Business, at home before the office", "⭐ البيزنس، في البيت قبل المكتب", { cat: cat, pomo: 1, items: items }); };
-    var day = function (cat, before, mainEn, mainAr, main) {
+    var day = function (cat, before, aEn, aAr, A, bEn, bAr, B, catA) {
       var o = office();
-      return [early(cat, before), o[0], food(), job(), d("w", "13:30", "15:15", mainEn, mainAr, { cat: cat, pomo: 1, items: main.concat([comments()]) }), o[1], o[2]];
+      return [early(cat, before), o[0], food(), o[1], job(),
+        d("w", "15:45", "17:30", aEn, aAr, { cat: catA || cat, pomo: 1, items: A }),
+        d("w", "18:00", "19:00", bEn, bAr, { cat: cat, pomo: 1, items: B.concat([comments()]) })];
     };
     return { v: WEEK_V, jobs: { daily: 5, log: {} }, meetings: [],
       myday: [
         d("m", "06:00", "06:15", "📿 Morning azkar", "📿 أذكار الصباح"),
         d("m", "06:15", "06:30", "📖 Quran and khulwa: quiet time alone, phone away", "📖 قرآن وخلوة: وقت لوحدك والموبايل بعيد"),
-        d("m", "06:30", "08:00", "🧠 Learn one new thing (1 h 30), then write 3 lines on it", "🧠 اتعلم حاجة جديدة (ساعة ونص)، واكتب عنها 3 سطور", { pomo: 1, on: [6, 1, 2, 3, 4, 5] }),
+        // learn, then build it into the business the same morning (learning by building)
+        d("m", "06:30", "07:30", "🧠 Learn one thing the business needs this week (AI agents, marketing, product)", "🧠 اتعلم حاجة البيزنس محتاجها الأسبوع ده (AI agents، تسويق، منتج)", { pomo: 1, est: 48, on: [6, 1, 2, 3, 4, 5] }),
+        d("m", "07:30", "08:00", "🤖 Apply it to the business: one step of an AI agent (GoBachaloria first)", "🤖 طبّقه على البيزنس: خطوة في AI agent (GoBachaloria الأول)", { cat: "product", pomo: 1, on: [6, 1, 2, 3, 4, 5] }),
         d("m", "08:00", "08:30", "🍳 Breakfast: dates and eggs", "🍳 فطار: تمر وبيض"),
         d("m", "08:30", "08:45", "🚿 Shower", "🚿 دش"),
         d("m", "09:30", "09:45", "👔 Get ready, pack the gym bag", "👔 اجهز وحضّر شنطة الجيم", { on: [6, 1, 2, 3, 4, 5] }),
         d("m", "09:45", "10:00", "🚗 To the office (15 min)", "🚗 للمكتب (15 دقيقة)", { on: [6, 1, 2, 3, 4, 5] }),
-        // evening: gym Sun, Tue, Thu + sport Fri = 4 nights; Sat, Mon, Wed off. Lights off at 10:30 PM
-        // every night, so 7 h of sleep before Fajr. An active night: 1 h 30 training, then 1 h 30 with
-        // people; an off night: 2 h 15 with people, then a quiet half hour.
-        d("f", "19:30", "21:00", "🏋️ Gym after Isha: 1 h 30 (training + shower)", "🏋️ الجيم بعد العشا: ساعة ونص (تمرين + دش)", { on: [0, 2, 4] }),
+        // evening: gym Sun, Tue, Thu + sport Fri, 1 h 30 each and a 15-min buffer after it (shower, way
+        // home); Sat, Mon, Wed off. Every night a 15-min wind-down buffer, lights off at 10:30 PM (7 h sleep).
+        d("f", "19:30", "21:00", "🏋️ Gym after Isha: 1 h 30 of training", "🏋️ الجيم بعد العشا: ساعة ونص تمرين", { on: [0, 2, 4] }),
         d("f", "19:30", "21:00", "⚽ Sport: football, padel or swimming (1 h 30)", "⚽ رياضة: كورة أو بادل أو سباحة (ساعة ونص)", { on: [5] }),
-        d("f", "21:00", "22:30", "👨‍👩‍👧 With the family: dinner together, phone away", "👨‍👩‍👧 مع العيلة: عشا مع بعض، والموبايل بعيد", { on: [0, 5] }),
-        d("f", "21:00", "22:30", "🎮 Me: anything I enjoy", "🎮 أنا: أي حاجة بحبها", { on: [2] }),
-        d("f", "21:00", "22:30", "🤝 With friends", "🤝 مع الصحاب", { on: [4] }),
+        d("f", "21:00", "21:15", "🛟 Sport buffer: shower, the way home", "🛟 احتياطي الرياضة: دش والمشوار للبيت", { cat: "bufSport", on: [0, 2, 4, 5] }),
+        d("f", "21:15", "22:15", "👨‍👩‍👧 With the family: dinner together, phone away", "👨‍👩‍👧 مع العيلة: عشا مع بعض، والموبايل بعيد", { on: [0, 5] }),
+        d("f", "21:15", "22:15", "🎮 Me: anything I enjoy", "🎮 أنا: أي حاجة بحبها", { on: [2] }),
+        d("f", "21:15", "22:15", "🤝 With friends", "🤝 مع الصحاب", { on: [4] }),
         d("f", "19:30", "19:45", "🏠 Home (15 min)", "🏠 البيت (15 دقيقة)", { on: [6, 1, 3] }),
-        d("f", "19:45", "22:00", "💑 With my wife: dinner and time together, phone away", "💑 مع مراتي: عشا ووقت مع بعض، والموبايل بعيد", { on: [6, 1, 3] }),
-        d("f", "22:00", "22:30", "🌙 Wind down: read, wudu, sleep azkar, lights off at 10:30 PM", "🌙 تهدية: قراية ووضوء وأذكار النوم والنور يتقفل 10:30", { on: [6, 1, 3] })
+        d("f", "19:45", "22:15", "💑 With my wife: dinner and time together, phone away", "💑 مع مراتي: عشا ووقت مع بعض، والموبايل بعيد", { on: [6, 1, 3] }),
+        d("f", "22:15", "22:30", "🛟 Sleep buffer: wind down, wudu, sleep azkar, lights off at 10:30 PM", "🛟 احتياطي النوم: تهدية ووضوء وأذكار النوم والنور يتقفل 10:30", { cat: "bufSleep" })
       ],
       days: {
-        6: day("system", [
+        6: day("plan", [
           i("Numbers, videos' stats and customer feedback: Claude sums them up", "الأرقام وإحصائيات الفيديوهات وفيدباك العملاء: Claude يلخصهم", 35)
-        ], "🧭 Plan the week", "🧭 خطة الأسبوع", [
-          i("Our marketing focus for the week", "تركيز التسويق بتاعنا للأسبوع", 20),
-          i("This week's problems: which one becomes a system or an AI agent (not a one-off fix)", "مشاكل الأسبوع: أنهي واحدة تتحول لسيستم أو AI agent (مش حل مرة واحدة)", 25),
-          i("Tasks in order: GoBachaloria 5, Techmakerz 3, Ashrhly 2, into the desk, sent to the team", "المهام بالترتيب: GoBachaloria 5، Techmakerz 3، Ashrhly 2، في الـdesk ومتبعتة للفريق", 30)
+        ], "🧭 Plan the week: focus and systems", "🧭 خطة الأسبوع: التركيز والسيستم", [
+          i("Our marketing focus for the week", "تركيز التسويق بتاعنا للأسبوع", 15),
+          i("This week's problems: which one becomes a system or an AI agent (not a one-off fix)", "مشاكل الأسبوع: أنهي واحدة تتحول لسيستم أو AI agent (مش حل مرة واحدة)", 20)
+        ], "🧭 Plan the week: the tasks", "🧭 خطة الأسبوع: المهام", [
+          i("Tasks in order: GoBachaloria 5, Techmakerz 3, Ashrhly 2, into the desk, sent to the team", "المهام بالترتيب: GoBachaloria 5، Techmakerz 3، Ashrhly 2، في الـdesk ومتبعتة للفريق", 35)
         ]),
         // the free day, shared like the evenings: wife 3 · family 2 · friends 1 · me 1
         0: [
@@ -119,50 +127,59 @@
         ],
         1: day("content", [
           i("6 video scripts with Claude: 3 English, 3 Arabic", "6 سكريبتات فيديو مع Claude: 3 إنجليزي و3 عربي", 35)
-        ], "✍️ Create part 1: shooting", "✍️ المحتوى 1: التصوير", [
-          i("Shoot the 6 videos, or make them with AI", "صوّر الـ6 فيديوهات، أو اعملهم بالذكاء الاصطناعي", 50),
-          i("2 LinkedIn posts with Claude", "2 بوست LinkedIn مع Claude", 15),
-          i("Upload the raw videos to one folder", "ارفع الفيديوهات الخام في فولدر واحد", 10, false)
+        ], "🎥 Shoot: English", "🎥 تصوير: إنجليزي", [
+          i("Shoot 3 English videos, or make them with AI", "صوّر 3 فيديوهات إنجليزي، أو اعملهم بالذكاء الاصطناعي", 25),
+          i("2 LinkedIn posts with Claude", "2 بوست LinkedIn مع Claude", 10)
+        ], "🎥 Shoot: Arabic", "🎥 تصوير: عربي", [
+          i("Shoot 3 Arabic videos, or make them with AI", "صوّر 3 فيديوهات عربي، أو اعملهم بالذكاء الاصطناعي", 25),
+          i("Upload the raw videos to one folder", "ارفع الفيديوهات الخام في فولدر واحد", 5, false)
         ]),
         2: day("content", [
           i("13 product posts with AI: GoBachaloria 6, Techmakerz 4, Ashrhly 3", "13 بوست للمنتجات بالذكاء الاصطناعي: GoBachaloria 6، Techmakerz 4، Ashrhly 3", 35)
-        ], "🎬 Create part 2: montage and schedule", "🎬 المحتوى 2: مونتاج وجدولة", [
-          i("Montage the 6 videos: template, AI captions", "مونتاج الـ6 فيديوهات: قالب وترجمة بالذكاء الاصطناعي", 50),
-          i("Schedule everything at the best hours", "جدول كل حاجة في أحسن المواعيد", 15, false),
-          i("Write Wednesday's emails with Claude, schedule them", "اكتب إيميلات الأربعاء مع Claude وجدولها", 10)
+        ], "🎬 Montage: the English videos", "🎬 مونتاج: الفيديوهات الإنجليزي", [
+          i("Montage 3 videos: template, AI captions", "مونتاج 3 فيديوهات: قالب وترجمة بالذكاء الاصطناعي", 35)
+        ], "🎬 Montage the Arabic videos, then schedule", "🎬 مونتاج العربي وبعدين الجدولة", [
+          i("Montage 3 videos: template, AI captions", "مونتاج 3 فيديوهات: قالب وترجمة بالذكاء الاصطناعي", 20),
+          i("Schedule everything at the best hours", "جدول كل حاجة في أحسن المواعيد", 10, false),
+          i("Wednesday's emails with Claude, scheduled", "إيميلات الأربعاء مع Claude ومتجدولة", 8)
         ]),
         3: [
           d("w", "08:00", "08:15", "✉️ Emails go out on their own (UAE 8 AM, Egypt schools 10 AM)", "✉️ الإيميلات بتتبعت لوحدها (الإمارات 8 الصبح، مدارس مصر 10 الصبح)", { cat: "content" }),
           early("content", [i("Today's call list and DMs, written with Claude", "ليستة مكالمات النهارده والرسايل، مكتوبة مع Claude", 35)]),
-          office()[0], food(), job(),
-          d("w", "13:30", "14:30", "🇦🇪 Distribute: UAE", "🇦🇪 التوزيع: الإمارات", { cat: "content", pomo: 1, items: [
-            i("Cold calls to UAE businesses, about 6", "مكالمات لشركات في الإمارات، حوالي 6", 30, false),
-            i("Send the DMs, reply to current clients", "ابعت الرسايل ورد على العملاء الحاليين", 18, false)
+          office()[0], food(), office()[1], job(),
+          d("w", "15:45", "17:30", "🇦🇪 Distribute: UAE (offices still open)", "🇦🇪 التوزيع: الإمارات (المكاتب لسه فاتحة)", { cat: "content", pomo: 1, items: [
+            i("Cold calls to UAE businesses, about 5", "مكالمات لشركات في الإمارات، حوالي 5", 25, false),
+            i("Send the DMs", "ابعت الرسايل", 10, false)
           ] }),
-          d("w", "14:30", "15:15", "🇪🇬 Distribute: Egypt (sent at 4 PM Cairo, after school)", "🇪🇬 التوزيع: مصر (بتتبعت 4 العصر بتوقيت القاهرة، بعد المدرسة)", { cat: "content", items: [
-            i("Replies to paying students + DMs to who tried and did not pay", "ردود للطلبة الدافعين + رسايل للي جرّبوا وما دفعوش", 26),
+          d("w", "18:00", "19:00", "🇪🇬 Distribute: Egypt (4 PM Cairo, after school) + clients", "🇪🇬 التوزيع: مصر (4 العصر بتوقيت القاهرة، بعد المدرسة) + العملاء", { cat: "content", pomo: 1, items: [
+            i("Replies to paying students + DMs to who tried and did not pay", "ردود للطلبة الدافعين + رسايل للي جرّبوا وما دفعوش", 30),
+            i("Reply to current clients", "رد على العملاء الحاليين", 8, false),
             comments()
-          ] }),
-          office()[1], office()[2]
+          ] })
         ],
-        4: day("system", [
+        4: day("plan", [
           i("Reports + money check: each product vs last week, Claude writes it", "التقارير ومراجعة الفلوس: كل منتج قدام الأسبوع اللي فات، Claude يكتبها", 35)
-        ], "🧗 Close the week and my path", "🧗 قفّل الأسبوع وطريقي", [
+        ], "🔎 Search page and next week", "🔎 صفحة البحث والأسبوع الجاي", [
           i("1 search page with Claude: it answers 1 real question", "صفحة بحث واحدة مع Claude: بتجاوب سؤال حقيقي واحد", 25),
-          i("My path: where am I against my goals, edit it", "طريقي: أنا فين من أهدافي، وعدّله", 40, false),
           i("Top 3 for next week", "أهم 3 حاجات للأسبوع الجاي", 10, false)
-        ]),
+        ], "🧗 My path", "🧗 طريقي", [
+          i("Where am I against my goals, edit the path", "أنا فين من أهدافي، وعدّل الطريق", 38, false)
+        ], "content"),
         5: [
           early("product", [i("Fix bugs, top of the list first, screen recording on", "صلّح الأخطاء من أول القايمة، وتسجيل الشاشة شغال", 35)]),
-          office()[0],
+          office(true)[0],
           d("w", "13:30", "13:45", "🥗 Food at the desk", "🥗 أكل على المكتب"),
-          job("13:45", "14:15"),
-          d("w", "14:15", "15:15", "🤖 One problem → one AI agent", "🤖 مشكلة واحدة ← AI agent واحد", { cat: "agents", pomo: 1, items: [
-            i("Pick the problem from Saturday's list (GoBachaloria first)", "اختار المشكلة من ليستة السبت (GoBachaloria الأول)", 10, false),
-            i("Build the agent with Claude", "ابني الـagent مع Claude", 30),
-            i("Test it, switch it on, write how it works", "جرّبه وشغّله واكتب بيشتغل إزاي", 8)
+          office(true)[1], office(true)[2],
+          job("16:00", "16:30"),
+          d("w", "16:30", "17:30", "🛠️ Good Product: what stops clients paying, one new feature", "🛠️ Good Product: اللي بيمنع العميل يدفع، وميزة جديدة", { cat: "product", pomo: 1, items: [
+            i("What stops clients from paying", "اللي بيمنع العميل يدفع", 30),
+            i("One new feature, tested on the live site", "ميزة جديدة واحدة، ومتجربة على الموقع الحقيقي", 30)
           ] }),
-          office()[1], office()[2]
+          d("w", "18:00", "19:00", "🤖 One problem → one AI agent", "🤖 مشكلة واحدة ← AI agent واحد", { cat: "product", pomo: 1, items: [
+            i("Pick the problem from Saturday's list (GoBachaloria first)", "اختار المشكلة من ليستة السبت (GoBachaloria الأول)", 8, false),
+            i("Build the agent with Claude", "ابني الـagent مع Claude", 30),
+            i("Test it, switch it on, write how it works", "جرّبه وشغّله واكتب بيشتغل إزاي", 10)
+          ] })
         ]
       } };
   }
@@ -262,13 +279,17 @@
     job:     { c: "#FF6B5B", ico: "🎯", en: "Job search", ar: "البحث عن وظيفة" },
     client:  { c: "#E86A92", ico: "🤝", en: "Client meetings", ar: "مواعيد العملاء" },
     udacity: { c: "#F28C6B", ico: "🎓", en: "Udacity", ar: "يوداسيتي" },
-    product: { c: "#7F94C2", ico: "🛠️", en: "Good Product", ar: "Good Product" },
+    product: { c: "#7F94C2", ico: "🛠️", en: "Good Product (incl. AI agents)", ar: "Good Product (ومعاه الـAI agents)" },
     system:  { c: "#9D8DF1", ico: "⚙️", en: "Good System", ar: "Good System" },
     content: { c: "#4FB3BF", ico: "📣", en: "Good Marketing", ar: "Good Marketing" },
     agents:  { c: "#B48EE8", ico: "🤖", en: "Good AI Agents", ar: "Good AI Agents" },
+    plan:    { c: "#8FA3C2", ico: "📋", en: "Planning", ar: "التخطيط" },
     biz:     { c: "#5E86C1", ico: "💼", en: "Open business time", ar: "وقت بيزنس مفتوح" },
     rest:    { c: "#7CC6A4", ico: "🌿", en: "Sunday free hours", ar: "ساعات الأحد الحرة" },
     buffer:  { c: "#C4C9D6", ico: "🛟", en: "Buffer time", ar: "وقت احتياطي" },
+    bufSport: { c: "#C9E3A8", ico: "🛟", en: "Buffer: sport (shower, way home)", ar: "احتياطي: الرياضة (دش ومشوار)" },
+    bufSleep: { c: "#AEB8D6", ico: "🛟", en: "Buffer: sleep (wind down)", ar: "احتياطي: النوم (تهدية)" },
+    bufLearn: { c: "#FAD98A", ico: "🛟", en: "Buffer: learning", ar: "احتياطي: التعلّم" },
     bufOffice: { c: "#E6DCC9", ico: "🛟", en: "Buffer: part-time (+25%)", ar: "احتياطي: البارت تايم (+25%)" },
     bufBiz:  { c: "#B3C6E6", ico: "🛟", en: "Buffer: business (+25%)", ar: "احتياطي: البيزنس (+25%)" },
     bufCash: { c: "#F7B9AD", ico: "🛟", en: "Buffer: cashflow (+25%)", ar: "احتياطي: الكاش فلو (+25%)" },
@@ -279,17 +300,17 @@
     family:  { c: "#E8A87C", ico: "👨‍👩‍👧", en: "Family", ar: "العيلة" },
     friends: { c: "#B5838D", ico: "🤝", en: "Friends", ar: "الصحاب" },
     me:      { c: "#A3B18A", ico: "🎮", en: "Me", ar: "أنا" },
-    life:    { c: "#8D99AE", ico: "🛟", en: "Buffer: getting ready & on the way", ar: "احتياطي: تجهيز ومشاوير" },
+    life:    { c: "#8D99AE", ico: "🏠", en: "Getting ready & on the way", ar: "تجهيز ومشاوير" },
     free:    { c: "#3A4566", ico: "⬜", en: "Not planned", ar: "مش متخطط" }
   };
   // two groups: the business (Good Marketing, Good System, Good Product) and cashflow from side income
   var GROUPS = [
-    { id: "biz", ico: "💼", en: "Business", ar: "البيزنس", cats: ["content", "product", "system", "agents", "biz"] },
+    { id: "biz", ico: "💼", en: "Business", ar: "البيزنس", cats: ["plan", "content", "product", "system", "biz"] },
     { id: "cash", ico: "💸", en: "Cashflow (side income)", ar: "كاش فلو (دخل جانبي)", cats: ["job", "client", "udacity"] },
     { id: "free", ico: "🎉", en: "Free time & entertainment", ar: "وقت حر وترفيه", cats: ["wife", "family", "friends", "me", "rest"] },
-    { id: "spare", ico: "🛟", en: "Spare time (buffers)", ar: "وقت احتياطي", cats: ["life", "bufOffice", "bufBiz", "bufCash", "buffer"] }
+    { id: "spare", ico: "🛟", en: "Spare time (buffers)", ar: "وقت احتياطي", cats: ["bufSport", "bufSleep", "bufLearn"] }
   ];
-  var CAT_ORDER = ["content", "product", "system", "agents", "biz", "job", "client", "udacity", "office", "learn", "deen", "wife", "family", "friends", "me", "fitness", "food", "sleep", "life", "rest", "buffer", "bufOffice", "bufBiz", "bufCash", "free"];
+  var CAT_ORDER = ["plan", "content", "product", "system", "agents", "biz", "job", "client", "udacity", "office", "learn", "deen", "wife", "family", "friends", "me", "fitness", "food", "sleep", "life", "rest", "bufSport", "bufSleep", "bufLearn", "free"];
   var CAT_WORDS = [
     ["life", /wind down|تهدية/i],
     ["deen", /azkar|quran|khulwa|masjid|pray|أذكار|قرآن|خلوة|صلا/i],
@@ -307,12 +328,13 @@
     ["udacity", /udacity|يوداسيتي/i],
     ["client", /client meeting|prep for|meeting with|ميعاد عميل|تحضير لـ/i],
     ["content", /distribute|cold call|dms? |reply to|emails go|students|التوزيع|مكالمات|رسايل|إيميلات/i],
-    ["system", /plan the week|close the week|automat|reports|my path|خطة الأسبوع|قفّل الأسبوع|أوتوماتيك|التقارير|طريقي/i],
-    ["agents", /ai agent|→ one ai|ابني الـagent|AI agent واحد/i],
+    ["plan", /plan the week|close the week|reports|my path|next week|خطة الأسبوع|قفّل الأسبوع|التقارير|طريقي|الأسبوع الجاي/i],
+    ["system", /automat|good system|أوتوماتيك/i],
     ["product", /build with|bugs|feature|البناء|الأخطاء|ميزة/i],
     ["content", /create part|script|shoot|montage|posts|schedule everything|search page|comments|المحتوى|سكريبت|صوّر|مونتاج|بوست|جدول|صفحة بحث|التعليقات/i]
   ];
   function catOf(x) {
+    if (x.cat === "agents") return "product";
     if (x.cat && CAT[x.cat]) return x.cat;
     if (x.kind === "pray") return "deen";
     if (x.kind === "meet" || x.kind === "prep") return "client";
@@ -526,7 +548,7 @@
     if (its.length) body += '<ul class="day-items">' + its.map(function (y) {
       return "<li><span>" + esc(T(y.en, y.ar)) + "</span>" + (y.ai ? '<i class="day-ai">🤖 Claude</i>' : "") + (y.est ? "<em>" + esc(howLong(0, +y.est)) + "</em>" : "") + "</li>";
     }).join("") + "</ul>";
-    if (work && x.from && x.to) {
+    if (work && x.from && x.to && /^(learn|fitness)$/.test(cat)) {
       var len = mins(x.to) - mins(x.from), buf = Math.max(0, len - work), wp = Math.min(100, Math.round(work / len * 100));
       body += '<div class="day-buf"><div class="day-buf__bar"><i style="width:' + wp + '%"></i></div><small>⚙️ ' + esc(T("work ", "شغل ") + howLong(0, work)) +
         (buf ? " · 🛟 " + esc(T("buffer ", "وقت احتياطي ") + howLong(0, buf)) : " · " + esc(T("no buffer", "مفيش وقت احتياطي"))) + "</small></div>";
@@ -547,7 +569,7 @@
   function fixedRow(p) {
     var now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), isToday = sel === todayDow;
     var live = isToday && nowM >= p.from && nowM < p.to, past = isToday && nowM >= p.to;
-    var cls = { pray: "is-pray", meet: "is-meet", prep: "is-prep", gap: "is-gap" }[p.kind], ico = { pray: "🕌 ", meet: "🤝 ", prep: "📝 ", gap: p.cat === "rest" ? "🌿 " : "💼 " }[p.kind];
+    var cls = { pray: "is-pray", meet: "is-meet", prep: "is-prep", gap: "is-gap" }[p.kind], ico = { pray: "🕌 ", meet: "🤝 ", prep: "📝 ", gap: p.cat === "rest" ? "🌿 " : "✦ " }[p.kind];
     var title = p.kind === "pray" ? T(p.en + " in the masjid" + (p.note && p.note[0] ? ": " + p.note[0] : ""), p.ar + " في المسجد" + (p.note && p.note[1] ? ": " + p.note[1] : "")) : T(p.en, p.ar);
     var cat = catOf(p);
     return '<li class="week-row has-cat ' + cls + (live ? " is-now" : "") + (past ? " is-past" : "") + '" style="--cat:' + CAT[cat].c + '">' +
@@ -561,6 +583,15 @@
       "</li>";
   }
 
+  function dayFocus(dow) {
+    var n = {};
+    (W.days[tpl(dow)] || []).forEach(function (x) {
+      var c = catOf(x); if (!x.from || !x.to || ["plan", "content", "product", "system"].indexOf(c) < 0) return;
+      n[c] = (n[c] || 0) + mins(x.to) - mins(x.from);
+    });
+    var best = "product"; for (var k in n) if (!n[best] || n[k] > n[best]) best = k;
+    return best;
+  }
   function rowsOf(dow) {
     return W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
   }
@@ -574,8 +605,8 @@
       if (!x.from || !x.to) return;
       var a = mins(x.from), b = mins(x.to), its = Array.isArray(x.items) ? x.items : [];
       var work = its.length ? its.reduce(function (n, y) { return n + (+y.est || 0); }, 0) : (+x.est || 0);
-      var c = catOf(x), bc = c === "office" ? "bufOffice" : ["content", "system", "product", "agents", "biz"].indexOf(c) > -1 ? "bufBiz" : ["job", "client", "udacity"].indexOf(c) > -1 ? "bufCash" : "buffer";
-      if (work > 0 && work < b - a) { fill(a, a + work, c, false); fill(a + work, b, bc, false); }
+      var c = catOf(x), bc = c === "learn" ? "bufLearn" : c === "fitness" ? "bufSport" : null;
+      if (bc && work > 0 && work < b - a) { fill(a, a + work, c, false); fill(a + work, b, bc, false); }
       else fill(a, b, catOf(x), false);
     });
     prayers(dow).concat(meetings(dow)).forEach(function (p) { fill(p.from, p.to, catOf(p), true); });
@@ -583,7 +614,7 @@
     var bed = ends.length ? Math.max.apply(null, ends) : 1350;
     var wake = Math.min(prayers(dow)[0].from, rows.reduce(function (n, x) { return x.from ? Math.min(n, mins(x.from)) : n; }, 1440));
     fill(0, wake, "sleep", false); fill(bed, 1440, "sleep", false);
-    var gapCat = tpl(dow) === 0 ? "rest" : "biz";
+    var gapCat = tpl(dow) === 0 ? "rest" : dayFocus(dow);
     for (var m = 0; m < 1440; m++) { var c = map[m] || gapCat; out[c] = (out[c] || 0) + 1; }
     return out;
   }
@@ -594,6 +625,8 @@
   if (TP.open == null) TP.open = true;
   if (TP.scope !== "week") TP.scope = "day";
   if (["high", "low", "type"].indexOf(TP.sort) < 0) TP.sort = "high";
+  // groups folded shut: their parts hidden in the list, one slice for the whole group in the donut
+  if (!TP.shut || typeof TP.shut !== "object") TP.shut = {};
   function tpSave() { try { localStorage.setItem("week.tp", JSON.stringify(TP)); } catch (e) {} }
   // Business, Cashflow and Free time as groups (their parts under them), the rest on their own, in the chosen order
   function entriesOf(got) {
@@ -631,10 +664,13 @@
     var entries = entriesOf(got);
     // the donut goes round the whole 24 h / 168 h, a group's parts side by side
     var R = 70, C = 2 * Math.PI * R, at = 0, segs = [];
-    entries.forEach(function (e) { (e.g ? e.kids : [e.k]).forEach(function (k) { segs.push({ k: k, g: e.g }); }); });
+    entries.forEach(function (e) {
+      if (e.g && TP.shut[e.g.id]) segs.push({ n: e.n, c: CAT[e.kids[0]].c, tip: groupTip(e, got, all, scope), k: "g-" + e.g.id });
+      else (e.g ? e.kids : [e.k]).forEach(function (k) { segs.push({ n: got[k], c: CAT[k].c, tip: tipOf(k, e.g, got[k], all, scope), k: k }); });
+    });
     var arcs = segs.map(function (sg) {
-      var len = got[sg.k] / all * C, out = '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="' + CAT[sg.k].c + '" stroke-width="30" stroke-dasharray="' + len.toFixed(3) + " " + (C - len).toFixed(3) +
-        '" stroke-dashoffset="' + (-at).toFixed(3) + '" data-tip="' + esc(tipOf(sg.k, sg.g, got[sg.k], all, scope)) + '" data-k="' + sg.k + '"></circle>';
+      var len = sg.n / all * C, out = '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="' + sg.c + '" stroke-width="30" stroke-dasharray="' + len.toFixed(3) + " " + (C - len).toFixed(3) +
+        '" stroke-dashoffset="' + (-at).toFixed(3) + '" data-tip="' + esc(sg.tip) + '" data-k="' + sg.k + '"></circle>';
       at += len; return out;
     }).join("");
     var worked = ["office", "job", "client", "udacity", "product", "system", "content", "agents", "biz"].reduce(function (n, k) { return n + (got[k] || 0); }, 0);
@@ -642,15 +678,20 @@
       '<button type="button" role="tab" data-tp-scope="day" aria-selected="' + !week + '" class="' + (week ? "" : "is-on") + '">' + esc(T("Day", "اليوم")) + "</button>" +
       '<button type="button" role="tab" data-tp-scope="week" aria-selected="' + week + '" class="' + (week ? "is-on" : "") + '">' + esc(T("Week", "الأسبوع")) + "</button></div>";
     var sortLbl = { high: T("↓ Most first", "↓ الأكتر الأول"), low: T("↑ Least first", "↑ الأقل الأول"), type: T("☰ By type", "☰ حسب النوع") }[TP.sort];
-    tabs = '<div class="tp__tools"><button type="button" class="tp__sort" data-tp-sort title="' + esc(T("Change the order", "غيّر الترتيب")) + '">' + esc(sortLbl) + "</button>" + tabs + "</div>";
+    var anyOpen = GROUPS.some(function (g) { return !TP.shut[g.id]; });
+    tabs = '<div class="tp__tools"><button type="button" class="tp__sort" data-tp-foldall="' + (anyOpen ? "shut" : "open") + '">' + esc(anyOpen ? T("▸ Fold all", "▸ اقفل الكل") : T("▾ Open all", "▾ افتح الكل")) + "</button>" +
+      '<button type="button" class="tp__sort" data-tp-sort title="' + esc(T("Change the order", "غيّر الترتيب")) + '">' + esc(sortLbl) + "</button>" + tabs + "</div>";
     var top = Math.max.apply(null, entries.map(function (e) { return e.n; }).concat([1]));
     var line = function (cls, color, label, n, tip, k) {
       return '<div class="tp__row' + cls + '" style="--cat:' + color + ";--p:" + (n / top * 100).toFixed(1) + "%;--pn:" + (n / top).toFixed(3) + '" data-tip="'  + esc(tip) + '"' + (k ? ' data-k="' + k + '"' : "") + '><span><i></i>' + label + "</span><b>" + esc(howLong(0, n)) + "</b><b>" + esc(pct(n, all)) + "</b></div>";
     };
     var list = entries.map(function (e) {
       if (!e.g) return line("", CAT[e.k].c, CAT[e.k].ico + " " + esc(T(CAT[e.k].en, CAT[e.k].ar)), e.n, tipOf(e.k, null, e.n, all, scope), e.k);
-      return '<div class="tp__group" data-g="' + e.g.id + '">' + line(" tp__row--group", CAT[e.kids[0]].c, e.g.ico + " " + esc(T(e.g.en, e.g.ar)), e.n, groupTip(e, got, all, scope)) +
-        e.kids.map(function (k) { return line(" tp__row--kid", CAT[k].c, CAT[k].ico + " " + esc(T(CAT[k].en, CAT[k].ar)), got[k], tipOf(k, e.g, got[k], all, scope), k); }).join("") + "</div>";
+      var shut = !!TP.shut[e.g.id];
+      var head = line(" tp__row--group" + (shut ? " is-shut" : ""), CAT[e.kids[0]].c, '<em class="tp__fold" aria-hidden="true">' + (shut ? "▸" : "▾") + "</em>" + e.g.ico + " " + esc(T(e.g.en, e.g.ar)) + ' <small class="tp__count">' + e.kids.length + "</small>", e.n, groupTip(e, got, all, scope), "g-" + e.g.id)
+        .replace('<div class="tp__row', '<div role="button" tabindex="0" aria-expanded="' + !shut + '" data-tp-group="' + e.g.id + '" class="tp__row');
+      return '<div class="tp__group' + (shut ? " is-shut" : "") + '" data-g="' + e.g.id + '">' + head +
+        (shut ? "" : e.kids.map(function (k) { return line(" tp__row--kid", CAT[k].c, CAT[k].ico + " " + esc(T(CAT[k].en, CAT[k].ar)), got[k], tipOf(k, e.g, got[k], all, scope), k); }).join("")) + "</div>";
     }).join("");
     return '<section class="tp">' + head(tabs) + '<div class="tp__body">' +
       '<div class="tp__chart"><svg viewBox="0 0 180 180" role="img" aria-label="' + esc(T("Hours per category", "الساعات لكل نوع")) + '"><g transform="rotate(-90 90 90)">' + arcs + "</g></svg>" +
@@ -707,10 +748,10 @@
     }); });
     have.sort(function (a, b) { return a[0] - b[0]; });
     var cur = have.length ? have[0][0] : 0, gaps = [];
-    have.forEach(function (h) { if (h[0] - cur >= 15) gaps.push({ kind: "gap", cat: free ? "rest" : "biz", from: cur, to: h[0] }); cur = Math.max(cur, h[1]); });
+    have.forEach(function (h) { if (h[0] - cur >= 15) gaps.push({ kind: "gap", cat: free ? "rest" : dayFocus(sel), from: cur, to: h[0] }); cur = Math.max(cur, h[1]); });
     gaps.forEach(function (gp) {
-      gp.en = free ? "Free: rest, wife, family, an outing" : "Open time → business: pick a task from the desk";
-      gp.ar = free ? "حر: راحة ومراتي والعيلة وخروجة" : "وقت مفتوح ← بيزنس: خد مهمة من الـdesk";
+      gp.en = free ? "Free: rest, wife, family, an outing" : "Open time → " + CAT[gp.cat].en + ": the next task from the desk";
+      gp.ar = free ? "حر: راحة ومراتي والعيلة وخروجة" : "وقت مفتوح ← " + CAT[gp.cat].ar + ": المهمة الجاية من الـdesk";
       var g = groups[secOf(gp.from)], i = 0;
       while (i < g.length && ((g[i].p ? g[i].p.from : mins(g[i].x.from)) <= gp.from)) i++;
       g.splice(i, 0, { p: gp });
@@ -793,6 +834,8 @@
     var t = e.target, b;
     if ((b = t.closest("[data-weekend]"))) { var v = b.getAttribute("data-weekend"); if (v === "auto") delete W.weekend; else W.weekend = v; editing = null; save(); return render(); }
     if (t.closest("[data-tp-open]")) { TP.open = !TP.open; tpSave(); return render(); }
+    if ((b = t.closest("[data-tp-group]"))) { var gid = b.getAttribute("data-tp-group"); if (TP.shut[gid]) delete TP.shut[gid]; else TP.shut[gid] = 1; tpSave(); return render(); }
+    if ((b = t.closest("[data-tp-foldall]"))) { var shutAll = b.getAttribute("data-tp-foldall") === "shut"; TP.shut = {}; if (shutAll) GROUPS.forEach(function (g) { TP.shut[g.id] = 1; }); tpSave(); return render(); }
     if (t.closest("[data-tp-sort]")) { TP.sort = { high: "low", low: "type", type: "high" }[TP.sort]; tpSave(); return render(); }
     if ((b = t.closest("[data-tp-scope]"))) { TP.scope = b.getAttribute("data-tp-scope"); tpSave(); return render(); }
     if ((b = t.closest("[data-day]"))) { sel = +b.getAttribute("data-day"); editing = null; return render(); }
@@ -852,6 +895,10 @@
     editing = null; save(); render();
   });
 
+  host.addEventListener("keydown", function (e) {
+    var g = e.target.closest && e.target.closest("[data-tp-group]");
+    if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.click(); }
+  });
   // the panel's tips: over a slice or a row, say what it is, its group, hours and share
   function lit(k, on) {
     [].forEach.call(host.querySelectorAll('.tp [data-k="' + k + '"]'), function (el) { el.classList.toggle("is-lit", on); });
