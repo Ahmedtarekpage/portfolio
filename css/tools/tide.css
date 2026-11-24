@@ -648,3 +648,54 @@ html[data-theme="light"] .now-page .nwp__top .nw:hover, html[data-theme="light"]
 .nb.is-pan .bw, .bw:active { transition: none; }
 .bw--cal .cl { height: 460px; max-height: none; }
 .bw--cal .nw--cal { padding-bottom: 10px; }
+
+/* ================= /now v5: drawn cards — a masjid under the sky of the hour, coins, a real whiteboard ================= */
+/* prayer: the masjid scene */
+.nw__scene { margin: 6px 0 10px; border-radius: 14px; overflow: hidden; line-height: 0; transform: perspective(600px) rotateX(6deg); transform-origin: 50% 100%;
+  box-shadow: 0 14px 22px -12px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.3); transition: transform 0.4s ease; }
+.bw--pray:hover .nw__scene { transform: perspective(600px) rotateX(0deg) translateY(-2px); }
+.ms { width: 100%; height: auto; display: block; }
+.ms--dawn .ms__s1 { stop-color: #3b3f74; } .ms--dawn .ms__s2 { stop-color: #F6A77D; }
+.ms--day .ms__s1 { stop-color: #3D8BDB; } .ms--day .ms__s2 { stop-color: #C6E6FF; }
+.ms--gold .ms__s1 { stop-color: #E99A3D; } .ms--gold .ms__s2 { stop-color: #FCE3A6; }
+.ms--dusk .ms__s1 { stop-color: #33275f; } .ms--dusk .ms__s2 { stop-color: #FF8A5B; }
+.ms--night .ms__s1 { stop-color: #08112a; } .ms--night .ms__s2 { stop-color: #24365f; }
+.ms .ms__win { fill: #6B4A1E; }
+.ms--night .ms__win, .ms--dusk .ms__win, .ms--dawn .ms__win { fill: #FFD36B; filter: drop-shadow(0 0 2px #FFD36B); }
+.ms__star { fill: #fff; animation: msTw 2.4s ease-in-out infinite alternate; }
+@keyframes msTw { from { opacity: 0.25; } to { opacity: 1; } }
+/* money: a coin stack and a note, floating */
+.nw__money-art { float: right; width: 96px; margin: -6px -4px 0 8px; filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.25)); }
+.nw__money-art .mn { width: 100%; height: auto; display: block; }
+.mn__coin { animation: mnBob 3s ease-in-out infinite; transform-box: fill-box; }
+.mn__note { animation: mnSway 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes mnBob { 0%, 100% { transform: translate(64px, 2px); } 50% { transform: translate(64px, -3px); } }
+@keyframes mnSway { 0%, 100% { transform: translate(44px, 18px) rotate(-14deg); } 50% { transform: translate(44px, 16px) rotate(-10deg); } }
+.mn.is-neg { filter: grayscale(0.7) brightness(0.9); }
+.nw__left::after { content: ""; display: block; clear: both; }
+/* today: a whiteboard in a metal frame, events stuck on like magnetic cards, a marker tray under it */
+.bw--cal > .nw--cal { color: #14213D; border: 0; border-radius: 6px; padding: 12px 12px 18px;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.9) 42%, rgba(255, 255, 255, 0) 52%), linear-gradient(180deg, #fdfdfd, #eef1f4) !important;
+  box-shadow: 0 0 0 6px #d4d8de, 0 0 0 8px #9aa1ab, 0 0 0 9px rgba(0, 0, 0, 0.25), inset 0 2px 6px rgba(0, 0, 0, 0.08), 0 34px 44px -20px rgba(0, 0, 0, 0.8) !important; }
+.bw--cal > .nw--cal > .nw__k { font: 700 1.35rem/1.1 "Caveat", "Bradley Hand", cursive; letter-spacing: 0; text-transform: none; color: #14213D; }
+.bw--cal > .nw--cal > .nw__k .btn { color: #14213D; border-color: rgba(20, 33, 61, 0.2); background: #fff; font-family: var(--font-ui); }
+.bw--cal .cl__hr { border-top: 1px dashed rgba(20, 33, 61, 0.12); }
+.bw--cal .cl__hr span { font: 700 1rem "Caveat", "Bradley Hand", cursive; color: #4F7CFF; }
+.bw--cal .cl__win { background: rgba(255, 107, 91, 0.06); border: 2px dashed rgba(255, 107, 91, 0.5); }
+.bw--cal .cl__win span { font: 700 0.95rem "Caveat", cursive; letter-spacing: 0; text-transform: none; }
+.bw--cal .cl__ev { color: #14213D; background: #fff !important; border: 0; border-left: 5px solid var(--cat); border-radius: 6px; padding-right: 22px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05), 0 8px 14px -8px rgba(20, 33, 61, 0.45) !important; }
+.bw--cal .cl__ev::before { content: ""; position: absolute; top: 5px; right: 6px; width: 11px; height: 11px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--cat) 55%, rgba(0, 0, 0, 0.5)); box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35); }
+.bw--cal .cl__ev span { font: 700 1.12rem/1.05 "Caveat", "Bradley Hand", cursive; }
+.bw--cal .cl__ev b { color: #5b6478; }
+.bw--cal .cl__ev.is-now { box-shadow: 0 0 0 2px var(--coral), 0 20px 30px -12px rgba(255, 107, 91, 0.6) !important; }
+.bw--cal .cl__ev.is-later { opacity: 0.75; filter: none; }
+.bw--cal .cl__ev.is-past { opacity: 0.4; }
+.bw--cal .cl__ev .cl__prog { background: rgba(20, 33, 61, 0.1); }
+.wb__tray { position: absolute; left: 10%; right: 10%; bottom: -18px; height: 12px; border-radius: 3px 3px 6px 6px; z-index: 6;
+  background: linear-gradient(180deg, #e7eaee, #9aa1ab); box-shadow: 0 6px 10px rgba(0, 0, 0, 0.45); display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+.wb__tray i { display: block; width: 34px; height: 7px; border-radius: 4px; transform: translateY(-5px) rotate(-3deg); background: linear-gradient(90deg, var(--mk) 0 28%, #f5f5f5 28% 100%); box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35); }
+.wb__tray b { display: block; margin-left: auto; width: 32px; height: 11px; border-radius: 3px; transform: translateY(-5px); background: linear-gradient(180deg, #3a3f4a 0 45%, #d9d1bd 45%); box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35); }
+.bw--cal .cl__ev .cl__prog { position: absolute; left: 8px; right: 22px; bottom: 4px; margin: 0; }
+.bw--cal .cl__ev.is-now { padding-bottom: 10px; }

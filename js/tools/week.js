@@ -1304,6 +1304,44 @@
     list.sort(function (a, b) { return a.from - b.from; });
     return list;
   }
+  /* Drawn art for the Now cards: a masjid under the sky of the hour, and a coin stack with a note */
+  function masjidArt(phase) {
+    var stars = phase === "night" || phase === "dusk" ? [[18, 14], [44, 26], [70, 10], [128, 18], [150, 34], [104, 30], [30, 40]].map(function (s, i) { return '<circle cx="' + s[0] + '" cy="' + s[1] + '" r="' + (i % 3 ? 0.9 : 1.4) + '" class="ms__star" style="animation-delay:' + (i * 0.4) + 's"/>'; }).join("") : "";
+    var orb = phase === "night" ? '<circle cx="140" cy="22" r="9" fill="#F4EDE0"/><circle cx="144" cy="19" r="8" fill="url(#msSky)"/>' : phase === "dusk" || phase === "dawn" ? '<circle cx="' + (phase === "dawn" ? 22 : 140) + '" cy="78" r="14" fill="url(#msSun)" opacity=".95"/>' : '<circle cx="' + (phase === "gold" ? 130 : 84) + '" cy="' + (phase === "gold" ? 34 : 18) + '" r="10" fill="url(#msSun)"/>';
+    return '<svg class="ms ms--' + phase + '" viewBox="0 0 170 100" aria-hidden="true"><defs>' +
+      '<linearGradient id="msSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ms__s1"/><stop offset="1" class="ms__s2"/></linearGradient>' +
+      '<radialGradient id="msSun"><stop offset="0" stop-color="#FFF3C4"/><stop offset=".6" stop-color="#F9B233"/><stop offset="1" stop-color="#F9B233" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="msWall" x1="0" x2="1"><stop offset="0" stop-color="#FFFDF7"/><stop offset=".6" stop-color="#EFE6D3"/><stop offset="1" stop-color="#CDBF9F"/></linearGradient>' +
+      '<radialGradient id="msDome" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFE9A8"/><stop offset=".45" stop-color="#E2A93B"/><stop offset="1" stop-color="#8A5A12"/></radialGradient>' +
+      '<radialGradient id="msDome2" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#9FE3CB"/><stop offset=".5" stop-color="#2F9C7A"/><stop offset="1" stop-color="#155744"/></radialGradient>' +
+      '<linearGradient id="msGround" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9c9a3"/><stop offset="1" stop-color="#a99566"/></linearGradient></defs>' +
+      '<rect width="170" height="100" fill="url(#msSky)"/>' + stars + orb +
+      '<path d="M0 86 Q85 78 170 86 V100 H0Z" fill="url(#msGround)"/>' +
+      '<ellipse cx="85" cy="90" rx="62" ry="5" fill="#000" opacity=".22"/>' +
+      // minarets
+      [30, 140].map(function (x) { return '<g><rect x="' + (x - 5) + '" y="30" width="10" height="58" fill="url(#msWall)"/><rect x="' + (x - 7) + '" y="44" width="14" height="3" rx="1" fill="#CDBF9F"/><rect x="' + (x - 7) + '" y="62" width="14" height="3" rx="1" fill="#CDBF9F"/><path d="M' + (x - 6) + ' 30 Q' + x + ' 14 ' + (x + 6) + ' 30Z" fill="url(#msDome2)"/><line x1="' + x + '" y1="10" x2="' + x + '" y2="17" stroke="#E2A93B" stroke-width="1.2"/><rect x="' + (x - 1.5) + '" y="36" width="3" height="5" rx="1.5" class="ms__win"/></g>'; }).join("") +
+      // body, side domes, main dome
+      '<rect x="44" y="56" width="82" height="32" rx="2" fill="url(#msWall)"/>' +
+      '<path d="M48 56 Q58 40 68 56Z" fill="url(#msDome2)"/><path d="M102 56 Q112 40 122 56Z" fill="url(#msDome2)"/>' +
+      '<rect x="60" y="48" width="50" height="10" fill="url(#msWall)"/>' +
+      '<path d="M58 49 C58 26 74 18 85 10 C96 18 112 26 112 49Z" fill="url(#msDome)"/>' +
+      '<path d="M66 44 C66 30 76 22 83 16" stroke="#FFF6D8" stroke-width="2" fill="none" opacity=".7" stroke-linecap="round"/>' +
+      '<path d="M85 2 a4 4 0 1 0 3 7 a3.2 3.2 0 1 1 -3 -7z" fill="#E2A93B"/><line x1="85" y1="9" x2="85" y2="12" stroke="#E2A93B" stroke-width="1.2"/>' +
+      // door and windows (lit at night)
+      '<path d="M78 88 V74 Q85 64 92 74 V88Z" fill="#6B4A1E"/>' +
+      [54, 66, 104, 116].map(function (x) { return '<path d="M' + (x - 3) + ' 80 V70 Q' + x + ' 65 ' + (x + 3) + ' 70 V80Z" class="ms__win"/>'; }).join("") + "</svg>";
+  }
+  function moneyArt(neg) {
+    var coin = function (y, i) { return '<g transform="translate(0 ' + y + ')"><ellipse cx="38" cy="6" rx="26" ry="8" fill="#8A5A12"/><rect x="12" y="0" width="52" height="6" fill="url(#mnEdge)"/><ellipse cx="38" cy="0" rx="26" ry="8" fill="url(#mnFace)"/>' + (i === 0 ? '<ellipse cx="38" cy="0" rx="17" ry="5" fill="none" stroke="#FFF1B8" stroke-width="1.2" opacity=".8"/><text x="38" y="2.6" text-anchor="middle" font-size="7.5" font-weight="800" fill="#8A5A12">Đ</text>' : "") + "</g>"; };
+    return '<svg class="mn' + (neg ? " is-neg" : "") + '" viewBox="0 0 110 90" aria-hidden="true"><defs>' +
+      '<linearGradient id="mnEdge" x1="0" x2="1"><stop offset="0" stop-color="#B07A1C"/><stop offset=".4" stop-color="#F6CF62"/><stop offset="1" stop-color="#9A6614"/></linearGradient>' +
+      '<radialGradient id="mnFace" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#FFF4C2"/><stop offset=".5" stop-color="#F4C24A"/><stop offset="1" stop-color="#C08A22"/></radialGradient>' +
+      '<linearGradient id="mnNote" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9BE3C2"/><stop offset="1" stop-color="#2F9C7A"/></linearGradient></defs>' +
+      '<ellipse cx="55" cy="84" rx="44" ry="5" fill="#000" opacity=".2"/>' +
+      '<g class="mn__note" transform="translate(44 18) rotate(-14)"><rect width="58" height="32" rx="4" fill="url(#mnNote)" stroke="#1d6f56" stroke-width="1"/><rect x="5" y="5" width="48" height="22" rx="3" fill="none" stroke="#E9FFF4" stroke-width="1" opacity=".7"/><circle cx="29" cy="16" r="7" fill="#E9FFF4" opacity=".85"/><text x="29" y="19.5" text-anchor="middle" font-size="9" font-weight="800" fill="#1d6f56">Đ</text></g>' +
+      '<g transform="translate(0 30)">' + [42, 34, 26, 18, 10].map(function (y, i) { return coin(y, 4 - i === 0 ? 0 : 1); }).join("") + "</g>" +
+      '<g class="mn__coin" transform="translate(64 2)"><ellipse cx="14" cy="14" rx="12" ry="12" fill="url(#mnEdge)"/><ellipse cx="13" cy="13" rx="10.5" ry="10.5" fill="url(#mnFace)"/><text x="13" y="16.5" text-anchor="middle" font-size="10" font-weight="800" fill="#8A5A12">Đ</text></g></svg>';
+  }
   function renderNow() {
     if (!nowHost || !W) return;
     if (nbDrag || nowHost.querySelector(".nt__text:focus") || nowHost.querySelector(".nw__form :focus") || nowHost.querySelector("[contenteditable='true']")) return;   // not under a drag or the typing
@@ -1314,7 +1352,9 @@
     var leftOf = function (x) { return x.to - m; };
     // 1) prayer
     var cd = next ? next.at * 60 - (m * 60 + sec) : 0, cdh = Math.floor(cd / 3600), cdm = Math.floor(cd % 3600 / 60), cds = cd % 60;
-    var prayHtml = '<section class="nw nw--pray"><div class="nw__k">🕌 ' + esc(T("Prayer", "الصلاة")) + "</div>" +
+    var lastP = P.filter(function (p) { return p.at <= m; }).pop();
+    var phase = !lastP ? "night" : lastP.en === "Fajr" ? (m - lastP.at < 80 ? "dawn" : "day") : lastP.en === "Dhuhr" ? "day" : lastP.en === "Asr" ? "gold" : lastP.en === "Maghrib" ? "dusk" : "night";
+    var prayHtml = '<section class="nw nw--pray"><div class="nw__k">🕌 ' + esc(T("Prayer", "الصلاة")) + '</div><div class="nw__scene">' + masjidArt(phase) + "</div>" +
       (inPray ? '<div class="nw__big">' + esc(T(inPray.en + " now: go to the masjid", inPray.ar + " دلوقتي: روح المسجد")) + '</div><div class="nw__sub">' + esc(T("iqama ", "الإقامة ") + ap(inPray.iq)) + "</div>"
         : next ? '<div class="nw__big">' + esc(T(next.en, next.ar)) + ' <span class="nw__cd" dir="ltr">' + (cdh ? cdh + ":" : "") + ("0" + cdm).slice(-2) + ":" + ("0" + cds).slice(-2) + "</span></div>" +
           '<div class="nw__sub">' + esc(T("adhan ", "الأذان ") + ap(next.at) + " · " + T("iqama ", "الإقامة ") + ap(next.iq) + " · " + T("leave at ", "اتحرك ") + ap(next.from)) + "</div>"
@@ -1344,8 +1384,8 @@
     // 3) money
     var mo = money(), cs = function (n) { return (n < 0 ? "−" : "") + Math.round(Math.abs(n)).toLocaleString() + " Đ"; };
     var moneyHtml = '<section class="nw nw--money"><div class="nw__k">💰 ' + esc(T("Money today", "فلوس النهارده")) + ' <a href="/finance" class="nw__link">' + esc(T("Open Floosy ↗", "افتح فلوسي ↗")) + "</a></div>" +
-      (LOCAL ? '<p class="muted">' + esc(T("Floosy works on the live site.", "فلوسي شغالة على الموقع نفسه.")) + "</p>" : !mo ? '<p class="muted">' + esc(FIN.err || T("Loading Floosy…", "بحمّل فلوسي…")) + "</p>" :
-        '<div class="nw__left ' + (mo.left < 0 ? "is-neg" : mo.left < mo.max * 0.25 ? "is-low" : "") + '"><small>' + esc(T("Left to spend today", "فاضل تصرف النهارده")) + "</small><strong dir=\"ltr\">" + esc(cs(mo.left)) + "</strong>" +
+      (LOCAL ? '<div class="nw__left"><span class="nw__money-art">' + moneyArt(false) + '</span><p class="muted">' + esc(T("Floosy works on the live site.", "فلوسي شغالة على الموقع نفسه.")) + "</p></div>" : !mo ? '<p class="muted">' + esc(FIN.err || T("Loading Floosy…", "بحمّل فلوسي…")) + "</p>" :
+        '<div class="nw__left ' + (mo.left < 0 ? "is-neg" : mo.left < mo.max * 0.25 ? "is-low" : "") + '"><span class="nw__money-art">' + moneyArt(mo.left < 0) + "</span><small>" + esc(T("Left to spend today", "فاضل تصرف النهارده")) + "</small><strong dir=\"ltr\">" + esc(cs(mo.left)) + "</strong>" +
           "<em>" + esc(T("max today ", "أقصى النهارده ") + cs(mo.max) + " · " + T("spent ", "اتصرف ") + cs(mo.spent) + (mo.income ? " · " + T("in ", "دخل ") + cs(mo.income) : "")) + "</em>" +
           (mo.left < 0 ? '<em class="nw__warn">⚠️ ' + esc(T("Over by " + cs(-mo.left) + ": it comes out of the next " + (mo.daysLeft - 1) + " days. Tomorrow's max is now " + cs(mo.tomorrow) + ".", "زيادة " + cs(-mo.left) + ": هتتخصم من الـ" + (mo.daysLeft - 1) + " يوم الجايين. أقصى بكرة بقى " + cs(mo.tomorrow) + ".")) + "</em>"
             : '<em>' + esc(T("If you stop here, tomorrow's max is ", "لو وقفت هنا، أقصى بكرة ") + cs(mo.tomorrow)) + "</em>") + "</div>" +
@@ -1437,7 +1477,8 @@
       '<div class="cl" tabindex="0"><div class="cl__plane" style="height:' + ((d1 - d0) * CAL_PX).toFixed(0) + 'px">' + hours + snaps +
         '<div class="cl__win" style="top:' + Y(m) + "px;height:" + (120 * CAL_PX).toFixed(0) + 'px"><span>' + esc(T("next 2 h", "الساعتين الجايين")) + "</span></div>" +
         '<div class="cl__lanes">' + evHtml + "</div>" +
-        '<div class="cl__now" style="top:' + Y(m) + 'px"><span>' + esc(ap(m)) + "</span></div></div></div></section>";
+        '<div class="cl__now" style="top:' + Y(m) + 'px"><span>' + esc(ap(m)) + "</span></div></div></div>" +
+      '<div class="wb__tray" aria-hidden="true"><i style="--mk:#FF6B5B"></i><i style="--mk:#4F7CFF"></i><i style="--mk:#3AA682"></i><b></b></div></section>';
   }
   function calSetup(keep) {
     var cl = nowHost.querySelector(".cl"); if (!cl) return;
@@ -1527,12 +1568,13 @@
     }
     return W.board;
   }
-  var WDEF = { pray: { x: 20, y: 20, w: 360 }, do: { x: 20, y: 215, w: 360 }, cal: { x: 20, y: 380, w: 360 }, money: { x: 400, y: 20, w: 380 }, meet: { x: 400, y: 330, w: 380 } };
+  // three columns: the masjid | today's whiteboard | now, money, meeting; notes to the right
+  var WDEF = { pray: { x: 20, y: 20, w: 340 }, cal: { x: 390, y: 20, w: 380 }, do: { x: 800, y: 20, w: 380 }, money: { x: 800, y: 200, w: 380 }, meet: { x: 800, y: 500, w: 380 } };
   function boardWidgets() {
     var B = board();
-    if (!B.widgets) {
-      B.widgets = JSON.parse(JSON.stringify(WDEF));
-      B.items.forEach(function (it) { it.x = (it.x || 0) + 820; });   // keep the notes clear of the cards
+    if (!B.widgets || B.widgetsV !== 2) {
+      var had = !!B.widgets; B.widgets = JSON.parse(JSON.stringify(WDEF)); B.widgetsV = 2;
+      B.items.forEach(function (it) { it.x = (it.x || 0) + (had ? 380 : 1210); });   // keep the notes clear of the cards
       setTimeout(function () { nbFit(); save(); }, 80);                 // and show all of it the first time
     }
     Object.keys(WDEF).forEach(function (k) { if (!B.widgets[k]) B.widgets[k] = JSON.parse(JSON.stringify(WDEF[k])); });
