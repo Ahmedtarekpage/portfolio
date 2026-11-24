@@ -593,10 +593,11 @@
     }).then(function (d) { if (d === null) return; adopt(d); done(); })
       .catch(function () { adopt(null); rev = "offline"; status = T("Could not load your week. Changes will not be saved.", "الأسبوع ما اتحمّلش. التعديلات مش هتتحفظ."); done(); });
   }
+  var saveQuiet = false;
+  function bsave() { saveQuiet = true; try { save(); } finally { saveQuiet = false; } }   // the board: keep the data, skip the redraw
   function save() {
     doc.week = W;
-    gcSync();
-    if (nowHost) setTimeout(renderNow, 0);
+    if (!saveQuiet) { gcSync(); if (nowHost) setTimeout(renderNow, 0); }
     if (LOCAL) { try { localStorage.setItem(KEY, JSON.stringify(doc)); status = T("Saved", "اتحفظ"); } catch (e) { status = T("Could not save in this browser.", "ما اتحفظش في المتصفح ده."); } return; }
     if (rev === "offline") return;
     clearTimeout(saveTimer);
@@ -1426,7 +1427,9 @@
       var WG = boardWidgets(), wcard = function (k, html) { var g = WG[k]; return '<div class="bw bw--' + k + (g.locked ? " is-locked" : "") + '" data-w="' + k + '" style="left:' + g.x + "px;top:" + g.y + "px;width:" + g.w + "px;z-index:" + (g.z || 0) + '">' + html +
         '<button type="button" class="bw__lock" data-wlock="' + k + '" title="' + esc(g.locked ? T("Locked: tap to unlock", "مقفول: دوس تفتحه") : T("Lock in place", "اقفله مكانه")) + '">' + (g.locked ? "🔒" : "🔓") + "</button></div>"; };
       var head = '<h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="nwp__nav"><a class="btn btn--ghost btn--sm" href="/time">⏱ ' + esc(T("Time", "الوقت")) + '</a><a class="btn btn--ghost btn--sm" href="/admin">← ' + esc(T("Home", "الرئيسية")) + "</a></span>";
-      head += '<button type="button" class="btn btn--ghost btn--sm" data-snd title="' + esc(T("Sounds", "الأصوات")) + '">' + (SFX ? "🔊" : "🔇") + "</button>" +
+      head += '<a class="btn btn--ghost btn--sm nw__notion" href="https://app.notion.com/p/awasisai/Workstation-75dde5a5cb184f0abc1aab133d9deb59" target="_blank" rel="noopener">📓 Notion</a>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-theme-tg title="' + esc(T("Light / dark", "فاتح / غامق")) + '">' + (document.documentElement.getAttribute("data-theme") === "light" ? "🌙" : "☀️") + "</button>" +
+        '<button type="button" class="btn btn--ghost btn--sm" data-snd title="' + esc(T("Sounds", "الأصوات")) + '">' + (SFX ? "🔊" : "🔇") + "</button>" +
         (sndOpen ? '<div class="sndp nw__form"><label class="al-on"><input type="checkbox" data-sfx-on' + (SFX ? " checked" : "") + "> 🔊 " + esc(T("Sound effects (clicks, coins, notes)", "مؤثرات صوتية (كليك، فلوس، نوتس)")) + "</label>" + alertBar() + "</div>" : "");
       nowHost.innerHTML = boardHtml("full", isMainTab() ? wcard("pray", prayHtml) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml) : "", head);
       return calSetup(keepScroll);
@@ -1752,14 +1755,14 @@
     if (!B.widgets || B.widgetsV !== 3) {
       var had = B.widgetsV === 2 ? 0 : B.widgets ? 380 : 1210; B.widgets = JSON.parse(JSON.stringify(WDEF)); B.widgetsV = 3;
       mainT.items.forEach(function (it) { it.x = (it.x || 0) + had; });
-      setTimeout(function () { if (isMainTab()) { stackCol3(); save(); } }, 60);   // keep the notes clear of the cards
-      setTimeout(function () { nbFit(); save(); }, 80);                 // and show all of it the first time
+      setTimeout(function () { if (isMainTab()) { stackCol3(); bsave(); } }, 60);   // keep the notes clear of the cards
+      setTimeout(function () { nbFit(); bsave(); }, 80);                 // and show all of it the first time
     }
     Object.keys(WDEF).forEach(function (k) { if (!B.widgets[k]) B.widgets[k] = JSON.parse(JSON.stringify(WDEF[k])); });
     return B.widgets;
   }
   function bSnap() { undoStack.push(JSON.stringify(board().items)); if (undoStack.length > 50) undoStack.shift(); }
-  function bUndo() { if (!undoStack.length) return; board().items = JSON.parse(undoStack.pop()); BT.sel = null; save(); renderNow(); }
+  function bUndo() { if (!undoStack.length) return; board().items = JSON.parse(undoStack.pop()); BT.sel = null; bsave(); renderNow(); }
   function bTop() { var B = board(), w = isMainTab() ? boardRoot().widgets || {} : {}; return Object.keys(w).reduce(function (a, k) { return Math.max(a, w[k].z || 0); }, B.items.reduce(function (a, x) { return Math.max(a, x.z || 1); }, 1)) + 1; }
   function bItem(id) { return board().items.filter(function (x) { return x.id === id; })[0]; }
   function bDel(id) { board().items = board().items.filter(function (x) { return x.id !== id; }); if (BT.sel === id) BT.sel = null; }
@@ -1811,7 +1814,7 @@
   }
   function itemHtml(it) {
     var sel = (BT.sel === it.id ? " is-sel" : "") + (it.locked ? " is-locked" : ""), pos = "left:" + it.x + "px;top:" + it.y + "px;z-index:" + (it.z || 1);
-    if (it.type === "note") return '<div class="nt bi-h' + sel + '" data-item="' + it.id + '" style="--nc:' + (it.color || NOTE_COLORS[0]) + ";" + pos + '"><div class="nt__bar" data-drag>' +
+    if (it.type === "note") return '<div class="nt bi-h' + sel + '" data-item="' + it.id + '" style="--nc:' + (it.color || NOTE_COLORS[0]) + ";" + pos + (it.w ? ";width:" + it.w + "px" : "") + (it.h ? ";height:" + it.h + "px" : "") + '"><i class="nt__rs" data-resize aria-label="' + esc(T("Resize", "غيّر المقاس")) + '"></i><div class="nt__bar" data-drag>' +
       NOTE_COLORS.map(function (c) { return '<button type="button" class="nt__c' + (c === it.color ? " is-on" : "") + '" style="--c:' + c + '" data-note-color="' + c + '" aria-label="' + esc(T("Colour", "لون")) + '"></button>'; }).join("") +
       '<button type="button" class="nt__x" data-item-del aria-label="' + esc(T("Delete", "امسح")) + '">✕</button></div><textarea class="nt__text" rows="5" placeholder="' + esc(T("Write…", "اكتب…")) + '">' + esc(it.text || "") + "</textarea></div>";
     if (it.type === "text") return '<div class="btx bi-h' + sel + '" data-item="' + it.id + '" style="' + pos + ";color:" + it.color + ";font-size:" + (it.size || 22) + 'px" spellcheck="false">' + esc(it.text || "") + "</div>";
@@ -1834,13 +1837,13 @@
   function bLockToggle() {
     var it = BT.sel && bItem(BT.sel);
     if (!it) { note(T("Select something first, then press Lock.", "اختار حاجة الأول وبعدين دوس قفل.")); return; }
-    it.locked = !it.locked; save(); renderNow(); bSelect(it.id);
+    it.locked = !it.locked; bsave(); renderNow(); bSelect(it.id);
     note(it.locked ? T("Locked in place 🔒", "اتقفل مكانه 🔒") : T("Unlocked 🔓", "اتفتح 🔓"));
   }
   function tabGo(id) {
     var R = boardRoot(); if (R.cur === id) return;
     nbSave(); R.cur = id; NB = NBS[id] || { x: 0, y: 0, z: 1 }; if (!(NB.z > 0)) NB = { x: 0, y: 0, z: 1 };
-    undoStack.length = 0; BT.sel = null; save(); renderNow();
+    undoStack.length = 0; BT.sel = null; bsave(); renderNow();
   }
   function boardHtml(tall, widgets, head) {
     var B = board(), ink = B.items.filter(function (x) { return /^(path|rect|ellipse|arrow)$/.test(x.type); }), boxes = B.items.filter(function (x) { return /^(note|text|timer)$/.test(x.type); });
@@ -1854,7 +1857,7 @@
         '<div class="nb__plane" style="transform:translate(' + NB.x + "px," + NB.y + "px) scale(" + NB.z + ')">' +
           (widgets || "") + '<svg class="nb__ink" width="1" height="1" overflow="visible">' + ink.map(inkSvg).join("") + "</svg>" +
           boxes.map(itemHtml).join("") +
-        "</div>" + (tall === "full" ? tabsHtml() : "") + '<p class="nb__hint">' + esc(T("V select · N note · T text · P pen · R box · O circle · A arrow · E eraser · ⌘Z undo · ⌘/Ctrl + wheel zoom", "V تحديد · N نوت · T كلام · P قلم · R مربع · O دايرة · A سهم · E أستيكة · ⌘Z تراجع · ⌘/Ctrl + العجلة زوم")) + "</p></div></section>";
+        '</div><i class="nb__eraser" hidden></i>' + (tall === "full" ? tabsHtml() : "") + '<p class="nb__hint">' + esc(T("V select · N note · T text · P pen · R box · O circle · A arrow · E eraser · ⌘Z undo · ⌘/Ctrl + wheel zoom", "V تحديد · N نوت · T كلام · P قلم · R مربع · O دايرة · A سهم · E أستيكة · ⌘Z تراجع · ⌘/Ctrl + العجلة زوم")) + "</p></div></section>";
   }
   // every second: the timers' faces; at zero, the sound and the next round
   function boardTick() {
@@ -1867,13 +1870,15 @@
         it.left = it.len[it.mode] * 60;
         if (it.sound) { tone([{ f: 784, d: 0.5, t: 0 }, { f: 988, d: 0.5, t: 0.35 }, { f: 1175, d: 0.9, t: 0.7 }]); }
         try { if (window.Notification && Notification.permission === "granted") new Notification("🍅 " + (it.mode === "focus" ? T("Break is over: focus", "البريك خلص: ركّز") : T("Focus done: take a break", "خلصت التركيز: خد بريك"))); } catch (e) {}
-        save(); var el0 = nowHost && nowHost.querySelector('[data-item="' + it.id + '"]'); if (el0) el0.outerHTML = itemHtml(it);
+        bsave(); var el0 = nowHost && nowHost.querySelector('[data-item="' + it.id + '"]'); if (el0) el0.outerHTML = itemHtml(it);
         return;
       }
       var el = nowHost && nowHost.querySelector('[data-item="' + it.id + '"] [data-pm-face]'); if (el) el.innerHTML = pmFace(it);
     }); });
   }
   function bPoint(e) { var v = nowHost.querySelector("[data-nb]").getBoundingClientRect(); return [Math.round((e.clientX - v.left - NB.x) / NB.z), Math.round((e.clientY - v.top - NB.y) / NB.z)]; }
+  var inkRaf = {};
+  function bRedrawSoon(it) { if (inkRaf[it.id]) return; inkRaf[it.id] = requestAnimationFrame(function () { inkRaf[it.id] = 0; bRedrawInk(it); }); }
   function bRedrawInk(it) {
     var el = nowHost.querySelector('.nb__ink [data-item="' + it.id + '"]'), svg = nowHost.querySelector(".nb__ink");
     if (!svg) return;
@@ -1891,7 +1896,12 @@
     nowHost.addEventListener("click", function (e) {
       var t = e.target, b;
       if (t.closest("[data-snd]")) { sndOpen = !sndOpen; return renderNow(); }
-      if ((b = t.closest("[data-wlock]"))) { var wl = boardWidgets()[b.getAttribute("data-wlock")]; wl.locked = !wl.locked; save(); return renderNow(); }
+      if (t.closest("[data-theme-tg]")) {
+        var th = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        if (window.Theme) Theme.apply(th); else { document.documentElement.setAttribute("data-theme", th); try { localStorage.setItem("tools-theme", th); } catch (x) {} }
+        return renderNow();
+      }
+      if ((b = t.closest("[data-wlock]"))) { var wl = boardWidgets()[b.getAttribute("data-wlock")]; wl.locked = !wl.locked; bsave(); return renderNow(); }
       if (t.closest("[data-block]")) return bLockToggle();
       if (t.closest("[data-al-test]")) { playAlert(); return; }
       if ((b = t.closest("[data-b-export]"))) return bExport(b.getAttribute("data-b-export"));
@@ -1904,13 +1914,13 @@
         if (!window.confirm(T("Delete the page \"" + tb.name + "\" and everything on it (" + tb.items.length + " items)? This cannot be undone.", "تمسح صفحة \"" + tb.name + "\" وكل اللي عليها (" + tb.items.length + " حاجة)؟ مش هتقدر ترجّعها."))) return;
         R1.tabs = R1.tabs.filter(function (x) { return x.id !== tid; }); delete NBS[tid];
         if (R1.cur === tid) { R1.cur = "main"; NB = NBS.main || { x: 0, y: 0, z: 1 }; undoStack.length = 0; }
-        save(); return renderNow();
+        bsave(); return renderNow();
       }
       if ((b = t.closest("[data-tab]"))) {
         var now0 = Date.now(), id0 = b.getAttribute("data-tab");
         if (tabTap && tabTap.id === id0 && now0 - tabTap.t < 400) {   // double tap / double click: rename
           tabTap = null; var tb2 = boardRoot().tabs.filter(function (x) { return x.id === id0; })[0];
-          var nn = window.prompt(T("Rename this page", "غيّر اسم الصفحة"), tb2.name); if (nn != null && nn.trim()) { tb2.name = nn.trim().slice(0, 40); save(); renderNow(); }
+          var nn = window.prompt(T("Rename this page", "غيّر اسم الصفحة"), tb2.name); if (nn != null && nn.trim()) { tb2.name = nn.trim().slice(0, 40); bsave(); renderNow(); }
           return;
         }
         tabTap = { id: id0, t: now0 }; if (id0 !== boardRoot().cur) sfx("page"); return tabGo(id0);
@@ -1928,37 +1938,37 @@
       if ((b = t.closest(".bt__t"))) return bSetTool(b.getAttribute("data-tool"));
       if ((b = t.closest("[data-bcolor]"))) {
         BT.color = b.getAttribute("data-bcolor"); [].forEach.call(nowHost.querySelectorAll(".bt__c"), function (x) { x.classList.toggle("is-on", x === b); });
-        var sc = BT.sel && bItem(BT.sel); if (sc && /^(path|rect|ellipse|arrow|text)$/.test(sc.type)) { bSnap(); sc.color = BT.color; save(); renderNow(); }
+        var sc = BT.sel && bItem(BT.sel); if (sc && /^(path|rect|ellipse|arrow|text)$/.test(sc.type)) { bSnap(); sc.color = BT.color; bsave(); renderNow(); }
         return;
       }
       if ((b = t.closest("[data-bwidth]"))) {
         BT.width = +b.getAttribute("data-bwidth"); [].forEach.call(nowHost.querySelectorAll(".bt__w"), function (x) { x.classList.toggle("is-on", x === b); });
-        var sw = BT.sel && bItem(BT.sel); if (sw && /^(path|rect|ellipse|arrow)$/.test(sw.type)) { bSnap(); sw.w = BT.width; save(); bRedrawInk(sw); }
-        if (sw && sw.type === "text") { bSnap(); sw.size = { 2: 16, 4: 22, 8: 34 }[BT.width]; save(); renderNow(); }
+        var sw = BT.sel && bItem(BT.sel); if (sw && /^(path|rect|ellipse|arrow)$/.test(sw.type)) { bSnap(); sw.w = BT.width; bsave(); bRedrawInk(sw); }
+        if (sw && sw.type === "text") { bSnap(); sw.size = { 2: 16, 4: 22, 8: 34 }[BT.width]; bsave(); renderNow(); }
         return;
       }
       if (t.closest("[data-bundo]")) return bUndo();
-      if (t.closest("[data-bdel]")) { var sl = BT.sel && bItem(BT.sel); if (sl && sl.locked) { note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); return; } if (BT.sel) { bSnap(); bDel(BT.sel); save(); renderNow(); } return; }
+      if (t.closest("[data-bdel]")) { var sl = BT.sel && bItem(BT.sel); if (sl && sl.locked) { note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); return; } if (BT.sel) { bSnap(); bDel(BT.sel); bsave(); renderNow(); } return; }
       if (t.closest("[data-pm-add]")) {
         var vb = nowHost.querySelector("[data-nb]").getBoundingClientRect(); bSnap();
         sfx("pop"); board().items.push({ id: uid(), type: "timer", x: Math.round((vb.width / 2 - 120 - NB.x) / NB.z), y: Math.round((vb.height / 2 - 130 - NB.y) / NB.z), z: bTop(), mode: "focus", len: { focus: 25, short: 5, long: 15 }, left: null, running: false, sound: true, cycles: 0 });
-        save(); renderNow();
+        bsave(); renderNow();
         try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (x) {}
         return;
       }
       var el = t.closest("[data-item]"); if (!el) return;
       var it = bItem(el.getAttribute("data-item")); if (!it) return;
-      if (t.closest("[data-item-del]")) { if (it.locked) { note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); return; } if (it.type === "note" && it.text && !window.confirm(T("Delete this note?", "تمسح النوت دي؟"))) return; bSnap(); bDel(it.id); save(); el.remove(); return; }
-      if ((b = t.closest("[data-note-color]"))) { bSnap(); it.color = b.getAttribute("data-note-color"); el.style.setProperty("--nc", it.color); [].forEach.call(el.querySelectorAll(".nt__c"), function (x) { x.classList.toggle("is-on", x === b); }); return save(); }
+      if (t.closest("[data-item-del]")) { if (it.locked) { note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); return; } if (it.type === "note" && it.text && !window.confirm(T("Delete this note?", "تمسح النوت دي؟"))) return; bSnap(); bDel(it.id); bsave(); el.remove(); return; }
+      if ((b = t.closest("[data-note-color]"))) { bSnap(); it.color = b.getAttribute("data-note-color"); el.style.setProperty("--nc", it.color); [].forEach.call(el.querySelectorAll(".nt__c"), function (x) { x.classList.toggle("is-on", x === b); }); return bsave(); }
       if (it.type === "timer") {
         if (t.closest("[data-pm-go]")) {
           if (it.running) { it.left = pmLeft(it); it.running = false; it.endAt = null; }
           else { it.endAt = Date.now() + pmLeft(it) * 1000; it.running = true; tone([{ f: 660, d: 0.12, t: 0, v: 0.12 }]); }
-          save(); el.outerHTML = itemHtml(it); return;
+          bsave(); el.outerHTML = itemHtml(it); return;
         }
-        if (t.closest("[data-pm-reset]")) { it.running = false; it.endAt = null; it.left = it.len[it.mode] * 60; save(); el.outerHTML = itemHtml(it); return; }
-        if ((b = t.closest("[data-pm-mode]"))) { it.mode = b.getAttribute("data-pm-mode"); it.running = false; it.endAt = null; it.left = it.len[it.mode] * 60; save(); el.outerHTML = itemHtml(it); return; }
-        if (t.closest("[data-pm-sound]")) { it.sound = !it.sound; save(); el.outerHTML = itemHtml(it); return; }
+        if (t.closest("[data-pm-reset]")) { it.running = false; it.endAt = null; it.left = it.len[it.mode] * 60; bsave(); el.outerHTML = itemHtml(it); return; }
+        if ((b = t.closest("[data-pm-mode]"))) { it.mode = b.getAttribute("data-pm-mode"); it.running = false; it.endAt = null; it.left = it.len[it.mode] * 60; bsave(); el.outerHTML = itemHtml(it); return; }
+        if (t.closest("[data-pm-sound]")) { it.sound = !it.sound; bsave(); el.outerHTML = itemHtml(it); return; }
       }
     });
     function boardDouble(e) {
@@ -1967,7 +1977,7 @@
       if (e.target.closest("[data-item], .bt, [data-w]")) return;
       var p = bPoint(e); bSnap();
       var n = { id: uid(), type: "note", text: "", color: NOTE_COLORS[board().items.length % NOTE_COLORS.length], x: p[0] - 20, y: p[1] - 20, z: bTop() };
-      board().items.push(n); save(); sfx("pop"); renderNow();
+      board().items.push(n); bsave(); sfx("pop"); renderNow();
       var ta = nowHost.querySelector('[data-item="' + n.id + '"] .nt__text'); if (ta) ta.focus();
     }
     nowHost.addEventListener("dblclick", boardDouble);
@@ -1996,7 +2006,7 @@
       var over = document.elementFromPoint(e.clientX, e.clientY), ot = over && over.closest && over.closest("[data-tab]"), R = boardRoot();
       if (ot && ot.getAttribute("data-tab") !== d.id) {
         var from = R.tabs.findIndex(function (x) { return x.id === d.id; }), to = R.tabs.findIndex(function (x) { return x.id === ot.getAttribute("data-tab"); });
-        var mv = R.tabs.splice(from, 1)[0]; R.tabs.splice(to, 0, mv); save(); sfx("page");
+        var mv = R.tabs.splice(from, 1)[0]; R.tabs.splice(to, 0, mv); bsave(); sfx("page");
       }
       renderNow();
       // the click that follows a drag must not open the tab
@@ -2013,7 +2023,7 @@
       var tx = e.target.closest && e.target.closest(".btx"); if (!tx) return;
       tx.removeAttribute("contenteditable");
       var it = bItem(tx.getAttribute("data-item")); if (it && !String(it.text || "").trim()) { bDel(it.id); tx.remove(); }
-      save();
+      bsave();
     });
     nowHost.addEventListener("wheel", function (e) {
       var v = e.target.closest("[data-nb]"); if (!v) return;
@@ -2023,11 +2033,23 @@
       if (e.ctrlKey || e.metaKey) nbZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top);
       else { NB.x -= e.deltaX; NB.y -= e.deltaY; nbApply(); nbSave(); }
     }, { passive: false });
+    var ERASE_R = 12;
     function eraseAt(e) {
-      var hit = document.elementFromPoint(e.clientX, e.clientY), el = hit && hit.closest && hit.closest("[data-item]"); if (!el) return;
-      var it = bItem(el.getAttribute("data-item")); if (!it || it.locked || !/^(path|rect|ellipse|arrow|text)$/.test(it.type)) return;
-      bDel(it.id); el.remove(); nbDrag.hit = true;
+      var seen = {};
+      [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7], [0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]].forEach(function (o) {
+        var hit = document.elementFromPoint(e.clientX + o[0] * ERASE_R, e.clientY + o[1] * ERASE_R), el = hit && hit.closest && hit.closest("[data-item]"); if (!el) return;
+        var id = el.getAttribute("data-item"); if (seen[id]) return; seen[id] = 1;
+        var it = bItem(id); if (!it || it.locked || !/^(path|rect|ellipse|arrow|text)$/.test(it.type)) return;
+        bDel(it.id); el.remove(); if (nbDrag) nbDrag.hit = true;
+      });
     }
+    // the eraser's ring follows the mouse / Pencil
+    nowHost.addEventListener("pointermove", function (e) {
+      var v = e.target.closest && e.target.closest("[data-nb]"), ring = nowHost.querySelector(".nb__eraser"); if (!ring) return;
+      if (!v || BT.tool !== "eraser" || e.pointerType === "touch") { ring.hidden = true; return; }
+      var r = v.getBoundingClientRect(); ring.hidden = false; ring.style.transform = "translate(" + (e.clientX - r.left - ERASE_R) + "px," + (e.clientY - r.top - ERASE_R) + "px)";
+    });
+    nowHost.addEventListener("pointerleave", function () { var ring = nowHost.querySelector(".nb__eraser"); if (ring) ring.hidden = true; });
     /* Pointer input for mouse, finger and Apple Pencil.
        Once a Pencil has touched the board, the Pencil draws (even with the hand tool) and fingers move
        things: one finger pans or drags, two fingers pinch-zoom; a palm resting while the Pencil is down
@@ -2041,7 +2063,7 @@
       else if (d.kind === "move") { d.it.x = d.x0; d.it.y = d.y0; d.el.style.left = d.x0 + "px"; d.el.style.top = d.y0 + "px"; if (!/^(note|text|timer)$/.test(d.it.type)) bRedrawInk(d.it); undoStack.pop(); }
       else if (d.kind === "wmove") { d.g.x = d.x0; d.g.y = d.y0; d.el.style.left = d.x0 + "px"; d.el.style.top = d.y0 + "px"; }
       else if (d.kind === "pan" && d.v) d.v.classList.remove("is-pan");
-      else if (d.kind === "erase") { if (d.hit) save(); else undoStack.pop(); }
+      else if (d.kind === "erase") { if (d.hit) bsave(); else undoStack.pop(); }
     }
     function pinchState(v) {
       var ids = Object.keys(TOUCH), a = TOUCH[ids[0]], b = TOUCH[ids[1]], r = v.getBoundingClientRect();
@@ -2049,7 +2071,7 @@
     }
     nowHost.addEventListener("pointerdown", function (e) {
       var v = e.target.closest("[data-nb]"); if (!v) return;
-      var kind = e.pointerType || "mouse";
+      var kind = e.pointerType || "mouse", b;
       if (kind === "mouse" && e.button !== 0) return;
       if (kind === "pen") { penSeen = true; penDown = true; }
       if (kind === "touch") {
@@ -2060,9 +2082,12 @@
         if (n > 2) { e.preventDefault(); return; }
       }
       if (e.target.closest("button, input, select, a, label, .bt, .btabs, .sndp, [contenteditable='true']")) return;
+      if (kind === "pen") e.preventDefault();   // no text selection or callout from the Pencil
+      var penWrites = kind === "pen" && /^(select|pen)$/.test(BT.tool);
       var ta = e.target.tagName === "TEXTAREA" ? e.target : null;
+      if (penWrites) ta = null;
       if (ta && document.activeElement === ta) return;   // already writing in it
-      var wEl = e.target.closest("[data-w]");
+      var wEl = penWrites || /^(eraser|rect|ellipse|arrow)$/.test(BT.tool) && kind !== "touch" ? null : e.target.closest("[data-w]");
       if (wEl) {
         var wg0 = boardWidgets()[wEl.getAttribute("data-w")];
         if (!wg0.locked && !(kind === "touch" && e.target.closest(".cl"))) {
@@ -2078,7 +2103,11 @@
         try { v.setPointerCapture(e.pointerId); } catch (x) {}
         e.preventDefault(); return;
       }
-      var tool = BT.tool, p = bPoint(e), el = e.target.closest("[data-item]"), it;
+      var tool = BT.tool, p = bPoint(e), el = penWrites ? null : e.target.closest("[data-item]"), it;
+      if ((b = e.target.closest("[data-resize]")) && kind !== "pen") {   // resize a note from its corner
+        var rit = bItem(b.closest("[data-item]").getAttribute("data-item")), rel = b.closest("[data-item]");
+        if (rit && !rit.locked) { bSnap(); nbDrag = { kind: "resize", pid: e.pointerId, it: rit, el: rel, sx: e.clientX, sy: e.clientY, w0: rel.offsetWidth, h0: rel.offsetHeight, moved: true }; try { v.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); return; }
+      }
       if (kind === "pen" && tool === "select") tool = "pen";                                        // the Pencil writes
       if (kind === "touch" && penSeen && /^(pen|rect|ellipse|arrow|eraser)$/.test(tool)) tool = "select";   // fingers move
       if (tool === "select") {
@@ -2092,7 +2121,7 @@
         bSnap();
         it = tool === "note" ? { id: uid(), type: "note", text: "", color: NOTE_COLORS[board().items.length % NOTE_COLORS.length], x: p[0] - 20, y: p[1] - 20, z: bTop() }
           : { id: uid(), type: "text", text: "", color: BT.color, size: { 2: 16, 4: 22, 8: 34 }[BT.width] || 22, x: p[0], y: p[1] - 14, z: bTop() };
-        board().items.push(it); save(); sfx("pop"); bSetTool("select"); renderNow(); bSelect(it.id);
+        board().items.push(it); bsave(); sfx("pop"); bSetTool("select"); renderNow(); bSelect(it.id);
         var nel = nowHost.querySelector('[data-item="' + it.id + '"]');
         if (nel) { if (it.type === "note") nel.querySelector(".nt__text").focus(); else bEditText(nel); }
         e.preventDefault(); return;
@@ -2119,6 +2148,10 @@
       if (!nbDrag) return;
       var d = nbDrag, it = d.it;
       if (d.pid != null && e.pointerId !== d.pid) return;
+      if (d.kind === "resize") {
+        it.w = Math.max(140, Math.round(d.w0 + (e.clientX - d.sx) / NB.z)); it.h = Math.max(110, Math.round(d.h0 + (e.clientY - d.sy) / NB.z));
+        d.el.style.width = it.w + "px"; d.el.style.height = it.h + "px"; return;
+      }
       if (d.kind === "wmove") {
         var wx = (e.clientX - d.sx) / NB.z, wy = (e.clientY - d.sy) / NB.z; if (Math.abs(wx) + Math.abs(wy) > 2) d.moved = true;
         d.g.x = Math.round(d.x0 + wx); d.g.y = Math.round(d.y0 + wy); d.el.style.left = d.g.x + "px"; d.el.style.top = d.g.y + "px"; return;
@@ -2143,8 +2176,8 @@
             it.pts.push(q); added = true;
           }
         });
-        if (added) bRedrawInk(it);
-      } else if (d.kind === "shape") { var p2 = bPoint(e); it.dx = p2[0] - it.x; it.dy = p2[1] - it.y; bRedrawInk(it); }
+        if (added) bRedrawSoon(it);
+      } else if (d.kind === "shape") { var p2 = bPoint(e); it.dx = p2[0] - it.x; it.dy = p2[1] - it.y; bRedrawSoon(it); }
       else if (d.kind === "erase") eraseAt(e);
     });
     var nbUp = function (e) {
@@ -2167,12 +2200,12 @@
         lastTap = { t: now, x: e.clientX, y: e.clientY };
       }
       if (d.ta && !d.moved) { try { d.ta.focus(); } catch (x) {} }
-      if (d.kind === "wmove") { save(); return; }
-      if (d.kind === "move") { if (!d.moved) undoStack.pop(); else save(); }
+      if (d.kind === "wmove" || d.kind === "resize") { bsave(); return; }
+      if (d.kind === "move") { if (!d.moved) undoStack.pop(); else bsave(); }
       else if (d.kind === "pan") { d.v.classList.remove("is-pan"); nbSave(); }
-      else if (d.kind === "pen") { if (d.it.pts.length < 2) { bDel(d.it.id); var g = nowHost.querySelector('.nb__ink [data-item="' + d.it.id + '"]'); if (g) g.remove(); undoStack.pop(); } else save(); }
-      else if (d.kind === "shape") { if (Math.abs(d.it.dx) + Math.abs(d.it.dy) < 8) { bDel(d.it.id); var g2 = nowHost.querySelector('.nb__ink [data-item="' + d.it.id + '"]'); if (g2) g2.remove(); undoStack.pop(); } else save(); }
-      else if (d.kind === "erase") { if (d.hit) save(); else undoStack.pop(); }
+      else if (d.kind === "pen") { cancelAnimationFrame(inkRaf[d.it.id]); inkRaf[d.it.id] = 0; if (d.it.pts.length >= 2) bRedrawInk(d.it); if (d.it.pts.length < 2) { bDel(d.it.id); var g = nowHost.querySelector('.nb__ink [data-item="' + d.it.id + '"]'); if (g) g.remove(); undoStack.pop(); } else bsave(); }
+      else if (d.kind === "shape") { if (Math.abs(d.it.dx) + Math.abs(d.it.dy) < 8) { bDel(d.it.id); var g2 = nowHost.querySelector('.nb__ink [data-item="' + d.it.id + '"]'); if (g2) g2.remove(); undoStack.pop(); } else bsave(); }
+      else if (d.kind === "erase") { if (d.hit) bsave(); else undoStack.pop(); }
     };
     nowHost.addEventListener("pointerup", nbUp); nowHost.addEventListener("pointercancel", nbUp);
     window.addEventListener("pointerup", nbUp); window.addEventListener("pointercancel", nbUp); window.addEventListener("blur", function () { nbUp(null); });
@@ -2187,7 +2220,7 @@
       if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z")) { e.preventDefault(); return bUndo(); }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (String(e.key).toLowerCase() === "l") return bLockToggle();
-      if ((e.key === "Delete" || e.key === "Backspace") && BT.sel) { e.preventDefault(); var lk = bItem(BT.sel); if (lk && lk.locked) return note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); bSnap(); bDel(BT.sel); save(); return renderNow(); }
+      if ((e.key === "Delete" || e.key === "Backspace") && BT.sel) { e.preventDefault(); var lk = bItem(BT.sel); if (lk && lk.locked) return note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); bSnap(); bDel(BT.sel); bsave(); return renderNow(); }
       if (e.key === "Escape") { bSelect(null); return bSetTool("select"); }
       var map = { v: "select", n: "note", t: "text", p: "pen", r: "rect", o: "ellipse", a: "arrow", e: "eraser" }, k = map[String(e.key).toLowerCase()];
       if (k) bSetTool(k);
