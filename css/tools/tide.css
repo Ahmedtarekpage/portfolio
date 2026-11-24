@@ -847,3 +847,6 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 .nb__plane { will-change: transform; transform-origin: 0 0; }
 .nb__plane.is-glide { transition: transform 0.24s cubic-bezier(.2, .8, .2, 1); }
 .now-page .nw--full > .nw__k { flex: none; row-gap: 6px; }
+.plan-wait { display: grid; gap: 6px; margin: 16px 0; padding: 22px; border-radius: 16px; text-align: center; background: rgba(127, 127, 127, 0.08); border: 2px dashed rgba(127, 127, 127, 0.3); }
+.plan-wait b { font: 800 1.15rem var(--font-ui); }
+.plan-wait span { font: 600 0.92rem var(--font-ui); opacity: 0.75; }

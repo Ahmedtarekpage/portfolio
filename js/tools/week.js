@@ -948,6 +948,13 @@
         : (ov ? T("✎ Changed for today only, the week is as it was", "✎ متعدّل للنهارده بس، والأسبوع زي ما هو") : T("From My week. Change anything: it changes today only", "من أسبوعي. عدّل أي حاجة: بتتغير النهارده بس"))) + (doneN && !viewOff ? " · ✓ " + doneN : "") + "</span>" +
       (ov ? '<button type="button" class="btn btn--ghost btn--sm" data-reset-today>↺ ' + esc(T("Back to the week", "رجّعه زي الأسبوع")) + "</button>" : "") +
       '<button type="button" class="btn btn--ghost btn--sm" data-to-week>🗓️ ' + esc(T("Edit the week", "عدّل الأسبوع")) + "</button></div>";
+    // before the plan's first day (Thu 26 Nov): Today says so; Tomorrow on Wednesday shows Thursday
+    if (tday && todayKey() < PLAN_START) {
+      var startD = new Date(PLAN_START + "T12:00:00");
+      host.innerHTML = headToday + '<div class="plan-wait"><b>🗓️ ' + esc(T("Your plan starts on " + DAY[startD.getDay()].en + " " + startD.getDate() + " " + startD.toLocaleString("en", { month: "short" }) + ".", "خطتك بتبدأ " + DAY[startD.getDay()].ar + " " + startD.getDate() + " نوفمبر.")) + "</b><span>" +
+        esc(iso(new Date(Date.now() + 864e5)) >= PLAN_START ? T("Open 🌙 Tomorrow to see and plan the first day.", "افتح 🌙 بكرة تشوف أول يوم وتخطّطله.") : T("Nothing is scheduled before it. The day before, open 🌙 Tomorrow to plan the first day.", "مفيش حاجة متجدولة قبله. اليوم اللي قبله افتح 🌙 بكرة وخطّط لأول يوم.")) + "</span></div>";
+      return;
+    }
     host.innerHTML = (tday ? headToday :
       '<div class="card__head week__head"><h2>🗓️ ' + esc(T("My week", "أسبوعي")) + '</h2><span class="muted week__status">' + esc(status) + "</span></div>" +
       weekendSwitch()) +
@@ -1315,6 +1322,7 @@
   // what is on now and in the next 2 hours, from Today (with today's own changes), prayers and meetings
   function nowItems() {
     var dow = todayDow, o = W.dates && W.dates[iso(new Date())], rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
+    if (iso(new Date()) < PLAN_START) rows = [];   // the plan starts Thu 26 Nov: only prayers and meetings before
     var list = rows.filter(function (x) { return x.from && x.to; }).map(function (x) { return { from: mins(x.from), to: mins(x.to), title: x.text || T(x.en, x.ar), cat: catOf(x), items: x.items, id: x.id }; });
     prayers(dow).forEach(function (p) { list.push({ from: p.from, to: p.to, title: "🕌 " + T(p.en, p.ar) + " · " + T("iqama ", "الإقامة ") + ap(p.iq), cat: "deen", pray: p }); });
     meetings(dow).forEach(function (m) { list.push({ from: m.from, to: m.to, title: (m.kind === "prep" ? "📝 " : "🤝 ") + T(m.en, m.ar), cat: catOf(m) }); });
