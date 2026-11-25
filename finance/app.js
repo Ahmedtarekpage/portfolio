@@ -2034,7 +2034,7 @@ function rebalance() {
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
   const draw = () => {
-    const k = calc(), prev = k.left > 0.5 ? (() => { const x = splitIncome({ net: k.left, need: 0, inc: c.mo.income, E: c.mo.E || sp.Ec, debtOn: c.R.debt > 0.5, stab: c.R.stabilityAED, starter: c.R.starter, cap: c.R.lastSpare }), dp = Math.min(x.growth, c.R.debt); return [[`💳 ${L('للدين', 'To the debt')}`, dp], [`📈 ${L('استثمار', 'Investing')}`, x.growth - dp], [`🛟 ${B.stability.n}`, x.stability], [`🎉 ${B.reward.n}`, x.reward]].filter(([, v]) => v > 0.5); })() : [];
+    const k = calc();
     o.innerHTML = `<div class="wiz-card glass dd card-x">
       <div class="wiz-top"><b>🧮 ${L('رتّب فلوسي (مرة واحدة)', 'Sort my money (one time)')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
       <h4>1️⃣ ${L(`معاك كام فعلًا في البنك دلوقتي (${sy})؟`, `How much is really in the bank now (${sy})?`)}</h4>
@@ -2049,7 +2049,7 @@ function rebalance() {
         ${DP.solfa > 0.5 ? `<tr><td>🎉 ${L('سلفة الفلوس الحرّة تتقفل (ترجع صفر)', 'The free money loan is closed (back to zero)')}</td><td dir="ltr">${fmt(DP.solfa)}</td></tr>` : ''}
         <tr class="ft"><td>👛 ${L(`جيب الشهر · لحد ${dayName(DP.end)}`, `This month · until ${dayName(DP.end)}`)}<br><small>${items.filter(r => !done.has(r.id)).map(r => `${r.icon} ${esc(r.name)} ${fmt(r.remain)}`).join(' · ') || L('مفيش حاجة لسه', 'Nothing left')}</small></td><td dir="ltr">${fmt(k.pk1)}${k.pk1 < k.needM - 0.5 ? ` / ${fmt(k.needM)}` : ''}</td></tr>
         ${sp.debtOn ? `<tr class="ft"><td>🛟 ${L('جيب الـ10 أيام', '10-day pocket')}</td><td dir="ltr">${fmt(k.pk2)}${k.pk2 < k.needN - 0.5 ? ` / ${fmt(k.needN)}` : ''}</td></tr>` : ''}
-        ${k.left > 0.5 ? `<tr><td>🔀 ${L('الباقي يتوزّع بقاعدة الدخل', 'The rest is split by the income rule')}<br><small>${prev.map(([n, v]) => `${n} ${fmt(v)}`).join(' · ')}</small></td><td dir="ltr">${fmt(k.left)}</td></tr>` : ''}
+        ${k.left > 0.5 ? `<tr><td>⬆️ ${L('الباقي يفضل معاك "فلوس زيادة عن الجيبين"', 'The rest stays with you as "more than both pockets need"')}<br><small>${L('مش بيروح للدين ولا لأي حتة. لو حبيت توزّعه بعدين، دوس على الزيادة في الكارت.', "It doesn't go to the debt or anywhere. To split it later, tap the extra on the card.")}</small></td><td dir="ltr">${fmt(k.left)}</td></tr>` : ''}
       </table>
       ${k.left < -0.5 ? `<p class="note bad">⚠️ ${L(`الفلوس ناقصة ${fmt(-k.left)} عن الجيبين. ${k.pk1 < k.needM - 0.5 ? 'جيب الشهر نفسه ناقص.' : `جيب الـ10 أيام هيبقى ${fmt(k.pk2)} بدل ${fmt(k.needN)}، والدخل الجاي هيكمّله الأول.`}`, `You are ${fmt(-k.left)} short of the two pockets. ${k.pk1 < k.needM - 0.5 ? "This month's pocket itself is short." : `The 10-day pocket will be ${fmt(k.pk2)} instead of ${fmt(k.needN)}, and the next income fills it first.`}`)}</p>` : ''}
       ${k.diff < -0.5 ? `<p class="note">💡 ${L(`البنك فيه ${fmt(-k.diff)} أكتر من البرنامج، فهنمشي على رقم البنك وهيتسجّل "تصحيح رصيد". لو دي فلوس دخل جديد، الأحسن تسجّلها دخل بدل كده عشان تتوزّع.`, `The bank has ${fmt(-k.diff)} more than the app, so we follow the bank and log a "balance fix". If that is new income, better log it as income so it gets split.`)}</p>` : ''}
@@ -2070,10 +2070,10 @@ function rebalance() {
     if (k.diff < -0.5) S.tx.push({ id: uid(), date: dt, type: 'essadj', dir: 1, amount: +(-k.diff).toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('رصيد البنك أكتر من البرنامج', 'the bank has more than the app')}` });
     if (k.diff > 0.5) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', amount: +k.diff.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${L('فرق مع البنك (مصاريف ما اتسجلتش)', 'gap with the bank (unlogged spending)')}` });
     if (DP.solfa > 0.5) S.tx.push({ id: uid(), date: dt, type: 'transfer', bucket: 'essentials', amount: +DP.solfa.toFixed(2), cur: cu, rate: r, to: cu, toBucket: 'reward', toAmount: +DP.solfa.toFixed(2), toRate: r, note: `${tag}: ${L('قفل سلفة الفلوس الحرّة', 'closing the free money loan')}` });
-    if (k.left > 0.5) S.tx.push({ id: uid(), date: dt, type: 'essout', amount: +k.left.toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('وزّعت اللي فاضل', 'split what was left')}` });
+    // الترتيب بيرتّب اللي معاك بس: الباقي يفضل زيادة، ومش بيتبعت للدين (طلب صاحب الحساب، 2026-11-25)
     save(); render(); close(); sfx.ok(); party(['🧮', '✅', '💸']);
-    bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `🔀 و${fmt(k.left)} اتوزّعوا بالقاعدة — متنساش تحوّل نصيب الدين لـ ENBD.` : ''}`,
-      `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `🔀 And ${fmt(k.left)} was split by the rule — don't forget to send the debt share to ENBD.` : ''}`));
+    bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ و${fmt(k.left)} فاضلين معاك زيادة عن الجيبين. لو حبيت توزّعهم، دوس على الزيادة في الكارت.` : ''}`,
+      `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ And ${fmt(k.left)} stays with you above both pockets. Tap the extra on the card if you want to split it.` : ''}`));
   });
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-rebal]'); if (b) { e.stopPropagation(); b.closest('.wiz')?.remove(); rebalance(); } });
