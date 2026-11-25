@@ -220,6 +220,8 @@ function project(R, v, rate) {
     if (t.type === 'income') {
       mo.income += r.net; mo.gross += r.aed; mo.sadaqa += r.sadaqa; mo.essAlloc += r.d.essentials; mo.essNat += r.d.essentials / r.r;
       mo.alloc.growth += r.invest; mo.alloc.debt += r.debtPay; mo.alloc.stability += r.d.stability; mo.alloc.reward += r.d.reward;
+    } else if (t.type === 'debtpay' && t.bucket === 'essentials') { // سداد دين من الأساسيات: بيطلع من فلوسها زي التحويل
+      mo.essAlloc -= r.aed; mo.essNat -= +t.amount || 0;
     } else if (!['transfer', 'debtpay', 'debtadj', 'invest', 'divest'].includes(t.type)) {
       if (t.bucket === 'essentials') { mo.essSpent += r.aed; mo.essNat -= +t.amount || 0; if (t.item) mo.items[t.item] = (mo.items[t.item] || 0) + r.aed; }
       else if (t.bucket === 'reward') mo.rewardSpent += r.aed;
@@ -323,7 +325,8 @@ function replayOne(s, rate, home) {
       continue;
     }
     if (tx.type === 'debtpay') {
-      wallet(curOf(tx))[tx.bucket || 'growth'] -= tx.amount;
+      if (tx.bucket === 'essentials') { mo.essAlloc -= aed; essCur[curOf(tx)] = (essCur[curOf(tx)] || 0) - (+tx.amount || 0); } // سداد من الأساسيات: بيطلع من فلوسها
+      else wallet(curOf(tx))[tx.bucket || 'growth'] -= tx.amount;
       let pay = aed; const paidTo = {};
       for (const x of dl) if (x.on && pay > 0 && (!tx.debt || x.id === tx.debt)) { const y = Math.min(pay, x.left); x.left -= y; pay -= y; if (y > 0) paidTo[x.id] = y; }
       debt = debtLeft();

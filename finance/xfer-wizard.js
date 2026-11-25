@@ -42,7 +42,7 @@ export function xferWizard(deps) {
   const max = () => st.from === 'XAU' ? gOf(st.gh)?.grams || 0 : deps.bal(st.from, st.bk);
   const live = () => (st.amount || 0) * mk();
   const toAmount = () => st.how === 'got' ? (+st.got || 0) : st.fx > 0 ? (st.amount || 0) * (big() ? st.fx : 1 / st.fx) - (+st.fee || 0) : 0;
-  const debts = () => (st.bk === 'essentials' || st.bk === 'reward' || st.to === 'XAU') ? [] : deps.debtsIn(st.to).filter(d => d.left > 0.5);
+  const debts = () => st.to === 'XAU' ? [] : deps.debtsIn(st.to).filter(d => d.left > 0.5);
   const gName = g => `🥇 ${esc(g.name)} · ${L('عيار', '')} ${g.karat}${L('', 'K')}`;
   const dest = () => st.debt ? `💳 ${esc(debts().find(d => d.id === st.debt)?.name || '')}`
     : st.to === 'XAU' ? (st.tgh ? gName(gOf(st.tgh)) : `🥇 ${L('دهب جديد عيار', 'New gold')} ${st.tk}${L('', 'K')} · ${B[st.tb].i} ${B[st.tb].n}`)

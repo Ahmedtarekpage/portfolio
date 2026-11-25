@@ -3133,6 +3133,32 @@ async function flowDebt() {
     const all = await ask(L(`${esc(d.name)} فاضل عليه ${dm(d, left)}. سدّدته كله؟`, `${esc(d.name)} has ${dm(d, left)} left. Did you pay all of it?`), [{ l: L('✅ كله', '✅ All of it'), v: 'all' }, { l: L('💵 جزء منه', '💵 Part of it'), v: 'part' }, BACK]); if (all === null) return;
     let v = 0;
     if (all === 'part') { const p = await askNum(L(`دفعت كام (بال${CUR[cOf(d)].n})؟`, `How much did you pay (in ${CUR[cOf(d)].n})?`)); if (p == null) return; v = Math.max(0, left - p * k); }
+    // 💳 دفعته منين؟ أي محفظة بعملة الدين (طلب صاحب الحساب، 2026-11-25): الفلوس بتتخصم منها والدين بينزل في نفس المعاملة
+    const cu = cOf(d), nat = (left - v) * k, heldIn = b => b === 'essentials' ? essHeld(cu) : Math.max(0, R.bal[cu]?.[b] || 0);
+    const wallets = ['essentials', 'growth', 'stability', 'reward'].filter(b => heldIn(b) > 0.5);
+    const from = await ask(L(`دفعت ${fmt(nat, 2)} ${CUR[cu].s}. خصمتهم من أنهي محفظة؟ 👛`, `You paid ${fmt(nat, 2)} ${CUR[cu].s}. Which wallet did it come from? 👛`),
+      [...wallets.map(b => ({ l: `${B[b].i} ${B[b].n} · ${fmt(heldIn(b))}`, v: b })), { l: L('🏦 من برّه (مش من محفظة)', '🏦 From outside (no wallet)'), v: 'out' }, BACK]); if (from === null) return;
+    if (from !== 'out') {
+      let amt = nat;
+      if (amt > heldIn(from) + 0.5) {
+        const c2 = await ask(L(`⚠️ في ${B[from].n} معاك ${fmt(heldIn(from), 2)} بس، أقل من ${fmt(nat, 2)}.`, `⚠️ ${B[from].n} only has ${fmt(heldIn(from), 2)}, less than ${fmt(nat, 2)}.`),
+          [{ l: L(`💳 اخصم ${fmt(heldIn(from), 2)} بس`, `💳 Take only ${fmt(heldIn(from), 2)}`), v: 'cap' }, BACK]); if (c2 === null) return;
+        amt = heldIn(from);
+      }
+      if (from === 'essentials') { // الأساسيات: نحذّر لو الدفعة هتاكل من فلوس الأكل والفواتير
+        const safe = Math.max(0, essSplit(ctx()).leftExtra) / rate(cu);
+        if (amt > safe + 0.5) { const c3 = await ask(L(`⚠️ اللي زيادة في الأساسيات فوق المطلوب ${fmt(safe, 2)} بس. لو خصمت ${fmt(amt, 2)} هتاكل ${fmt(amt - safe, 2)} من فلوس الأكل والفواتير لآخر الدورة + 10 أيام.`, `⚠️ Only ${fmt(safe, 2)} in Essentials is above what's needed. Taking ${fmt(amt, 2)} eats ${fmt(amt - safe, 2)} of food and bills money for the rest of the cycle + 10 days.`),
+          [...(safe > 0.5 ? [{ l: L(`✅ اخصم الزيادة بس (${fmt(safe, 2)})`, `✅ Take only the extra (${fmt(safe, 2)})`), v: 'safe' }] : []), { l: L(`⚠️ اخصم ${fmt(amt, 2)} برضه`, `⚠️ Take ${fmt(amt, 2)} anyway`), v: 'all' }, BACK]); if (c3 === null) return;
+          if (c3 === 'safe') amt = safe; }
+      }
+      S.tx.push({ id: uid(), date: today(), type: 'debtpay', bucket: from, amount: +amt.toFixed(2), cur: cu, rate: rate(cu), debt: d.id, note: L(`سداد ${d.name} من ${B[from].n}`, `Paid ${d.name} from ${B[from].n}`) });
+      const rest = nat - amt; // الباقي لو اتدفع جزء من برّه
+      if (rest > 0.5) setDebtLeft(id, Math.max(0, dLeft(ctx().R, d) - rest * rate(cu)));
+      save(); render(); sfx.ok();
+      const nl = dLeft(ctx().R, d);
+      if (nl <= 0.5) { party(['💳', '🎉', '✅']); return bot(L(`🎉 مبروك! ${esc(d.name)} خلص، واتخصم ${fmt(amt, 2)} ${CUR[cu].s} من ${B[from].i} ${B[from].n}.`, `🎉 Congrats! ${esc(d.name)} is paid off, and ${fmt(amt, 2)} ${CUR[cu].s} came out of ${B[from].i} ${B[from].n}.`)); }
+      return bot(L(`✅ اتخصم ${fmt(amt, 2)} ${CUR[cu].s} من ${B[from].i} ${B[from].n} واتسدّ بيهم ${esc(d.name)}. فاضل عليه ${dm(d, nl)}. الدفعة في 📒 السجل.`, `✅ ${fmt(amt, 2)} ${CUR[cu].s} came out of ${B[from].i} ${B[from].n} and paid ${esc(d.name)}. ${dm(d, nl)} still owed. It's in the 📒 log.`));
+    }
     setDebtLeft(id, v); save(); render();
     if (v <= 0.5) { party(['💳', '🎉', '✅']); sfx.ok(); return bot(L(`🎉 مبروك! ${esc(d.name)} خلص. ومن دلوقتي نصيب النمو بيروح ${open.length > 1 ? 'للدين اللي بعده' : 'استثمار 📈'}.`, `🎉 Congrats! ${esc(d.name)} is paid off. From now on the Growth share goes ${open.length > 1 ? 'to the next debt' : 'to investing 📈'}.`)); }
     return bot(L(`تمام 👍 ${esc(d.name)} فاضل عليه ${dm(d, v)}.`, `Done 👍 ${esc(d.name)} has ${dm(d, v)} left.`));
