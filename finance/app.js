@@ -1976,7 +1976,7 @@ function essDetails() {
         ${DP.resShort > 0.5 ? `<p class="note">🛟 ${L(`جيب الـ10 أيام ناقص <b dir="ltr">${fmt(DP.resShort)}</b> عن ${fmt(E.En)}. أول دخل جاي بيكمّله قبل أي حاجة تانية.`, `The 10-day pocket is <b dir="ltr">${fmt(DP.resShort)}</b> short of ${fmt(E.En)}. The next income fills it before anything else.`)}</p>` : ''}
         ${(() => { const ex = DP.extra; return ex > 0.5 ? `<button type="button" class="pill" data-essextra>⬆️ ${L(`زيادة فوق المطلوب ${fmt(ex)} · شوف جت منين ووزّعها`, `Extra above what is needed ${fmt(ex)} · see where it came from and split it`)} ›</button>` : ''; })()}
         <button type="button" class="btn primary" data-rebal style="width:100%;margin-top:10px">🧮 ${L('رتّب فلوسي (مرة واحدة، من غير سالب)', 'Sort my money (one time, no negatives)')}</button>
-        ${S.tx.some(isSortTx) ? `<button type="button" class="pill" data-unsort style="margin-top:8px">↩️ ${L('رجّع الترتيب', 'Undo the sorting')}</button>` : ''}`;
+        ${hasSort() ? `<button type="button" class="pill" data-unsort style="margin-top:8px">↩️ ${L('رجّع الترتيب', 'Undo the sorting')}</button>` : ''}`;
     })()}
     <table class="sw-t ess-t"><thead><tr><th></th><th>${L('المطلوب', 'Needed')}</th><th>${L('اتحط', 'Put in')}</th><th>${L('اتدفع', 'Paid')}</th><th>${L('فاضل', 'Left')}</th></tr></thead><tbody>
       ${row('📅', `${L('الدورة دي', 'This cycle')} <small><bdi dir="ltr">${sd(from)} → ${sd(to)}</bdi></small>`, E.Ec, E.nowHave, E.spNow, E.leftNow)}
@@ -2023,14 +2023,15 @@ function rebalance() {
   const cu = cardView() !== 'ALL' ? cardView() : (cOf(S.job || {}) || 'AED'), real = S;
   let c, DP; try { S = viewState(cu); c = ctx(); DP = dailyPlan(c); } finally { S = real; UI.R = ctx().R; }
   const sp = DP.sp, items = [...DP.rows.filter(r => !r.fun), ...DP.off].filter(r => r.remain > 0.5), sy = CUR[cu].s;
-  const FOOD = /أكل|اكل|food|grocer|بقالة|سوبر/i, done = new Set(items.filter(r => !FOOD.test(r.name)).map(r => r.id));
-  let bank = null; // لحد ما يكتبه: المتوقّع بعد البنود اللي اتدفعت
+  // ✅ هنا معناها "مش هيتدفع من الفلوس دي لحد آخر الدورة" (من برّه أو متجاهَل) — مش مصروف (طلب صاحب الحساب، 2026-11-25)
+  const out = new Set();
+  let bank = null; // لحد ما يكتبه أو يدوس "الرقم ده صح"
   const calc = () => {
-    const paid = items.filter(r => done.has(r.id)).reduce((a, r) => a + r.remain, 0), needM = items.filter(r => !done.has(r.id)).reduce((a, r) => a + r.remain, 0);
-    const bk = bank ?? +(DP.realHave - paid).toFixed(2), diff = DP.realHave - paid - bk; // موجب = اتصرف ومش متسجل، سالب = البنك فيه أكتر
-    const ess = sp.left - paid - diff - DP.solfa, needN = sp.debtOn ? sp.En : 0, left = ess - needM - needN;
+    const skip = items.filter(r => out.has(r.id)).reduce((a, r) => a + r.remain, 0), needM = items.filter(r => !out.has(r.id)).reduce((a, r) => a + r.remain, 0);
+    const bk = bank ?? +DP.realHave.toFixed(2), diff = DP.realHave - bk; // موجب = اتصرف ومش متسجل، سالب = البنك فيه أكتر
+    const ess = sp.left - diff - DP.solfa, needN = sp.debtOn ? sp.En : 0, left = ess - needM - needN;
     const pk = pocketsOf(ess, needM, needN, 0);
-    return { bk, paid, needM, diff, ess, needN, left, pk1: pk.pk1, pk2: pk.pk2 };
+    return { bk, skip, needM, diff, ess, needN, left, pk1: pk.pk1, pk2: pk.pk2 };
   };
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
@@ -2040,58 +2041,63 @@ function rebalance() {
       <div class="wiz-top"><b>🧮 ${L('رتّب فلوسي (مرة واحدة)', 'Sort my money (one time)')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
       <h4>1️⃣ ${L(`معاك كام فعلًا في البنك دلوقتي (${sy})؟`, `How much is really in the bank now (${sy})?`)}</h4>
       <label class="wiz-amt"><input class="wiz-in num" data-rbank inputmode="decimal" dir="ltr" value="${bank ?? ''}" placeholder="${fmt(k.bk, 2)}"><span dir="ltr">${sy}</span></label>
-      ${bank == null ? `<p class="note bad">✍️ ${L('اكتب الرقم من تطبيق البنك الأول (الرقم الباهت ده توقّع البرنامج بس).', 'Type the number from your bank app first (the faded one is only the app\'s guess).')}</p>` : ''}
-      <p class="note">${L(`البرنامج متوقّع ${fmt(DP.realHave - k.paid, 2)} = الأساسيات ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.solfa)}` : ''}${k.paid > 0.5 ? ` − اللي اتدفع تحت ${fmt(k.paid)}` : ''}. لو البنك فيه رقم تاني اكتبه (من غير فلوس الأمان).`, `The app expects ${fmt(DP.realHave - k.paid, 2)} = Essentials ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − free money loan ${fmt(DP.solfa)}` : ''}${k.paid > 0.5 ? ` − paid below ${fmt(k.paid)}` : ''}. If the bank shows another number, type it (without safety money).`)}</p>
-      <h4>2️⃣ ${L(`إيه اللي اتدفع خلاص لحد ${dayName(DP.end)}؟`, `What is already paid until ${dayName(DP.end)}?`)}</h4>
-      <div class="dly-pick">${items.map(r => `<button type="button" class="pill ${done.has(r.id) ? 'on' : ''}" data-rdone="${r.id}">${done.has(r.id) ? '✅' : '⬜'} ${r.icon} ${esc(r.name)} · ${fmt(r.remain)}</button>`).join('') || `<p class="note">${L('كل البنود متغطية', 'Every item is covered')}</p>`}</div>
+      <div class="wiz-chips"><button type="button" class="wiz-chip ${bank != null && Math.abs(bank - DP.realHave) < 0.01 ? 'on' : ''}" data-rsame>✅ ${L(`الرقم ده صح · ${fmt(DP.realHave, 2)}`, `That number is right · ${fmt(DP.realHave, 2)}`)}</button></div>
+      <p class="note">${L(`البرنامج متوقّع ${fmt(DP.realHave, 2)} = الأساسيات ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.solfa)}` : ''}. لو البنك فيه رقم تاني اكتبه (من غير فلوس الأمان).`, `The app expects ${fmt(DP.realHave, 2)} = Essentials ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − free money loan ${fmt(DP.solfa)}` : ''}. If the bank shows another number, type it (without safety money).`)}</p>
+      <h4>2️⃣ ${L(`إيه اللي مش هيتدفع من الفلوس دي لحد ${dayName(DP.end)}؟`, `What won't be paid from this money until ${dayName(DP.end)}?`)}</h4>
+      <p class="note">${L('اتدفع من برّه، أو هتتجاهله الدورة دي. مش بيتسجّل مصروف ومش بيتخصم من فلوسك، بس بيتشال من احتياجات جيب الشهر.', "Paid from outside, or skipped this cycle. It isn't logged as spending and nothing is taken from your money; it just leaves this month's needs.")}</p>
+      <div class="dly-pick">${items.map(r => `<button type="button" class="pill ${out.has(r.id) ? 'on' : ''}" data-rdone="${r.id}">${out.has(r.id) ? '🙈' : '⬜'} ${r.icon} ${esc(r.name)} · ${fmt(r.remain)}</button>`).join('') || `<p class="note">${L('كل البنود متغطية', 'Every item is covered')}</p>`}</div>
       <h4>3️⃣ ${L('هيتعمل كده', "Here's what happens")}</h4>
       <table class="sw-t">
-        ${k.paid > 0.5 ? `<tr><td>✅ ${L('البنود اللي اتدفعت تتسجّل مدفوعة', 'Paid items get logged as paid')}</td><td dir="ltr">${fmt(k.paid)}</td></tr>` : ''}
-        ${k.diff > 0.5 ? `<tr><td>🧾 ${L('فرق مع البنك = مصاريف ما اتسجلتش', 'Gap with the bank = unlogged spending')}</td><td dir="ltr">${fmt(k.diff)}</td></tr>` : k.diff < -0.5 ? `<tr><td>🧮 ${L('البنك فيه أكتر = تصحيح رصيد', 'The bank has more = balance fix')}</td><td dir="ltr">+${fmt(-k.diff)}</td></tr>` : ''}
+        ${k.skip > 0.5 ? `<tr><td>🙈 ${L(`مش محسوبين لحد ${dayName(DP.end)}`, `Not counted until ${dayName(DP.end)}`)}<br><small>${items.filter(r => out.has(r.id)).map(r => `${r.icon} ${esc(r.name)} ${fmt(r.remain)}`).join(' · ')}</small></td><td dir="ltr">${fmt(k.skip)}</td></tr>` : ''}
+        ${bank == null ? '' : k.diff > 0.5 ? `<tr><td>🧾 ${L('فرق مع البنك = مصاريف ما اتسجلتش', 'Gap with the bank = unlogged spending')}</td><td dir="ltr">${fmt(k.diff)}</td></tr>` : k.diff < -0.5 ? `<tr><td>🧮 ${L('البنك فيه أكتر = تصحيح رصيد', 'The bank has more = balance fix')}</td><td dir="ltr">+${fmt(-k.diff)}</td></tr>` : ''}
         ${DP.solfa > 0.5 ? `<tr><td>🎉 ${L('سلفة الفلوس الحرّة تتقفل (ترجع صفر)', 'The free money loan is closed (back to zero)')}</td><td dir="ltr">${fmt(DP.solfa)}</td></tr>` : ''}
-        <tr class="ft"><td>👛 ${L(`جيب الشهر · لحد ${dayName(DP.end)}`, `This month · until ${dayName(DP.end)}`)}<br><small>${items.filter(r => !done.has(r.id)).map(r => `${r.icon} ${esc(r.name)} ${fmt(r.remain)}`).join(' · ') || L('مفيش حاجة لسه', 'Nothing left')}</small></td><td dir="ltr">${fmt(k.pk1)}${k.pk1 < k.needM - 0.5 ? ` / ${fmt(k.needM)}` : ''}</td></tr>
+        <tr class="ft"><td>👛 ${L(`جيب الشهر · لحد ${dayName(DP.end)}`, `This month · until ${dayName(DP.end)}`)}<br><small>${items.filter(r => !out.has(r.id)).map(r => `${r.icon} ${esc(r.name)} ${fmt(r.remain)}`).join(' · ') || L('مفيش حاجة لسه', 'Nothing left')}</small></td><td dir="ltr">${fmt(k.pk1)}${k.pk1 < k.needM - 0.5 ? ` / ${fmt(k.needM)}` : ''}</td></tr>
         ${sp.debtOn ? `<tr class="ft"><td>🛟 ${L('جيب الـ10 أيام', '10-day pocket')}</td><td dir="ltr">${fmt(k.pk2)}${k.pk2 < k.needN - 0.5 ? ` / ${fmt(k.needN)}` : ''}</td></tr>` : ''}
-        ${k.left > 0.5 ? `<tr><td>⬆️ ${L('الباقي يفضل معاك "فلوس زيادة عن الجيبين"', 'The rest stays with you as "more than both pockets need"')}<br><small>${L('مش بيروح للدين ولا لأي حتة. لو حبيت توزّعه بعدين، دوس على الزيادة في الكارت.', "It doesn't go to the debt or anywhere. To split it later, tap the extra on the card.")}</small></td><td dir="ltr">${fmt(k.left)}</td></tr>` : ''}
+        ${k.left > 0.5 ? `<tr><td>⬆️ ${L('الباقي يفضل معاك "فلوس زيادة عن الجيبين"', 'The rest stays with you as "more than both pockets need"')}<br><small>${L('مش بيروح للدين ولا لأي حتة.', "It doesn't go to the debt or anywhere.")}</small></td><td dir="ltr">${fmt(k.left)}</td></tr>` : ''}
       </table>
       ${k.left < -0.5 ? `<p class="note bad">⚠️ ${L(`الفلوس ناقصة ${fmt(-k.left)} عن الجيبين. ${k.pk1 < k.needM - 0.5 ? 'جيب الشهر نفسه ناقص.' : `جيب الـ10 أيام هيبقى ${fmt(k.pk2)} بدل ${fmt(k.needN)}، والدخل الجاي هيكمّله الأول.`}`, `You are ${fmt(-k.left)} short of the two pockets. ${k.pk1 < k.needM - 0.5 ? "This month's pocket itself is short." : `The 10-day pocket will be ${fmt(k.pk2)} instead of ${fmt(k.needN)}, and the next income fills it first.`}`)}</p>` : ''}
-      ${k.diff < -0.5 ? `<p class="note">💡 ${L(`البنك فيه ${fmt(-k.diff)} أكتر من البرنامج، فهنمشي على رقم البنك وهيتسجّل "تصحيح رصيد". لو دي فلوس دخل جديد، الأحسن تسجّلها دخل بدل كده عشان تتوزّع.`, `The bank has ${fmt(-k.diff)} more than the app, so we follow the bank and log a "balance fix". If that is new income, better log it as income so it gets split.`)}</p>` : ''}
-      <button type="button" class="btn primary" data-rgo style="width:100%" ${bank == null ? 'disabled' : ''}>🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
-      <p class="note">${L('كله بيتسجّل معاملات عادية في 📒 السجل، وتقدر تمسح أي واحدة.', 'It is all logged as normal entries in the 📒 log, and you can delete any of them.')}</p>
-      ${S.tx.some(isSortTx) ? `<button type="button" class="pill" data-unsort>↩️ ${L('رجّع الترتيب اللي فات (امسح كل اللي عمله)', 'Undo the last sorting (remove all it did)')}</button>` : ''}
+      <button type="button" class="btn primary" data-rgo style="width:100%">🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
+      <p class="note">${L('كله بيتسجّل في 📒 السجل، وتقدر ترجّعه كله بزرار ↩️.', 'It is all logged in the 📒 log, and one ↩️ button undoes all of it.')}</p>
+      ${hasSort() ? `<button type="button" class="pill" data-unsort>↩️ ${L('رجّع الترتيب اللي فات (امسح كل اللي عمله)', 'Undo the last sorting (remove all it did)')}</button>` : ''}
     </div>`;
   };
   draw(); document.body.appendChild(o); sfx.open();
   const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); };
+  const readBank = () => { const v = String(o.querySelector('[data-rbank]')?.value || '').trim(); if (v !== '') bank = parseNum(v) || 0; };
   o.addEventListener('change', e => { if (e.target.matches('[data-rbank]')) { const v = String(e.target.value).trim(); bank = v === '' ? null : (parseNum(v) || 0); draw(); } });
   o.addEventListener('click', e => {
     if (e.target === o || e.target.closest('[data-close]')) return close();
-    const d = e.target.closest('[data-rdone]'); if (d) { const id = d.dataset.rdone; done.has(id) ? done.delete(id) : done.add(id); sfx.select(); return draw(); }
+    if (e.target.closest('[data-rsame]')) { bank = +DP.realHave.toFixed(2); sfx.select(); return draw(); }
+    const d = e.target.closest('[data-rdone]'); if (d) { readBank(); const id = d.dataset.rdone; out.has(id) ? out.delete(id) : out.add(id); sfx.select(); return draw(); }
     if (!e.target.closest('[data-rgo]')) return;
-    if (bank == null && !String(o.querySelector('[data-rbank]')?.value || '').trim()) return toast(L('اكتب رقم البنك الأول ✍️', 'Type the bank number first ✍️'));
-    const inp = o.querySelector('[data-rbank]'); if (inp && String(inp.value).trim()) bank = parseNum(inp.value) || 0;
+    readBank();
+    if (bank == null) { sfx.err?.(); const i = o.querySelector('[data-rbank]'); i?.focus(); i?.classList.add('shake'); setTimeout(() => i?.classList.remove('shake'), 500); return toast(L('اكتب رقم البنك الأول، أو دوس "الرقم ده صح" ✍️', 'Type the bank number first, or tap "That number is right" ✍️')); }
     const k = calc(), r = rate(cu), dt = today(), tag = L('🧮 ترتيب', '🧮 Sort'), grp = 'sort:' + uid(), n0 = S.tx.length;
-    for (const it of items.filter(x => done.has(x.id))) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', item: it.id, amount: +it.remain.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${it.name} ${L(`اتدفع لحد ${dayName(DP.end)}`, `paid until ${dayName(DP.end)}`)}` });
+    for (const it of items.filter(x => out.has(x.id))) { const e = S.essentials.find(x => x.id === it.id); if (e) e.outside = { ym: c.ym, grp }; }
     if (k.diff < -0.5) S.tx.push({ id: uid(), date: dt, type: 'essadj', dir: 1, amount: +(-k.diff).toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('رصيد البنك أكتر من البرنامج', 'the bank has more than the app')}` });
     if (k.diff > 0.5) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', amount: +k.diff.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${L('فرق مع البنك (مصاريف ما اتسجلتش)', 'gap with the bank (unlogged spending)')}` });
     if (DP.solfa > 0.5) S.tx.push({ id: uid(), date: dt, type: 'transfer', bucket: 'essentials', amount: +DP.solfa.toFixed(2), cur: cu, rate: r, to: cu, toBucket: 'reward', toAmount: +DP.solfa.toFixed(2), toRate: r, note: `${tag}: ${L('قفل سلفة الفلوس الحرّة', 'closing the free money loan')}` });
     // الترتيب بيرتّب اللي معاك بس: الباقي يفضل زيادة، ومش بيتبعت للدين (طلب صاحب الحساب، 2026-11-25)
     for (const t of S.tx.slice(n0)) t.grp = grp;
     save(); render(); close(); sfx.ok(); party(['🧮', '✅', '💸']);
-    bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ و${fmt(k.left)} فاضلين معاك زيادة عن الجيبين. لو حبيت توزّعهم، دوس على الزيادة في الكارت.` : ''}`,
-      `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ And ${fmt(k.left)} stays with you above both pockets. Tap the extra on the card if you want to split it.` : ''}`));
+    bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ و${fmt(k.left)} فاضلين معاك زيادة عن الجيبين.` : ''}`,
+      `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ And ${fmt(k.left)} stays with you above both pockets.` : ''}`));
   });
 }
+
 /* ↩️ رجّع الترتيب: يمسح كل المعاملات اللي عملها زرار "رتّب فلوسي" (طلب صاحب الحساب، 2026-11-25) */
 const isSortTx = t => (t.grp || '').startsWith('sort:') || /^🧮 (ترتيب|Sort)/.test(t.note || '');
+const sortItems = () => S.essentials.filter(e => (e.outside?.grp || '').startsWith('sort:'));
+const hasSort = () => S.tx.some(isSortTx) || sortItems().length > 0;
 function undoSort() {
-  const list = S.tx.filter(isSortTx);
-  if (!list.length) return toast(L('مفيش أي ترتيب متسجّل يترجّع 👍', 'There is no sorting to undo 👍'));
+  const list = S.tx.filter(isSortTx), its = sortItems();
+  if (!list.length && !its.length) return toast(L('مفيش أي ترتيب متسجّل يترجّع 👍', 'There is no sorting to undo 👍'));
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
   o.innerHTML = `<div class="wiz-card glass dd card-x">
     <div class="wiz-top"><b>↩️ ${L('رجّع الترتيب', 'Undo the sorting')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
     <p class="note">${L(`ده كل اللي عمله زرار "رتّب فلوسي" (${list.length} معاملة). لو رجّعته، الأرقام هترجع زي ما كانت قبل الترتيب بالظبط.`, `This is everything "Sort my money" did (${list.length} entries). Undoing it puts the numbers back exactly as they were before.`)}</p>
-    <table class="sw-t">${list.map(t => `<tr><td>${esc(t.note || t.type)} <small><bdi dir="ltr">${t.date}</bdi></small></td><td dir="ltr">${fmt(t.amount, 2)}</td></tr>`).join('')}</table>
+    <table class="sw-t">${list.map(t => `<tr><td>${esc(t.note || t.type)} <small><bdi dir="ltr">${t.date}</bdi></small></td><td dir="ltr">${fmt(t.amount, 2)}</td></tr>`).join('')}${its.map(e => `<tr><td>🙈 ${esc(e.icon || '')} ${esc(e.name)} ${L('يرجع محسوب', 'counts again')}</td><td></td></tr>`).join('')}</table>
     <button type="button" class="btn primary" data-unsortgo style="width:100%;margin-top:10px">↩️ ${L('أيوه رجّعه', 'Yes, undo it')}</button>
   </div>`;
   document.body.appendChild(o); sfx.open();
@@ -2101,6 +2107,7 @@ function undoSort() {
     if (!e.target.closest('[data-unsortgo]')) return;
     const ids = new Set(list.map(t => t.id));
     S.tx = S.tx.filter(t => !ids.has(t.id));
+    for (const e of its) delete e.outside;
     save(); render(); close(); sfx.ok();
     toast(L(`↩️ رجّعت الترتيب: اتمسحت ${list.length} معاملة`, `↩️ Sorting undone: ${list.length} entries removed`));
   });
@@ -2202,7 +2209,7 @@ function dailyPlan(c) {
   const daysLeft = Math.max(1, Math.round((end - t0) / 864e5)), cyc = c.cyc, part = cyc?.since && cyc.f < 1, span = part ? cyc.left : cyc.days;
   // أول مرة: البنود اللي واضح إنها بتتصرف يوم بيوم (أكل، مواصلات، معيشة، خروجات) بتتعلّم يومي لوحدها
   if (!S.dailyInit) { S.dailyInit = true; for (const e of S.essentials) if (/أكل|اكل|food|grocer|مواصلات|transport|معيشة|living|خروج|entertain|بقالة|سوبر/i.test(e.name)) e.daily = true; }
-  const all = S.essentials.filter(e => !prepaid(e, c.ym)).map(e => {
+  const all = S.essentials.filter(e => !prepaid(e, c.ym) && e.outside?.ym !== c.ym).map(e => { // 🙈 متشال لحد آخر الدورة من "رتّب فلوسي"
     const amt = itemFor(S, e, c.ym) * rate(cOf(e)) * (part && !e.full1 ? cyc.f : 1), spent = c.mo.items?.[e.id] || 0, remain = Math.max(0, amt - spent);
     return { id: e.id, icon: e.icon || '🧾', name: e.name, amt, spent, remain, normal: amt / Math.max(1, span), today: remain / daysLeft, daily: !!e.daily };
   }).filter(r => r.amt > 0.005);
