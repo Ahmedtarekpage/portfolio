@@ -1002,3 +1002,6 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 [dir="rtl"] .pin .ctl-row input:checked::after { transform: translateX(-20px); }
 .pin .ctl-row input:focus { box-shadow: 0 0 0 3px rgba(145, 163, 201, .4); }
 #ctlNote { opacity: .75; line-height: 1.6; }
+.rst-pin { display: flex; gap: 6px; margin-top: 6px; width: 100%; }
+.rst-pin input { flex: 1; min-width: 0; min-height: 40px; padding: 6px 10px; border-radius: 10px; font-size: 1rem; letter-spacing: .3em; text-align: center; }
+.rst-list .rst { flex-wrap: wrap; }

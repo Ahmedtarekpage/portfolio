@@ -273,8 +273,8 @@ export async function finance(req, res, sql) {
   if (what === "intent") return intent(req, res);
 
   // ⏪ the saved copies (one at most every 10 minutes, the last 40) and putting one back (owner, 2026-11-25:
-  // "set the card to 0 by mistake — redo my last edit"). Restoring needs the owner's own phrase, and the
-  // version being replaced is saved first, so a restore can itself be undone.
+  // "set the card to 0 by mistake — redo my last edit"). The
+  // version being replaced is saved first, so a restore can itself be undone. Restoring needs the Floosy PIN.
   if (what === "backups") {
     await ensure(sql);
     if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
@@ -297,8 +297,10 @@ export async function finance(req, res, sql) {
   if (what === "restore") {
     await ensure(sql);
     if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-    const norm = (t) => String(t || "").replace(/[\u064B-\u0652\u0640]/g, "").replace(/[،,]/g, "،").replace(/\s+/g, " ").trim();
-    if (norm(req.body?.phrase) !== norm("أيوه، رجّع آخر نسخة سليمة")) return json(res, 403, { error: "The confirmation phrase is not right" });
+    // confirmed with the owner's Floosy PIN (owner, 2026-11-25), checked against the saved one; never sent back
+    const digits = (t) => String(t || "").replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).trim();
+    const [pinRow] = await sql`SELECT data->>'pin' AS pin FROM finance_state WHERE id = 1`;
+    if (!pinRow || !pinRow.pin || digits(req.body?.pin) !== digits(pinRow.pin)) return json(res, 403, { error: "Wrong PIN" });
     const id = Number(req.body?.id);
     const [bk] = id ? await sql`SELECT data FROM finance_backups WHERE id = ${id}` : [];
     if (!bk) return json(res, 404, { error: "That copy was not found" });

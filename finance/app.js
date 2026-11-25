@@ -1921,7 +1921,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-debt
 
 /* ───────────── ⏪ رجّع نسخة قبل كده (طلب صاحب الحساب، 2026-11-25: "خليت الكارت 0 بالغلط") ─────────────
    السيرفر بيحفظ نسخة كل 10 دقايق (آخر 40). القايمة بتوري وقت كل نسخة ورقم كل دين فيها،
-   والرجوع محتاج جملتك "أيوه، رجّع آخر نسخة سليمة"، والنسخة الحالية بتتحفظ الأول فتقدر ترجع تاني. */
+   والرجوع محتاج الرقم السري بتاع فلوسي، والنسخة الحالية بتتحفظ الأول فتقدر ترجع تاني. */
 async function restoreView() {
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
@@ -1939,17 +1939,25 @@ async function restoreView() {
     ${j.now ? `<div class="row rst now"><div class="grow"><b>🟢 ${L('دلوقتي', 'Now')} · ${when(j.now.at)}</b><small>${dl(j.now)} · ${j.now.tx} ${L('معاملة', 'transactions')}</small></div></div>` : ''}
     <ul class="list rst-list">${j.backups.map(b => `<li class="row rst"><div class="grow"><b>${when(b.at)}</b><small>${dl(b)} · ${b.tx} ${L('معاملة', 'transactions')}</small></div><button type="button" class="pill" data-rst="${b.id}">${L('رجّع دي', 'Restore this')}</button></li>`).join('') || `<li class="note">${L('مفيش نسخ لسه', 'No copies yet')}</li>`}</ul>`;
   o.addEventListener('click', async e => {
-    const b = e.target.closest('[data-rst]'); if (!b) return;
-    const phrase = prompt(L('عشان ترجّع النسخة دي اكتب: أيوه، رجّع آخر نسخة سليمة\n(النسخة الحالية هتتحفظ الأول، فتقدر ترجع لها)', 'To restore this copy type: أيوه، رجّع آخر نسخة سليمة\n(the current version is saved first, so you can come back to it)'));
-    if (!phrase) return;
-    b.disabled = true;
+    const b = e.target.closest('[data-rst]');
+    if (b) { // الرجوع بالرقم السري بتاع فلوسي (طلب صاحب الحساب)
+      o.querySelectorAll('.rst-pin').forEach(x => x.remove());
+      b.closest('li').insertAdjacentHTML('beforeend', `<form class="rst-pin" data-id="${b.dataset.rst}"><input type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${L('الرقم السري', 'PIN')}" required><button type="submit" class="pill">${L('رجّع', 'Restore')}</button></form>`);
+      o.querySelector('.rst-pin input').focus();
+    }
+  });
+  o.addEventListener('submit', async e => {
+    const f = e.target.closest('.rst-pin'); if (!f) return;
+    e.preventDefault();
+    const btn = f.querySelector('button'), pin = f.querySelector('input').value;
+    btn.disabled = true;
     try {
-      const r = await fetch('/api/ideas?finance=restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: +b.dataset.rst, phrase }) });
+      const r = await fetch('/api/ideas?finance=restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: +f.dataset.id, pin }) });
       const k = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(k.error || r.status);
+      if (!r.ok) throw new Error(r.status === 403 ? L('الرقم السري غلط', 'Wrong PIN') : (k.error || r.status));
       toast(L('⏪ النسخة رجعت، بيحمّل…', '⏪ Restored, reloading…')); sfx.ok();
       setTimeout(() => location.reload(), 700);
-    } catch (err) { b.disabled = false; toast(L('ما رجعتش: ', 'Not restored: ') + err.message); sfx.err(); }
+    } catch (err) { btn.disabled = false; f.querySelector('input').value = ''; toast(L('ما رجعتش: ', 'Not restored: ') + err.message); sfx.err(); }
   });
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-restoreview]')) { e.stopPropagation(); restoreView(); } });
