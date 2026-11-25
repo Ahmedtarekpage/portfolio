@@ -2039,7 +2039,8 @@ function rebalance() {
     o.innerHTML = `<div class="wiz-card glass dd card-x">
       <div class="wiz-top"><b>🧮 ${L('رتّب فلوسي (مرة واحدة)', 'Sort my money (one time)')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
       <h4>1️⃣ ${L(`معاك كام فعلًا في البنك دلوقتي (${sy})؟`, `How much is really in the bank now (${sy})?`)}</h4>
-      <label class="wiz-amt"><input class="wiz-in num" data-rbank inputmode="decimal" dir="ltr" value="${k.bk}"><span dir="ltr">${sy}</span></label>
+      <label class="wiz-amt"><input class="wiz-in num" data-rbank inputmode="decimal" dir="ltr" value="${bank ?? ''}" placeholder="${fmt(k.bk, 2)}"><span dir="ltr">${sy}</span></label>
+      ${bank == null ? `<p class="note bad">✍️ ${L('اكتب الرقم من تطبيق البنك الأول (الرقم الباهت ده توقّع البرنامج بس).', 'Type the number from your bank app first (the faded one is only the app\'s guess).')}</p>` : ''}
       <p class="note">${L(`البرنامج متوقّع ${fmt(DP.realHave - k.paid, 2)} = الأساسيات ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.solfa)}` : ''}${k.paid > 0.5 ? ` − اللي اتدفع تحت ${fmt(k.paid)}` : ''}. لو البنك فيه رقم تاني اكتبه (من غير فلوس الأمان).`, `The app expects ${fmt(DP.realHave - k.paid, 2)} = Essentials ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − free money loan ${fmt(DP.solfa)}` : ''}${k.paid > 0.5 ? ` − paid below ${fmt(k.paid)}` : ''}. If the bank shows another number, type it (without safety money).`)}</p>
       <h4>2️⃣ ${L(`إيه اللي اتدفع خلاص لحد ${dayName(DP.end)}؟`, `What is already paid until ${dayName(DP.end)}?`)}</h4>
       <div class="dly-pick">${items.map(r => `<button type="button" class="pill ${done.has(r.id) ? 'on' : ''}" data-rdone="${r.id}">${done.has(r.id) ? '✅' : '⬜'} ${r.icon} ${esc(r.name)} · ${fmt(r.remain)}</button>`).join('') || `<p class="note">${L('كل البنود متغطية', 'Every item is covered')}</p>`}</div>
@@ -2054,19 +2055,20 @@ function rebalance() {
       </table>
       ${k.left < -0.5 ? `<p class="note bad">⚠️ ${L(`الفلوس ناقصة ${fmt(-k.left)} عن الجيبين. ${k.pk1 < k.needM - 0.5 ? 'جيب الشهر نفسه ناقص.' : `جيب الـ10 أيام هيبقى ${fmt(k.pk2)} بدل ${fmt(k.needN)}، والدخل الجاي هيكمّله الأول.`}`, `You are ${fmt(-k.left)} short of the two pockets. ${k.pk1 < k.needM - 0.5 ? "This month's pocket itself is short." : `The 10-day pocket will be ${fmt(k.pk2)} instead of ${fmt(k.needN)}, and the next income fills it first.`}`)}</p>` : ''}
       ${k.diff < -0.5 ? `<p class="note">💡 ${L(`البنك فيه ${fmt(-k.diff)} أكتر من البرنامج، فهنمشي على رقم البنك وهيتسجّل "تصحيح رصيد". لو دي فلوس دخل جديد، الأحسن تسجّلها دخل بدل كده عشان تتوزّع.`, `The bank has ${fmt(-k.diff)} more than the app, so we follow the bank and log a "balance fix". If that is new income, better log it as income so it gets split.`)}</p>` : ''}
-      <button type="button" class="btn primary" data-rgo style="width:100%">🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
+      <button type="button" class="btn primary" data-rgo style="width:100%" ${bank == null ? 'disabled' : ''}>🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
       <p class="note">${L('كله بيتسجّل معاملات عادية في 📒 السجل، وتقدر تمسح أي واحدة.', 'It is all logged as normal entries in the 📒 log, and you can delete any of them.')}</p>
       ${S.tx.some(isSortTx) ? `<button type="button" class="pill" data-unsort>↩️ ${L('رجّع الترتيب اللي فات (امسح كل اللي عمله)', 'Undo the last sorting (remove all it did)')}</button>` : ''}
     </div>`;
   };
   draw(); document.body.appendChild(o); sfx.open();
   const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); };
-  o.addEventListener('change', e => { if (e.target.matches('[data-rbank]')) { bank = parseNum(e.target.value) || 0; draw(); } });
+  o.addEventListener('change', e => { if (e.target.matches('[data-rbank]')) { const v = String(e.target.value).trim(); bank = v === '' ? null : (parseNum(v) || 0); draw(); } });
   o.addEventListener('click', e => {
     if (e.target === o || e.target.closest('[data-close]')) return close();
     const d = e.target.closest('[data-rdone]'); if (d) { const id = d.dataset.rdone; done.has(id) ? done.delete(id) : done.add(id); sfx.select(); return draw(); }
     if (!e.target.closest('[data-rgo]')) return;
-    const inp = o.querySelector('[data-rbank]'); if (inp && bank != null) bank = parseNum(inp.value) || 0;
+    if (bank == null && !String(o.querySelector('[data-rbank]')?.value || '').trim()) return toast(L('اكتب رقم البنك الأول ✍️', 'Type the bank number first ✍️'));
+    const inp = o.querySelector('[data-rbank]'); if (inp && String(inp.value).trim()) bank = parseNum(inp.value) || 0;
     const k = calc(), r = rate(cu), dt = today(), tag = L('🧮 ترتيب', '🧮 Sort'), grp = 'sort:' + uid(), n0 = S.tx.length;
     for (const it of items.filter(x => done.has(x.id))) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', item: it.id, amount: +it.remain.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${it.name} ${L(`اتدفع لحد ${dayName(DP.end)}`, `paid until ${dayName(DP.end)}`)}` });
     if (k.diff < -0.5) S.tx.push({ id: uid(), date: dt, type: 'essadj', dir: 1, amount: +(-k.diff).toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('رصيد البنك أكتر من البرنامج', 'the bank has more than the app')}` });
