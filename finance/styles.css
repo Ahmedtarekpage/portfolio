@@ -1111,3 +1111,5 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 /* الرسايل بتختفي بتدريج تحت كارت الـENBD بدل ما تتقصّ عند حرفه */
 .chat #log { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px); mask-image: linear-gradient(to bottom, transparent 0, #000 18px); padding-top: 12px; }
 .lbl small .ess-foot .ess-more { white-space: nowrap; }
+.lbl small .ess-need { display: block !important; margin-top: 4px; font-size: .62rem; line-height: 1.5; opacity: .9; white-space: normal; }
+.lbl small .ess-need b { display: inline !important; font-size: .72rem !important; color: #fde68a !important; }

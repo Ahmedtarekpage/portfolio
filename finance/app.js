@@ -1723,6 +1723,8 @@ function render() {
         ${ES.debtOn ? `<span class="ess-pk ${pkc(pk2 >= hv.En - 0.5, pk2 > 0.5)}"><i>🛟 ${L('10 أيام', '10 days')}</i><b dir="ltr">${fmt(pk2)}</b></span>` : ''}
       </span>` +
       `<span class="ess-day">🗓️ <b dir="ltr">${fmt(DP.essDaily, 2)}</b> ${L('في اليوم', 'a day')}</span>` +
+      (() => { const np = nextPeriod(hv.ym), nT = essFor(S, rate, np).total, [ny, nm] = np.split('-').map(Number), ne = new Date(ny, nm, pd - 1);
+        return `<span class="ess-need">📆 ${L(`لحد ${sd(endD)} محتاج <b dir="ltr">${fmt(DP.needM)}</b>`, `Until ${sd(endD)} you need <b dir="ltr">${fmt(DP.needM)}</b>`)}<br>📅 ${L(`${sd(n1)} → ${sd(ne)} محتاج <b dir="ltr">${fmt(nT)}</b>`, `${sd(n1)} → ${sd(ne)} you need <b dir="ltr">${fmt(nT)}</b>`)}</span>`; })() +
       (alerts.length ? `<span class="ess-al">${alerts.join(' · ')}</span>` : '') +
       `<span class="ess-foot"><span class="ess-rebal" data-rebal>🧮 ${L('رتّب فلوسي', 'Sort my money')}</span><span class="ess-more">${L('التفاصيل', 'Details')} ›</span></span>`;
     sm.dataset.essview = '1';
@@ -1966,6 +1968,18 @@ function essDetails() {
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
   o.innerHTML = `<div class="wiz-card glass dd">
     <div class="wiz-top"><b>🧾 ${L('الأساسيات بالتفصيل', 'Essentials in detail')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+    ${(() => { // 📆 محتاج كام لحد آخر الدورة، وكام للدورة الجاية — وليه، بند بند (طلب صاحب الحساب، 2026-11-25)
+      const [ny, nm] = np.split('-').map(Number), ne = new Date(ny, nm, pd - 1);
+      const now = DP.items.filter(r => r.remain > 0.5), nxt = S.essentials.filter(e => !prepaid(e, np)).map(e => ({ e, v: itemFor(S, e, np) * rate(cOf(e)) })).filter(x => x.v > 0.5);
+      const outs = S.essentials.filter(e => e.outside?.ym === c.ym);
+      return `<h4>📆 ${L(`لحد ${sd(to)} (آخر الدورة) محتاج`, `Until ${sd(to)} (cycle end) you need`)} <b dir="ltr">${fmt(DP.needM)}</b></h4>
+        <table class="sw-t">${now.map(r => `<tr><td>${r.icon} ${esc(r.name)} <small>${r.daily ? L(`(${fmt(r.remain / DP.daysLeft, 1)} في اليوم × ${DP.daysLeft})`, `(${fmt(r.remain / DP.daysLeft, 1)} a day × ${DP.daysLeft})`) : L('(بتتدفع مرة)', '(paid once)')}</small></td><td dir="ltr">${fmt(r.remain)}</td></tr>`).join('')}
+        ${outs.map(e => `<tr><td>🙈 ${esc(e.icon || '')} ${esc(e.name)} <small>${L('متشال لحد آخر الدورة', 'set aside until the cycle ends')}</small></td><td dir="ltr">0</td></tr>`).join('')}</table>
+        ${DP.plan ? `<p class="note">🧮 ${L(`إنت اخترت ${fmt(DP.plan.m)} لجيب الشهر في الترتيب، فالمحتاج = ده − اللي اتصرف بعدها.`, `You chose ${fmt(DP.plan.m)} for this month's pocket when sorting, so the need = that − what was spent since.`)}</p>` : ''}
+        <h4>📅 ${L(`الدورة الجاية ${sd(new Date(ny, nm - 1, pd))} → ${sd(ne)} محتاج`, `Next cycle ${sd(new Date(ny, nm - 1, pd))} → ${sd(ne)} you need`)} <b dir="ltr">${fmt(nTot)}</b></h4>
+        <table class="sw-t">${nxt.map(x => `<tr><td>${esc(x.e.icon || '🧾')} ${esc(x.e.name)}</td><td dir="ltr">${fmt(x.v)}</td></tr>`).join('')}
+        <tr class="ft"><td>= ${L(`${fmt(nTot / nDays, 1)} في اليوم × ${nDays} يوم · أول 10 أيام منها ${fmt(E.En)} محجوزين في جيب الـ10 أيام، والباقي ${fmt(Math.max(0, nTot - E.En))} من قبض ${sd(new Date(ny, nm - 1, pd))}`, `${fmt(nTot / nDays, 1)} a day × ${nDays} days · its first 10 days ${fmt(E.En)} are held in the 10-day pocket, the other ${fmt(Math.max(0, nTot - E.En))} comes from the ${sd(new Date(ny, nm - 1, pd))} payday`)}</td><td dir="ltr">${fmt(nTot)}</td></tr></table>`;
+    })()}
     ${(() => { // 🏦 الجيبين في البنك
       const pk2 = DP.pk2, pk1 = DP.pk1;
       return `<h4>🏦 ${L('في تطبيق البنك', 'In your bank app')}</h4><table class="sw-t">
@@ -2049,6 +2063,9 @@ function rebalance() {
       <p class="note">${L(`= ${fmt(M() / DP.daysLeft, 2)} في اليوم · فاضل بعده ${fmt(ess() - M())}`, `= ${fmt(M() / DP.daysLeft, 2)} a day · ${fmt(ess() - M())} left after it`)}</p>
       ${M() < needM() - 0.5 ? `<p class="note bad">⚠️ ${L(`أقل من اللي البنود محتاجاه بـ ${fmt(needM() - M())}.`, `${fmt(needM() - M())} less than the items need.`)}</p>` : ''}`,
     () => `<h4>3️⃣ ${L('أول 10 أيام بعد القبض', 'The first 10 days after payday')}</h4>
+      ${(() => { const np = nextPeriod(c.ym), nT = essFor(S, rate, np).total, nD = cycleInfo(S, np).days; return `<table class="sw-t"><tr><td>📅 ${L(`أساسيات الدورة الجاية كلها (${periodLabel(np)})`, `Next cycle's essentials in total (${periodLabel(np)})`)}</td><td dir="ltr"><b>${fmt(nT)}</b></td></tr>
+        <tr><td>÷ ${L(`${nD} يوم = في اليوم`, `${nD} days = a day`)}</td><td dir="ltr">${fmt(nT / nD, 1)}</td></tr>
+        <tr class="ft"><td>× 10 ${L('أيام = الاحتياطي', 'days = the reserve')}</td><td dir="ltr">${fmt(En)}</td></tr></table>`; })()}
       <p class="note">${L(`فاضل معاك <b dir="ltr">${fmt(ess() - M())}</b>. احتياطي الـ10 أيام محتاج <b dir="ltr">${fmt(En)}</b>. تحب تحط كام؟`, `You have <b dir="ltr">${fmt(ess() - M())}</b> left. The 10-day reserve needs <b dir="ltr">${fmt(En)}</b>. How much?`)}</p>
       ${amt('n', nAmt, fmt(Math.min(En, ess() - M())))}
       ${N() < En - 0.5 ? `<p class="note bad">⚠️ ${L(`ناقص ${fmt(En - N())} عن الـ10 أيام. أول دخل جاي هيكمّله.`, `${fmt(En - N())} short of the 10 days. The next income fills it first.`)}</p>` : `<p class="note">✅ ${L('الـ10 أيام متغطيين.', 'The 10 days are covered.')}</p>`}`,
@@ -2265,7 +2282,7 @@ function dailyPlan(c, raw = false) {
   const pool2 = SF.pk1 - offRemain, essDaily2 = Math.max(0, pool2) / daysLeft; // المصروف اليومي من جيب الشهر بعد السلفة
   return { rows, off, daysLeft, end: new Date(y, m, pd - 1), sp, offRemain, funNeg, pool: pool2, essDaily: essDaily2, funDaily, over: Math.max(0, -pool2), realHave, reserveDaily,
     solfa, SF, floorM, floorN, m0, n0, pk1: SF.pk1, pk2: SF.pk2,
-    needM, En, extra: PK.extra, resShort: PK.resShort,
+    needM, En, extra: PK.extra, resShort: PK.resShort, items: all, plan,
     itemsTotal: rows.filter(r => !r.fun).reduce((a, r) => a + r.today, 0), total: essDaily2 + funDaily };
 }
 function dailyDetails() {
