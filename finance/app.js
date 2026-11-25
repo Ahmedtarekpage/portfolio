@@ -352,14 +352,135 @@ function dName() {
 const dLeft = (R, d) => { const x = R.debts[d.id]; return x?.on ? x.left / rate(cOf(d)) : +d.balance || 0; };
 const dm = (d, v) => `<b dir="ltr">${fmt(v)} ${CUR[cOf(d)].s}</b>`;
 const dPaid = (R, d) => (R.debts[d.id]?.paid || 0) / rate(cOf(d));
-function setDebtLeft(id, v) {
+function setDebtLeft(id, v, why = 'correction', note = '') {
   const d = debts().find(x => x.id === id); if (!d) return;
+  // من 2026-11-25: تعديل الباقي بيتسجل سطر "تصحيح" في السجل (تقدر تمسحه)، بدل ما يغيّر الرقم الأصلي من غير أثر
+  const R0 = replay(S, rate);
+  if (R0.debts[d.id]?.on) {
+    const diff = v - dLeft(R0, d);
+    if (Math.abs(diff) >= 0.005) S.tx.push({ id: uid(), date: today(), type: 'debtadj', debt: d.id, amount: +Math.abs(diff).toFixed(2), cur: cOf(d), rate: rate(cOf(d)), dir: diff < 0 ? -1 : 1, why, note: note || (why === 'correction' ? L(`تصحيح الباقي لـ ${fmt(v, 2)}`, `Corrected what's left to ${fmt(v, 2)}`) : '') });
+    return;
+  }
   for (let k = 0; k < 6; k++) { // السداد بيتوزّع بالترتيب، فتعديل دين ممكن يحرّك اللي بعده: بنظبط كذا مرة
     const left = dLeft(replay(S, rate), d);
     if (Math.abs(left - v) < 0.5) break;
     d.balance = Math.max(0, (+d.balance || 0) + v - left);
   }
 }
+
+/* ───────────── 💳 فوايد كارت الائتمان (ENBD وأي كارت) — طلب صاحب الحساب، 2026-11-25 ─────────────
+   قواعد ENBD (من الـ Key Facts Statement ودليل الرسوم الرسمي):
+   · الفوايد = النسبة الشهرية × متوسط الرصيد اليومي، من يوم كل عملية لحد ما تتسدّ
+   · مفيش فوايد لو الكشف اتدفع كله لحد آخر ميعاد (25 يوم بعد الكشف)
+   · الحد الأدنى = الأكبر من 5% أو 100 درهم، ولو ما اتدفعش لحد الميعاد: غرامة 241.50
+   قرش بيسأل البيانات الناقصة لوحده، والعدّاد فوق الشات بيعدّ للميعاد، وأي فوايد أو غرامة بتتضاف بعد موافقتك بس
+   كسطر في السجل (تقدر تمسحه). */
+const CARD_DEF = { rate: 3.69, dueDays: 25, minPct: 5, minAmt: 100, lateFee: 241.5 };
+const cardCfg = d => ({ ...CARD_DEF, ...(d.card || {}) });
+const isCard = d => (d.kind || 'card') === 'card' && !/tabby|tamara|تابي|تمارا/i.test(d.name || ''); // تابي وتمارا (اشتري دلوقتي وادفع بعدين) من غير فوايد: زي ما هم
+const dOfM = (y, m, day) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+const isoD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dueOf = (st, c) => { const x = new Date(st); x.setDate(x.getDate() + c.dueDays); x.setHours(23, 59, 59, 0); return x; };
+function cardCycle(d, now = new Date()) {
+  const c = cardCfg(d); if (!(c.stmtDay >= 1)) return null;
+  let st = dOfM(now.getFullYear(), now.getMonth(), c.stmtDay); if (st > now) st = dOfM(now.getFullYear(), now.getMonth() - 1, c.stmtDay);
+  const next = dOfM(st.getFullYear(), st.getMonth() + 1, c.stmtDay);
+  return { c, st, due: dueOf(st, c), next, key: isoD(st) };
+}
+// اللي اتدفع للكارت ده بين يومين (من دخل اتوزّع أو سداد مباشر)، بعملة الكارت
+function paidBetween(R, d, from, to) {
+  const a = isoD(from), b = isoD(to); let s = 0;
+  for (const t of S.tx) if (t.date >= a && t.date <= b) s += R.rows[t.id]?.paidTo?.[d.id] || 0;
+  return s / rate(cOf(d));
+}
+const cardEst = (d, left) => { const c = cardCfg(d); return +(left * c.rate / 100).toFixed(2); };
+const minDue = (d, bal) => { const c = cardCfg(d); return Math.max(bal * c.minPct / 100, c.minAmt / rate(cOf(d))); };
+const cDec = (d, k) => ((S.cardDec ??= {})[d.id] ??= {})[k];
+const setDec = (d, k, v) => { ((S.cardDec ??= {})[d.id] ??= {})[k] = v; };
+// سطر في السجل: فوايد أو غرامة على الكارت (بيزوّد الباقي)
+function addCardCharge(d, amount, why, date, note) {
+  S.tx.push({ id: uid(), date, type: 'debtadj', debt: d.id, amount: +(+amount).toFixed(2), cur: cOf(d), rate: rate(cOf(d)), dir: 1, why, note });
+}
+
+/** 💳 قرش بيسأل بيانات الكارت الناقصة: النسبة، يوم الكشف، آخر ميعاد */
+async function cardSetup(d) {
+  const nm = esc(d.name);
+  await bot(L(`💳 عشان أحسبلك فوايد <b>${nm}</b> بالظبط وأنبّهك قبل ما تتحسب، محتاج 3 حاجات من الكشف أو تطبيق البنك (Cards ← Statement، أو الـ Key Facts Statement):`, `💳 To work out <b>${nm}</b>'s interest exactly and warn you before it is charged, I need 3 things from the statement or the bank app (Cards → Statement, or the Key Facts Statement):`));
+  const later = { l: L('⏰ بعدين', '⏰ Later'), v: 'later' };
+  let a = await ask(L('١) نسبة الفوايد الشهرية كام؟ (Finance charge per month)', '1) What is the monthly interest rate? (Finance charge per month)'), [{ l: '3.25%', v: '3.25' }, { l: '3.49%', v: '3.49' }, { l: '3.69%', v: '3.69' }, later], true);
+  if (a === 'later') { S.cardSnooze = today(); save(); return bot(L('تمام، هسألك تاني بكرة 👍', 'OK, I will ask again tomorrow 👍')); }
+  const rateM = parseNum(a); if (!(rateM > 0 && rateM < 10)) return bot(L('النسبة مش واضحة. هسألك تاني لما تفتح فلوسي.', "That rate isn't clear. I'll ask again next time you open Floosy."));
+  a = await ask(L('٢) يوم كشف الحساب كام في الشهر؟ (Statement date)', '2) Which day of the month is the statement? (Statement date)'), [1, 5, 10, 15, 20, 25].map(n => ({ l: String(n), v: String(n) })).concat([later]), true);
+  if (a === 'later') { S.cardSnooze = today(); save(); return bot(L('تمام، هسألك تاني بكرة 👍', 'OK, I will ask again tomorrow 👍')); }
+  const stmtDay = Math.round(parseNum(a)); if (!(stmtDay >= 1 && stmtDay <= 31)) return bot(L('اليوم مش واضح. هسألك تاني.', "That day isn't clear. I'll ask again."));
+  const sug = new Date(2026, 0, stmtDay + 25).getDate();
+  a = await ask(L(`٣) آخر ميعاد للدفع يوم كام؟ (Payment due date) — عادة بعد 25 يوم من الكشف، يعني يوم ${sug}`, `3) Which day is the payment due? — usually 25 days after the statement, so day ${sug}`), [{ l: L(`✅ يوم ${sug}`, `✅ Day ${sug}`), v: '25d' }, later], true);
+  if (a === 'later') { S.cardSnooze = today(); save(); return bot(L('تمام، هسألك تاني بكرة 👍', 'OK, I will ask again tomorrow 👍')); }
+  let dueDays = 25;
+  if (a !== '25d') { const day = Math.round(parseNum(a)); if (day >= 1 && day <= 31) { dueDays = ((day - stmtDay) + 31) % 31 || 31; if (dueDays < 10) dueDays += 30; } }
+  d.card = { ...(d.card || {}), rate: rateM, stmtDay, dueDays, setAt: today() };
+  const cy = cardCycle(d); if (cy) setDec(d, cy.key, 'setup'); // الكشف الحالي اتحسب في الباقي اللي إنت كاتبه
+  save(); render();
+  const left = dLeft(ctx().R, d);
+  return bot(L(`✅ اتحفظ: ${rateM}% في الشهر · الكشف يوم ${stmtDay} · آخر ميعاد بعد ${dueDays} يوم. ⏳ العدّاد فوق الشات بيعدّ للميعاد، ولو الكشف ما اتدفعش كله هتتضاف فوايد حوالي <b dir="ltr">${fmt(cardEst(d, left), 2)}</b> — ومش هضيف أي حاجة غير لما توافق.`, `✅ Saved: ${rateM}% a month · statement on day ${stmtDay} · due ${dueDays} days later. ⏳ The countdown above the chat counts to the due date; if the statement isn't paid in full, about <b dir="ltr">${fmt(cardEst(d, left), 2)}</b> of interest will be added — and I add nothing unless you agree.`));
+}
+
+/** 💳 بيشوف كل كارت: بيانات ناقصة؟ فوايد كشف جديد؟ غرامة تأخير؟ — ويسأل عن كل حاجة في الشات. بيرجّع true لو سأل */
+async function cardChecks() {
+  let asked = false;
+  for (const d of debts().filter(isCard)) {
+    const R = ctx().R, left = dLeft(R, d);
+    if (!R.debts[d.id]?.on || left <= 0.5) continue;
+    if (!(d.card?.stmtDay >= 1)) { if (S.cardSnooze !== today()) { await cardSetup(d); asked = true; } continue; }
+    const cy = cardCycle(d); if (!cy) continue;
+    const nm = esc(d.name), cu = CUR[cOf(d)].s;
+    // 📈 فوايد الكشف الجديد
+    if (!cDec(d, cy.key)) {
+      const est = cardEst(d, left);
+      const a = await ask(L(`💳 <b>${nm}</b>: نزل كشف حساب جديد يوم <bdi dir="ltr">${cy.key}</bdi>. لو الكشف اللي قبله ما اتدفعش كله لحد ميعاده، البنك بيحط فوايد على متوسط الرصيد اليومي: <b dir="ltr">${cy.c.rate}% × ≈${fmt(left, 2)} = ≈${fmt(est, 2)} ${cu}</b>. الرقم الحقيقي مكتوب في الكشف (Finance charges). أعمل إيه؟`, `💳 <b>${nm}</b>: a new statement came on <bdi dir="ltr">${cy.key}</bdi>. If the one before wasn't paid in full by its due date, the bank charges interest on the average daily balance: <b dir="ltr">${cy.c.rate}% × ≈${fmt(left, 2)} = ≈${fmt(est, 2)} ${cu}</b>. The real number is on the statement (Finance charges). What should I do?`),
+        [{ l: L(`✅ ضيف ≈${fmt(est, 2)}`, `✅ Add ≈${fmt(est, 2)}`), v: 'est' }, { l: L('✏️ هكتب رقم الكشف', '✏️ I will type the statement number'), v: 'type' }, { l: L('🙅 مفيش فوايد (دفعت كله)', '🙅 No interest (I paid it all)'), v: 'none' }, { l: L('⏰ بعدين', '⏰ Later'), v: 'later' }], true);
+      asked = true;
+      let amt = a === 'est' ? est : a === 'type' ? parseNum(await ask(L('اكتب رقم الفوايد اللي في الكشف:', 'Type the interest on the statement:'), [], true)) : a !== 'none' && a !== 'later' ? parseNum(a) : NaN;
+      if (a === 'none') { setDec(d, cy.key, 'none'); save(); await bot(L('👌 تمام، مفيش فوايد الشهر ده.', '👌 OK, no interest this month.')); }
+      else if (amt > 0) { addCardCharge(d, amt, 'interest', cy.key, L(`فوايد كشف ${cy.key} (${cy.c.rate}%)`, `Interest on the ${cy.key} statement (${cy.c.rate}%)`)); setDec(d, cy.key, 'added'); save(); render(); await bot(L(`📈 اتضاف <b dir="ltr">${fmt(amt, 2)} ${cu}</b> فوايد على ${nm}، وهتلاقيه في السجل (تقدر تمسحه لو غلط).`, `📈 Added <b dir="ltr">${fmt(amt, 2)} ${cu}</b> of interest to ${nm}; it is in the log (delete it if it's wrong).`)); }
+    }
+    // ⚠️ غرامة التأخير: عدّى آخر ميعاد والحد الأدنى ما اتدفعش
+    const now = new Date(), lk = cy.key + ':late';
+    if (now > cy.due && !cDec(d, lk)) {
+      const paid = paidBetween(ctx().R, d, cy.st, cy.due), bal = dLeft(ctx().R, d) + paid, need = minDue(d, bal);
+      if (paid + 0.5 >= need) setDec(d, lk, 'ok');
+      else {
+        const a = await ask(L(`⚠️ <b>${nm}</b>: آخر ميعاد كان <bdi dir="ltr">${isoD(cy.due)}</bdi>، واللي اتدفع من الكشف ${fmt(paid, 2)} بس، والحد الأدنى كان ${fmt(need, 2)} ${cu} (5% أو 100 درهم). البنك بيحط غرامة تأخير <b dir="ltr">${fmt(cy.c.lateFee, 2)}</b>. أضيفها؟`, `⚠️ <b>${nm}</b>: the due date was <bdi dir="ltr">${isoD(cy.due)}</bdi>, only ${fmt(paid, 2)} was paid and the minimum was ${fmt(need, 2)} ${cu} (5% or AED 100). The bank charges a late fee of <b dir="ltr">${fmt(cy.c.lateFee, 2)}</b>. Add it?`),
+          [{ l: L(`✅ ضيف ${fmt(cy.c.lateFee, 2)}`, `✅ Add ${fmt(cy.c.lateFee, 2)}`), v: 'fee' }, { l: L('🙅 لأ، دفعت (مش متسجل هنا)', "🙅 No, I paid (it's not logged here)"), v: 'none' }, { l: L('⏰ بعدين', '⏰ Later'), v: 'later' }]);
+        asked = true;
+        if (a === 'fee') { addCardCharge(d, cy.c.lateFee / (cOf(d) === 'AED' ? 1 : rate(cOf(d))), 'fee', isoD(new Date(cy.due.getTime() + 864e5)), L('غرامة تأخير (الحد الأدنى ما اتدفعش)', 'Late fee (minimum not paid)')); setDec(d, lk, 'added'); save(); render(); await bot(L('⚠️ اتضافت الغرامة في السجل.', '⚠️ The fee is in the log.')); }
+        else if (a === 'none') { setDec(d, lk, 'none'); save(); }
+      }
+    }
+  }
+  return asked;
+}
+
+/* ⏳ العدّاد فوق الشات: كام يوم وساعة ودقيقة وثانية لحد آخر ميعاد الكارت (أو الكشف الجاي) */
+function cardBar() {
+  let el = document.getElementById('cardBar');
+  if (!el) { const log = document.getElementById('log'); if (!log) return; el = document.createElement('div'); el.id = 'cardBar'; el.className = 'card-bar'; log.parentNode.insertBefore(el, log); }
+  const R = UI.R || ctx().R, now = new Date(), rows = [];
+  for (const d of debts().filter(isCard)) {
+    const left = dLeft(R, d); if (!R.debts[d.id]?.on || left <= 0.5) continue;
+    const nm = esc(d.name), cu = CUR[cOf(d)].s;
+    if (!(d.card?.stmtDay >= 1)) { rows.push(`<button type="button" class="cb-row cb-setup" data-cardsetup="${d.id}">💳 <b>${nm}</b> · ${L('كمّل بيانات الكارت عشان أعدّلك للفوايد ›', 'Add the card details so I can count down to the interest ›')}</button>`); continue; }
+    const cy = cardCycle(d, now), before = now <= cy.due, to = before ? cy.due : cy.next, ms = Math.max(0, to - now);
+    const D = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, sec = Math.floor(ms / 1e3) % 60, p2 = n => String(n).padStart(2, '0');
+    const est = cardEst(d, left), md = minDue(d, left);
+    rows.push(`<div class="cb-row ${before && D < 3 ? 'hot' : ''}"><span class="cb-t">💳 <b>${nm}</b> · ⏳ <b dir="ltr" class="cb-clock">${D}${L('ي', 'd')} ${p2(h)}:${p2(m)}:${p2(sec)}</b></span>
+      <small>${before ? L(`لحد آخر ميعاد (<bdi dir="ltr">${isoD(cy.due)}</bdi>): ادفع الكشف كله ≈ <b dir="ltr">${fmt(left, 0)} ${cu}</b> عشان ما تتحسبش فوايد ≈ <b dir="ltr">${fmt(est, 0)}</b> · الحد الأدنى ${fmt(md, 0)}`, `to the due date (<bdi dir="ltr">${isoD(cy.due)}</bdi>): pay the full ≈ <b dir="ltr">${fmt(left, 0)} ${cu}</b> to avoid ≈ <b dir="ltr">${fmt(est, 0)}</b> interest · minimum ${fmt(md, 0)}`)
+        : L(`لحد الكشف الجاي (<bdi dir="ltr">${isoD(cy.next)}</bdi>): فوايد متوقعة ≈ <b dir="ltr">${fmt(est, 0)} ${cu}</b> (${cy.c.rate}% في الشهر)`, `to the next statement (<bdi dir="ltr">${isoD(cy.next)}</bdi>): expected interest ≈ <b dir="ltr">${fmt(est, 0)} ${cu}</b> (${cy.c.rate}% a month)`)}</small></div>`);
+  }
+  el.hidden = !rows.length; el.innerHTML = rows.join('');
+}
+setInterval(() => { try { if (!document.hidden) cardBar(); } catch {} }, 1000);
+document.addEventListener('click', e => { const b = e.target.closest('[data-cardsetup]'); if (!b) return; if (atMenu) answer('cardSetup', L('💳 بيانات الكارت', '💳 Card details')); else toast(L('خلّص اللي قرش بيسأله الأول', 'Finish what Shark is asking first')); });
 
 function ctx() {
   if (+S.salaryNat > 0 && S.job?.cur && S.job.cur !== 'AED') S.salary = +S.salaryNat * rate(S.job.cur); // مرتب بالجنيه مثلًا: قيمته بالدرهم ماشية مع السعر
@@ -945,6 +1066,9 @@ function cardTx(c) {
     if (tx.type === 'transfer') return `<li class="row tx"><span class="badge">🔁</span>
       <div class="grow">${ed(`tx:${tx.id}:note`, tx.note || L('تحويل', 'Transfer'))}<small>${tx.date} · ${B[tx.bucket]?.i ?? ''} ${B[tx.bucket]?.n ?? ''} · ${CUR[cOf(tx)].f} → ${CUR[tx.to]?.f ?? tx.to}</small></div>
       <span class="amt"><b dir="ltr">${fmt(tx.amount, 2)} ${CUR[cOf(tx)].s} → ${fmt(tx.toAmount, 2)} ${CUR[tx.to]?.s ?? ''}</b></span>${del(`tx:${tx.id}`)}</li>`;
+    if (tx.type === 'debtadj') return `<li class="row tx ${tx.dir === -1 ? '' : 'out'}"><span class="badge">💳</span>
+      <div class="grow">${ed(`tx:${tx.id}:note`, tx.note || ({ interest: L('📈 فوايد', '📈 Interest'), fee: L('⚠️ غرامة', '⚠️ Fee'), correction: L('✏️ تصحيح', '✏️ Correction') }[tx.why] || L('✏️ تعديل', '✏️ Adjustment')))}<small>${tx.date} · ${esc(debts().find(d => d.id === tx.debt)?.name || L('الدين', 'Debt'))} · ${tx.dir === -1 ? L('قلّل الدين', 'lowered the debt') : L('زوّد الدين', 'raised the debt')}</small></div>
+      <span class="amt"><b dir="ltr">${tx.dir === -1 ? '−' : '+'}${fmt(tx.amount, 2)} ${CUR[cOf(tx)].s}</b></span>${del(`tx:${tx.id}`)}</li>`;
     if (tx.type === 'debtpay') return `<li class="row tx out"><span class="badge">💳</span>
       <div class="grow">${ed(`tx:${tx.id}:note`, tx.note || L('سداد دين', 'Debt payment'))}<small>${tx.date} · ${B[tx.bucket]?.i ?? ''} ${B[tx.bucket]?.n ?? ''} → 💳</small></div>
       <span class="amt"><b dir="ltr">−${fmt(tx.amount, 2)} ${CUR[cOf(tx)].s}</b></span>${del(`tx:${tx.id}`)}</li>`;
@@ -2238,6 +2362,8 @@ function matchOpt(t, opts) {
   const x = bare(t); if (!x) return null;
   const c = opts.map(o => ({ o, l: bare(o.l), v: bare(o.v) }));
   const exact = c.find(k => k.l === x || k.v === x); if (exact) return exact.o;
+  // رقم مكتوب عمره ما يتطابق "تقريبًا" مع زرار: "5088.75" فيها 0 فكانت بتختار زرار "0" وتصفّر الدين (2026-11-25)
+  if (/\d/.test(String(t)) && /^[\s\d.,٠-٩٫٬+-]+$/.test(String(t))) return null;
   const near = c.filter(k => k.l && (k.l.includes(x) || x.includes(k.l)));
   return near.length === 1 ? near[0].o : null;
 }
@@ -2907,6 +3033,11 @@ async function flowDebt() {
   }
   const v0 = await askNum(L(`الباقي الصح على ${esc(d.name)} كام بال${CUR[cOf(d)].n}؟ (اكتب 0 لو خلص)`, `What's really left on ${esc(d.name)} in ${CUR[cOf(d)].n}? (type 0 if it's paid off)`), [{ l: '0', v: '0' }], true); if (v0 == null) return;
   const v = v0 * k;
+  // تصفير دين = تأكيد الأول (طلب صاحب الحساب بعد ما ENBD اتصفّر بالغلط)
+  if (v <= 0.5 && dLeft(ctx().R, d) > 0.5) {
+    const ok = await ask(L(`⚠️ متأكد إن ${esc(d.name)} اتسدّ كله؟ الباقي دلوقتي ${dm(d, dLeft(ctx().R, d))}.`, `⚠️ Sure ${esc(d.name)} is fully paid? Right now ${dm(d, dLeft(ctx().R, d))} is left.`), [{ l: L('✅ أيوه خلص', '✅ Yes, it is paid off'), v: 'yes' }, { l: L('↩️ لأ، رجوع', '↩️ No, go back'), v: 'no' }]);
+    if (ok !== 'yes') return bot(L('تمام، ما غيرتش حاجة 👍', "OK, I didn't change anything 👍"));
+  }
   setDebtLeft(id, v); save(); render();
   return bot(L(`اتعدّل ✏️ ${esc(d.name)}: الباقي ${dm(d, v)}.`, `Updated ✏️ ${esc(d.name)}: ${dm(d, v)} left.`));
 }
@@ -3090,7 +3221,7 @@ const MENU = [
   { get l() { return L('🧠 هدف كبير جديد', '🧠 New big goal'); }, v: 'goal' }, { get l() { return L('💳 الديون', '💳 Debts'); }, v: 'debt' }, { get l() { return L('🔁 تحويل', '🔁 Transfer'); }, v: 'transfer' }, { get l() { return L('📍 أنا فين', '📍 Where am I'); }, v: 'where' },
   { get l() { return L('🧭 أستثمر في إيه؟', '🧭 What to invest in?'); }, v: 'invest' }, { get l() { return L('💼 سجّلت استثمار', '💼 I invested'); }, v: 'invested' },
 ];
-const FLOWS = { salary: () => flowIncome('salary'), side: () => flowIncome('side'), spend: () => flowSpend(), gold: flowGold, fun: flowFun, cta: flowCTA, pay: flowPay, goal: flowGoal, debt: flowDebt, transfer: flowTransfer, where: flowWhere, invest: flowInvest, invested: flowInvested };
+const FLOWS = { cardSetup: async () => { const d = debts().filter(isCard).find(x => !(x.card?.stmtDay >= 1)) || debts().filter(isCard)[0]; if (d) await cardSetup(d); }, salary: () => flowIncome('salary'), side: () => flowIncome('side'), spend: () => flowSpend(), gold: flowGold, fun: flowFun, cta: flowCTA, pay: flowPay, goal: flowGoal, debt: flowDebt, transfer: flowTransfer, where: flowWhere, invest: flowInvest, invested: flowInvested };
 /* ───────────── اسأل أي حاجة: أي كلام مش أمر بيروح لـ Gemini مع ملخص بياناتك والشات ───────────── */
 /** ملخص البيانات للذكاء الاصطناعي: من غير الرقم السري، وآخر 15 معاملة بس */
 function aiData() {
@@ -3325,6 +3456,8 @@ async function menu() {
   for (; ;) {
     if (UI.task) { const d = UI.task; UI.task = null; try { await runTask(d, d.typed); } catch (err) { console.error(err); } q = pick(GREET); continue; }
     if (UI.aiNext) { const t = UI.aiNext; UI.aiNext = null; try { await flowAgent(t); } catch (err) { console.error(err); } q = pick(GREET); continue; }
+    // 💳 مرة كل ما تفتح فلوسي: بيانات الكارت الناقصة، وفوايد كشف جديد، وغرامة تأخير — قرش بيسأل لوحده
+    if (!UI.cardChecked) { UI.cardChecked = true; try { if (await cardChecks()) { q = pick(GREET); continue; } } catch (err) { console.error(err); } }
     UI.greet = true; const p = ask(q, MENU); atMenu = true;
     const a = await p;
     try {

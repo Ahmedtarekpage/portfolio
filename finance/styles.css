@@ -1033,3 +1033,13 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .chat-head .agent { width: 44px; height: 44px; }
 .ch-tools { gap: 4px; }
 .ch-tools .pill { width: 34px; height: 34px; min-height: 34px; border-radius: 10px; font-size: .92rem; }
+/* ⏳ card countdown above the Shark chat (2026-11-25) */
+.card-bar { display: grid; gap: 6px; padding: 10px 14px 0; }
+.card-bar .cb-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 14px; background: rgba(247, 101, 85, .10); border: 1px solid rgba(247, 101, 85, .35); text-align: start; color: inherit; font: inherit; }
+.card-bar .cb-row.hot { background: rgba(248, 113, 113, .18); border-color: rgba(248, 113, 113, .6); animation: cb-pulse 2s ease-in-out infinite; }
+.card-bar .cb-t { font-size: .9rem; }
+.card-bar .cb-clock { font-variant-numeric: tabular-nums; letter-spacing: .02em; color: #fca5a5; }
+.card-bar small { font-size: .74rem; opacity: .85; line-height: 1.4; }
+.card-bar .cb-setup { cursor: pointer; background: rgba(96, 121, 176, .15); border-color: rgba(96, 121, 176, .45); font-size: .85rem; }
+@keyframes cb-pulse { 50% { box-shadow: 0 0 0 3px rgba(248, 113, 113, .25); } }
+@media (prefers-reduced-motion: reduce) { .card-bar .cb-row.hot { animation: none; } }

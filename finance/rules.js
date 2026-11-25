@@ -220,7 +220,7 @@ function project(R, v, rate) {
     if (t.type === 'income') {
       mo.income += r.net; mo.gross += r.aed; mo.sadaqa += r.sadaqa; mo.essAlloc += r.d.essentials; mo.essNat += r.d.essentials / r.r;
       mo.alloc.growth += r.invest; mo.alloc.debt += r.debtPay; mo.alloc.stability += r.d.stability; mo.alloc.reward += r.d.reward;
-    } else if (!['transfer', 'debtpay', 'invest', 'divest'].includes(t.type)) {
+    } else if (!['transfer', 'debtpay', 'debtadj', 'invest', 'divest'].includes(t.type)) {
       if (t.bucket === 'essentials') { mo.essSpent += r.aed; mo.essNat -= +t.amount || 0; if (t.item) mo.items[t.item] = (mo.items[t.item] || 0) + r.aed; }
       else if (t.bucket === 'reward') mo.rewardSpent += r.aed;
       else if (t.bucket === 'sadaqa') mo.sadGiven += r.aed;
@@ -313,6 +313,15 @@ function replayOne(s, rate, home) {
     // استثمار مش مصروف: الفلوس بتخرج من محفظة البند (النمو) وبتدخل أصل في s.holdings (اللي بيتحسب
     // في نفس البند بقيمته)، فالإجمالي ما بيقلّش. والبيع (divest) العكس: الفلوس بترجع للمحفظة.
     // سداد دين من محفظة (غالبًا بعد تحويل من عملة تانية): الفلوس بتخرج من البند وبتنزّل الدين نفسه
+    // ➕➖ تعديل على دين: فوايد، غرامة، أو تصحيح (طلب صاحب الحساب، 2026-11-25): بيتسجل في السجل ويتمسح زي أي معاملة
+    if (tx.type === 'debtadj') {
+      owe(tx.date);
+      const x = dl.find(y => y.id === tx.debt) || dl[0];
+      if (x) { if (!x.on) { x.on = true; x.left = x.bal; } const delta = (tx.dir === -1 ? -1 : 1) * aed; const nl = Math.max(0, x.left + delta); x.add = (x.add || 0) + (nl - x.left); x.left = nl; }
+      debt = debtLeft();
+      rows[tx.id] = { aed, r, debtadj: true, dir: tx.dir === -1 ? -1 : 1 };
+      continue;
+    }
     if (tx.type === 'debtpay') {
       wallet(curOf(tx))[tx.bucket || 'growth'] -= tx.amount;
       let pay = aed; const paidTo = {};
@@ -386,11 +395,11 @@ function replayOne(s, rate, home) {
   }
 
   owe(isoDay(new Date())); debt = debtLeft();
-  const debts = Object.fromEntries(dl.map(d => [d.id, { left: d.left, paid: d.on ? d.bal - d.left : 0, on: d.on }]));
+  const debts = Object.fromEntries(dl.map(d => [d.id, { left: d.left, paid: d.on ? d.bal + (d.add || 0) - d.left : 0, added: d.add || 0, on: d.on }]));
   const sum = k => Object.entries(bal).reduce((a, [c, w]) => a + w[k] * rate(c), 0);
   const holdGrowth = s.holdings.filter(h => !h.spare).reduce((a, h) => a + holdingValue(h, rate), 0);
   return {
-    E, bal, months, rows, debt, debts, paid: dl.filter(d => d.on).reduce((a, d) => a + d.bal, 0) - debt, lastSpare, starter, worst, moves, spareHold, holdGrowth,
+    E, bal, months, rows, debt, debts, paid: dl.filter(d => d.on).reduce((a, d) => a + d.bal + (d.add || 0), 0) - debt, lastSpare, starter, worst, moves, spareHold, holdGrowth,
     sadaqaAED: sum('sadaqa'),
     growthAED: sum('growth') + holdGrowth, stabilityAED: sum('stability') + spareHold, rewardAED: sum('reward'),
   };

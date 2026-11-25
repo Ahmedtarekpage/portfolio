@@ -6,7 +6,7 @@
 export const LOG_F = () => ({ t: 'cycle', type: 'all', cur: 'ALL', q: '', from: '', to: '' });
 
 const TYPES = ['income', 'expense', 'transfer', 'debt', 'invest'];
-const typeOf = t => t.type === 'debtpay' ? 'debt' : t.type === 'divest' ? 'invest' : t.type === 'income' || t.type === 'transfer' || t.type === 'invest' ? t.type : 'expense';
+const typeOf = t => t.type === 'debtpay' || t.type === 'debtadj' ? 'debt' : t.type === 'divest' ? 'invest' : t.type === 'income' || t.type === 'transfer' || t.type === 'invest' ? t.type : 'expense';
 
 /** حدود الفترة [من، لحد] كتواريخ YYYY-MM-DD */
 function range(f, h) {
@@ -42,7 +42,7 @@ export function renderLog(tx, R, f, h) {
   let inc = 0, out = 0, debt = 0, inv = 0, lost = 0, nx = 0;
   for (const t of list) {
     const k = typeOf(t), v = aedOf(t);
-    if (k === 'income') inc += v; else if (k === 'expense') out += v; else if (k === 'debt') debt += v;
+    if (k === 'income') inc += v; else if (k === 'expense') out += v; else if (k === 'debt' && t.type !== 'debtadj') debt += v;
     else if (k === 'invest') inv += (t.type === 'invest' ? 1 : -1) * v;
     else if (k === 'transfer') { nx++; if (t.mkt != null) lost += Math.max(0, (+t.mkt - +t.toAmount) * h.rate(t.to)); }
   }
@@ -67,8 +67,14 @@ export function renderLog(tx, R, f, h) {
       if (ls != null) extra = `<small class="split">${ls > 0.005 ? `💸 ${L('اتخصم', 'Lost')} <b dir="ltr">${fmt(ls, 2)} ${sym(t.to)}</b> (${fmt(ls / t.mkt * 100, 1)}%)${t.fee ? ` · ${L('منهم عمولة', 'fee')} ${fmt(t.fee, 2)}` : ''}` : ls < -0.005 ? `🎉 ${L('أحسن من السوق بـ', 'Beat the market by')} <b dir="ltr">${fmt(-ls, 2)} ${sym(t.to)}</b>` : `✅ ${L('من غير عمولة', 'No fee')}`}</small>`;
       amt = `<b dir="ltr" class="neg">−${fmt(t.amount, 2)} ${sym(c)}</b><b dir="ltr" class="pos">+${fmt(t.toAmount, 2)} ${sym(t.to)}</b>`;
     } else if (k === 'debt') {
+      if (t.type === 'debtadj') { // ➕➖ فوايد / غرامة / تصحيح على الدين (بتزوّد أو بتقلّل الباقي)
+        title = title || `${({ interest: L('📈 فوايد', '📈 Interest'), fee: L('⚠️ غرامة', '⚠️ Fee'), correction: L('✏️ تصحيح', '✏️ Correction') }[t.why] || L('✏️ تعديل', '✏️ Adjustment'))} · ${esc(h.debtName(t.debt))}`;
+        sub.push(t.dir === -1 ? L('قلّل الدين', 'Lowered the debt') : L('زوّد الدين', 'Raised the debt'));
+        amt = `<b dir="ltr" class="${t.dir === -1 ? 'pos' : 'neg'}">${t.dir === -1 ? '−' : '+'}${fmt(t.amount, 2)} ${sym(c)} 💳</b>`;
+      } else {
       title = title || `${L('سداد', 'Paid')} ${esc(h.debtName(t.debt))}`;
       amt = `<b dir="ltr" class="neg">−${fmt(t.amount, 2)} ${sym(c)}</b>`;
+      }
     } else if (k === 'invest') {
       title = title || (t.type === 'invest' ? L('استثمار', 'Investment') : L('بيع استثمار', 'Sold investment'));
       if (t.units) sub.push(`${fmt(t.units, 2)} ${L('وحدة', 'units')}`);
