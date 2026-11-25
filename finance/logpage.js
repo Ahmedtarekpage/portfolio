@@ -67,8 +67,8 @@ export function renderLog(tx, R, f, h) {
       if (ls != null) extra = `<small class="split">${ls > 0.005 ? `💸 ${L('اتخصم', 'Lost')} <b dir="ltr">${fmt(ls, 2)} ${sym(t.to)}</b> (${fmt(ls / t.mkt * 100, 1)}%)${t.fee ? ` · ${L('منهم عمولة', 'fee')} ${fmt(t.fee, 2)}` : ''}` : ls < -0.005 ? `🎉 ${L('أحسن من السوق بـ', 'Beat the market by')} <b dir="ltr">${fmt(-ls, 2)} ${sym(t.to)}</b>` : `✅ ${L('من غير عمولة', 'No fee')}`}</small>`;
       amt = `<b dir="ltr" class="neg">−${fmt(t.amount, 2)} ${sym(c)}</b><b dir="ltr" class="pos">+${fmt(t.toAmount, 2)} ${sym(t.to)}</b>`;
     } else if (k === 'debt') {
-      if (t.type === 'debtadj') { // ➕➖ فوايد / غرامة / تصحيح على الدين (بتزوّد أو بتقلّل الباقي)
-        title = title || `${({ interest: L('📈 فوايد', '📈 Interest'), fee: L('⚠️ غرامة', '⚠️ Fee'), correction: L('✏️ تصحيح', '✏️ Correction') }[t.why] || L('✏️ تعديل', '✏️ Adjustment'))} · ${esc(h.debtName(t.debt))}`;
+      if (t.type === 'debtadj') { // ➕➖ ربا / غرامة / تصحيح على الدين (بتزوّد أو بتقلّل الباقي)
+        title = title || `${({ interest: L('📈 ربا', '📈 Riba (interest)'), fee: L('⚠️ غرامة', '⚠️ Fee'), correction: L('✏️ تصحيح', '✏️ Correction') }[t.why] || L('✏️ تعديل', '✏️ Adjustment'))} · ${esc(h.debtName(t.debt))}`;
         sub.push(t.dir === -1 ? L('قلّل الدين', 'Lowered the debt') : L('زوّد الدين', 'Raised the debt'));
         amt = `<b dir="ltr" class="${t.dir === -1 ? 'pos' : 'neg'}">${t.dir === -1 ? '−' : '+'}${fmt(t.amount, 2)} ${sym(c)} 💳</b>`;
       } else {

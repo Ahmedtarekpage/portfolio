@@ -1043,3 +1043,19 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .card-bar .cb-setup { cursor: pointer; background: rgba(96, 121, 176, .15); border-color: rgba(96, 121, 176, .45); font-size: .85rem; }
 @keyframes cb-pulse { 50% { box-shadow: 0 0 0 3px rgba(248, 113, 113, .25); } }
 @media (prefers-reduced-motion: reduce) { .card-bar .cb-row.hot { animation: none; } }
+/* ⏳ card countdown v2: boxes for days/hours/min/sec + the statement details (2026-11-25) */
+.card-bar .cb-row { gap: 8px; }
+.card-bar .cb-row.ok { background: rgba(52, 211, 153, .10); border-color: rgba(52, 211, 153, .4); }
+.card-bar .cb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .88rem; }
+.card-bar .cb-edit { border: 0; background: rgba(255, 255, 255, .08); border-radius: 10px; width: 32px; height: 32px; cursor: pointer; color: inherit; }
+.card-bar .cb-clock { display: flex; gap: 6px; direction: rtl; }
+.card-bar .cd { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 12px; background: rgba(0, 0, 0, .25); }
+.card-bar .cd b { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fca5a5; line-height: 1.1; }
+.card-bar .cb-row.ok .cd b { color: #6ee7b7; }
+.card-bar .cd small { font-size: .66rem; opacity: .75; }
+.card-bar .cb-t { width: 100%; border-collapse: collapse; font-size: .76rem; }
+.card-bar .cb-t td { padding: 3px 2px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.card-bar .cb-t td:last-child { text-align: end; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.card-bar .cb-t tr.warn td { color: #fcd34d; } .card-bar .cb-t tr.good td { color: #6ee7b7; }
+.card-alert .ca-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.card-alert .sw-t tr.ft td { color: #fca5a5; font-weight: 800; }
