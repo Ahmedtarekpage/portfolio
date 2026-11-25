@@ -1066,3 +1066,10 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .card-x .warn { color: #fcd34d; }
 .card-x .cx-warn { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(248, 113, 113, .1); border: 1px solid rgba(248, 113, 113, .35); font-size: .85rem; }
 .card-x .cx-warn ul { margin: 6px 0 0; padding-inline-start: 18px; display: grid; gap: 4px; }
+.lbl small .ess2.head { background: none !important; border: 0 !important; padding: 0 !important; font-weight: 800; }
+.lbl small .ess2.sum { --fill: rgba(250, 204, 21, .22); border-color: rgba(250, 204, 21, .5); }
+/* الكبسولات تلفّ جوّه الكارت بدل ما تطلع برّه */
+.lbl small .ess2, .lbl small .ess2 i, .lbl small .ess2 b { white-space: normal !important; overflow-wrap: anywhere; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.lbl small .ess2[data-essextra] { cursor: pointer; }
+.lbl small .ess2[data-essextra]:hover { filter: brightness(1.15); }
+.lbl small .ess2 .ex-go { font-weight: 800; color: #fde68a; }

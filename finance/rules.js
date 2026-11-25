@@ -222,7 +222,7 @@ function project(R, v, rate) {
       mo.alloc.growth += r.invest; mo.alloc.debt += r.debtPay; mo.alloc.stability += r.d.stability; mo.alloc.reward += r.d.reward;
     } else if (t.type === 'debtpay' && t.bucket === 'essentials') { // سداد دين من الأساسيات: بيطلع من فلوسها زي التحويل
       mo.essAlloc -= r.aed; mo.essNat -= +t.amount || 0;
-    } else if (!['transfer', 'debtpay', 'debtadj', 'invest', 'divest'].includes(t.type)) {
+    } else if (!['transfer', 'debtpay', 'debtadj', 'invest', 'divest', 'essout'].includes(t.type)) {
       if (t.bucket === 'essentials') { mo.essSpent += r.aed; mo.essNat -= +t.amount || 0; if (t.item) mo.items[t.item] = (mo.items[t.item] || 0) + r.aed; }
       else if (t.bucket === 'reward') mo.rewardSpent += r.aed;
       else if (t.bucket === 'sadaqa') mo.sadGiven += r.aed;
@@ -235,7 +235,11 @@ function project(R, v, rate) {
     if (prev) { const cn = Math.max(0, prev.essNat - prev.E / rate(c)); m.essNat += cn; m.essAlloc += cn * rate(c); m.carry = cn * rate(c); }
     prev = m;
   }
-  for (const mv of R.moves || []) if (mv.cur === c && months[mv.ym]) { const m = months[mv.ym]; m.essNat -= mv.nat; m.essAlloc -= mv.aed; m.alloc.stability += mv.aed; m.toSafety = (m.toSafety || 0) + mv.aed; }
+  for (const mv of R.moves || []) if (mv.cur === c && months[mv.ym]) {
+    const m = months[mv.ym]; m.essNat -= mv.nat; m.essAlloc -= mv.aed;
+    if (mv.kind === 'spread') { m.alloc.debt += mv.debtPay; m.alloc.growth += mv.invest; m.alloc.stability += mv.stability; m.alloc.reward += mv.reward; m.spread = (m.spread || 0) + mv.aed; }
+    else { m.alloc.stability += mv.aed; m.toSafety = (m.toSafety || 0) + mv.aed; }
+  }
   return {
     E: essFor(v, rate, periodOf(isoDay(new Date()), pd)).total, bal: { [c]: w }, months, rows: R.rows, debt, debts,
     paid: Object.values(debts).reduce((a, d) => a + d.paid, 0), lastSpare: R.lastSpare, starter: R.starter, worst: R.worst, spareHold, holdGrowth, all: R,
@@ -287,6 +291,25 @@ function replayOne(s, rate, home) {
   // أهداف الأمان أوتوماتيك: شهر أساسيات البلدين (وقت الدين)، و5 شهور × أغلى وضع (من غير دين). بتتحدث مع أي تغيير في البنود
   const worst = worstMonth(s, rate), starter = E, lastSpare = SAFE_MONTHS * worst.amount;
   const stabAED = () => Object.entries(bal).reduce((a, [c, w]) => a + w.stability * rate(c), 0) + spareHold;
+  // 🔀 فلوس طالعة من الأساسيات بتتوزّع بنفس قاعدة الدخل بالظبط (طلب صاحب الحساب، 2026-11-25):
+  // الأساسيات بس ليها سقف (الدورة دي + 10 أيام وقت الدين)، فأي حاجة فوقه بتتقسم كأنها دخل والأساسيات متغطية:
+  // نصيب النمو للدين الأول ثم الاستثمار، والأمان والفلوس الحرّة بنسبهم. المحافظ التانية ما لهاش سقف.
+  const spread = (mo, ym, cur, amt, date) => {
+    const x = Math.min(Math.max(0, amt), Math.max(0, (essCur[cur] || 0) * rate(cur)));
+    if (!(x > 0.5)) return null;
+    const r = rate(cur), debtOn = debt > 0.5;
+    const sp = splitIncome({ net: x, need: 0, inc: mo.income, E: mo.E || essCycle(s, rate, ym), debtOn, stab: stabAED(), starter, cap: lastSpare });
+    const debtPay = Math.min(sp.growth, debt); let pay = debtPay; const paidTo = {};
+    for (const d of dl) if (d.on && pay > 0) { const y = Math.min(pay, d.left); d.left -= y; pay -= y; if (y > 0) paidTo[d.id] = y; }
+    debt = debtLeft();
+    const invest = sp.growth - debtPay, w = wallet(cur);
+    w.growth += invest / r; w.stability += sp.stability / r; w.reward += sp.reward / r;
+    essCur[cur] -= x / r; mo.essAlloc -= x; mo.spread = (mo.spread || 0) + x;
+    mo.alloc.debt += debtPay; mo.alloc.growth += invest; mo.alloc.stability += sp.stability; mo.alloc.reward += sp.reward;
+    moves.push({ ym, date, cur, aed: x, nat: x / r, kind: 'spread', debtPay, invest, stability: sp.stability, reward: sp.reward });
+    return { aed: x, debtPay, invest, stability: sp.stability, reward: sp.reward, paidTo };
+  };
+  const essCap = ym => essCycle(s, rate, ym) + (debt > 0.5 ? essNextDays(s, rate, ym) : 0); // سقف الأساسيات
 
   // كل دين بيتحسب من يوم ما اتضاف (since)، عشان الدخل اللي قبله ما يتحسبش إنه سدّده.
   // والسداد من نصيب النمو بيروح للديون بترتيب القايمة: الأول يخلص الأول.
@@ -309,7 +332,9 @@ function replayOne(s, rate, home) {
       const tb = tx.toBucket || tx.bucket, inAED = (+tx.toAmount || 0) * (tx.toRate || rate(tx.to));
       if (curOf(tx) === 'XAU') { /* بيع دهب: الحتة نفسها اتنقصت */ } else if (tx.bucket === 'essentials') { mo.essAlloc -= aed; essCur[curOf(tx)] = (essCur[curOf(tx)] || 0) - (+tx.amount || 0); } else wallet(curOf(tx))[tx.bucket] -= tx.amount;
       if (tx.to === 'XAU') { /* شراء دهب: الحتة اتزوّدت */ } else if (tb === 'essentials') { mo.essAlloc += inAED; essCur[tx.to] = (essCur[tx.to] || 0) + (+tx.toAmount || 0); } else wallet(tx.to)[tb] += +tx.toAmount || 0;
-      rows[tx.id] = { aed, r, transfer: true, inAED };
+      let sprd = null;
+      if (tb === 'essentials' && tx.to !== 'XAU' && tx.date >= SPREAD_FROM) { const ym = periodOf(tx.date, paydayOf(s)); sprd = spread(mo, ym, tx.to, Math.min(inAED, mo.essAlloc - essCap(ym)), tx.date); }
+      rows[tx.id] = { aed, r, transfer: true, inAED, spread: sprd };
       continue;
     }
     // استثمار مش مصروف: الفلوس بتخرج من محفظة البند (النمو) وبتدخل أصل في s.holdings (اللي بيتحسب
@@ -322,6 +347,11 @@ function replayOne(s, rate, home) {
       if (x) { if (!x.on) { x.on = true; x.left = x.bal; } const delta = (tx.dir === -1 ? -1 : 1) * aed; const nl = Math.max(0, x.left + delta); x.add = (x.add || 0) + (nl - x.left); x.left = nl; }
       debt = debtLeft();
       rows[tx.id] = { aed, r, debtadj: true, dir: tx.dir === -1 ? -1 : 1 };
+      continue;
+    }
+    if (tx.type === 'essout') { // 🔀 وزّعت زيادة الأساسيات بالقاعدة العادية
+      const sprd = spread(mo, periodOf(tx.date, paydayOf(s)), curOf(tx), aed, tx.date);
+      rows[tx.id] = { aed, r, essout: true, spread: sprd };
       continue;
     }
     if (tx.type === 'debtpay') {
@@ -410,6 +440,8 @@ function replayOne(s, rate, home) {
 
 /** الدخل الشهري المتوقع: متوسط آخر 3 شهور كاملة، ولو مفيش يبقى المرتب أو دخل الشهر الحالي. */
 /** المتوسط (والدخل الجانبي) بيتحسب بس لما يبقى فيه 4 دورات خلصت فيها دخل؛ قبلها المرتب بس (طلب صاحب الحساب، 2026-11-20) */
+/** من اليوم ده: التحويل للأساسيات فوق سقفها بيتوزّع لوحده بقاعدة الدخل (اللي قبله بيتوزّع بإيدك من زرار الزيادة) */
+export const SPREAD_FROM = '2026-11-25';
 export const AVG_MIN = 4;
 export const pastIncomeMonths = (R, ym) => Object.keys(R.months).filter(k => k < ym && R.months[k].income > 0).sort();
 export function expectedIncome(s, R, ym) {

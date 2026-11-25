@@ -11,9 +11,9 @@ export function txEditor(t, deps) {
   const { L, esc, parseNum, CUR, B, sfx } = deps;
   const c = t.cur || 'AED', sym = x => x === 'XAU' ? L('جم', 'g') : CUR[x]?.s ?? x;
   const gold = c === 'XAU' || t.to === 'XAU' || t.hold || t.toHold || t.units != null;
-  const isX = t.type === 'transfer', isSpend = t.type === 'expense' || (!['income', 'transfer', 'debtpay', 'debtadj', 'invest', 'divest'].includes(t.type));
+  const isX = t.type === 'transfer', isSpend = t.type === 'expense' || (!['income', 'transfer', 'debtpay', 'debtadj', 'invest', 'divest', 'essout'].includes(t.type));
   const raw = v => v == null || v === '' ? '' : String(+(+v).toFixed(6));
-  const TITLE = { income: L('💰 دخل', '💰 Income'), transfer: L('🔁 تحويل', '🔁 Transfer'), debtpay: L('💳 سداد دين', '💳 Debt payment'), debtadj: L('💳 تعديل على الدين', '💳 Debt adjustment'), invest: L('💼 استثمار', '💼 Investment'), divest: L('💼 بيع استثمار', '💼 Sold investment') }[t.type] || L('💸 مصروف', '💸 Expense');
+  const TITLE = { income: L('💰 دخل', '💰 Income'), transfer: L('🔁 تحويل', '🔁 Transfer'), debtpay: L('💳 سداد دين', '💳 Debt payment'), debtadj: L('💳 تعديل على الدين', '💳 Debt adjustment'), essout: L('🔀 توزيع زيادة الأساسيات', '🔀 Essentials extra split'), invest: L('💼 استثمار', '💼 Investment'), divest: L('💼 بيع استثمار', '💼 Sold investment') }[t.type] || L('💸 مصروف', '💸 Expense');
   const field = (k, label, val, type = 'text', extra = '') => `<label class="te-f"><small>${label}</small><input data-te="${k}" type="${type}" ${type === 'text' && k !== 'note' ? 'inputmode="decimal" dir="ltr"' : ''} value="${esc(val)}" ${extra}></label>`;
 
   return new Promise(resolve => {

@@ -6,7 +6,7 @@
 export const LOG_F = () => ({ t: 'cycle', type: 'all', cur: 'ALL', q: '', from: '', to: '' });
 
 const TYPES = ['income', 'expense', 'transfer', 'debt', 'invest'];
-const typeOf = t => t.type === 'debtpay' || t.type === 'debtadj' ? 'debt' : t.type === 'divest' ? 'invest' : t.type === 'income' || t.type === 'transfer' || t.type === 'invest' ? t.type : 'expense';
+const typeOf = t => t.type === 'essout' ? 'split' : t.type === 'debtpay' || t.type === 'debtadj' ? 'debt' : t.type === 'divest' ? 'invest' : t.type === 'income' || t.type === 'transfer' || t.type === 'invest' ? t.type : 'expense';
 
 /** حدود الفترة [من، لحد] كتواريخ YYYY-MM-DD */
 function range(f, h) {
@@ -49,7 +49,7 @@ export function renderLog(tx, R, f, h) {
   const kpi = (l, v, s, cls = '') => `<div class="kpi ${cls}"><small>${l}</small><b dir="ltr">${v}</b><small>${s}</small></div>`;
 
   // الصفوف، متجمعة بالأيام
-  const ICON = { income: '💰', expense: '💸', transfer: '🔁', debt: '💳', invest: '💼' };
+  const ICON = { income: '💰', expense: '💸', transfer: '🔁', debt: '💳', invest: '💼', split: '🔀' };
   const row = t => {
     const k = typeOf(t), c = h.cOf(t), r = R.rows[t.id] || {}, v = aedOf(t);
     let title = esc(t.note || ''), sub = [], amt = '', extra = '';
@@ -75,6 +75,9 @@ export function renderLog(tx, R, f, h) {
       title = title || `${L('سداد', 'Paid')} ${esc(h.debtName(t.debt))}`;
       amt = `<b dir="ltr" class="neg">−${fmt(t.amount, 2)} ${sym(c)}</b>`;
       }
+    } else if (k === 'split') {
+      title = title || L('🔀 وزّعت زيادة الأساسيات', '🔀 Split the Essentials extra');
+      amt = `<b dir="ltr">${fmt(t.amount, 2)} ${sym(c)}</b>`;
     } else if (k === 'invest') {
       title = title || (t.type === 'invest' ? L('استثمار', 'Investment') : L('بيع استثمار', 'Sold investment'));
       if (t.units) sub.push(`${fmt(t.units, 2)} ${L('وحدة', 'units')}`);
@@ -83,6 +86,8 @@ export function renderLog(tx, R, f, h) {
       title = title || (t.item ? esc(h.itemName(t.item)) : L('مصروف', 'Expense'));
       amt = `<b dir="ltr" class="neg">−${fmt(t.amount, 2)} ${sym(c)}</b>`;
     }
+    const spd = r.spread; // الجزء اللي اتوزّع بقاعدة الدخل (من تحويل للأساسيات فوق سقفها أو توزيع بإيدك)
+    if (spd) extra += `<small class="split">🔀 ${L('اتوزّع', 'Split')} ${[[L('دين', 'debt'), spd.debtPay], [L('استثمار', 'investing'), spd.invest], [L('أمان', 'safety'), spd.stability], [L('فلوس حرّة', 'fun'), spd.reward]].filter(([, x]) => x > 0.5).map(([n, x]) => `${n} <b dir="ltr">${fmt(x)} Đ</b>`).join(' · ')}</small>`;
     if (t.desc) extra += `<small class="split">✍️ ${esc(t.desc)}</small>`; // الوصف الاختياري اللي اتكتب وقت التسجيل
     if (k !== 'transfer' && t.bucket && B[t.bucket]) sub.unshift(`${B[t.bucket].i} ${B[t.bucket].n}`);
     if (k !== 'transfer' && c !== 'AED') sub.push(`${L('السعر', 'Rate')} <span dir="ltr">${px(c, t.rate || h.rate(c))}</span> · ≈ <b dir="ltr">${fmt(v, 2)} Đ</b>`);
