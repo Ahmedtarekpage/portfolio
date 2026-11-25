@@ -395,6 +395,8 @@ function todos(c) {
      ['joy', r.d.reward, L(`حط ${money(r.d.reward * k, tx.cur)} في حصّالة الفلوس الحرّة`, `Put ${money(r.d.reward * k, tx.cur)} in the fun jar`), '🎉'],
     ].forEach(([key, v, h, i]) => { if (v > 0.5 && !tx.done?.[key]) t.push({ i, h, s: src, done: `${tx.id}:${key}` }); });
   }
+  // الزيادة اللي فوق الأساسيات وقت الدين راحت للكارت: حوّلها فعلًا
+  if (mo.toCard > 0.5 && !(S.cardDone || {})[ym]) t.unshift({ i: '💳', h: L(`حوّل ${money(mo.toCard)} من فلوس الأساسيات لـ${esc(dName())}`, `Send ${money(mo.toCard)} from the Essentials money to ${esc(dName())}`), s: L('الأساسيات متغطية (الدورة دي + 10 أيام من الجاية)، فالزيادة بتروح لسداد الكارت.', 'Essentials are covered (this cycle + 10 days of the next), so the extra goes to paying the card.'), done: `card:${ym}` });
   const pulled = S.tx.filter(x => x.type === 'expense' && x.bucket === 'stability' && periodOf(x.date, paydayOf(S)) === ym)
     .reduce((a, x) => a + x.amount * (x.rate || rate(x.cur)), 0);
   if (pulled > 0) t.push({ i: '🤝', h: L(`وعد التعويض: رجّع ${money(pulled)} للأمان`, `Payback promise: return ${money(pulled)} to Safety`), s: L('سحبت من الأمان الشهر ده. رجّعهم من أول قبض جاي.', 'You took from Safety this month. Put it back from your next payday.') });
@@ -1719,6 +1721,25 @@ function essDetails() {
       ${E.extra > 0.5 ? row('⬆️', L('فوق المطلوب', 'Above what is needed'), null, E.extra, E.spExtra, E.leftExtra) : ''}
       ${row('Σ', L('المجموع', 'Total'), E.need, E.alloc, E.spent, E.left, 'ft')}
     </tbody></table>
+    ${(() => { // 📥 الفلوس دي جت منين: كل حاجة دخلت أو خرجت من الأساسيات الدورة دي (طلب صاحب الحساب، 2026-11-25)
+      const R = c.R, rows = R.rows || {}, pd = paydayOf(S), src = [];
+      if (c.mo.carry > 0.5) src.push([L('📦 اترحّل من الدورة اللي فاتت', '📦 Carried over from the last cycle'), '', c.mo.carry]);
+      for (const t of S.tx) {
+        if (periodOf(t.date, pd) !== c.ym) continue;
+        const r = rows[t.id]; if (!r) continue;
+        if (t.type === 'income' && r.d && r.d.essentials > 0.005) src.push([`💰 ${L('دخل', 'Income')}: ${esc(t.cat || t.note || '')}${r.ov ? ' ✏️ ' + L('(عدّلته بإيدك في شاشة التوزيع)', '(you changed it by hand on the split screen)') : ''}`, t.date, r.d.essentials]);
+        if (t.type === 'transfer') {
+          if ((t.toBucket || t.bucket) === 'essentials' && t.to !== 'XAU' && r.inAED > 0.005) src.push([`🔁 ${L('تحويل للأساسيات', 'Transfer into Essentials')} (${esc(t.cur || '')} → ${esc(t.to || '')})`, t.date, r.inAED]);
+          if (t.bucket === 'essentials' && t.cur !== 'XAU') src.push([`↩️ ${L('تحويل من الأساسيات', 'Transfer out of Essentials')}`, t.date, -r.aed]);
+        }
+      }
+      if (c.mo.toSafety > 0.5) src.push([L('🛟 راح للأمان', '🛟 Moved to Safety'), '', -c.mo.toSafety]);
+      if (c.mo.toCard > 0.5) src.push([L('💳 الزيادة راحت لسداد الكارت', '💳 The extra went to paying the card'), '', -c.mo.toCard]);
+      const sum = src.reduce((a, x) => a + x[2], 0), gap = E.alloc - sum;
+      return `<h4>📥 ${L('الفلوس دي جت منين', 'Where this money came from')}</h4><table class="sw-t ess-src">${src.map(x => `<tr><td>${x[0]}${x[1] ? ` <small><bdi dir="ltr">${x[1]}</bdi></small>` : ''}</td><td dir="ltr" class="${x[2] < 0 ? 'neg' : ''}">${x[2] < 0 ? '−' : '+'}${fmt(Math.abs(x[2]))}</td></tr>`).join('')}
+        ${Math.abs(gap) > 0.5 ? `<tr><td>❓ ${L('فرق مش معروف مصدره', 'A difference with no known source')}</td><td dir="ltr">${fmt(gap)}</td></tr>` : ''}
+        <tr class="ft"><td>${L('= اللي اتحط في الأساسيات', '= Put into Essentials')}</td><td dir="ltr">${fmt(E.alloc)}</td></tr></table>`;
+    })()}
     ${E.short > 0.5 ? `<p class="note bad">⬇️ ${L(`لسه ناقص ${fmt(E.short)} Đ عن المطلوب`, `Still ${fmt(E.short)} Đ short of what is needed`)}</p>` : ''}
     ${E.debtOn ? `<p class="note">➕ ${L(`الـ${NEXT_DAYS} أيام اتحسبوا كده: أساسيات الدورة الجاية ${fmt(nTot)} ÷ ${nDays} يوم × ${NEXT_DAYS} أيام = <b dir="ltr">${fmt(E.En)}</b>`, `The ${NEXT_DAYS} days are worked out as: next cycle's essentials ${fmt(nTot)} ÷ ${nDays} days × ${NEXT_DAYS} days = <b dir="ltr">${fmt(E.En)}</b>`)}</p>` : ''}
     <p class="note">${L('الصرف بياكل من فلوس الدورة دي الأول، بعدين من اللي فوق المطلوب، وآخر حاجة من فلوس الـ10 أيام الجاية.', "Spending comes out of this cycle's money first, then the extra above what is needed, and last the next 10 days' money.")}</p>
@@ -1887,7 +1908,7 @@ function debtDetails(only) {
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
   o.innerHTML = `<div class="wiz-card glass dd">
-    <div class="wiz-top"><b>💳 ${L('تفاصيل الدين', 'Debt details')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+    <div class="wiz-top"><b>💳 ${L('تفاصيل الدين', 'Debt details')}</b>${HOSTED ? `<button type="button" class="pill" data-restoreview>⏪ ${L('رجّع نسخة قبل كده', 'Restore an earlier copy')}</button>` : ''}<button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
     ${cards || `<p class="note">${L('مفيش ديون ✅', 'No debt ✅')}</p>`}
   </div>`;
   document.body.appendChild(o); sfx.open();
@@ -1897,6 +1918,41 @@ function debtDetails(only) {
   o.addEventListener('click', e => { if (e.target === o || e.target.closest('[data-close]')) close(); });
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-debtview]'); if (b) { e.stopPropagation(); debtDetails(b.dataset.debtview || null); } });
+
+/* ───────────── ⏪ رجّع نسخة قبل كده (طلب صاحب الحساب، 2026-11-25: "خليت الكارت 0 بالغلط") ─────────────
+   السيرفر بيحفظ نسخة كل 10 دقايق (آخر 40). القايمة بتوري وقت كل نسخة ورقم كل دين فيها،
+   والرجوع محتاج جملتك "أيوه، رجّع آخر نسخة سليمة"، والنسخة الحالية بتتحفظ الأول فتقدر ترجع تاني. */
+async function restoreView() {
+  const o = document.createElement('div');
+  o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+  o.innerHTML = `<div class="wiz-card glass dd"><div class="wiz-top"><b>⏪ ${L('رجّع نسخة قبل كده', 'Restore an earlier copy')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div><p class="note">${L('بيحمّل…', 'Loading…')}</p></div>`;
+  document.body.appendChild(o); sfx.open();
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); };
+  o.addEventListener('click', e => { if (e.target === o || e.target.closest('[data-close]')) close(); });
+  let j;
+  try { const r = await fetch('/api/ideas?finance=backups', { cache: 'no-store' }); j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); }
+  catch (err) { o.querySelector('.note').textContent = L('مقدرتش أجيب النسخ: ', 'Could not load the copies: ') + err.message; return; }
+  const when = at => new Date(at).toLocaleString(L('ar-EG', 'en-GB'), { timeZone: 'Asia/Dubai', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const dl = x => x.debts.map(d => `${esc(d.name)}: <b dir="ltr">${fmt(d.balance)} ${CUR[d.cur]?.s || d.cur}</b>`).join(' · ') || L('مفيش ديون', 'No debts');
+  o.querySelector('.wiz-card').innerHTML = `<div class="wiz-top"><b>⏪ ${L('رجّع نسخة قبل كده', 'Restore an earlier copy')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+    <p class="note">${L('السيرفر بيحفظ نسخة كل 10 دقايق (آخر 40). الرقم جنب كل دين هو رقمه الأصلي في النسخة دي. اختار النسخة اللي قبل الغلطة.', 'The server keeps a copy every 10 minutes (the last 40). The number by each debt is its starting amount in that copy. Pick the copy from just before the mistake.')}</p>
+    ${j.now ? `<div class="row rst now"><div class="grow"><b>🟢 ${L('دلوقتي', 'Now')} · ${when(j.now.at)}</b><small>${dl(j.now)} · ${j.now.tx} ${L('معاملة', 'transactions')}</small></div></div>` : ''}
+    <ul class="list rst-list">${j.backups.map(b => `<li class="row rst"><div class="grow"><b>${when(b.at)}</b><small>${dl(b)} · ${b.tx} ${L('معاملة', 'transactions')}</small></div><button type="button" class="pill" data-rst="${b.id}">${L('رجّع دي', 'Restore this')}</button></li>`).join('') || `<li class="note">${L('مفيش نسخ لسه', 'No copies yet')}</li>`}</ul>`;
+  o.addEventListener('click', async e => {
+    const b = e.target.closest('[data-rst]'); if (!b) return;
+    const phrase = prompt(L('عشان ترجّع النسخة دي اكتب: أيوه، رجّع آخر نسخة سليمة\n(النسخة الحالية هتتحفظ الأول، فتقدر ترجع لها)', 'To restore this copy type: أيوه، رجّع آخر نسخة سليمة\n(the current version is saved first, so you can come back to it)'));
+    if (!phrase) return;
+    b.disabled = true;
+    try {
+      const r = await fetch('/api/ideas?finance=restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: +b.dataset.rst, phrase }) });
+      const k = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(k.error || r.status);
+      toast(L('⏪ النسخة رجعت، بيحمّل…', '⏪ Restored, reloading…')); sfx.ok();
+      setTimeout(() => location.reload(), 700);
+    } catch (err) { b.disabled = false; toast(L('ما رجعتش: ', 'Not restored: ') + err.message); sfx.err(); }
+  });
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-restoreview]')) { e.stopPropagation(); restoreView(); } });
 
 // تاريخ البداية في مربع أول دورة: كل الحسابات (الأيام اللي فاضلة) بتتظبط عليه
 document.addEventListener('change', e => {
@@ -1962,6 +2018,7 @@ cardsEl.addEventListener('click', e => {
     go();
   } else if (d.done) {
     const [id, key] = d.done.split(':'), tx = S.tx.find(x => x.id === id);
+    if (id === 'card') { (S.cardDone ??= {})[key] = true; save(); render(); toast(pick(JOKES.ok)); party(['💳', '✅', '💪']); sfx.ok(); return; }
     if (key === 'sad') { // علّمت إنك طلّعتها: سجّلها مصروف من بند الصدقة
       const r = ctx().R.rows[id];
       if (r?.sadaqa > 0.005) S.tx.push({ id: uid(), date: today(), type: 'expense', bucket: 'sadaqa', amount: r.sadaqa / r.r, cur: tx.cur, rate: tx.rate, note: L('صدقة', 'Sadaqa') });

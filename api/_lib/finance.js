@@ -272,6 +272,42 @@ export async function finance(req, res, sql) {
   // what he typed in the middle of a chat step: pick / reply / switch task (see advisor.js)
   if (what === "intent") return intent(req, res);
 
+  // ⏪ the saved copies (one at most every 10 minutes, the last 40) and putting one back (owner, 2026-11-25:
+  // "set the card to 0 by mistake — redo my last edit"). Restoring needs the owner's own phrase, and the
+  // version being replaced is saved first, so a restore can itself be undone.
+  if (what === "backups") {
+    await ensure(sql);
+    if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
+    const rows = await sql`SELECT id, created_at,
+        jsonb_array_length(COALESCE(data->'tx', '[]'::jsonb)) AS tx,
+        COALESCE(data->'debts', '[]'::jsonb) AS debts, data->'debt' AS debt
+      FROM finance_backups ORDER BY id DESC LIMIT 40`;
+    const [cur] = await sql`SELECT updated_at, jsonb_array_length(COALESCE(data->'tx', '[]'::jsonb)) AS tx,
+        COALESCE(data->'debts', '[]'::jsonb) AS debts, data->'debt' AS debt FROM finance_state WHERE id = 1`;
+    const shape = (r) => ({
+      tx: Number(r.tx) || 0,
+      debts: (Array.isArray(r.debts) && r.debts.length ? r.debts : r.debt ? [r.debt] : [])
+        .map((d) => ({ name: String(d.name || ""), balance: Number(d.balance) || 0, cur: d.cur || "AED" })),
+    });
+    return json(res, 200, {
+      now: cur ? { at: cur.updated_at, ...shape(cur) } : null,
+      backups: rows.map((r) => ({ id: r.id, at: r.created_at, ...shape(r) })),
+    });
+  }
+  if (what === "restore") {
+    await ensure(sql);
+    if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+    const norm = (t) => String(t || "").replace(/[\u064B-\u0652\u0640]/g, "").replace(/[،,]/g, "،").replace(/\s+/g, " ").trim();
+    if (norm(req.body?.phrase) !== norm("أيوه، رجّع آخر نسخة سليمة")) return json(res, 403, { error: "The confirmation phrase is not right" });
+    const id = Number(req.body?.id);
+    const [bk] = id ? await sql`SELECT data FROM finance_backups WHERE id = ${id}` : [];
+    if (!bk) return json(res, 404, { error: "That copy was not found" });
+    await sql`INSERT INTO finance_backups (data) SELECT data FROM finance_state WHERE id = 1`;
+    const [saved] = await sql`UPDATE finance_state SET data = ${JSON.stringify(bk.data)}::jsonb, rev = rev + 1, updated_at = now() WHERE id = 1 RETURNING rev`;
+    await sql`DELETE FROM finance_backups WHERE id NOT IN (SELECT id FROM finance_backups ORDER BY id DESC LIMIT ${BACKUPS_KEPT + 1})`;
+    return json(res, 200, { ok: true, rev: saved ? saved.rev : null });
+  }
+
   if (what !== "data") return json(res, 400, { error: "unknown finance resource" });
   await ensure(sql);
 
