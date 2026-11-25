@@ -1637,7 +1637,7 @@ let scene = null;
 // 📌 لوحة النهارده (سنيك 2026-11-21، للتطبيق على الآيفون): أول حاجة تشوفها — تقدر تصرف كام النهارده، القبض بعد كام يوم، وزرار ＋ صرفت
 function renderToday(c) {
   const el = $('#today'); if (!el) return;
-  let DP, pi; try { DP = dailyPlan(c); pi = payInfo(c); } catch { el.hidden = true; return; }
+  let DP, pi; try { pi = payInfo(c); const cv = cardView(); if (cv === 'ALL') DP = dailyPlan(c); else { const real = S; try { S = viewState(cv); DP = dailyPlan(ctx()); } finally { S = real; UI.R = c.R; } } } catch { el.hidden = true; return; }
   const essLeft = c.mo.essAlloc - c.mo.essSpent;
   el.hidden = false;
   el.innerHTML = `<button type="button" class="td-main" data-dailyview><small>🗓️ ${L('النهارده تقدر تصرف', 'Today you can spend')}</small><b dir="ltr">${fmt(DP.total, 2)} <span>Đ</span></b><small>${L(`فاضل ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')} في الدورة`, `${EN_N(DP.daysLeft, 'day')} left in the cycle`)} ›</small></button>
@@ -1724,7 +1724,7 @@ function render() {
       </span>` +
       `<span class="ess-day">🗓️ <b dir="ltr">${fmt(DP.essDaily, 2)}</b> ${L('في اليوم', 'a day')}</span>` +
       (alerts.length ? `<span class="ess-al">${alerts.join(' · ')}</span>` : '') +
-      `<span class="ess-more">${L('التفاصيل والترتيب', 'Details & sorting')} ›</span>`;
+      `<span class="ess-foot"><span class="ess-rebal" data-rebal>🧮 ${L('رتّب فلوسي', 'Sort my money')}</span><span class="ess-more">${L('التفاصيل', 'Details')} ›</span></span>`;
     sm.dataset.essview = '1';
   }
   // كل محفظة فيها عملات إيه
@@ -3547,9 +3547,9 @@ const MENU = [
   { get l() { return L('💰 قبضت المرتب', '💰 Got my salary'); }, v: 'salary' }, { get l() { return L('🤑 جالي دخل جانبي', '🤑 Got side income'); }, v: 'side' }, { get l() { return L('💸 صرفت', '💸 I spent'); }, v: 'spend' },
   { get l() { return L('🥇 الدهب', '🥇 Gold'); }, v: 'gold' }, { get l() { return L('🎯 هدف خروج', '🎯 Outing goal'); }, v: 'fun' }, { get l() { return L('📅 يوم القبض', '📅 Payday'); }, v: 'pay' }, { get l() { return L('🧭 أعمل إيه دلوقتي؟', '🧭 What should I do now?'); }, v: 'cta' },
   { get l() { return L('🧠 هدف كبير جديد', '🧠 New big goal'); }, v: 'goal' }, { get l() { return L('💳 الديون', '💳 Debts'); }, v: 'debt' }, { get l() { return L('🔁 تحويل', '🔁 Transfer'); }, v: 'transfer' }, { get l() { return L('📍 أنا فين', '📍 Where am I'); }, v: 'where' },
-  { get l() { return L('🧭 أستثمر في إيه؟', '🧭 What to invest in?'); }, v: 'invest' }, { get l() { return L('💼 سجّلت استثمار', '💼 I invested'); }, v: 'invested' },
+  { get l() { return L('🧮 رتّب فلوسي', '🧮 Sort my money'); }, v: 'rebal' }, { get l() { return L('🧭 أستثمر في إيه؟', '🧭 What to invest in?'); }, v: 'invest' }, { get l() { return L('💼 سجّلت استثمار', '💼 I invested'); }, v: 'invested' },
 ];
-const FLOWS = { cardSetup: async () => { const d = debts().filter(isCard).find(x => x.id === UI.cardPick) || debts().filter(isCard).find(x => !(x.card?.stmtDay >= 1)) || debts().filter(isCard)[0]; UI.cardPick = null; if (d) await cardSetup(d); }, salary: () => flowIncome('salary'), side: () => flowIncome('side'), spend: () => flowSpend(), gold: flowGold, fun: flowFun, cta: flowCTA, pay: flowPay, goal: flowGoal, debt: flowDebt, transfer: flowTransfer, where: flowWhere, invest: flowInvest, invested: flowInvested };
+const FLOWS = { rebal: async () => { rebalance(); }, cardSetup: async () => { const d = debts().filter(isCard).find(x => x.id === UI.cardPick) || debts().filter(isCard).find(x => !(x.card?.stmtDay >= 1)) || debts().filter(isCard)[0]; UI.cardPick = null; if (d) await cardSetup(d); }, salary: () => flowIncome('salary'), side: () => flowIncome('side'), spend: () => flowSpend(), gold: flowGold, fun: flowFun, cta: flowCTA, pay: flowPay, goal: flowGoal, debt: flowDebt, transfer: flowTransfer, where: flowWhere, invest: flowInvest, invested: flowInvested };
 /* ───────────── اسأل أي حاجة: أي كلام مش أمر بيروح لـ Gemini مع ملخص بياناتك والشات ───────────── */
 /** ملخص البيانات للذكاء الاصطناعي: من غير الرقم السري، وآخر 15 معاملة بس */
 function aiData() {
@@ -3961,11 +3961,23 @@ setTimeout(autoPay, 2500); setInterval(autoPay, 30 * 60 * 1000);
 setTimeout(() => document.body.classList.remove('first'), 1600);
 import('./scene.js').then(m => {
   const view = $('#view');
+  // كل ليبل بيتحط تحت محفظته، وبعدين في نفس الفريم بنبعّد اللي راكبين على بعض (طلب صاحب الحساب، 2026-11-25: "look overlay")
+  const LP = {}, lbBox = $('#labels'); let lpQ = false;
+  const placeLabels = () => {
+    lpQ = false;
+    const W = lbBox.clientWidth, H = lbBox.clientHeight, gap = 6;
+    const a = Object.values(LP).map(p => ({ ...p, w: p.el.offsetWidth * p.s, h: p.el.offsetHeight * p.s })).sort((p, q) => p.y - q.y);
+    const hit = (p, q) => Math.abs(p.x - q.x) < (p.w + q.w) / 2 - 2 && p.y < q.y + q.h + gap && p.y + p.h + gap > q.y;
+    for (let i = 0; i < a.length; i++) for (let j = 0; j < i; j++) if (hit(a[i], a[j])) a[i].y = a[j].y + a[j].h + gap; // اللي تحت ينزل
+    for (let i = a.length - 1; i >= 0; i--) { // لو نزل برّه الكارت: يطلع، واللي فوقه يطلعوا معاه
+      a[i].y = Math.min(a[i].y, H - a[i].h - 8);
+      for (let j = i - 1; j >= 0; j--) if (hit(a[i], a[j])) a[j].y = Math.max(0, a[i].y - a[j].h - gap);
+    }
+    for (const p of a) { const half = p.w / 2 + 6; p.el.style.transform = `translate(-50%,0) translate(${Math.max(half, Math.min(W - half, p.x)).toFixed(1)}px,${Math.max(0, p.y).toFixed(1)}px) scale(${p.s.toFixed(3)})`; }
+  };
   scene = m.initScene($('#gl'), view, (k, x, y, s) => {
-    const el = $(`#labels [data-b="${k}"]`), half = el.offsetWidth / 2 + 6;
-    x = Math.max(half, Math.min(view.clientWidth - half, x)); // ما تخرجش برّه الكارت
-    y = Math.max(0, Math.min(view.clientHeight - el.offsetHeight - 8, y)); // ولا تنزل تحت حدّه (الأساسيات بسطرين التواريخ كانت بتعدّي على اللي تحته في الموبايل)
-    el.style.transform = `translate(-50%,0) translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
+    LP[k] = { el: $(`#labels [data-b="${k}"]`), x, y, s };
+    if (!lpQ) { lpQ = true; requestAnimationFrame(placeLabels); }
   });
   render();
 }).catch(err => { console.warn('3D مش شغال', err); document.body.classList.add('no3d'); });

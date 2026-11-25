@@ -1101,3 +1101,13 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .no3d .view { padding-top: 150px; }                  /* الصافي وحبوب الدين/معاك فوق المحافظ مش عليها */
 .total em { position: relative; z-index: 2; }
 .view .lbl { z-index: 1; }
+/* المشهد التلاتي يبدأ تحت الصافي وحبوب الدين/معاك، فمفيش محفظة تحتهم (طلب صاحب الحساب، 2026-11-25) */
+body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 128px); bottom: auto; }
+@media (min-width: 901px) { body:not(.no3d) .view { height: 780px; } }
+@media (max-width: 900px) { body:not(.no3d) .view { height: 780px; } body:not(.no3d) #gl, body:not(.no3d) #labels { top: 120px; height: calc(100% - 120px); } }
+.lbl small .ess-foot { display: flex !important; justify-content: space-between; gap: 6px; margin-top: 6px; align-items: center; }
+.lbl small .ess-rebal { display: inline-block !important; padding: 3px 8px; border-radius: 99px; background: rgba(250, 204, 21, .2); border: 1px solid rgba(250, 204, 21, .55); color: #fde68a; font-weight: 800; font-size: .64rem; cursor: pointer; pointer-events: auto; }
+.lbl small .ess-foot .ess-more { margin-top: 0; }
+/* الرسايل بتختفي بتدريج تحت كارت الـENBD بدل ما تتقصّ عند حرفه */
+.chat #log { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px); mask-image: linear-gradient(to bottom, transparent 0, #000 18px); padding-top: 12px; }
+.lbl small .ess-foot .ess-more { white-space: nowrap; }

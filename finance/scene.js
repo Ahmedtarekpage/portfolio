@@ -128,7 +128,7 @@ export function initScene(canvas, host, onLabel) {
 
   let W = 1, H = 1, P = {}, coinY = 0.3;
   function resize() {
-    W = host.clientWidth; H = host.clientHeight;
+    W = canvas.clientWidth || host.clientWidth; H = canvas.clientHeight || host.clientHeight; // الكانفاس ممكن يبدأ تحت الصافي (مش كل الكارت)
     renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
     // شاشة ضيقة: ابعد الكاميرا لحد ما المحافظ تبان بالعرض، ووزّعهم بالطول
     const t21 = Math.tan(THREE.MathUtils.degToRad(21));
@@ -143,8 +143,9 @@ export function initScene(canvas, host, onLabel) {
     } else {
       // شاشة أضيق: مربع 2×2 بمسافة كفاية بين الصفين عشان الكروت ما تغطيش المحافظ
       const rx = Math.max(2.2, Math.min(4.6, halfW - 1.5));
-      P = { essentials: [rx, -1.3 * ys], growth: [-rx, -1.3 * ys], stability: [-rx, 1.9 * ys], reward: [rx, 1.9 * ys], sadaqa: [0, 0.35 * ys] };
-      coinY = 1.9 * ys + 0.25;
+      // الصف الفوقاني أعلى والتحتاني أقرب للنص: مسافة بين الصفين لليبل، ومكان تحت التحتاني لكارت الأساسيات (طلب صاحب الحساب، 2026-11-25)
+      P = { essentials: [rx, -0.45 * ys], growth: [-rx, -0.45 * ys], stability: [-rx, 2.55 * ys], reward: [rx, 2.55 * ys], sadaqa: [0, 1.0 * ys] };
+      coinY = 2.55 * ys + 0.25;
     }
     halo.position.y = coinY;
   }
