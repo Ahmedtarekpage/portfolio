@@ -1975,7 +1975,8 @@ function essDetails() {
         ${DP.solfa > 0.5 ? `<p class="note ${DP.SF.intoCore > 0.5 ? 'bad' : ''}">🎉 ${L(`سلفة الفلوس الحرّة من الأساسيات <b dir="ltr">${fmt(DP.solfa)}</b>: ${[DP.SF.fromX > 0.5 ? `${fmt(DP.SF.fromX)} من الزيادة` : '', DP.SF.fromN > 0.5 ? `${fmt(DP.SF.fromN)} من الـ10 أيام` : '', DP.SF.fromM > 0.5 ? `${fmt(DP.SF.fromM)} من جيب الشهر` : ''].filter(Boolean).join(' و')}${DP.SF.intoCore > 0.5 ? `، و${fmt(DP.SF.intoCore)} منها دخلت في فلوس الأكل والسكن` : ''}. بتترد من نصيب الفلوس الحرّة بس${solfaPaydays(c, DP.solfa)}.`, `Free money borrowed <b dir="ltr">${fmt(DP.solfa)}</b> from Essentials. It is paid back from the free money share only${solfaPaydays(c, DP.solfa)}.`)}</p>` : ''}
         ${DP.resShort > 0.5 ? `<p class="note">🛟 ${L(`جيب الـ10 أيام ناقص <b dir="ltr">${fmt(DP.resShort)}</b> عن ${fmt(E.En)}. أول دخل جاي بيكمّله قبل أي حاجة تانية.`, `The 10-day pocket is <b dir="ltr">${fmt(DP.resShort)}</b> short of ${fmt(E.En)}. The next income fills it before anything else.`)}</p>` : ''}
         ${(() => { const ex = DP.extra; return ex > 0.5 ? `<button type="button" class="pill" data-essextra>⬆️ ${L(`زيادة فوق المطلوب ${fmt(ex)} · شوف جت منين ووزّعها`, `Extra above what is needed ${fmt(ex)} · see where it came from and split it`)} ›</button>` : ''; })()}
-        <button type="button" class="btn primary" data-rebal style="width:100%;margin-top:10px">🧮 ${L('رتّب فلوسي (مرة واحدة، من غير سالب)', 'Sort my money (one time, no negatives)')}</button>`;
+        <button type="button" class="btn primary" data-rebal style="width:100%;margin-top:10px">🧮 ${L('رتّب فلوسي (مرة واحدة، من غير سالب)', 'Sort my money (one time, no negatives)')}</button>
+        ${S.tx.some(isSortTx) ? `<button type="button" class="pill" data-unsort style="margin-top:8px">↩️ ${L('رجّع الترتيب', 'Undo the sorting')}</button>` : ''}`;
     })()}
     <table class="sw-t ess-t"><thead><tr><th></th><th>${L('المطلوب', 'Needed')}</th><th>${L('اتحط', 'Put in')}</th><th>${L('اتدفع', 'Paid')}</th><th>${L('فاضل', 'Left')}</th></tr></thead><tbody>
       ${row('📅', `${L('الدورة دي', 'This cycle')} <small><bdi dir="ltr">${sd(from)} → ${sd(to)}</bdi></small>`, E.Ec, E.nowHave, E.spNow, E.leftNow)}
@@ -2055,6 +2056,7 @@ function rebalance() {
       ${k.diff < -0.5 ? `<p class="note">💡 ${L(`البنك فيه ${fmt(-k.diff)} أكتر من البرنامج، فهنمشي على رقم البنك وهيتسجّل "تصحيح رصيد". لو دي فلوس دخل جديد، الأحسن تسجّلها دخل بدل كده عشان تتوزّع.`, `The bank has ${fmt(-k.diff)} more than the app, so we follow the bank and log a "balance fix". If that is new income, better log it as income so it gets split.`)}</p>` : ''}
       <button type="button" class="btn primary" data-rgo style="width:100%">🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
       <p class="note">${L('كله بيتسجّل معاملات عادية في 📒 السجل، وتقدر تمسح أي واحدة.', 'It is all logged as normal entries in the 📒 log, and you can delete any of them.')}</p>
+      ${S.tx.some(isSortTx) ? `<button type="button" class="pill" data-unsort>↩️ ${L('رجّع الترتيب اللي فات (امسح كل اللي عمله)', 'Undo the last sorting (remove all it did)')}</button>` : ''}
     </div>`;
   };
   draw(); document.body.appendChild(o); sfx.open();
@@ -2065,17 +2067,44 @@ function rebalance() {
     const d = e.target.closest('[data-rdone]'); if (d) { const id = d.dataset.rdone; done.has(id) ? done.delete(id) : done.add(id); sfx.select(); return draw(); }
     if (!e.target.closest('[data-rgo]')) return;
     const inp = o.querySelector('[data-rbank]'); if (inp && bank != null) bank = parseNum(inp.value) || 0;
-    const k = calc(), r = rate(cu), dt = today(), tag = L('🧮 ترتيب', '🧮 Sort');
+    const k = calc(), r = rate(cu), dt = today(), tag = L('🧮 ترتيب', '🧮 Sort'), grp = 'sort:' + uid(), n0 = S.tx.length;
     for (const it of items.filter(x => done.has(x.id))) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', item: it.id, amount: +it.remain.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${it.name} ${L(`اتدفع لحد ${dayName(DP.end)}`, `paid until ${dayName(DP.end)}`)}` });
     if (k.diff < -0.5) S.tx.push({ id: uid(), date: dt, type: 'essadj', dir: 1, amount: +(-k.diff).toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('رصيد البنك أكتر من البرنامج', 'the bank has more than the app')}` });
     if (k.diff > 0.5) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', amount: +k.diff.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${L('فرق مع البنك (مصاريف ما اتسجلتش)', 'gap with the bank (unlogged spending)')}` });
     if (DP.solfa > 0.5) S.tx.push({ id: uid(), date: dt, type: 'transfer', bucket: 'essentials', amount: +DP.solfa.toFixed(2), cur: cu, rate: r, to: cu, toBucket: 'reward', toAmount: +DP.solfa.toFixed(2), toRate: r, note: `${tag}: ${L('قفل سلفة الفلوس الحرّة', 'closing the free money loan')}` });
     // الترتيب بيرتّب اللي معاك بس: الباقي يفضل زيادة، ومش بيتبعت للدين (طلب صاحب الحساب، 2026-11-25)
+    for (const t of S.tx.slice(n0)) t.grp = grp;
     save(); render(); close(); sfx.ok(); party(['🧮', '✅', '💸']);
     bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ و${fmt(k.left)} فاضلين معاك زيادة عن الجيبين. لو حبيت توزّعهم، دوس على الزيادة في الكارت.` : ''}`,
       `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ And ${fmt(k.left)} stays with you above both pockets. Tap the extra on the card if you want to split it.` : ''}`));
   });
 }
+/* ↩️ رجّع الترتيب: يمسح كل المعاملات اللي عملها زرار "رتّب فلوسي" (طلب صاحب الحساب، 2026-11-25) */
+const isSortTx = t => (t.grp || '').startsWith('sort:') || /^🧮 (ترتيب|Sort)/.test(t.note || '');
+function undoSort() {
+  const list = S.tx.filter(isSortTx);
+  if (!list.length) return toast(L('مفيش أي ترتيب متسجّل يترجّع 👍', 'There is no sorting to undo 👍'));
+  const o = document.createElement('div');
+  o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+  o.innerHTML = `<div class="wiz-card glass dd card-x">
+    <div class="wiz-top"><b>↩️ ${L('رجّع الترتيب', 'Undo the sorting')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+    <p class="note">${L(`ده كل اللي عمله زرار "رتّب فلوسي" (${list.length} معاملة). لو رجّعته، الأرقام هترجع زي ما كانت قبل الترتيب بالظبط.`, `This is everything "Sort my money" did (${list.length} entries). Undoing it puts the numbers back exactly as they were before.`)}</p>
+    <table class="sw-t">${list.map(t => `<tr><td>${esc(t.note || t.type)} <small><bdi dir="ltr">${t.date}</bdi></small></td><td dir="ltr">${fmt(t.amount, 2)}</td></tr>`).join('')}</table>
+    <button type="button" class="btn primary" data-unsortgo style="width:100%;margin-top:10px">↩️ ${L('أيوه رجّعه', 'Yes, undo it')}</button>
+  </div>`;
+  document.body.appendChild(o); sfx.open();
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); };
+  o.addEventListener('click', e => {
+    if (e.target === o || e.target.closest('[data-close]')) return close();
+    if (!e.target.closest('[data-unsortgo]')) return;
+    const ids = new Set(list.map(t => t.id));
+    S.tx = S.tx.filter(t => !ids.has(t.id));
+    save(); render(); close(); sfx.ok();
+    toast(L(`↩️ رجّعت الترتيب: اتمسحت ${list.length} معاملة`, `↩️ Sorting undone: ${list.length} entries removed`));
+  });
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-unsort]')) { e.stopPropagation(); e.target.closest('.wiz')?.remove(); undoSort(); } });
+
 document.addEventListener('click', e => { const b = e.target.closest('[data-rebal]'); if (b) { e.stopPropagation(); b.closest('.wiz')?.remove(); rebalance(); } });
 
 /* ⬆️ الزيادة فوق المطلوب: ليه زيادة، جت منين، وتوزيعها (كلها أو جزء) بنفس قاعدة الدخل (طلب صاحب الحساب، 2026-11-25) */
@@ -3562,7 +3591,7 @@ const MENU = [
   { get l() { return L('🧠 هدف كبير جديد', '🧠 New big goal'); }, v: 'goal' }, { get l() { return L('💳 الديون', '💳 Debts'); }, v: 'debt' }, { get l() { return L('🔁 تحويل', '🔁 Transfer'); }, v: 'transfer' }, { get l() { return L('📍 أنا فين', '📍 Where am I'); }, v: 'where' },
   { get l() { return L('🧮 رتّب فلوسي', '🧮 Sort my money'); }, v: 'rebal' }, { get l() { return L('🧭 أستثمر في إيه؟', '🧭 What to invest in?'); }, v: 'invest' }, { get l() { return L('💼 سجّلت استثمار', '💼 I invested'); }, v: 'invested' },
 ];
-const FLOWS = { rebal: async () => { rebalance(); }, cardSetup: async () => { const d = debts().filter(isCard).find(x => x.id === UI.cardPick) || debts().filter(isCard).find(x => !(x.card?.stmtDay >= 1)) || debts().filter(isCard)[0]; UI.cardPick = null; if (d) await cardSetup(d); }, salary: () => flowIncome('salary'), side: () => flowIncome('side'), spend: () => flowSpend(), gold: flowGold, fun: flowFun, cta: flowCTA, pay: flowPay, goal: flowGoal, debt: flowDebt, transfer: flowTransfer, where: flowWhere, invest: flowInvest, invested: flowInvested };
+const FLOWS = { rebal: async () => { rebalance(); }, unsort: async () => { undoSort(); }, cardSetup: async () => { const d = debts().filter(isCard).find(x => x.id === UI.cardPick) || debts().filter(isCard).find(x => !(x.card?.stmtDay >= 1)) || debts().filter(isCard)[0]; UI.cardPick = null; if (d) await cardSetup(d); }, salary: () => flowIncome('salary'), side: () => flowIncome('side'), spend: () => flowSpend(), gold: flowGold, fun: flowFun, cta: flowCTA, pay: flowPay, goal: flowGoal, debt: flowDebt, transfer: flowTransfer, where: flowWhere, invest: flowInvest, invested: flowInvested };
 /* ───────────── اسأل أي حاجة: أي كلام مش أمر بيروح لـ Gemini مع ملخص بياناتك والشات ───────────── */
 /** ملخص البيانات للذكاء الاصطناعي: من غير الرقم السري، وآخر 15 معاملة بس */
 function aiData() {
