@@ -850,3 +850,6 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 .plan-wait { display: grid; gap: 6px; margin: 16px 0; padding: 22px; border-radius: 16px; text-align: center; background: rgba(127, 127, 127, 0.08); border: 2px dashed rgba(127, 127, 127, 0.3); }
 .plan-wait b { font: 800 1.15rem var(--font-ui); }
 .plan-wait span { font: 600 0.92rem var(--font-ui); opacity: 0.75; }
+/* 📐 نفس عرض صفحة الأدمن (1080px في النص) لكل الصفحات (طلب صاحب الحساب، 2026-11-25) */
+.now-page .wrap.now-wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 80px; }
+@media (max-width: 1100px) { .now-page .wrap.now-wrap { padding: 8px; } }

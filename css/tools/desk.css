@@ -31,7 +31,7 @@
   --g1: #e11d48; --g2: #b45309;
 }
 
-.wrap { max-width: 860px; }
+.wrap { max-width: 1080px; } /* نفس عرض الأدمن */
 
 /* the panel is repainted on every action and once a minute; the shell's
    arrival animation on cards would replay each time and read as a flicker */

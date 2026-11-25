@@ -1073,3 +1073,31 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .lbl small .ess2[data-essextra] { cursor: pointer; }
 .lbl small .ess2[data-essextra]:hover { filter: brightness(1.15); }
 .lbl small .ess2 .ex-go { font-weight: 800; color: #fde68a; }
+/* 🍞 كارت الأساسيات الصغير: جيبين جنب بعض + اليومي + تنبيهات */
+.lbl small .ess-pks { display: grid !important; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
+.lbl small .ess-pk { display: grid !important; gap: 1px; padding: 4px 4px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); text-align: center; min-width: 0; }
+.lbl small .ess-pk.ok { background: rgba(52,211,153,.2); border-color: rgba(52,211,153,.5); }
+.lbl small .ess-pk.part { background: rgba(250,204,21,.16); border-color: rgba(250,204,21,.45); }
+.lbl small .ess-pk.none { background: rgba(248,113,113,.18); border-color: rgba(248,113,113,.45); }
+.lbl small .ess-pk i { font-style: normal; font-size: .6rem; opacity: .85; white-space: nowrap; display: block !important; }
+.lbl small .ess-pk b { font-size: .8rem !important; font-weight: 800; display: block !important; }
+.lbl small .ess-day, .lbl small .ess-al, .lbl small .ess-more { display: block !important; margin-top: 4px; font-size: .64rem; white-space: normal; }
+.lbl small .ess-day b { font-size: .78rem !important; display: inline !important; color: #6ee7b7 !important; }
+.lbl small .ess-al { color: #fcd34d; font-weight: 700; }
+.lbl small .ess-more { opacity: .75; text-decoration: underline dotted; cursor: pointer; }
+/* 📐 نفس عرض صفحة الأدمن لكل الصفحات (طلب صاحب الحساب، 2026-11-25): 1080px في النص */
+.app { max-width: 1080px; }
+@media (min-width: 901px) { .app { grid-template-columns: 340px minmax(0, 1fr); gap: 16px; padding: 18px 16px; } }
+/* اللوجو: صورة أيقونة فلوسي + الاسم بالتدرّج (الـ🪙 كانت بتتحوّل لأيقونة شفافة جوّه النص المتلوّن فتختفي) */
+.nav .logo { display: inline-flex; align-items: center; gap: 8px; background: none; color: inherit; }
+.nav .logo img { width: 30px; height: 30px; border-radius: 9px; box-shadow: 0 4px 12px rgba(255, 107, 91, .35); flex: none; }
+.nav .logo span { background: linear-gradient(90deg, #ffe08a, #FF6B5B, #F4EDE0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* الجيب التاني في كارت الأساسيات: تاريخ أقصر عشان ما يطلعش برّه */
+.lbl small .ess-pk i { overflow: hidden; text-overflow: ellipsis; }
+/* 🧹 مسافات ومن غير تداخل (طلب صاحب الحساب، 2026-11-25) */
+.chat > :not(#log) { flex-shrink: 0; }            /* كارت الـENBD وهيدر قرش ما ينضغطوش فوق الرسايل */
+.chat #log { flex: 1 1 auto; min-height: 140px; }
+#cards { grid-template-columns: minmax(0, 1fr); }   /* بعرض 1080 العمودين بقوا ضيقين والبنود بتطلع برّه */
+.no3d .view { padding-top: 150px; }                  /* الصافي وحبوب الدين/معاك فوق المحافظ مش عليها */
+.total em { position: relative; z-index: 2; }
+.view .lbl { z-index: 1; }

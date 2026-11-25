@@ -1713,17 +1713,18 @@ function render() {
     // الأرقام من اللي معاك فعلًا: الفلوس الحرّة بالسالب اتصرفت من نفس الفلوس، فبتتخصم من جيب الشهر.
     const pk1 = DP.pk1, pk2 = DP.pk2, SF = DP.SF;
     const n1 = new Date(yy, mm, pd), n10 = new Date(yy, mm, pd + 9), pc = (v, n) => n > 0.5 ? Math.max(0, Math.min(100, v / n * 100)).toFixed(1) : 100;
+    // كارت صغير (طلب صاحب الحساب، 2026-11-25: "مش أحسن UI"): الجيبين جنب بعض + المصروف اليومي + سطر تنبيهات، والتفاصيل كلها في الشباك
+    const exReal = Math.max(0, Math.min(ES.leftExtra, pk1 - Math.max(0, ES.leftNow)));
+    const pkc = (ok, part) => ok ? 'ok' : part ? 'part' : 'none';
+    const alerts = [SF.shortM > 0.5 ? `⚠️ ${L('ناقص أكل', 'food short')} ${fmt(SF.shortM)}` : '', DP.solfa > 0.5 ? `🎉 ${L('سلفة', 'loan')} ${fmt(DP.solfa)}` : '', exReal > 0.5 ? `⬆️ ${L('زيادة', 'extra')} ${fmt(exReal)}` : ''].filter(Boolean);
     sm.innerHTML =
-      `<span class="ess2 head"><i>🏦 ${L('في تطبيق البنك اعمل جيبين:', 'In your bank app, make two pockets:')}</i></span>` +
-      `<span class="ess2 ${DP.pool >= -0.5 ? 'ok' : pk1 > 0.5 ? 'part' : 'none'}" style="--p:${DP.pool >= -0.5 ? 100 : pc(pk1, pk1 - DP.pool)}%"><i>👛 ${L('جيب الشهر', 'This month')} · <span dir="ltr">${L('لحد', 'until')} ${sd(endD)}</span></i><b dir="ltr">${fmt(pk1)}</b><i>🗓️ ${L(`${fmt(DP.essDaily, 2)} في اليوم${DP.offRemain > 0.5 ? ` + فواتير ${fmt(DP.offRemain)}` : ''}`, `${fmt(DP.essDaily, 2)} a day${DP.offRemain > 0.5 ? ` + bills ${fmt(DP.offRemain)}` : ''}`)}</i></span>` +
-      (ES.debtOn ? `<span class="ess2 ${pk2 >= hv.En - 0.5 ? 'ok' : pk2 > 0.5 ? 'part' : 'none'}" style="--p:${pc(pk2, hv.En)}%"><i>🛟 ${L('جيب الـ10 أيام', '10-day pocket')} · <span dir="ltr">${sd(n1)}→${sd(n10)}</span></i><b dir="ltr">${fmt(pk2)}${pk2 < hv.En - 0.5 ? ` / ${fmt(hv.En)}` : ''}</b><i>${pk2 >= hv.En - 0.5 ? L(`✅ ما تلمسوش لحد ${sd(n1)}`, `✅ Don't touch it until ${sd(n1)}`) : [SF.fromN > 0.5 ? L(`${fmt(SF.fromN)} سلفة للفلوس الحرّة`, `${fmt(SF.fromN)} lent to free money`) : '', SF.lift > 0.5 ? L(`${fmt(SF.lift)} راحوا لأكل الشهر ده`, `${fmt(SF.lift)} moved to this month's food`) : '', L(`ناقص ${fmt(hv.En - pk2)} · الدخل الجاي يكمّله الأول`, `${fmt(hv.En - pk2)} short · next income fills it first`)].filter(Boolean).join(' · ')}</i></span>` : '') +
-      (ES.leftExtra > 0.5 && Math.min(ES.leftExtra, pk1 - Math.max(0, ES.leftNow)) <= 0.5 ? `<span class="ess2 extra"><i>⬆️ ${L(`الزيادة ${fmt(ES.leftExtra)} راحت كلها في سلفة الفلوس الحرّة`, `The extra ${fmt(ES.leftExtra)} all went to the free money loan`)}</i></span>`
-        : ES.leftExtra > 0.5 ? `<span class="ess2 extra" data-essextra title="${L('دوس تشوف جت منين ووزّعها', 'Tap to see where it came from and split it')}"><i>⬆️ ${L('منهم زيادة فوق المطلوب', 'Of which extra above what is needed')}</i><b dir="ltr">+${fmt(Math.min(ES.leftExtra, pk1 - Math.max(0, ES.leftNow)))}</b>${pk1 - Math.max(0, ES.leftNow) < ES.leftExtra - 0.5 ? `<i>${L(`من ${fmt(ES.leftExtra)}، والباقي راح في السلفة`, `of ${fmt(ES.leftExtra)}, the rest went to the loan`)}</i>` : ''}<i>${L('جت من', 'came from')} ${exFrom}</i><i class="ex-go">🔀 ${L('دوس ووزّعها', 'Tap to split it')} ›</i></span>`
-        : '') +
-      (SF.shortM > 0.5 ? `<span class="ess2 none"><i>⚠️ ${L('جيب الشهر ناقص عن الأكل والسكن', "This month's pocket is short of food & housing")}</i><b dir="ltr">−${fmt(SF.shortM)}</b></span>` : '') +
-      (DP.solfa > 0.5 ? `<span class="ess2 ${SF.intoCore > 0.5 ? 'none' : 'part'}" style="--p:0%"><i>🎉 ${L('سلفة للفلوس الحرّة من الأساسيات', 'Free money borrowed from Essentials')}</i><b dir="ltr">${fmt(DP.solfa)}</b><i>${[SF.fromM > 0.5 ? L(`${fmt(SF.fromM)} من جيب الشهر`, `${fmt(SF.fromM)} from this month`) : '', SF.fromN > 0.5 ? L(`${fmt(SF.fromN)} من الـ10 أيام`, `${fmt(SF.fromN)} from the 10 days`) : ''].filter(Boolean).join(' · ')}</i>${SF.intoCore > 0.5 ? `<i>⚠️ ${L(`${fmt(SF.intoCore)} منها دخلت في فلوس الأكل والسكن`, `${fmt(SF.intoCore)} of it ate into food and housing money`)}</i>` : ''}<i>↩️ ${L('بتترد من نصيب الفلوس الحرّة', 'Paid back from the free money share')}${solfaPaydays(hv, DP.solfa)}</i></span>` : '') +
-      `<span class="ess2 extra" data-rebal title="${L('رتّب الفلوس اللي معاك من غير سالب', 'Sort the money you have with no negatives')}"><i class="ex-go">🧮 ${L('رتّب فلوسي', 'Sort my money')} ›</i></span>` +
-      `<span class="ess2 sum"><i>💵 ${L('معاك فعلًا = الجيبين', 'You really have = both pockets')}</i><b dir="ltr">${fmt(DP.realHave)}</b><i>${L('دوس للتفاصيل', 'Tap for details')} ›</i></span>`;
+      `<span class="ess-pks">
+        <span class="ess-pk ${pkc(SF.shortM <= 0.5, pk1 > 0.5)}"><i>👛 ${L('لحد', 'to')} ${sd(endD)}</i><b dir="ltr">${fmt(pk1)}</b></span>
+        ${ES.debtOn ? `<span class="ess-pk ${pkc(pk2 >= hv.En - 0.5, pk2 > 0.5)}"><i>🛟 ${L('10 أيام', '10 days')}</i><b dir="ltr">${fmt(pk2)}</b></span>` : ''}
+      </span>` +
+      `<span class="ess-day">🗓️ <b dir="ltr">${fmt(DP.essDaily, 2)}</b> ${L('في اليوم', 'a day')}</span>` +
+      (alerts.length ? `<span class="ess-al">${alerts.join(' · ')}</span>` : '') +
+      `<span class="ess-more">${L('التفاصيل والترتيب', 'Details & sorting')} ›</span>`;
     sm.dataset.essview = '1';
   }
   // كل محفظة فيها عملات إيه
@@ -1836,6 +1837,7 @@ $('#stage').addEventListener('click', e => {
   const xf = e.target.closest('[data-xfer]');
   if (xf) { UI.xfer = { from: S.view === 'XAU' ? 'XAU' : cardView() !== 'ALL' ? cardView() : null, bk: xf.dataset.xfer }; el.hidden = true; UI.why = null; trigger('transfer'); return; }
   if (e.target.closest('#why')) return;
+  if (e.target.closest('[data-essview],[data-essextra],[data-rebal]')) { el.hidden = true; UI.why = null; return; } // الجيبين بيفتحوا التفاصيل بس، مش شباكين مع بعض
   const k = e.target.closest('.lbl')?.dataset.b || (e.target.id === 'gl' && scene?.pick(e.clientX, e.clientY));
   if (k) showWhy(k); else { el.hidden = true; UI.why = null; }
 });
@@ -1969,7 +1971,10 @@ function essDetails() {
       return `<h4>🏦 ${L('في تطبيق البنك', 'In your bank app')}</h4><table class="sw-t">
         <tr><td>👛 ${L(`جيب الشهر · لحد ${sd(to)}`, `This month · until ${sd(to)}`)}<br><small>${L(`فاضل الدورة ${fmt(E.leftNow)}${E.leftExtra > 0.5 ? ` + زيادة ${fmt(E.leftExtra)}` : ''}${DP.SF.fromM > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.SF.fromM)}` : ''} · ${L('حد الأكل والسكن', '')} ${fmt(DP.floorM)}`, `Cycle left ${fmt(E.leftNow)}${E.leftExtra > 0.5 ? ` + extra ${fmt(E.leftExtra)}` : ''}${DP.SF.fromM > 0.5 ? ` − free money loan ${fmt(DP.SF.fromM)}` : ''} · food & housing floor ${fmt(DP.floorM)}`)}</small></td><td dir="ltr"><b>${fmt(pk1)}</b></td></tr>
         ${E.debtOn ? `<tr><td>🛟 ${L(`جيب الـ10 أيام · ${sd(n1)} → ${sd(n10)}`, `10-day pocket · ${sd(n1)} → ${sd(n10)}`)}<br><small>${L('ما تلمسوش لحد القبض', "Don't touch it until payday")}${DP.SF.fromN > 0.5 ? L(` · منه سلفة ${fmt(DP.SF.fromN)} للفلوس الحرّة`, ` · ${fmt(DP.SF.fromN)} lent to free money`) : ''} · ${L('حد الأكل والسكن', 'food & housing floor')} ${fmt(DP.floorN)}</small></td><td dir="ltr"><b>${fmt(pk2)}</b>${pk2 < E.En - 0.5 ? ` / ${fmt(E.En)}` : ''}</td></tr>` : ''}
-        <tr class="ft"><td>💵 ${L('معاك فعلًا', 'You really have')}</td><td dir="ltr">${fmt(DP.realHave)}</td></tr></table>`;
+        <tr class="ft"><td>💵 ${L('معاك فعلًا', 'You really have')}</td><td dir="ltr">${fmt(DP.realHave)}</td></tr></table>
+        ${DP.solfa > 0.5 ? `<p class="note ${DP.SF.intoCore > 0.5 ? 'bad' : ''}">🎉 ${L(`سلفة الفلوس الحرّة من الأساسيات <b dir="ltr">${fmt(DP.solfa)}</b>: ${[DP.SF.fromM > 0.5 ? `${fmt(DP.SF.fromM)} من جيب الشهر` : '', DP.SF.fromN > 0.5 ? `${fmt(DP.SF.fromN)} من الـ10 أيام` : ''].filter(Boolean).join(' و')}${DP.SF.intoCore > 0.5 ? `، و${fmt(DP.SF.intoCore)} منها دخلت في فلوس الأكل والسكن` : ''}. بتترد من نصيب الفلوس الحرّة بس${solfaPaydays(c, DP.solfa)}.`, `Free money borrowed <b dir="ltr">${fmt(DP.solfa)}</b> from Essentials. It is paid back from the free money share only${solfaPaydays(c, DP.solfa)}.`)}</p>` : ''}
+        ${(() => { const ex = Math.max(0, Math.min(E.leftExtra, pk1 - Math.max(0, E.leftNow))); return ex > 0.5 ? `<button type="button" class="pill" data-essextra>⬆️ ${L(`زيادة فوق المطلوب ${fmt(ex)} · شوف جت منين ووزّعها`, `Extra above what is needed ${fmt(ex)} · see where it came from and split it`)} ›</button>` : ''; })()}
+        <button type="button" class="btn primary" data-rebal style="width:100%;margin-top:10px">🧮 ${L('رتّب فلوسي (مرة واحدة، من غير سالب)', 'Sort my money (one time, no negatives)')}</button>`;
     })()}
     <table class="sw-t ess-t"><thead><tr><th></th><th>${L('المطلوب', 'Needed')}</th><th>${L('اتحط', 'Put in')}</th><th>${L('اتدفع', 'Paid')}</th><th>${L('فاضل', 'Left')}</th></tr></thead><tbody>
       ${row('📅', `${L('الدورة دي', 'This cycle')} <small><bdi dir="ltr">${sd(from)} → ${sd(to)}</bdi></small>`, E.Ec, E.nowHave, E.spNow, E.leftNow)}
@@ -2007,7 +2012,7 @@ function essDetails() {
   document.addEventListener('keydown', key);
   o.addEventListener('click', e => { if (e.target === o || e.target.closest('[data-close]')) close(); if (e.target.closest('[data-dailyview]')) close(); });
 }
-document.addEventListener('click', e => { if (e.target.closest('[data-rebal]')) return; if (e.target.closest('[data-essextra]')) { e.stopPropagation(); return essExtra(); } if (e.target.closest('[data-essview]')) { e.stopPropagation(); essDetails(); } });
+document.addEventListener('click', e => { if (e.target.closest('[data-rebal]')) return; if (e.target.closest('[data-essextra]')) { e.stopPropagation(); e.target.closest('.wiz')?.remove(); return essExtra(); } if (e.target.closest('[data-essview]')) { e.stopPropagation(); essDetails(); } });
 
 /* 🧮 رتّب فلوسي (استثناء مرة واحدة، طلب صاحب الحساب 2026-11-25): الرقم الحقيقي في البنك + البنود اللي اتدفعت خلاص
    → البنود دي تتسجّل مدفوعة، فرق البنك يتسجّل مصاريف ما اتسجلتش، سلفة الفلوس الحرّة تتقفل (صفر)، جيب الشهر = اللي فاضل للبنود اللي لسه،
@@ -2068,7 +2073,7 @@ function rebalance() {
       `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `🔀 And ${fmt(k.left)} was split by the rule — don't forget to send the debt share to ENBD.` : ''}`));
   });
 }
-document.addEventListener('click', e => { if (e.target.closest('[data-rebal]')) { e.stopPropagation(); rebalance(); } });
+document.addEventListener('click', e => { const b = e.target.closest('[data-rebal]'); if (b) { e.stopPropagation(); b.closest('.wiz')?.remove(); rebalance(); } });
 
 /* ⬆️ الزيادة فوق المطلوب: ليه زيادة، جت منين، وتوزيعها (كلها أو جزء) بنفس قاعدة الدخل (طلب صاحب الحساب، 2026-11-25) */
 function essExtra() {
