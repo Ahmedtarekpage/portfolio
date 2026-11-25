@@ -222,7 +222,9 @@ function project(R, v, rate) {
       mo.alloc.growth += r.invest; mo.alloc.debt += r.debtPay; mo.alloc.stability += r.d.stability; mo.alloc.reward += r.d.reward;
     } else if (t.type === 'debtpay' && t.bucket === 'essentials') { // سداد دين من الأساسيات: بيطلع من فلوسها زي التحويل
       mo.essAlloc -= r.aed; mo.essNat -= +t.amount || 0;
-    } else if (!['transfer', 'debtpay', 'debtadj', 'invest', 'divest', 'essout'].includes(t.type)) {
+    } else if (t.type === 'essadj') { // 🧮 تصحيح رصيد الأساسيات مع البنك
+      const d = t.dir === -1 ? -1 : 1; mo.essAlloc += d * r.aed; mo.essNat += d * (+t.amount || 0);
+    } else if (!['transfer', 'debtpay', 'debtadj', 'invest', 'divest', 'essout', 'essadj'].includes(t.type)) {
       if (t.bucket === 'essentials') { mo.essSpent += r.aed; mo.essNat -= +t.amount || 0; if (t.item) mo.items[t.item] = (mo.items[t.item] || 0) + r.aed; }
       else if (t.bucket === 'reward') mo.rewardSpent += r.aed;
       else if (t.bucket === 'sadaqa') mo.sadGiven += r.aed;
@@ -347,6 +349,11 @@ function replayOne(s, rate, home) {
       if (x) { if (!x.on) { x.on = true; x.left = x.bal; } const delta = (tx.dir === -1 ? -1 : 1) * aed; const nl = Math.max(0, x.left + delta); x.add = (x.add || 0) + (nl - x.left); x.left = nl; }
       debt = debtLeft();
       rows[tx.id] = { aed, r, debtadj: true, dir: tx.dir === -1 ? -1 : 1 };
+      continue;
+    }
+    if (tx.type === 'essadj') { // 🧮 الأساسيات اتصحّحت على رقم البنك الحقيقي (رتّب فلوسي): بتزوّد أو بتقلّل فلوسها من غير ما تتوزّع
+      const d = tx.dir === -1 ? -1 : 1; mo.essAlloc += d * aed; essCur[curOf(tx)] = (essCur[curOf(tx)] || 0) + d * (+tx.amount || 0);
+      rows[tx.id] = { aed, r, essadj: true, dir: d };
       continue;
     }
     if (tx.type === 'essout') { // 🔀 وزّعت زيادة الأساسيات بالقاعدة العادية

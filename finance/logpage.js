@@ -6,7 +6,7 @@
 export const LOG_F = () => ({ t: 'cycle', type: 'all', cur: 'ALL', q: '', from: '', to: '' });
 
 const TYPES = ['income', 'expense', 'transfer', 'debt', 'invest'];
-const typeOf = t => t.type === 'essout' ? 'split' : t.type === 'debtpay' || t.type === 'debtadj' ? 'debt' : t.type === 'divest' ? 'invest' : t.type === 'income' || t.type === 'transfer' || t.type === 'invest' ? t.type : 'expense';
+const typeOf = t => t.type === 'essout' || t.type === 'essadj' ? 'split' : t.type === 'debtpay' || t.type === 'debtadj' ? 'debt' : t.type === 'divest' ? 'invest' : t.type === 'income' || t.type === 'transfer' || t.type === 'invest' ? t.type : 'expense';
 
 /** حدود الفترة [من، لحد] كتواريخ YYYY-MM-DD */
 function range(f, h) {
@@ -76,8 +76,8 @@ export function renderLog(tx, R, f, h) {
       amt = `<b dir="ltr" class="neg">−${fmt(t.amount, 2)} ${sym(c)}</b>`;
       }
     } else if (k === 'split') {
-      title = title || L('🔀 وزّعت زيادة الأساسيات', '🔀 Split the Essentials extra');
-      amt = `<b dir="ltr">${fmt(t.amount, 2)} ${sym(c)}</b>`;
+      title = title || (t.type === 'essadj' ? L('🧮 تصحيح رصيد الأساسيات مع البنك', '🧮 Essentials matched to the bank') : L('🔀 وزّعت زيادة الأساسيات', '🔀 Split the Essentials extra'));
+      amt = `<b dir="ltr" class="${t.type === 'essadj' ? (t.dir === -1 ? 'neg' : 'pos') : ''}">${t.type === 'essadj' ? (t.dir === -1 ? '−' : '+') : ''}${fmt(t.amount, 2)} ${sym(c)}</b>`;
     } else if (k === 'invest') {
       title = title || (t.type === 'invest' ? L('استثمار', 'Investment') : L('بيع استثمار', 'Sold investment'));
       if (t.units) sub.push(`${fmt(t.units, 2)} ${L('وحدة', 'units')}`);
