@@ -1,25 +1,25 @@
 <p align="center"><img src="branding/assets/hero-animated.svg" width="100%" alt="ahmedtarek.tech: Tracks, not courses. A portfolio in front, a private workshop behind it." /></p>
 
-<p align="center"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1200&color=7263C9&center=true&vCenter=true&width=600&lines=One+passkey.+Twelve+functions.+Zero+build+step.;Clients%2C+prayers%2C+bugs+and+money+in+one+database;Meet+Shark+%F0%9F%A6%88+the+money+agent+that+asks+first" alt="Typing intro" /></p>
+<p align="center"><img src=".github/readme/typing-typing-7bc061.svg" alt="Typing intro" /></p>
 
 <p align="center">
-  <a href="https://ahmedtarek.tech"><img src="https://img.shields.io/badge/Live-ahmedtarek.tech-17A34A?logo=googlechrome&logoColor=white" alt="Live site" /></a>
-  <img src="https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white" alt="HTML5" />
-  <img src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white" alt="CSS3" />
-  <img src="https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black" alt="Vanilla JavaScript" />
-  <img src="https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white" alt="Node.js 22" />
-  <img src="https://img.shields.io/badge/Vercel-functions-black?logo=vercel&logoColor=white" alt="Vercel" />
-  <img src="https://img.shields.io/badge/Neon-Postgres-00E599?logo=postgresql&logoColor=white" alt="Neon Postgres" />
-  <img src="https://img.shields.io/badge/Passkeys-WebAuthn-7263C9?logo=webauthn&logoColor=white" alt="WebAuthn passkeys" />
-  <img src="https://img.shields.io/badge/Claude-agent-D97757?logo=anthropic&logoColor=white" alt="Claude" />
-  <img src="https://img.shields.io/badge/Gemini-fallback-8E75B2?logo=googlegemini&logoColor=white" alt="Google Gemini" />
-  <img src="https://img.shields.io/badge/ElevenLabs-voice-000000?logo=elevenlabs&logoColor=white" alt="ElevenLabs" />
-  <img src="https://img.shields.io/badge/Three.js-3D-000000?logo=threedotjs&logoColor=white" alt="Three.js" />
-  <img src="https://img.shields.io/badge/Chart.js-charts-FF6384?logo=chartdotjs&logoColor=white" alt="Chart.js" />
-  <img src="https://img.shields.io/badge/MediaPipe-pose-0097A7?logo=mediapipe&logoColor=white" alt="MediaPipe" />
-  <img src="https://img.shields.io/badge/PWA-Floosy-FF6B5B?logo=pwa&logoColor=white" alt="PWA" />
-  <img src="https://img.shields.io/badge/build%20step-none-4C3FA0" alt="No build step" />
-  <a href="branding/BRAND.md"><img src="https://img.shields.io/badge/brand-book-9184D9?logo=googlefonts&logoColor=white" alt="Brand book" /></a>
+  <a href="https://ahmedtarek.tech"><img src=".github/readme/badge-live-ahmedtarek-tech-17a34a-83890c.svg" alt="Live site" /></a>
+  <img src=".github/readme/badge-html5-e34f26-662ba3.svg" alt="HTML5" />
+  <img src=".github/readme/badge-css3-1572b6-cca199.svg" alt="CSS3" />
+  <img src=".github/readme/badge-javascript-vanilla-f7df1e-dd3681.svg" alt="Vanilla JavaScript" />
+  <img src=".github/readme/badge-node-js-22-339933-aeb689.svg" alt="Node.js 22" />
+  <img src=".github/readme/badge-vercel-functions-black-4722f9.svg" alt="Vercel" />
+  <img src=".github/readme/badge-neon-postgres-00e599-e781d4.svg" alt="Neon Postgres" />
+  <img src=".github/readme/badge-passkeys-webauthn-7263c9-d0133b.svg" alt="WebAuthn passkeys" />
+  <img src=".github/readme/badge-claude-agent-d97757-57fd61.svg" alt="Claude" />
+  <img src=".github/readme/badge-gemini-fallback-8e75b2-58a0bd.svg" alt="Google Gemini" />
+  <img src=".github/readme/badge-elevenlabs-voice-000000-cb0284.svg" alt="ElevenLabs" />
+  <img src=".github/readme/badge-three-js-3d-000000-ecf516.svg" alt="Three.js" />
+  <img src=".github/readme/badge-chart-js-charts-ff6384-9a1b81.svg" alt="Chart.js" />
+  <img src=".github/readme/badge-mediapipe-pose-0097a7-28fec8.svg" alt="MediaPipe" />
+  <img src=".github/readme/badge-pwa-floosy-ff6b5b-87f8ad.svg" alt="PWA" />
+  <img src=".github/readme/badge-build-20step-none-4c3fa0-2110ca.svg" alt="No build step" />
+  <a href="branding/BRAND.md"><img src=".github/readme/badge-brand-book-9184d9-5778f9.svg" alt="Brand book" /></a>
 </p>
 
 <p align="center"><b>A public portfolio, with a set of private, passkey-protected tools behind it:</b><br/>
@@ -1522,4 +1522,4 @@ These come from the code and from [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 <p align="center"><b>Tracks, not courses. 🏔 Built with one passkey, twelve functions and zero build steps. If a button does nothing, check <code>elementFromPoint</code> first. 😉</b></p>
 
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:7263C9,100:191A3C&height=120&section=footer" alt="footer" /></p>
+<p align="center"><img src=".github/readme/banner-banner-3756b2.svg" alt="footer" /></p>
