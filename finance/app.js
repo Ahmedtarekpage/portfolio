@@ -1972,7 +1972,7 @@ function essDetails() {
         <tr><td>👛 ${L(`جيب الشهر · لحد ${sd(to)}`, `This month · until ${sd(to)}`)}<br><small>${L(`فاضل الدورة ${fmt(E.leftNow)}${E.leftExtra > 0.5 ? ` + زيادة ${fmt(E.leftExtra)}` : ''}${DP.SF.fromM > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.SF.fromM)}` : ''} · ${L('حد الأكل والسكن', '')} ${fmt(DP.floorM)}`, `Cycle left ${fmt(E.leftNow)}${E.leftExtra > 0.5 ? ` + extra ${fmt(E.leftExtra)}` : ''}${DP.SF.fromM > 0.5 ? ` − free money loan ${fmt(DP.SF.fromM)}` : ''} · food & housing floor ${fmt(DP.floorM)}`)}</small></td><td dir="ltr"><b>${fmt(pk1)}</b></td></tr>
         ${E.debtOn ? `<tr><td>🛟 ${L(`جيب الـ10 أيام · ${sd(n1)} → ${sd(n10)}`, `10-day pocket · ${sd(n1)} → ${sd(n10)}`)}<br><small>${L('ما تلمسوش لحد القبض', "Don't touch it until payday")}${DP.SF.fromN > 0.5 ? L(` · منه سلفة ${fmt(DP.SF.fromN)} للفلوس الحرّة`, ` · ${fmt(DP.SF.fromN)} lent to free money`) : ''} · ${L('حد الأكل والسكن', 'food & housing floor')} ${fmt(DP.floorN)}</small></td><td dir="ltr"><b>${fmt(pk2)}</b>${pk2 < E.En - 0.5 ? ` / ${fmt(E.En)}` : ''}</td></tr>` : ''}
         <tr class="ft"><td>💵 ${L('معاك فعلًا', 'You really have')}</td><td dir="ltr">${fmt(DP.realHave)}</td></tr></table>
-        ${DP.solfa > 0.5 ? `<p class="note ${DP.SF.intoCore > 0.5 ? 'bad' : ''}">🎉 ${L(`سلفة الفلوس الحرّة من الأساسيات <b dir="ltr">${fmt(DP.solfa)}</b>: ${[DP.SF.fromM > 0.5 ? `${fmt(DP.SF.fromM)} من جيب الشهر` : '', DP.SF.fromN > 0.5 ? `${fmt(DP.SF.fromN)} من الـ10 أيام` : ''].filter(Boolean).join(' و')}${DP.SF.intoCore > 0.5 ? `، و${fmt(DP.SF.intoCore)} منها دخلت في فلوس الأكل والسكن` : ''}. بتترد من نصيب الفلوس الحرّة بس${solfaPaydays(c, DP.solfa)}.`, `Free money borrowed <b dir="ltr">${fmt(DP.solfa)}</b> from Essentials. It is paid back from the free money share only${solfaPaydays(c, DP.solfa)}.`)}</p>` : ''}
+        ${DP.solfa > 0.5 ? `<p class="note ${DP.SF.intoCore > 0.5 ? 'bad' : ''}">🎉 ${L(`سلفة الفلوس الحرّة من الأساسيات <b dir="ltr">${fmt(DP.solfa)}</b>: ${[DP.SF.fromX > 0.5 ? `${fmt(DP.SF.fromX)} من الزيادة` : '', DP.SF.fromN > 0.5 ? `${fmt(DP.SF.fromN)} من الـ10 أيام` : '', DP.SF.fromM > 0.5 ? `${fmt(DP.SF.fromM)} من جيب الشهر` : ''].filter(Boolean).join(' و')}${DP.SF.intoCore > 0.5 ? `، و${fmt(DP.SF.intoCore)} منها دخلت في فلوس الأكل والسكن` : ''}. بتترد من نصيب الفلوس الحرّة بس${solfaPaydays(c, DP.solfa)}.`, `Free money borrowed <b dir="ltr">${fmt(DP.solfa)}</b> from Essentials. It is paid back from the free money share only${solfaPaydays(c, DP.solfa)}.`)}</p>` : ''}
         ${DP.resShort > 0.5 ? `<p class="note">🛟 ${L(`جيب الـ10 أيام ناقص <b dir="ltr">${fmt(DP.resShort)}</b> عن ${fmt(E.En)}. أول دخل جاي بيكمّله قبل أي حاجة تانية.`, `The 10-day pocket is <b dir="ltr">${fmt(DP.resShort)}</b> short of ${fmt(E.En)}. The next income fills it before anything else.`)}</p>` : ''}
         ${(() => { const ex = DP.extra; return ex > 0.5 ? `<button type="button" class="pill" data-essextra>⬆️ ${L(`زيادة فوق المطلوب ${fmt(ex)} · شوف جت منين ووزّعها`, `Extra above what is needed ${fmt(ex)} · see where it came from and split it`)} ›</button>` : ''; })()}
         <button type="button" class="btn primary" data-rebal style="width:100%;margin-top:10px">🧮 ${L('رتّب فلوسي (مرة واحدة، من غير سالب)', 'Sort my money (one time, no negatives)')}</button>`;
@@ -2028,7 +2028,8 @@ function rebalance() {
     const paid = items.filter(r => done.has(r.id)).reduce((a, r) => a + r.remain, 0), needM = items.filter(r => !done.has(r.id)).reduce((a, r) => a + r.remain, 0);
     const bk = bank ?? +(DP.realHave - paid).toFixed(2), diff = DP.realHave - paid - bk; // موجب = اتصرف ومش متسجل، سالب = البنك فيه أكتر
     const ess = sp.left - paid - diff - DP.solfa, needN = sp.debtOn ? sp.En : 0, left = ess - needM - needN;
-    return { bk, paid, needM, diff, ess, needN, left, pk1: Math.min(needM, Math.max(0, ess)), pk2: Math.max(0, Math.min(needN, ess - needM)) };
+    const pk = pocketsOf(ess, needM, needN, 0);
+    return { bk, paid, needM, diff, ess, needN, left, pk1: pk.pk1, pk2: pk.pk2 };
   };
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
@@ -2143,6 +2144,13 @@ function essExtra() {
    والسلفة بتترد من نصيب الفلوس الحرّة بس في الدخل الجاي، فالأساسيات والدين ما بيدفعوش حاجة زيادة. */
 const CORE_RE = /أكل|اكل|food|grocer|بقالة|سوبر|إيجار|ايجار|rent|سكن|housing|accommodation|شقة/i;
 const isCore = e => e.core ?? CORE_RE.test(e.name || ''); // الأكل والسكن: ليهم حد أدنى محمي
+/* 🏦 الجيبين من الفلوس اللي معاك فعلًا، بحسبة واحدة في كل حتة (الكارت، التفاصيل، اليومي، رتّب فلوسي، تحذير السلفة):
+   جيب الشهر يتملا الأول باللي فاضل من البنود لآخر الدورة، بعدين جيب الـ10 أيام، واللي يفضل بس هو "الزيادة".
+   (طلب صاحب الحساب، 2026-11-25: كان فيه حسبتين — بالبنود وبالميزانية الكلية — فطلعت زيادة والاحتياطي ناقص في نفس الوقت) */
+function pocketsOf(T, needM, En, floorM) {
+  const pk1 = Math.min(needM, Math.max(0, T)), pk2 = Math.min(En, Math.max(0, T - pk1));
+  return { pk1, pk2, extra: Math.max(0, T - needM - En), shortM: Math.max(0, floorM - pk1), resShort: Math.max(0, En - pk2) };
+}
 function solfaSplit(m0, n0, floorM, floorN, d) {
   const t1 = Math.min(d, Math.max(0, m0 - floorM)); d -= t1;
   const t2 = Math.min(d, Math.max(0, n0 - floorN)); d -= t2;
@@ -2180,15 +2188,15 @@ function dailyPlan(c) {
   const floorM = all.filter(r => isCore(S.essentials.find(e => e.id === r.id) || {})).reduce((a, r) => a + r.remain, 0);
   const np = nextPeriod(c.ym), nIt = S.essentials.map(e => [isCore(e), itemFor(S, e, np) * rate(cOf(e))]), nTot = nIt.reduce((a, x) => a + x[1], 0);
   const floorN = sp.debtOn && nTot > 0 ? sp.En * nIt.filter(x => x[0]).reduce((a, x) => a + x[1], 0) / nTot : 0;
-  const m0 = Math.max(0, sp.avail), n0 = sp.debtOn ? Math.max(0, sp.leftNext) : 0, solfa = -funNeg, SF = solfaSplit(m0, n0, floorM, floorN, solfa);
-  // أكل وسكن الشهر ده أولى من الاحتياطي: لو جيب الشهر نزل تحت حدّهم (من صرف زيادة أو سلفة)، الفرق بيتاخد من جيب الـ10 أيام
-  const lift = Math.max(0, Math.min(floorM - SF.pk1, SF.pk2)); SF.pk1 += lift; SF.pk2 -= lift; SF.lift = lift; SF.shortM = Math.max(0, floorM - SF.pk1);
+  const needM = all.reduce((a, r) => a + r.remain, 0), En = sp.debtOn ? sp.En : 0, solfa = -funNeg;
+  const PK = pocketsOf(realHave, needM, En, floorM), P0 = pocketsOf(realHave + solfa, needM, En, floorM); // P0 = لو مفيش سلفة
+  const fromN = Math.max(0, P0.pk2 - PK.pk2), fromM = Math.max(0, P0.pk1 - PK.pk1), fromX = Math.max(0, P0.extra - PK.extra);
+  const SF = { pk1: PK.pk1, pk2: PK.pk2, fromM, fromN, fromX, intoCore: PK.shortM, shortM: PK.shortM, lift: 0 };
+  const m0 = P0.pk1 + P0.extra, n0 = P0.pk2;
   const pool2 = SF.pk1 - offRemain, essDaily2 = Math.max(0, pool2) / daysLeft; // المصروف اليومي من جيب الشهر بعد السلفة
   return { rows, off, daysLeft, end: new Date(y, m, pd - 1), sp, offRemain, funNeg, pool: pool2, essDaily: essDaily2, funDaily, over: Math.max(0, -pool2), realHave, reserveDaily,
     solfa, SF, floorM, floorN, m0, n0, pk1: SF.pk1, pk2: SF.pk2,
-    needM: all.reduce((a, r) => a + r.remain, 0), // اللي لسه محتاجه الشهر ده (كل البنود)
-    extra: Math.max(0, realHave - all.reduce((a, r) => a + r.remain, 0) - (sp.debtOn ? sp.En : 0)), // زيادة = بعد الشهر والاحتياطي كامل
-    resShort: sp.debtOn ? Math.max(0, sp.En - SF.pk2) : 0,
+    needM, En, extra: PK.extra, resShort: PK.resShort,
     itemsTotal: rows.filter(r => !r.fun).reduce((a, r) => a + r.today, 0), total: essDaily + funDaily };
 }
 function dailyDetails() {
@@ -2922,8 +2930,8 @@ async function flowSpend(preset) {
   if (bucket === 'reward') { // 🎉 أكتر من اللي في الحصّالة = سلفة من الأساسيات: نقول هتتاخد منين قبل ما يتسجل
     const c0 = ctx(), jar = Math.max(0, c0.R.rewardAED), over = aed - jar;
     if (over > 0.5) {
-      const P = dailyPlan(c0), sim = solfaSplit(P.m0, P.n0, P.floorM, P.floorN, P.solfa + over);
-      const dM = sim.fromM - P.SF.fromM, dN = sim.fromN - P.SF.fromN, dCore = sim.intoCore - P.SF.intoCore;
+      const P = dailyPlan(c0), sim = pocketsOf(P.realHave - over, P.needM, P.En, P.floorM);
+      const dM = P.pk1 - sim.pk1, dN = P.pk2 - sim.pk2, dCore = sim.shortM - P.SF.shortM;
       const ok = await ask(L(`🎉 الحصّالة فيها ${fmt(jar)} بس. الباقي <b dir="ltr">${fmt(over)}</b> هيبقى <b>سلفة من الأساسيات</b>:<ul class="alloc">${dM > 0.5 ? `<li><span>👛 من جيب الشهر</span><b dir="ltr">${fmt(dM)}</b></li>` : ''}${dN > 0.5 ? `<li><span>🛟 من جيب الـ10 أيام</span><b dir="ltr">${fmt(dN)}</b></li>` : ''}</ul>${dCore > 0.5 ? `⚠️ <b>${fmt(dCore)} منهم هيدخلوا في فلوس الأكل والسكن.</b><br>` : ''}والسلفة بتترد من نصيب الفلوس الحرّة بس، ومفيش فلوس حرّة جديدة لحد ما ترجع.`,
         `🎉 The jar only has ${fmt(jar)}. The other <b dir="ltr">${fmt(over)}</b> becomes a <b>loan from Essentials</b>:<ul class="alloc">${dM > 0.5 ? `<li><span>👛 from this month</span><b dir="ltr">${fmt(dM)}</b></li>` : ''}${dN > 0.5 ? `<li><span>🛟 from the 10-day pocket</span><b dir="ltr">${fmt(dN)}</b></li>` : ''}</ul>${dCore > 0.5 ? `⚠️ <b>${fmt(dCore)} of it eats into food and housing money.</b><br>` : ''}It's paid back from the free money share only, and there's no new free money until it is.`),
         [{ l: L('✅ سجّله كسلفة', '✅ Log it as a loan'), v: 'y' }, BACK]);
