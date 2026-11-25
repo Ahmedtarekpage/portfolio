@@ -406,10 +406,11 @@ const minDue = (d, bal) => { const c = cardCfg(d); return Math.max(bal * c.minPc
 /** كشف الكارت ده: رصيده، اللي اتدفع من ساعتها، الباقي عشان ما يتحسبش ربا، الحد الأدنى الباقي، والربا المتوقع */
 function stmtInfo(R, d, cy, until = new Date()) {
   const left = dLeft(R, d), paidAll = paidBetween(R, d, cy.st, new Date(8.64e15));
-  const bal = Math.max(0, left + paidAll - addedAfter(d, cy.st)); // رصيد يوم الكشف تقريبًا
+  const real = d.card?.bal?.[cy.key]; // رصيد الكشف الحقيقي لو كتبته من البنك
+  const bal = real != null ? +real : Math.max(0, left + paidAll - addedAfter(d, cy.st)); // وإلا رصيد يوم الكشف تقريبًا
   const paid = paidBetween(R, d, cy.st, until < cy.due ? until : cy.due);
   const min = minDue(d, bal);
-  return { bal, paid, toFull: Math.max(0, bal - paid), min, minLeft: Math.max(0, min - paid), riba: +(bal * cy.c.rate / 100).toFixed(2) };
+  return { bal, real: real != null, left, paidAll, added: addedAfter(d, cy.st), paid, toFull: Math.max(0, bal - paid), min, minLeft: Math.max(0, min - paid), riba: +(bal * cy.c.rate / 100).toFixed(2) };
 }
 const cDec = (d, k) => ((S.cardDec ??= {})[d.id] ??= {})[k];
 const setDec = (d, k, v) => { ((S.cardDec ??= {})[d.id] ??= {})[k] = v; };
@@ -522,7 +523,7 @@ function cardBar() {
     const u = (n, w) => `<span class="cd"><b>${String(n).padStart(2, '0')}</b><small>${w}</small></span>`;
     const clock = u(Math.floor(ms / 864e5), L('يوم', 'days')) + u(Math.floor(ms / 36e5) % 24, L('ساعة', 'hrs')) + u(Math.floor(ms / 6e4) % 60, L('دقيقة', 'min')) + u(Math.floor(ms / 1e3) % 60, L('ثانية', 'sec'));
     const ok = info.toFull <= 0.5;
-    rows.push(`<div class="cb-row ${!ok && ms < 3 * 864e5 ? 'hot' : ''} ${ok ? 'ok' : ''}">
+    rows.push(`<div class="cb-row ${!ok && ms < 3 * 864e5 ? 'hot' : ''} ${ok ? 'ok' : ''}" data-cardexplain="${d.id}" title="${L('دوس تشوف كل رقم جه منين', 'Tap to see where each number comes from')}">
       <div class="cb-head"><span>💳 <b>${nm}</b> · ${L('آخر ميعاد', 'Due')} <bdi dir="ltr">${isoD(cy.due)}</bdi></span><button type="button" class="cb-edit" data-cardsetup="${d.id}" title="${L('عدّل بيانات الكارت', 'Edit the card details')}">✏️</button></div>
       <div class="cb-clock">${clock}</div>
       <table class="cb-t"><tr><td>📄 ${L(`رصيد كشف ${cy.key}`, `Statement ${cy.key}`)}</td><td dir="ltr">${fmt(info.bal, 0)} ${cu}</td></tr>
@@ -530,11 +531,61 @@ function cardBar() {
         <tr class="${ok ? 'good' : 'warn'}"><td>🎯 ${L('عشان ما يتحسبش ربا ادفع', 'Pay to avoid riba')}</td><td dir="ltr">${ok ? L('✅ اتدفع', '✅ Paid') : fmt(info.toFull, 0)}</td></tr>
         <tr><td>⚠️ ${L(`الحد الأدنى الباقي (من ${fmt(info.min, 0)})`, `Minimum left (of ${fmt(info.min, 0)})`)}</td><td dir="ltr">${info.minLeft <= 0.5 ? L('✅ اتدفع', '✅ Paid') : fmt(info.minLeft, 0)}</td></tr>
         <tr><td>📈 ${L('لو ما دفعتش كله: ربا هيتضاف', 'If not paid in full: riba added')}</td><td dir="ltr">${ok ? '0' : '+' + fmt(info.riba, 0)}</td></tr></table>
+      <small class="cb-more">🔎 ${L('دوس على أي رقم تشوف جه منين', 'Tap any number to see where it comes from')} ${info.real ? L('· 📄 رصيد الكشف من البنك', '· 📄 statement balance from the bank') : ''}</small>
     </div>`);
   }
   el.hidden = !rows.length; el.innerHTML = rows.join('');
 }
 setInterval(() => { try { if (!document.hidden) cardBar(); } catch {} }, 1000);
+/** 🔎 كل رقم في عدّاد الكارت جه منين: رصيد الكشف، كل دفعة بتاريخها، الحد الأدنى، والربا، واللي بيحصل لو ما دفعتش */
+function cardExplain(id) {
+  const d = debts().find(x => x.id === id); if (!d) return;
+  const R = ctx().R, cy = cardCycle(d), info = stmtInfo(R, d, cy), cu = CUR[cOf(d)].s, nm = esc(d.name), c = cy.c, r2 = n => fmt(n, 2);
+  // كل دفعة للكارت من يوم الكشف: من دخل اتوزّع (حوّل X لـ…) أو سداد مباشر
+  const pays = S.tx.filter(t => t.date >= isoD(cy.st) && R.rows[t.id]?.paidTo?.[d.id] > 0.005).map(t => {
+    const v = R.rows[t.id].paidTo[d.id] / rate(cOf(d)), auto = t.type === 'income';
+    return `<tr><td><bdi dir="ltr">${t.date}</bdi> · ${auto ? `💰 ${L('من دخل', 'from income')}: ${esc(t.note || t.cat || '')} ${t.done?.debt ? '✅' : `<small class="warn">${L('(لسه ما علّمتش إنك حوّلتها)', "(not ticked as sent yet)")}</small>`}` : `💳 ${L('سداد مباشر', 'direct payment')} ${esc(t.note || '')}`}</td><td dir="ltr">${r2(v)}</td></tr>`;
+  }).join('');
+  const lateRate = (c.rate + 0.5).toFixed(2);
+  const o = document.createElement('div');
+  o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+  o.innerHTML = `<div class="wiz-card glass dd card-x">
+    <div class="wiz-top"><b>🔎 ${L(`${nm}: كل رقم جه منين`, `${nm}: where each number comes from`)}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+    <h4>📄 ${L(`رصيد كشف ${cy.key}`, `Statement ${cy.key} balance`)} = <b dir="ltr">${r2(info.bal)} ${cu}</b></h4>
+    ${info.real ? `<p class="note">${L('ده الرقم اللي إنت كتبته من كشف البنك ✅', 'This is the number you typed from the bank statement ✅')}</p><button type="button" class="pill" data-cxbal>✏️ ${L('عدّل رصيد الكشف', 'Edit the statement balance')}</button>` : `<table class="sw-t"><tr><td>${L('الباقي على الكارت دلوقتي', "What's left on the card now")}</td><td dir="ltr">${r2(info.left)}</td></tr>
+      <tr><td>+ ${L('اللي اتدفع من يوم الكشف لحد النهارده', 'Paid since the statement until today')}</td><td dir="ltr">${r2(info.paidAll)}</td></tr>
+      ${Math.abs(info.added) > 0.005 ? `<tr><td>− ${L('ربا / غرامات / تصحيحات اتضافت بعد الكشف', 'Riba / fees / corrections added after the statement')}</td><td dir="ltr">${r2(info.added)}</td></tr>` : ''}
+      <tr class="ft"><td>= ${L('رصيد يوم الكشف (تقريبًا)', 'Balance on statement day (approx.)')}</td><td dir="ltr">${r2(info.bal)}</td></tr></table>
+      <p class="note">⚠️ ${L('ده حساب البرنامج. الرقم الحقيقي مكتوب في كشف ENBD (Statement balance) — اكتبه هنا وكل الأرقام تتظبط عليه:', "This is the app's estimate. The real figure is on the ENBD statement (Statement balance) — type it here and everything follows it:")}</p>
+      <button type="button" class="pill" data-cxbal>📄 ${L('اكتب رصيد الكشف الحقيقي', 'Type the real statement balance')}</button>`}
+    <h4>✅ ${L('اتدفع من يوم الكشف', 'Paid since the statement')} = <b dir="ltr">${r2(info.paid)}</b></h4>
+    ${pays ? `<table class="sw-t">${pays}</table>` : `<p class="note">${L('مفيش دفعات متسجلة للكارت من يوم الكشف.', 'No payments to the card logged since the statement.')}</p>`}
+    <p class="note">💡 ${L('الدفعات اللي "من دخل" هي اللي البرنامج قالك تحوّلها لـENBD بعد كل دخل (من نصيب النمو)، وبيعتبرها اتدفعت. لو فيه دفعة لسه ما حوّلتهاش فعلًا، الرقم ده أكبر من اللي وصل البنك.', 'Payments "from income" are the ones the app told you to send to ENBD after each income (the Growth share), and it counts them as paid. If one hasn\'t really been sent yet, this number is higher than what reached the bank.')}</p>
+    <h4>🎯 ${L('عشان ما يتحسبش ربا', 'To avoid riba')}: ${info.toFull <= 0.5 ? L('✅ اتدفع', '✅ Paid') : `<b dir="ltr">${r2(info.toFull)}</b>`}</h4>
+    <p class="note">${L(`رصيد الكشف ${r2(info.bal)} − اللي اتدفع ${r2(info.paid)} = <b dir="ltr">${r2(info.toFull)}</b>. لو الرقم ده اتدفع كله لحد <bdi dir="ltr">${isoD(cy.due)}</bdi> → <b>صفر ربا</b> على الكشف ده.`, `Statement ${r2(info.bal)} − paid ${r2(info.paid)} = <b dir="ltr">${r2(info.toFull)}</b>. Pay it all by <bdi dir="ltr">${isoD(cy.due)}</bdi> → <b>zero riba</b> on this statement.`)}</p>
+    <h4>⚠️ ${L('الحد الأدنى', 'Minimum due')}: ${info.minLeft <= 0.5 ? L('✅ اتدفع', '✅ Paid') : `${L('فاضل', 'left')} <b dir="ltr">${r2(info.minLeft)}</b>`}</h4>
+    <p class="note">${L(`الحد الأدنى = الأكبر من ${c.minPct}% من رصيد الكشف (${r2(info.bal * c.minPct / 100)}) أو ${c.minAmt} درهم = <b dir="ltr">${r2(info.min)}</b>. اتدفع ${r2(info.paid)}، ${info.minLeft <= 0.5 ? `يعني <b>اتغطّى</b> (${r2(info.paid)} ≥ ${r2(info.min)}) فمفيش غرامة تأخير.` : `يعني فاضل ${r2(info.minLeft)} لازم يتدفع لحد <bdi dir="ltr">${isoD(cy.due)}</bdi>.`}`, `Minimum = the larger of ${c.minPct}% of the statement (${r2(info.bal * c.minPct / 100)}) or AED ${c.minAmt} = <b dir="ltr">${r2(info.min)}</b>. Paid ${r2(info.paid)}, ${info.minLeft <= 0.5 ? `so it's <b>covered</b> (${r2(info.paid)} ≥ ${r2(info.min)}) — no late fee.` : `so ${r2(info.minLeft)} must be paid by <bdi dir="ltr">${isoD(cy.due)}</bdi>.`}`)}</p>
+    <div class="cx-warn"><b>❗ ${L('لو الحد الأدنى ما اتدفعش لحد الميعاد:', 'If the minimum is not paid by the due date:')}</b><ul>
+      <li>${L(`غرامة تأخير <b>${fmt(c.lateFee, 2)} درهم</b> بتتضاف على الدين`, `A late fee of <b>AED ${fmt(c.lateFee, 2)}</b> is added to the debt`)}</li>
+      <li>${L('الربا بيتحسب على الرصيد كله، مش على الباقي بس', 'Riba is charged on the whole balance, not just what is left')}</li>
+      <li>${L(`لو اتأخرت مرتين في 6 شهور، النسبة بتزيد 0.5% (من ${c.rate}% لـ ${lateRate}% في الشهر)`, `If you are late twice in 6 months, the rate goes up 0.5% (from ${c.rate}% to ${lateRate}% a month)`)}</li>
+      <li>${L('التأخير بيتسجّل في سجلك الائتماني (الاتحاد للمعلومات الائتمانية) وبيأثر على أي قرض أو كارت بعد كده', 'Late payments go on your credit record (Al Etihad Credit Bureau) and affect any future loan or card')}</li></ul></div>
+    <h4>📈 ${L('الربا لو ما اتدفعش كله', 'Riba if not paid in full')}: <b dir="ltr">${info.toFull <= 0.5 ? '0' : '+' + r2(info.riba)}</b></h4>
+    <p class="note">${L(`${c.rate}% × رصيد الكشف ${r2(info.bal)} = <b dir="ltr">${r2(info.riba)}</b> تقريبًا. البنك بيحسبه بالظبط على <b>متوسط الرصيد اليومي</b> من يوم كل عملية لحد ما تتسدّ، فكل ما تدفع بدري جوّه الشهر بيقلّ. ولو اتدفع الكشف كله لحد الميعاد = صفر.`, `${c.rate}% × statement ${r2(info.bal)} = about <b dir="ltr">${r2(info.riba)}</b>. The bank works it out exactly on the <b>average daily balance</b> from each transaction until it's paid, so paying earlier in the month lowers it. Pay the whole statement by the due date = zero.`)}</p>
+  </div>`;
+  document.body.appendChild(o); sfx.open();
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); };
+  o.addEventListener('click', e => {
+    if (e.target === o || e.target.closest('[data-close]')) return close();
+    if (e.target.closest('[data-cxbal]')) {
+      const t = prompt(L(`رصيد كشف ${cy.key} في تطبيق ENBD (Statement balance) كام؟`, `What is the ${cy.key} statement balance in the ENBD app (Statement balance)?`)); if (t == null) return;
+      const v = parseNum(t); if (!(v >= 0)) return toast(L('الرقم مش واضح', "That number isn't clear"));
+      ((d.card ??= {}).bal ??= {})[cy.key] = +v.toFixed(2); save(); render(); close(); cardExplain(id); toast(L('📄 اتحفظ رصيد الكشف من البنك', '📄 Saved the statement balance from the bank'));
+    }
+  });
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-cardsetup]')) return; const b = e.target.closest('[data-cardexplain]'); if (b) { e.stopPropagation(); cardExplain(b.dataset.cardexplain); } });
+
 document.addEventListener('click', e => { const b = e.target.closest('[data-cardsetup]'); if (!b) return; UI.cardPick = b.dataset.cardsetup; if (atMenu) answer('cardSetup', L('💳 بيانات الكارت', '💳 Card details')); else toast(L('خلّص اللي قرش بيسأله الأول', 'Finish what Shark is asking first')); });
 
 function ctx() {

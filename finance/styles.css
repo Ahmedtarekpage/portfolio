@@ -1059,3 +1059,10 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .card-bar .cb-t tr.warn td { color: #fcd34d; } .card-bar .cb-t tr.good td { color: #6ee7b7; }
 .card-alert .ca-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .card-alert .sw-t tr.ft td { color: #fca5a5; font-weight: 800; }
+.card-bar .cb-row[data-cardexplain] { cursor: pointer; }
+.card-bar .cb-row[data-cardexplain]:hover { filter: brightness(1.08); }
+.card-bar .cb-more { opacity: .7; font-size: .7rem; }
+.card-x h4 { margin: 16px 0 6px; font-size: .95rem; }
+.card-x .warn { color: #fcd34d; }
+.card-x .cx-warn { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(248, 113, 113, .1); border: 1px solid rgba(248, 113, 113, .35); font-size: .85rem; }
+.card-x .cx-warn ul { margin: 6px 0 0; padding-inline-start: 18px; display: grid; gap: 4px; }
