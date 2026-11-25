@@ -2021,77 +2021,105 @@ document.addEventListener('click', e => { if (e.target.closest('[data-rebal]')) 
    جيب الـ10 أيام = الاحتياطي، والباقي يتوزّع بقاعدة الدخل. كله معاملات عادية في السجل وتتمسح زي أي معاملة. */
 function rebalance() {
   const cu = cardView() !== 'ALL' ? cardView() : (cOf(S.job || {}) || 'AED'), real = S;
-  let c, DP; try { S = viewState(cu); c = ctx(); DP = dailyPlan(c); } finally { S = real; UI.R = ctx().R; }
-  const sp = DP.sp, items = [...DP.rows.filter(r => !r.fun), ...DP.off].filter(r => r.remain > 0.5), sy = CUR[cu].s;
-  // ✅ هنا معناها "مش هيتدفع من الفلوس دي لحد آخر الدورة" (من برّه أو متجاهَل) — مش مصروف (طلب صاحب الحساب، 2026-11-25)
-  const out = new Set();
-  let bank = null; // لحد ما يكتبه أو يدوس "الرقم ده صح"
-  const calc = () => {
-    const skip = items.filter(r => out.has(r.id)).reduce((a, r) => a + r.remain, 0), needM = items.filter(r => !out.has(r.id)).reduce((a, r) => a + r.remain, 0);
-    const bk = bank ?? +DP.realHave.toFixed(2), diff = DP.realHave - bk; // موجب = اتصرف ومش متسجل، سالب = البنك فيه أكتر
-    const ess = sp.left - diff - DP.solfa, needN = sp.debtOn ? sp.En : 0, left = ess - needM - needN;
-    const pk = pocketsOf(ess, needM, needN, 0);
-    return { bk, skip, needM, diff, ess, needN, left, pk1: pk.pk1, pk2: pk.pk2 };
-  };
+  let c, DP; try { S = viewState(cu); c = ctx(); DP = dailyPlan(c, true); } finally { S = real; UI.R = ctx().R; }
+  const sp = DP.sp, items = [...DP.rows.filter(r => !r.fun), ...DP.off].filter(r => r.remain > 0.5), sy = CUR[cu].s, En = sp.debtOn ? sp.En : 0;
+  // خطوة بخطوة (طلب صاحب الحساب، 2026-11-25): البنك ← الدورة دي ← الـ10 أيام ← الزيادة ← تأكيد
+  const out = new Set(); let step = 0, bank = null, mAmt = null, nAmt = null, extraHow = 'keep';
+  const have = () => bank ?? +DP.realHave.toFixed(2);
+  const ess = () => have(); // اللي هيبقى في الأساسيات بعد الترتيب (السلفة بتتقفل من نفس الفلوس، فالأساسيات = رقم البنك)
+  const needM = () => items.filter(r => !out.has(r.id)).reduce((a, r) => a + r.remain, 0);
+  const M = () => Math.max(0, Math.min(mAmt ?? needM(), ess()));
+  const N = () => Math.max(0, Math.min(nAmt ?? En, ess() - M()));
+  const X = () => Math.max(0, ess() - M() - N());
+  const diff = () => DP.realHave - have();
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
-  const draw = () => {
-    const k = calc();
-    o.innerHTML = `<div class="wiz-card glass dd card-x">
-      <div class="wiz-top"><b>🧮 ${L('رتّب فلوسي (مرة واحدة)', 'Sort my money (one time)')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
-      <h4>1️⃣ ${L(`معاك كام فعلًا في البنك دلوقتي (${sy})؟`, `How much is really in the bank now (${sy})?`)}</h4>
-      <label class="wiz-amt"><input class="wiz-in num" data-rbank inputmode="decimal" dir="ltr" value="${bank ?? ''}" placeholder="${fmt(k.bk, 2)}"><span dir="ltr">${sy}</span></label>
+  const amt = (k, v, ph) => `<label class="wiz-amt"><input class="wiz-in num" data-ramt="${k}" inputmode="decimal" dir="ltr" value="${v ?? ''}" placeholder="${ph}"><span dir="ltr">${sy}</span></label>`;
+  const dots = () => `<div class="wiz-chips" style="justify-content:center">${[0, 1, 2, 3, 4].map(n => `<span class="wiz-chip ${n === step ? 'on' : ''}" style="pointer-events:none">${n + 1}</span>`).join('')}</div>`;
+  const STEPS = [
+    () => `<h4>1️⃣ ${L(`معاك كام في البنك دلوقتي (${sy})؟`, `How much is in the bank now (${sy})?`)}</h4>
+      ${amt('bank', bank, fmt(DP.realHave, 2))}
       <div class="wiz-chips"><button type="button" class="wiz-chip ${bank != null && Math.abs(bank - DP.realHave) < 0.01 ? 'on' : ''}" data-rsame>✅ ${L(`الرقم ده صح · ${fmt(DP.realHave, 2)}`, `That number is right · ${fmt(DP.realHave, 2)}`)}</button></div>
-      <p class="note">${L(`البرنامج متوقّع ${fmt(DP.realHave, 2)} = الأساسيات ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.solfa)}` : ''}. لو البنك فيه رقم تاني اكتبه (من غير فلوس الأمان).`, `The app expects ${fmt(DP.realHave, 2)} = Essentials ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − free money loan ${fmt(DP.solfa)}` : ''}. If the bank shows another number, type it (without safety money).`)}</p>
-      <h4>2️⃣ ${L(`إيه اللي مش هيتدفع من الفلوس دي لحد ${dayName(DP.end)}؟`, `What won't be paid from this money until ${dayName(DP.end)}?`)}</h4>
-      <p class="note">${L('اتدفع من برّه، أو هتتجاهله الدورة دي. مش بيتسجّل مصروف ومش بيتخصم من فلوسك، بس بيتشال من احتياجات جيب الشهر.', "Paid from outside, or skipped this cycle. It isn't logged as spending and nothing is taken from your money; it just leaves this month's needs.")}</p>
+      <p class="note">${L(`البرنامج متوقّع ${fmt(DP.realHave, 2)} = الأساسيات ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.solfa)} (هتتقفل ويرجع صفر)` : ''}. من غير فلوس الأمان.`, `The app expects ${fmt(DP.realHave, 2)} = Essentials ${fmt(sp.left)}${DP.solfa > 0.5 ? ` − free money loan ${fmt(DP.solfa)} (it gets closed to zero)` : ''}. Without safety money.`)}</p>`,
+    () => `<h4>2️⃣ ${L(`الدورة دي: فاضل ${DP.daysLeft} يوم لحد ${dayName(DP.end)}`, `This cycle: ${DP.daysLeft} days left until ${dayName(DP.end)}`)}</h4>
+      <p class="note">${L('البنود اللي لسه محتاجة فلوس. علّم 🙈 على اللي اتدفع من برّه أو هتتجاهله لحد آخر الدورة:', 'Items still needing money. Mark 🙈 what is paid from outside or skipped until the cycle ends:')}</p>
       <div class="dly-pick">${items.map(r => `<button type="button" class="pill ${out.has(r.id) ? 'on' : ''}" data-rdone="${r.id}">${out.has(r.id) ? '🙈' : '⬜'} ${r.icon} ${esc(r.name)} · ${fmt(r.remain)}</button>`).join('') || `<p class="note">${L('كل البنود متغطية', 'Every item is covered')}</p>`}</div>
-      <h4>3️⃣ ${L('هيتعمل كده', "Here's what happens")}</h4>
+      <p class="note">${L(`محتاج <b dir="ltr">${fmt(needM())}</b> لآخر الدورة (≈ ${fmt(needM() / DP.daysLeft, 1)} في اليوم). تحب تحط كام في جيب الشهر؟ تقدر تكتب أقل.`, `You need <b dir="ltr">${fmt(needM())}</b> until the cycle ends (≈ ${fmt(needM() / DP.daysLeft, 1)} a day). How much for this month's pocket? You can type less.`)}</p>
+      ${amt('m', mAmt, fmt(Math.min(needM(), ess())))}
+      <p class="note">${L(`= ${fmt(M() / DP.daysLeft, 2)} في اليوم · فاضل بعده ${fmt(ess() - M())}`, `= ${fmt(M() / DP.daysLeft, 2)} a day · ${fmt(ess() - M())} left after it`)}</p>
+      ${M() < needM() - 0.5 ? `<p class="note bad">⚠️ ${L(`أقل من اللي البنود محتاجاه بـ ${fmt(needM() - M())}.`, `${fmt(needM() - M())} less than the items need.`)}</p>` : ''}`,
+    () => `<h4>3️⃣ ${L('أول 10 أيام بعد القبض', 'The first 10 days after payday')}</h4>
+      <p class="note">${L(`فاضل معاك <b dir="ltr">${fmt(ess() - M())}</b>. احتياطي الـ10 أيام محتاج <b dir="ltr">${fmt(En)}</b>. تحب تحط كام؟`, `You have <b dir="ltr">${fmt(ess() - M())}</b> left. The 10-day reserve needs <b dir="ltr">${fmt(En)}</b>. How much?`)}</p>
+      ${amt('n', nAmt, fmt(Math.min(En, ess() - M())))}
+      ${N() < En - 0.5 ? `<p class="note bad">⚠️ ${L(`ناقص ${fmt(En - N())} عن الـ10 أيام. أول دخل جاي هيكمّله.`, `${fmt(En - N())} short of the 10 days. The next income fills it first.`)}</p>` : `<p class="note">✅ ${L('الـ10 أيام متغطيين.', 'The 10 days are covered.')}</p>`}`,
+    () => `<h4>4️⃣ ${L('الزيادة', 'The extra')}</h4>
+      ${X() > 0.5 ? `<p class="note">${L(`فاضل <b dir="ltr">${fmt(X())}</b> بعد الجيبين. تعمل بيهم إيه؟`, `<b dir="ltr">${fmt(X())}</b> is left after both pockets. What should happen to it?`)}</p>
+      <div class="wiz-opts col">
+        <button type="button" class="wiz-opt row ${extraHow === 'keep' ? 'on' : ''}" data-rhow="keep"><span class="big">🍞</span><span><b>${L('تفضل في الأساسيات', 'Stay in Essentials')}</b><small>${L('زيادة عن الجيبين، توزّعها بعدين لو حبيت', 'Above both pockets; split it later if you like')}</small></span></button>
+        <button type="button" class="wiz-opt row ${extraHow === 'split' ? 'on' : ''}" data-rhow="split"><span class="big">🔀</span><span><b>${L('تتوزّع بالقاعدة العادية', 'Split by the usual rule')}</b><small>${L('زي أي دخل وقت الدين: معظمها للدين والفلوس الحرّة نصيبها', 'Like any income while in debt: most to the debt, free money gets its share')}</small></span></button>
+      </div>` : `<p class="note">${L('مفيش زيادة — كل الفلوس راحت للجيبين.', 'No extra — all the money went into the two pockets.')}</p>`}`,
+    () => `<h4>5️⃣ ${L('راجع وأكّد', 'Check and confirm')}</h4>
       <table class="sw-t">
-        ${k.skip > 0.5 ? `<tr><td>🙈 ${L(`مش محسوبين لحد ${dayName(DP.end)}`, `Not counted until ${dayName(DP.end)}`)}<br><small>${items.filter(r => out.has(r.id)).map(r => `${r.icon} ${esc(r.name)} ${fmt(r.remain)}`).join(' · ')}</small></td><td dir="ltr">${fmt(k.skip)}</td></tr>` : ''}
-        ${bank == null ? '' : k.diff > 0.5 ? `<tr><td>🧾 ${L('فرق مع البنك = مصاريف ما اتسجلتش', 'Gap with the bank = unlogged spending')}</td><td dir="ltr">${fmt(k.diff)}</td></tr>` : k.diff < -0.5 ? `<tr><td>🧮 ${L('البنك فيه أكتر = تصحيح رصيد', 'The bank has more = balance fix')}</td><td dir="ltr">+${fmt(-k.diff)}</td></tr>` : ''}
-        ${DP.solfa > 0.5 ? `<tr><td>🎉 ${L('سلفة الفلوس الحرّة تتقفل (ترجع صفر)', 'The free money loan is closed (back to zero)')}</td><td dir="ltr">${fmt(DP.solfa)}</td></tr>` : ''}
-        <tr class="ft"><td>👛 ${L(`جيب الشهر · لحد ${dayName(DP.end)}`, `This month · until ${dayName(DP.end)}`)}<br><small>${items.filter(r => !out.has(r.id)).map(r => `${r.icon} ${esc(r.name)} ${fmt(r.remain)}`).join(' · ') || L('مفيش حاجة لسه', 'Nothing left')}</small></td><td dir="ltr">${fmt(k.pk1)}${k.pk1 < k.needM - 0.5 ? ` / ${fmt(k.needM)}` : ''}</td></tr>
-        ${sp.debtOn ? `<tr class="ft"><td>🛟 ${L('جيب الـ10 أيام', '10-day pocket')}</td><td dir="ltr">${fmt(k.pk2)}${k.pk2 < k.needN - 0.5 ? ` / ${fmt(k.needN)}` : ''}</td></tr>` : ''}
-        ${k.left > 0.5 ? `<tr><td>⬆️ ${L('الباقي يفضل معاك "فلوس زيادة عن الجيبين"', 'The rest stays with you as "more than both pockets need"')}<br><small>${L('مش بيروح للدين ولا لأي حتة.', "It doesn't go to the debt or anywhere.")}</small></td><td dir="ltr">${fmt(k.left)}</td></tr>` : ''}
+        <tr><td>🏦 ${L('في البنك', 'In the bank')}</td><td dir="ltr">${fmt(have())}</td></tr>
+        ${diff() > 0.5 ? `<tr><td>🧾 ${L('فرق مع البرنامج = مصاريف ما اتسجلتش', 'Gap with the app = unlogged spending')}</td><td dir="ltr">${fmt(diff())}</td></tr>` : diff() < -0.5 ? `<tr><td>🧮 ${L('البنك فيه أكتر = تصحيح رصيد', 'The bank has more = balance fix')}</td><td dir="ltr">+${fmt(-diff())}</td></tr>` : ''}
+        ${DP.solfa > 0.5 ? `<tr><td>🎉 ${L('سلفة الفلوس الحرّة تتقفل (ترجع صفر)', 'Free money loan closed (back to zero)')}</td><td dir="ltr">${fmt(DP.solfa)}</td></tr>` : ''}
+        ${out.size ? `<tr><td>🙈 ${L(`مش محسوبين لحد ${dayName(DP.end)}`, `Not counted until ${dayName(DP.end)}`)}<br><small>${items.filter(r => out.has(r.id)).map(r => `${r.icon} ${esc(r.name)}`).join(' · ')}</small></td><td></td></tr>` : ''}
+        <tr class="ft"><td>👛 ${L(`جيب الشهر · لحد ${dayName(DP.end)}`, `This month · until ${dayName(DP.end)}`)}</td><td dir="ltr">${fmt(M())}</td></tr>
+        ${sp.debtOn ? `<tr class="ft"><td>🛟 ${L('جيب الـ10 أيام', '10-day pocket')}</td><td dir="ltr">${fmt(N())}</td></tr>` : ''}
+        ${X() > 0.5 ? `<tr><td>${extraHow === 'split' ? `🔀 ${L('الزيادة تتوزّع بالقاعدة', 'Extra split by the rule')}` : `⬆️ ${L('الزيادة تفضل في الأساسيات', 'Extra stays in Essentials')}`}</td><td dir="ltr">${fmt(X())}</td></tr>` : ''}
       </table>
-      ${k.left < -0.5 ? `<p class="note bad">⚠️ ${L(`الفلوس ناقصة ${fmt(-k.left)} عن الجيبين. ${k.pk1 < k.needM - 0.5 ? 'جيب الشهر نفسه ناقص.' : `جيب الـ10 أيام هيبقى ${fmt(k.pk2)} بدل ${fmt(k.needN)}، والدخل الجاي هيكمّله الأول.`}`, `You are ${fmt(-k.left)} short of the two pockets. ${k.pk1 < k.needM - 0.5 ? "This month's pocket itself is short." : `The 10-day pocket will be ${fmt(k.pk2)} instead of ${fmt(k.needN)}, and the next income fills it first.`}`)}</p>` : ''}
-      <button type="button" class="btn primary" data-rgo style="width:100%">🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
-      <p class="note">${L('كله بيتسجّل في 📒 السجل، وتقدر ترجّعه كله بزرار ↩️.', 'It is all logged in the 📒 log, and one ↩️ button undoes all of it.')}</p>
-      ${hasSort() ? `<button type="button" class="pill" data-unsort>↩️ ${L('رجّع الترتيب اللي فات (امسح كل اللي عمله)', 'Undo the last sorting (remove all it did)')}</button>` : ''}
+      <button type="button" class="btn primary" data-rgo style="width:100%;margin-top:10px">🧮 ${L('رتّبهم كده', 'Sort it like this')}</button>
+      <p class="note">${L('كله بيتسجّل في 📒 السجل، وتقدر ترجّعه كله بزرار ↩️.', 'It is all logged in the 📒 log, and one ↩️ button undoes all of it.')}</p>`,
+  ];
+  const draw = () => {
+    o.innerHTML = `<div class="wiz-card glass dd card-x">
+      <div class="wiz-top"><b>🧮 ${L('رتّب فلوسي', 'Sort my money')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+      ${dots()}${STEPS[step]()}
+      <div class="wiz-chips" style="justify-content:space-between;margin-top:12px">
+        ${step > 0 ? `<button type="button" class="wiz-chip" data-rstep="-1">→ ${L('رجوع', 'Back')}</button>` : '<span></span>'}
+        ${step < 4 ? `<button type="button" class="btn primary" data-rstep="1">${L('التالي', 'Next')} ←</button>` : ''}
+      </div>
+      ${step === 0 && hasSort() ? `<button type="button" class="pill" data-unsort style="margin-top:8px">↩️ ${L('رجّع الترتيب اللي فات', 'Undo the last sorting')}</button>` : ''}
     </div>`;
   };
   draw(); document.body.appendChild(o); sfx.open();
   const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); };
-  const readBank = () => { const v = String(o.querySelector('[data-rbank]')?.value || '').trim(); if (v !== '') bank = parseNum(v) || 0; };
-  o.addEventListener('change', e => { if (e.target.matches('[data-rbank]')) { const v = String(e.target.value).trim(); bank = v === '' ? null : (parseNum(v) || 0); draw(); } });
+  const read = () => { for (const i of o.querySelectorAll('[data-ramt]')) { const v = String(i.value).trim(), n = v === '' ? null : Math.max(0, parseNum(v) || 0); if (i.dataset.ramt === 'bank') bank = n; if (i.dataset.ramt === 'm') mAmt = n; if (i.dataset.ramt === 'n') nAmt = n; } };
+  o.addEventListener('change', e => { if (e.target.matches('[data-ramt]')) { read(); draw(); } });
   o.addEventListener('click', e => {
     if (e.target === o || e.target.closest('[data-close]')) return close();
     if (e.target.closest('[data-rsame]')) { bank = +DP.realHave.toFixed(2); sfx.select(); return draw(); }
-    const d = e.target.closest('[data-rdone]'); if (d) { readBank(); const id = d.dataset.rdone; out.has(id) ? out.delete(id) : out.add(id); sfx.select(); return draw(); }
+    const d = e.target.closest('[data-rdone]'); if (d) { read(); const id = d.dataset.rdone; out.has(id) ? out.delete(id) : out.add(id); mAmt = null; sfx.select(); return draw(); }
+    const h = e.target.closest('[data-rhow]'); if (h) { extraHow = h.dataset.rhow; sfx.select(); return draw(); }
+    const st = e.target.closest('[data-rstep]');
+    if (st) {
+      read();
+      if (step === 0 && +st.dataset.rstep > 0 && bank == null) { const i = o.querySelector('[data-ramt="bank"]'); i?.focus(); return toast(L('اكتب رقم البنك، أو دوس "الرقم ده صح" ✍️', 'Type the bank number, or tap "That number is right" ✍️')); }
+      step = Math.max(0, Math.min(4, step + +st.dataset.rstep)); sfx.select(); return draw();
+    }
     if (!e.target.closest('[data-rgo]')) return;
-    readBank();
-    if (bank == null) { sfx.err?.(); const i = o.querySelector('[data-rbank]'); i?.focus(); i?.classList.add('shake'); setTimeout(() => i?.classList.remove('shake'), 500); return toast(L('اكتب رقم البنك الأول، أو دوس "الرقم ده صح" ✍️', 'Type the bank number first, or tap "That number is right" ✍️')); }
-    const k = calc(), r = rate(cu), dt = today(), tag = L('🧮 ترتيب', '🧮 Sort'), grp = 'sort:' + uid(), n0 = S.tx.length;
-    for (const it of items.filter(x => out.has(x.id))) { const e = S.essentials.find(x => x.id === it.id); if (e) e.outside = { ym: c.ym, grp }; }
-    if (k.diff < -0.5) S.tx.push({ id: uid(), date: dt, type: 'essadj', dir: 1, amount: +(-k.diff).toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('رصيد البنك أكتر من البرنامج', 'the bank has more than the app')}` });
-    if (k.diff > 0.5) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', amount: +k.diff.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${L('فرق مع البنك (مصاريف ما اتسجلتش)', 'gap with the bank (unlogged spending)')}` });
+    const m = M(), n = N(), x = X(), df = diff(), r = rate(cu), dt = today(), tag = L('🧮 ترتيب', '🧮 Sort'), grp = 'sort:' + uid(), n0 = S.tx.length;
+    for (const it of items.filter(q => out.has(q.id))) { const e2 = S.essentials.find(q => q.id === it.id); if (e2) e2.outside = { ym: c.ym, grp }; }
+    if (df < -0.5) S.tx.push({ id: uid(), date: dt, type: 'essadj', dir: 1, amount: +(-df).toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('رصيد البنك أكتر من البرنامج', 'the bank has more than the app')}` });
+    if (df > 0.5) S.tx.push({ id: uid(), date: dt, type: 'expense', bucket: 'essentials', amount: +df.toFixed(2), cur: cu, rate: r, cat: B.essentials.n, note: `${tag}: ${L('فرق مع البنك (مصاريف ما اتسجلتش)', 'gap with the bank (unlogged spending)')}` });
     if (DP.solfa > 0.5) S.tx.push({ id: uid(), date: dt, type: 'transfer', bucket: 'essentials', amount: +DP.solfa.toFixed(2), cur: cu, rate: r, to: cu, toBucket: 'reward', toAmount: +DP.solfa.toFixed(2), toRate: r, note: `${tag}: ${L('قفل سلفة الفلوس الحرّة', 'closing the free money loan')}` });
-    // الترتيب بيرتّب اللي معاك بس: الباقي يفضل زيادة، ومش بيتبعت للدين (طلب صاحب الحساب، 2026-11-25)
+    if (x > 0.5 && extraHow === 'split') S.tx.push({ id: uid(), date: dt, type: 'essout', amount: +x.toFixed(2), cur: cu, rate: r, note: `${tag}: ${L('وزّعت الزيادة بالقاعدة', 'split the extra by the rule')}` });
     for (const t of S.tx.slice(n0)) t.grp = grp;
+    // الجيبين اللي اخترتهم: جيب الشهر = الرقم ده − اللي هيتصرف بعد كده، والـ10 أيام بالرقم ده
+    S.monthPlan = { ym: c.ym, cu, m: +m.toFixed(2), n: +n.toFixed(2), spent0: +(c.mo.essSpent + (df > 0.5 ? df * r : 0)).toFixed(2), grp };
     save(); render(); close(); sfx.ok(); party(['🧮', '✅', '💸']);
-    bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ و${fmt(k.left)} فاضلين معاك زيادة عن الجيبين.` : ''}`,
-      `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(k.pk1)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(k.pk2)}</b></li>` : ''}</ul>${k.left > 0.5 ? `⬆️ And ${fmt(k.left)} stays with you above both pockets.` : ''}`));
+    bot(L(`🧮 اترتّبت! في تطبيق البنك:<ul class="alloc"><li><span>👛 جيب الشهر</span><b dir="ltr">${fmt(m)}</b></li>${sp.debtOn ? `<li><span>🛟 جيب الـ10 أيام</span><b dir="ltr">${fmt(n)}</b></li>` : ''}</ul>${x > 0.5 ? (extraHow === 'split' ? `🔀 و${fmt(x)} اتوزّعوا بالقاعدة — حوّل نصيب الدين لـ ENBD.` : `⬆️ و${fmt(x)} فاضلين في الأساسيات زيادة.`) : ''}`,
+      `🧮 Sorted! In your bank app:<ul class="alloc"><li><span>👛 This month</span><b dir="ltr">${fmt(m)}</b></li>${sp.debtOn ? `<li><span>🛟 10-day pocket</span><b dir="ltr">${fmt(n)}</b></li>` : ''}</ul>${x > 0.5 ? (extraHow === 'split' ? `🔀 And ${fmt(x)} was split by the rule — send the debt share to ENBD.` : `⬆️ And ${fmt(x)} stays in Essentials as extra.`) : ''}`));
   });
 }
 
 /* ↩️ رجّع الترتيب: يمسح كل المعاملات اللي عملها زرار "رتّب فلوسي" (طلب صاحب الحساب، 2026-11-25) */
 const isSortTx = t => (t.grp || '').startsWith('sort:') || /^🧮 (ترتيب|Sort)/.test(t.note || '');
 const sortItems = () => S.essentials.filter(e => (e.outside?.grp || '').startsWith('sort:'));
-const hasSort = () => S.tx.some(isSortTx) || sortItems().length > 0;
+const hasSort = () => S.tx.some(isSortTx) || sortItems().length > 0 || !!S.monthPlan;
 function undoSort() {
   const list = S.tx.filter(isSortTx), its = sortItems();
-  if (!list.length && !its.length) return toast(L('مفيش أي ترتيب متسجّل يترجّع 👍', 'There is no sorting to undo 👍'));
+  if (!list.length && !its.length && !S.monthPlan) return toast(L('مفيش أي ترتيب متسجّل يترجّع 👍', 'There is no sorting to undo 👍'));
   const o = document.createElement('div');
   o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
   o.innerHTML = `<div class="wiz-card glass dd card-x">
@@ -2108,6 +2136,7 @@ function undoSort() {
     const ids = new Set(list.map(t => t.id));
     S.tx = S.tx.filter(t => !ids.has(t.id));
     for (const e of its) delete e.outside;
+    if ((S.monthPlan?.grp || '').startsWith('sort:')) delete S.monthPlan;
     save(); render(); close(); sfx.ok();
     toast(L(`↩️ رجّعت الترتيب: اتمسحت ${list.length} معاملة`, `↩️ Sorting undone: ${list.length} entries removed`));
   });
@@ -2204,7 +2233,7 @@ function solfaPaydays(c, amt) {
   const n = Math.ceil(amt / share);
   return L(` (~${fmt(share)} كل قبض، ${n === 1 ? 'قبضة واحدة' : n === 2 ? 'قبضتين' : `${n} قبضات`})`, ` (~${fmt(share)} each payday, ${n} payday${n > 1 ? 's' : ''})`);
 }
-function dailyPlan(c) {
+function dailyPlan(c, raw = false) {
   const [y, m] = c.ym.split('-').map(Number), pd = paydayOf(S), end = new Date(y, m, pd), t0 = new Date(); t0.setHours(0, 0, 0, 0);
   const daysLeft = Math.max(1, Math.round((end - t0) / 864e5)), cyc = c.cyc, part = cyc?.since && cyc.f < 1, span = part ? cyc.left : cyc.days;
   // أول مرة: البنود اللي واضح إنها بتتصرف يوم بيوم (أكل، مواصلات، معيشة، خروجات) بتتعلّم يومي لوحدها
@@ -2226,7 +2255,9 @@ function dailyPlan(c) {
   const floorM = all.filter(r => isCore(S.essentials.find(e => e.id === r.id) || {})).reduce((a, r) => a + r.remain, 0);
   const np = nextPeriod(c.ym), nIt = S.essentials.map(e => [isCore(e), itemFor(S, e, np) * rate(cOf(e))]), nTot = nIt.reduce((a, x) => a + x[1], 0);
   const floorN = sp.debtOn && nTot > 0 ? sp.En * nIt.filter(x => x[0]).reduce((a, x) => a + x[1], 0) / nTot : 0;
-  const needM = all.reduce((a, r) => a + r.remain, 0), En = sp.debtOn ? sp.En : 0, solfa = -funNeg;
+  const plan = !raw && S.monthPlan?.ym === c.ym ? S.monthPlan : null; // 🧮 اللي اخترته في "رتّب فلوسي"
+  const needM = plan ? Math.max(0, plan.m - Math.max(0, (c.mo.essSpent || 0) - plan.spent0)) : all.reduce((a, r) => a + r.remain, 0);
+  const En = plan ? Math.min(sp.debtOn ? sp.En : 0, plan.n) : (sp.debtOn ? sp.En : 0), solfa = -funNeg;
   const PK = pocketsOf(realHave, needM, En, floorM), P0 = pocketsOf(realHave + solfa, needM, En, floorM); // P0 = لو مفيش سلفة
   const fromN = Math.max(0, P0.pk2 - PK.pk2), fromM = Math.max(0, P0.pk1 - PK.pk1), fromX = Math.max(0, P0.extra - PK.extra);
   const SF = { pk1: PK.pk1, pk2: PK.pk2, fromM, fromN, fromX, intoCore: PK.shortM, shortM: PK.shortM, lift: 0 };
@@ -2235,7 +2266,7 @@ function dailyPlan(c) {
   return { rows, off, daysLeft, end: new Date(y, m, pd - 1), sp, offRemain, funNeg, pool: pool2, essDaily: essDaily2, funDaily, over: Math.max(0, -pool2), realHave, reserveDaily,
     solfa, SF, floorM, floorN, m0, n0, pk1: SF.pk1, pk2: SF.pk2,
     needM, En, extra: PK.extra, resShort: PK.resShort,
-    itemsTotal: rows.filter(r => !r.fun).reduce((a, r) => a + r.today, 0), total: essDaily + funDaily };
+    itemsTotal: rows.filter(r => !r.fun).reduce((a, r) => a + r.today, 0), total: essDaily2 + funDaily };
 }
 function dailyDetails() {
   const c = ctx(), P = dailyPlan(c), o = document.createElement('div');
