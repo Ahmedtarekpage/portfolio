@@ -123,7 +123,9 @@ function expired() {
   location.replace('/admin?next=finance');
 }
 function setSaveInfo(ok) {
-  $('#saveInfo').textContent = !FILE.ok ? (HOSTED ? L('☁️ لسه ما اتحفظش على الموقع', '☁️ Not saved to the site yet') : L('💾 محفوظ في المتصفح بس (شغّل server.py)', '💾 Saved in the browser only (run server.py)')) : ok ? (HOSTED ? L('☁️ محفوظ على الموقع', '☁️ Saved to the site') : L('💾 محفوظ في data.json', '💾 Saved to data.json')) : L('⚠️ الحفظ في الملف فشل', '⚠️ Saving to the file failed');
+  const t = !FILE.ok ? (HOSTED ? L('☁️ لسه ما اتحفظش على الموقع', '☁️ Not saved to the site yet') : L('💾 محفوظ في المتصفح بس (شغّل server.py)', '💾 Saved in the browser only (run server.py)')) : ok ? (HOSTED ? L('☁️ محفوظ على الموقع', '☁️ Saved to the site') : L('💾 محفوظ في data.json', '💾 Saved to data.json')) : L('⚠️ الحفظ في الملف فشل', '⚠️ Saving to the file failed');;
+  // قصيرة في الهيدر، والجملة كاملة لما تقف عليها
+  const el = $('#saveInfo'); el.title = t; el.textContent = t.replace(/ على الموقع| to the site| في data\.json| to data\.json/, '').replace(/ \(شغّل server\.py\)| \(run server\.py\)/, '')
 }
 function pushFile() {
   if (!FILE.ok) return setSaveInfo(false);
@@ -1522,7 +1524,7 @@ function render() {
   if (UI.why) showWhy(UI.why);
   if (UI.page === 'stats') renderStats(c);
   if (UI.page === 'log') renderLogs(c);
-  const ar = document.querySelector('.agent-role'); if (ar) ar.textContent = L('· الـ Agent المالي بتاعك 🤖', '· your money Agent 🤖');
+  const ar = document.querySelector('.agent-role'); if (ar) ar.textContent = L('مستشارك المالي 🤖', 'Your money advisor 🤖');
   renderGame(c);
   const p = c.plan, tot = c.planI || 1;
   for (const k in wal) wal[k].share = p[k] / tot;
@@ -3380,9 +3382,16 @@ async function loadRates() {
     if (g.price > 0) { S.goldUsd = g.price; UI.goldLive = !S.manual.XAU; ok = true; if (!S.manual.XAU) S.rates.XAU = g.price * S.rates.USD / OZ; }
   } catch { UI.goldLive = false; }
   if (ok) { S.ratesAt = Date.now(); saveLocal(); }
-  info.textContent = ok
-    ? L(`${UI.goldLive ? '🟢' : '🟡'} دهب 24: ${fmt(rate('XAU'), 1)} د/جم · 1 درهم = ${fmt(1 / rate('EGP'), 2)} جنيه`, `${UI.goldLive ? '🟢' : '🟡'} Gold 24k: ${fmt(rate('XAU'), 1)} AED/g · 1 AED = ${fmt(1 / rate('EGP'), 2)} EGP`)
-    : L('🔴 مفيش نت، شغال بآخر أسعار محفوظة', '🔴 No internet, running on the last saved prices');
+  // 📈 أسعار السوق كبلاطات واضحة: الرقم، الوحدة، ووقت آخر تحديث ولايف ولا لأ (طلب صاحب الحساب، 2026-11-25)
+  const at = S.ratesAt ? new Date(S.ratesAt).toLocaleTimeString(L('ar-EG', 'en-GB'), { hour: 'numeric', minute: '2-digit' }) : '';
+  const mf = (n, d) => (+n || 0).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d }); // أسعار السوق مش سر: بتبان حتى والأرقام مقفولة
+  const tile = (ic, name, val, unit, live, tip) => `<span class="mk ${live ? 'live' : ''}" title="${tip}"><i>${ic}</i><span><small>${name}</small><b dir="ltr">${val}</b><em>${unit}</em></span></span>`;
+  info.innerHTML = ok ? [
+      tile('🥇', L('دهب 24', 'Gold 24k'), mf(rate('XAU'), 1), L('درهم / جرام', 'AED / gram'), UI.goldLive, L('سعر جرام الدهب عيار 24 بالدرهم', 'Price of one gram of 24k gold in AED')),
+      tile('💱', L('1 درهم', '1 AED'), mf(1 / rate('EGP'), 2), L('جنيه', 'EGP'), UI.fxLive, L('الدرهم بكام جنيه', 'How many EGP one AED buys')),
+      tile('💵', L('1 دولار', '1 USD'), mf(rate('USD'), 2), L('درهم', 'AED'), UI.fxLive, L('الدولار بكام درهم', 'How many AED one USD costs')),
+    ].join('') + `<small class="mk-at">${UI.fxLive || UI.goldLive ? L('🟢 لايف', '🟢 Live') : L('🟡 آخر سعر', '🟡 Last price')}${at ? ' · ' + at : ''}</small>`
+    : `<span class="mk-off">${L('🔴 مفيش نت، شغال بآخر أسعار محفوظة', '🔴 No internet, running on the last saved prices')}</span>`;
   if (!document.activeElement?.classList?.contains('ed')) render();
 }
 
