@@ -45,6 +45,45 @@ export function sharkMode({ L, esc, sfx, logEl, chipsEl, form, sayIn }) {
   orb.type = 'button'; orb.className = 'sx-orb'; orb.innerHTML = `${SHARK}<span>${L('كلّم قرش', 'Talk to Shark')}</span>`;
   orb.setAttribute('aria-label', L('افتح وضع قرش', 'Open Shark mode'));
   document.body.appendChild(orb);
+  // ✋ اسحب الزرار لأي مكان في الشاشة، ومكانه بيتحفظ (طلب صاحب الحساب، 2026-11-25). دوسة من غير سحب بتفتح قرش زي الأول.
+  const POS = 'floosy.orbPos';
+  const place = (x, y) => { // x, y = الركن الشمال فوق، بالبكسل، جوه الشاشة
+    const w = orb.offsetWidth, h = orb.offsetHeight, m = 8;
+    x = Math.max(m, Math.min(innerWidth - w - m, x)); y = Math.max(m, Math.min(innerHeight - h - m, y));
+    Object.assign(orb.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto', insetInlineStart: 'auto' });
+    return { x, y };
+  };
+  const restore = () => { try { const p = JSON.parse(localStorage.getItem(POS) || 'null'); if (p) place(p.fx * innerWidth, p.fy * innerHeight); } catch {} };
+  requestAnimationFrame(restore);
+  addEventListener('resize', restore);
+  let drag = null, dragged = false;
+  orb.style.touchAction = 'none';
+  orb.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const r = orb.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, x0: e.clientX, y0: e.clientY, moved: false };
+    dragged = false; orb.setPointerCapture(e.pointerId);
+  });
+  orb.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+    drag.moved = true; orb.classList.add('dragging');
+    place(e.clientX - drag.dx, e.clientY - drag.dy);
+  });
+  const drop = () => {
+    if (!drag) return;
+    if (drag.moved) {
+      dragged = true; orb.classList.remove('dragging');
+      const r = orb.getBoundingClientRect();
+      try { localStorage.setItem(POS, JSON.stringify({ fx: r.left / innerWidth, fy: r.top / innerHeight })); } catch {}
+      sfx.tap?.();
+    }
+    drag = null;
+  };
+  orb.addEventListener('pointerup', drop);
+  orb.addEventListener('pointercancel', drop);
+  // دبل-كليك بيرجّعه لمكانه الأصلي
+  orb.addEventListener('dblclick', () => { try { localStorage.removeItem(POS); } catch {} Object.assign(orb.style, { left: '', top: '', right: '', bottom: '', insetInlineStart: '' }); });
 
   const o = document.createElement('div');
   o.className = 'sx'; o.hidden = true; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-label', L('وضع قرش', 'Shark mode'));
@@ -190,7 +229,7 @@ export function sharkMode({ L, esc, sfx, logEl, chipsEl, form, sayIn }) {
     if (v) { sfx?.open?.(); sfx?.swim?.(); setTimeout(showComic, 900); const bots = logEl.querySelectorAll('.msg.bot:not(.typing)'); show(bots[bots.length - 1]); mirrorChips(); setTimeout(() => $('.sx-in').focus(), 200); }
     else { stopVoice(); stopListening(); convo = false; sfx?.close?.(); }
   }
-  orb.onclick = () => setOpen(true);
+  orb.onclick = () => { if (dragged) { dragged = false; return; } setOpen(true); }; // نهاية السحب مش دوسة
   $('.sx-x').onclick = () => setOpen(false);
   o.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
   $('.sx-form').addEventListener('submit', e => {

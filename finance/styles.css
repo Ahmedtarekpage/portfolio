@@ -1005,3 +1005,7 @@ body:has(#today:not([hidden])) .stage-top .dlyp { display: none; } /* مكرّر
 .rst-pin { display: flex; gap: 6px; margin-top: 6px; width: 100%; }
 .rst-pin input { flex: 1; min-width: 0; min-height: 40px; padding: 6px 10px; border-radius: 10px; font-size: 1rem; letter-spacing: .3em; text-align: center; }
 .rst-list .rst { flex-wrap: wrap; }
+/* the shark button can be dragged anywhere (2026-11-25) */
+.sx-orb { cursor: grab; user-select: none; -webkit-user-select: none; }
+.sx-orb.dragging { cursor: grabbing; transition: none !important; transform: scale(1.08) rotate(-3deg); box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+.sx-orb.dragging svg { animation: none; }
