@@ -386,7 +386,7 @@
      Connected once from Today. Then: today and tomorrow are written to the "My day" calendar a
      couple of seconds after any change (add, edit, delete, move, tick), and the meetings and
      interviews you accepted (from email, in your Google Calendar) come into Today and Tomorrow. */
-  var GC = { configured: false, connected: false, last: "", err: "" }, GEV = [], gcTimer = null;
+  var GC = { configured: false, connected: false, last: "", err: "" }, GEV = [], GEVR = null, gcTimer = null;
   function gcStatus() {
     if (LOCAL) return;
     fetch("/api/ideas?gcal=status", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
@@ -430,7 +430,11 @@
   function gcEvents() {
     if (LOCAL || !GC.connected) return;
     var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
-    fetch("/api/ideas?gcal=events&from=" + iso(new Date()) + "&to=" + iso(new Date(Date.now() + 864e5)) + "&tz=" + encodeURIComponent(tz), { cache: "no-store" })
+    // a week back and a month ahead (owner, 2026-11-26: a Preply lesson on Saturday did not show on Thursday);
+    // opening a day outside that range fetches around that day
+    var c = Date.now() + (mode === "today" ? viewOff : 0) * 864e5, from = iso(new Date(c - 7 * 864e5)), to = iso(new Date(c + 31 * 864e5));
+    GEVR = { from: from, to: to };
+    fetch("/api/ideas?gcal=events&from=" + from + "&to=" + to + "&tz=" + encodeURIComponent(tz), { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && Array.isArray(d.events)) { GEV = d.events; if (W) render(); } }).catch(function () {});
   }
   function gcBar() {
@@ -466,7 +470,7 @@
       var job = /interview|hiring|recruit|screen|مقابلة|انترفيو/i.test(e.title), cat = job ? "job" : "client";
       var f0 = Math.floor(st / 30) * 30, t0 = Math.ceil((st + dur) / 30) * 30, lbl = (job ? "🎯 " : "📅 ") + e.title;
       out.push({ kind: "prep", cat: cat, from: f0 - 30, to: f0, en: "Prep for " + e.title, ar: "تحضير لـ" + e.title, sub: ["", ""], id: "g" + e.id });
-      out.push({ kind: "meet", cat: cat, from: f0, to: t0, en: lbl, ar: lbl, sub: [ap(st) + " · " + dur + " min · " + (e.calendar || "Google"), ap(st) + " · " + dur + " دقيقة · " + (e.calendar || "Google")], id: "g" + e.id });
+      out.push({ kind: "meet", cat: cat, from: f0, to: t0, en: lbl, ar: lbl, sub: [ap(st) + " · " + dur + " min · " + (e.calendar || "Google"), ap(st) + " · " + dur + " دقيقة · " + (e.calendar || "Google")], id: "g" + e.id, link: /^https:\/\//.test(e.link || "") ? e.link : "" });
     });
     return out;
   }
@@ -669,7 +673,7 @@
   }
 
   function fixedRow(p) {
-    var now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), isToday = sel === todayDow;
+    var now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), isToday = sel === todayDow && (mode !== "today" || viewOff === 0);
     var live = isToday && nowM >= p.from && nowM < p.to, past = isToday && nowM >= p.to;
     var cls = { pray: "is-pray", meet: "is-meet", prep: "is-prep", gap: "is-gap" }[p.kind], ico = { pray: "🕌 ", meet: "🤝 ", prep: "📝 ", gap: p.cat === "rest" ? "🌿 " : "✦ " }[p.kind];
     var title = p.kind === "pray" ? T(p.en + " in the masjid" + (p.note && p.note[0] ? ": " + p.note[0] : ""), p.ar + " في المسجد" + (p.note && p.note[1] ? ": " + p.note[1] : "")) : T(p.en, p.ar);
@@ -681,6 +685,7 @@
       "<span>" + ico + esc(title) + (p.sub && p.sub[0] ? ' <i class="day-tag' + (p.kind === "pray" ? " day-tag--pray" : "") + '">' + esc(T(p.sub[0], p.sub[1])) + "</i>" : "") +
         (p.kind === "pray" ? ' <i class="day-tag">' + esc(T("no work", "مفيش شغل")) + "</i>" : "") + "</span>" +
       (live ? '<i class="badge">' + esc(T("now", "دلوقتي")) + "</i>" : "") +
+      (p.kind === "meet" && p.link ? '<a class="btn btn--ghost btn--sm" href="' + esc(p.link) + '" target="_blank" rel="noopener">🔗 ' + esc(T("Join", "ادخل")) + "</a>" : "") +
       (mode === "today" && viewOff <= 0 && p.kind === "pray" ? '<span class="week-row__acts"><button type="button" class="iconbtn day-tick' + (isDone("pray:" + p.k) ? " is-on" : "") + '" data-done="pray:' + p.k + '" title="' + esc(T("Prayed", "صليت")) + '">' + (isDone("pray:" + p.k) ? "✓" : "○") + "</button></span>" : "") +
       (p.kind === "meet" && p.mine ? '<span class="week-row__acts"><button type="button" class="iconbtn" data-meet-del="' + esc(p.id) + '" aria-label="' + esc(T("Delete the meeting", "امسح الميعاد")) + '" title="' + esc(T("Delete the meeting", "امسح الميعاد")) + '">✕</button></span>' : "") +
       "</li>";
@@ -884,7 +889,7 @@
     }
   }
   function renderDay() {
-    if (mode === "today") sel = viewDow();
+    if (mode === "today") { sel = viewDow(); var vk = todayKey(); if (GC.connected && GEVR && (vk < GEVR.from || vk > GEVR.to)) gcEvents(); }
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
     var secOf = function (m) { return m < 600 ? "m" : m < 1140 ? "w" : "f"; };

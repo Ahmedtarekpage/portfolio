@@ -205,17 +205,18 @@ export async function gcal(req, res, sql) {
 
   if (act === "events") {
     const from = isDate(q.from) ? q.from : new Date().toISOString().slice(0, 10);
-    const to = isDate(q.to) ? q.to : addDay(from, 1);
+    let to = isDate(q.to) ? q.to : addDay(from, 1);
+    if (to < from || (Date.parse(to) - Date.parse(from)) / 864e5 > 62) to = addDay(from, 62); // at most two months at a time
     const list = await gfetch(tk.access, "/users/me/calendarList?minAccessRole=reader");
     const cals = (list.ok && list.body && list.body.items ? list.body.items : [])
       .filter((c) => c.id !== tk.calendar && c.selected !== false && !/#holiday@|#contacts@|#weeknum@/.test(c.id))
-      .slice(0, 10);
+      .slice(0, 25);
     const timeMin = new Date(from + "T00:00:00Z"); timeMin.setUTCDate(timeMin.getUTCDate() - 1);
     const timeMax = new Date(addDay(to, 1) + "T23:59:59Z");
     const out = [];
     for (const c of cals) {
       const g = await gfetch(tk.access, "/calendars/" + encodeURIComponent(c.id) + "/events?" + new URLSearchParams({
-        timeMin: timeMin.toISOString(), timeMax: timeMax.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "100",
+        timeMin: timeMin.toISOString(), timeMax: timeMax.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "250",
       }));
       if (!g.ok || !g.body) continue;
       for (const e of g.body.items || []) {
@@ -225,7 +226,7 @@ export async function gcal(req, res, sql) {
         if (e.extendedProperties && e.extendedProperties.private && e.extendedProperties.private.myday) continue;
         out.push({
           id: e.id, title: e.summary || "(no title)", start: e.start.dateTime || e.start.date, end: (e.end && (e.end.dateTime || e.end.date)) || null,
-          allDay: !e.start.dateTime, link: e.hangoutLink || (e.conferenceData && e.conferenceData.entryPoints && e.conferenceData.entryPoints[0] && e.conferenceData.entryPoints[0].uri) || null,
+          allDay: !e.start.dateTime, link: e.hangoutLink || (/^https?:\/\//.test(e.location || "") ? e.location : null) || (e.conferenceData && e.conferenceData.entryPoints && e.conferenceData.entryPoints[0] && e.conferenceData.entryPoints[0].uri) || null,
           accepted: !me || me.responseStatus === "accepted", calendar: c.summary || "",
         });
       }
