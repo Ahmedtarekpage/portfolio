@@ -792,6 +792,105 @@
     return e.g.ico + " " + T(e.g.en, e.g.ar) + "\n" + howLong(0, e.n) + "  ·  " + pct(e.n, all) + T(" of ", " من ") + scope +
       e.kids.map(function (k) { return "\n   " + CAT[k].ico + " " + T(CAT[k].en, CAT[k].ar) + ": " + howLong(0, got[k]) + " (" + pct(got[k], all) + ")"; }).join("");
   }
+
+  /* ================= Plan vs real, and clashes (owner, 2026-11-26) =================
+     "If anything clashes, tell me and reschedule it"; "what really happened today: category X had
+     to take Y hours, the % and the + / −"; "see weeks, or from → to, real against the plan". Real =
+     the blocks ticked ✓ (a ticked block counts its whole planned time). */
+  function hm2(n) { n = Math.round(n); var h = Math.floor(Math.abs(n) / 60), m = Math.abs(n) % 60; return (n < 0 ? "−" : "") + (h ? h + T("h", "س") : "") + (h && m ? " " : "") + (m || !h ? m + T("m", "د") : ""); }
+  function planOf(key) {
+    var d = new Date(key + "T12:00:00"), dow = d.getDay(), o = W.dates && W.dates[key];
+    var rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
+    var items = [];
+    rows.forEach(function (x) { if (x.from && x.to && mins(x.to) > mins(x.from)) items.push({ id: x.id, cat: catOf(x), a: mins(x.from), b: mins(x.to) }); });
+    prayers(dow).forEach(function (p) { items.push({ id: "pray:" + p.k, cat: "deen", a: p.from, b: p.to }); });
+    return { items: items, done: (o && o.done) || {}, own: !!o };
+  }
+  function tally(pl, upto, into) {
+    var t = into || {};
+    pl.items.forEach(function (x) {
+      var c = t[x.cat] || (t[x.cat] = { plan: 0, due: 0, done: 0 }), len = x.b - x.a;
+      c.plan += len; c.due += Math.max(0, Math.min(upto, x.b) - x.a); if (pl.done[x.id]) c.done += len;
+    });
+    return t;
+  }
+  function pvrTable(t, useDue) {
+    var keys = Object.keys(t).filter(function (k) { return t[k].plan > 0; }).sort(function (a, b) { return t[b].plan - t[a].plan; });
+    if (!keys.length) return "";
+    var tot = { plan: 0, due: 0, done: 0 };
+    var rows = keys.map(function (k) {
+      var c = t[k], base = useDue ? c.due : c.plan, pct = base ? Math.round(c.done / base * 100) : 0, diff = c.done - base;
+      tot.plan += c.plan; tot.due += c.due; tot.done += c.done;
+      return '<tr style="--cat:' + CAT[k].c + '"><td><i class="pvr__dot"></i>' + CAT[k].ico + " " + esc(T(CAT[k].en, CAT[k].ar)) + "</td><td>" + hm2(c.plan) + "</td>" + (useDue ? "<td>" + hm2(c.due) + "</td>" : "") +
+        "<td>" + hm2(c.done) + '</td><td><b class="pvr__pct' + (pct >= 90 ? " is-ok" : pct >= 60 ? " is-mid" : " is-low") + '">' + (base ? pct + "%" : "—") + "</b></td><td" + (diff < 0 ? ' class="is-neg"' : "") + ">" + (diff > 0 ? "+" : "") + hm2(diff) + "</td></tr>";
+    }).join("");
+    var tb = useDue ? tot.due : tot.plan, tp = tb ? Math.round(tot.done / tb * 100) : 0;
+    return '<table class="pvr"><thead><tr><th>' + esc(T("Category", "النوع")) + "</th><th>" + esc(T("Plan", "المخطط")) + "</th>" + (useDue ? "<th>" + esc(T("Due by now", "المفروض لحد دلوقتي")) + "</th>" : "") +
+      "<th>" + esc(T("Done ✓", "اتعمل ✓")) + "</th><th>%</th><th>+/−</th></tr></thead><tbody>" + rows + "</tbody><tfoot><tr><td>" + esc(T("Total", "الإجمالي")) + "</td><td>" + hm2(tot.plan) + "</td>" + (useDue ? "<td>" + hm2(tot.due) + "</td>" : "") +
+      "<td>" + hm2(tot.done) + "</td><td><b>" + (tb ? tp + "%" : "—") + "</b></td><td>" + ((tot.done - tb) > 0 ? "+" : "") + hm2(tot.done - tb) + "</td></tr></tfoot></table>";
+  }
+  // today (or a past day): category by category, the plan against what was ticked
+  function realPanel(nowM) {
+    var key = todayKey(), t = tally(planOf(key), viewOff < 0 ? 1440 : nowM);
+    var tb = pvrTable(t, viewOff === 0); if (!tb) return "";
+    return '<details class="pvr-box" open><summary>📊 ' + esc(viewOff === 0 ? T("Plan vs real today, by category", "الخطة والحقيقة النهارده، حسب النوع") : T("Plan vs real that day, by category", "الخطة والحقيقة اليوم ده، حسب النوع")) + "</summary>" + tb +
+      '<p class="muted pvr__note">' + esc(T("Real = blocks ticked ✓. + / − is real minus " + (viewOff === 0 ? "what was due by now" : "the plan") + ".", "الحقيقة = البلوكات المتعلّم عليها ✓. الـ + / − = الحقيقة ناقص " + (viewOff === 0 ? "اللي كان المفروض لحد دلوقتي" : "الخطة") + ".")) + "</p></details>";
+  }
+  // any range: weeks or from → to
+  var RG = (function () { try { return JSON.parse(localStorage.getItem("week.rg") || "null") || {}; } catch (e) { return {}; } })();
+  function rgSet(from, to) { RG = { from: from, to: to, open: true }; try { localStorage.setItem("week.rg", JSON.stringify(RG)); } catch (e) {} }
+  function rangePanel() {
+    var today = iso(new Date());
+    if (!RG.from || !RG.to) { RG.from = iso(new Date(Date.now() - 6 * 864e5)); RG.to = today; }
+    var from = RG.from < PLAN_START ? PLAN_START : RG.from, to = RG.to > today ? today : RG.to, t = {}, days = [];
+    for (var d = new Date(from + "T12:00:00"); iso(d) <= to && days.length < 120; d.setDate(d.getDate() + 1)) {
+      var k = iso(d), pl = planOf(k), upto = k === today ? (new Date().getHours() * 60 + new Date().getMinutes()) : 1440, one = tally(pl, upto);
+      tally(pl, upto, t); // today counts only what was due by now
+      var p = 0, dn = 0, du = 0; for (var c in one) { p += one[c].plan; dn += one[c].done; du += one[c].due; }
+      days.push({ k: k, plan: p, due: du, done: dn, own: pl.own });
+    }
+    var q = function (lbl, a, b) { return '<button type="button" class="btn btn--ghost btn--sm' + (RG.from === a && RG.to === b ? " is-on" : "") + '" data-rg="' + a + "|" + b + '">' + esc(lbl) + "</button>"; };
+    var now = new Date(), wd = (now.getDay() + 1) % 7; // weeks start on Saturday
+    var ws = iso(new Date(Date.now() - wd * 864e5)), lws = iso(new Date(Date.now() - (wd + 7) * 864e5)), lwe = iso(new Date(Date.now() - (wd + 1) * 864e5));
+    var ms = today.slice(0, 8) + "01";
+    var list = days.slice().reverse().map(function (x) {
+      var base = x.k === today ? x.due : x.plan, pct = base ? Math.round(x.done / base * 100) : 0, dd = new Date(x.k + "T12:00:00");
+      return '<li><button type="button" class="pvr-day" data-rg-day="' + x.k + '"><span>' + esc(T(DAY[dd.getDay()].en, DAY[dd.getDay()].ar) + " " + dd.getDate() + "/" + (dd.getMonth() + 1)) + (x.k === today ? " · " + esc(T("so far", "لحد دلوقتي")) : "") + "</span>" +
+        '<i class="pvr-bar"><b style="width:' + Math.min(100, pct) + '%"></b></i><em>' + hm2(x.done) + " / " + hm2(base) + " · " + pct + "%</em></button></li>";
+    }).join("");
+    return '<details class="pvr-box pvr-range"' + (RG.open ? " open" : "") + ' data-rg-box><summary>📈 ' + esc(T("Plan vs real: weeks or any dates", "الخطة والحقيقة: أسابيع أو أي تواريخ")) + "</summary>" +
+      '<div class="pvr-range__bar">' + q(T("This week", "الأسبوع ده"), ws, today) + q(T("Last week", "الأسبوع اللي فات"), lws, lwe) + q(T("Last 7 days", "آخر 7 أيام"), iso(new Date(Date.now() - 6 * 864e5)), today) + q(T("This month", "الشهر ده"), ms, today) +
+      '<label>' + esc(T("From", "من")) + ' <input type="date" data-rg-from value="' + RG.from + '"></label><label>' + esc(T("To", "لـ")) + ' <input type="date" data-rg-to value="' + RG.to + '"></label></div>' +
+      (days.length ? pvrTable(t, true) + '<p class="muted pvr__note">' + esc(T(days.length + (days.length === 1 ? " day" : " days") + ". Today counts what was due by now. Tap a day to open it.", days.length + " يوم. النهارده محسوب لحد دلوقتي. دوس على أي يوم تفتحه.")) + '</p><ul class="pvr-days">' + list + "</ul>"
+        : '<p class="muted">' + esc(T("Nothing to compare yet: the plan starts on 26 Nov.", "مفيش حاجة تتقارن لسه: الخطة بدأت 26 نوفمبر.")) + "</p>") + "</details>";
+  }
+  // clashes: a block of the day under a meeting or lesson (with its prep), or two meetings at once
+  function clashes(dow) {
+    var M = meetings(dow).filter(function (p) { return p.kind === "meet"; }), out = [];
+    rowsOf(dow).forEach(function (x) {
+      if (!x.from || !x.to) return;
+      var a = mins(x.from), b = mins(x.to);
+      M.forEach(function (p) { var pa = p.from - 30; if (a < p.to && b > pa) out.push({ x: x, p: p, a: a, b: b, pa: pa }); });
+    });
+    var two = [];
+    M.forEach(function (p, i) { M.slice(i + 1).forEach(function (r) { if (p.from < r.to && r.from < p.to) two.push([p, r]); }); });
+    return { rows: out, two: two };
+  }
+  function clashBar() {
+    var c = clashes(sel); if (!c.rows.length && !c.two.length) return "";
+    var ttl = function (p) { return T(p.en, p.ar).replace(/^📅 |^🎯 /, ""); };
+    return '<div class="clash"><b>⚠️ ' + esc(T(c.rows.length + c.two.length + " clash" + (c.rows.length + c.two.length > 1 ? "es" : "") + " on this day", "فيه " + (c.rows.length + c.two.length) + " تعارض في اليوم ده")) + "</b><ul>" +
+      c.rows.map(function (r) {
+        var keepBefore = r.pa - r.a, keepAfter = r.b - r.p.to, canTrim = Math.max(keepBefore, keepAfter) >= 15;
+        return "<li><span>" + esc((r.x.text || T(r.x.en, r.x.ar))) + " <small>(" + ap(r.a) + "–" + ap(r.b) + ")</small> ✕ " + esc(ttl(r.p)) + " <small>(" + ap(r.p.from) + "–" + ap(r.p.to) + esc(T(", prep from ", "، التحضير من ")) + ap(r.pa) + ")</small></span>" +
+          '<span class="clash__acts"><button type="button" class="btn btn--ghost btn--sm" data-clash="move" data-cid="' + esc(r.x.id) + '" data-pa="' + r.pa + '" data-pb="' + r.p.to + '">⏩ ' + esc(T("Move after it", "أجّلها لبعده") + " (" + ap(r.p.to) + ")") + "</button>" +
+          (canTrim ? '<button type="button" class="btn btn--ghost btn--sm" data-clash="trim" data-cid="' + esc(r.x.id) + '" data-pa="' + r.pa + '" data-pb="' + r.p.to + '">✂️ ' + esc(keepBefore >= keepAfter ? T("Shorten: end at " + ap(r.pa), "قصّرها: تخلص " + ap(r.pa)) : T("Shorten: start at " + ap(r.p.to), "قصّرها: تبدأ " + ap(r.p.to))) + "</button>" : "") +
+          '<button type="button" class="btn btn--ghost btn--sm" data-clash="drop" data-cid="' + esc(r.x.id) + '">✕ ' + esc(T("Skip it this day", "شيلها اليوم ده")) + "</button></span></li>";
+      }).join("") +
+      c.two.map(function (pr) { return "<li><span>📅 " + esc(ttl(pr[0])) + " <small>(" + ap(pr[0].from) + ")</small> ✕ " + esc(ttl(pr[1])) + " <small>(" + ap(pr[1].from) + ")</small></span><span class=\"muted\">" + esc(T("Two appointments at once: move one in its calendar.", "ميعادين في نفس الوقت: غيّر واحد منهم من الكالندر بتاعه.")) + "</span></li>"; }).join("") +
+      "</ul>" + (mode === "today" ? "" : '<p class="muted pvr__note">' + esc(T("Here a change moves the block in the week itself. To change only one day, open it in Today.", "هنا التغيير بيحرّك البلوك في الأسبوع نفسه. عشان تغيّر يوم واحد بس، افتحه من النهارده.")) + "</p>") + "</div>";
+  }
+
   function timePanel() {
     var head = function (inner) {
       return '<div class="tp__top"><button type="button" class="tp__toggle" data-tp-open aria-expanded="' + TP.open + '">📊 ' + esc(T("Where the time goes", "الوقت بيروح فين")) + ' <span aria-hidden="true">' + (TP.open ? "▾" : "▸") + "</span></button>" + (inner || "") + "</div>";
@@ -1023,12 +1122,12 @@
       }).join("") + "</div>") +
       '<p class="week__for"><b>' + esc(T(d.en, d.ar)) + " " + dateOf(sel).getDate() + ":</b> " + esc(T(d.len, d.lar)) +
         (nextP ? ' · <b>🕌 ' + esc(T(nextP.en + " iqama " + ap(nextP.iq), "إقامة " + nextP.ar + " " + ap(nextP.iq))) + "</b>" : "") +
-        " · " + gymNote() + " · 😴 " + esc(T("sleep ", "نوم ") + howLong(0, sleep)) + "</p>" + (tday ? (viewOff > 0 ? "" : progressPanel(groups, viewOff < 0 ? 1440 : nowM)) : timePanel()) + strip +
+        " · " + gymNote() + " · 😴 " + esc(T("sleep ", "نوم ") + howLong(0, sleep)) + "</p>" + (tday && viewOff >= 0 ? clashBar() : tday ? "" : clashBar()) + (tday ? (viewOff > 0 ? "" : progressPanel(groups, viewOff < 0 ? 1440 : nowM) + realPanel(nowM)) : timePanel()) + strip +
       sec("m", T(SEC.m.en, SEC.m.ar)) +
       sec("w", free ? T("🌿 " + DAY[sel].en + ": free day, no office, no business", "🌿 " + DAY[sel].ar + ": يوم حر، مفيش مكتب ولا بيزنس") : T(SEC.w.en, SEC.w.ar) + officeSplit()) +
       sec("f", T(SEC.f.en, SEC.f.ar)) +
       // in Today the plan comes first, then live progress, then the analytics
-      (tday ? timePanel() : "") +
+      (tday ? timePanel() : "") + rangePanel() +
       '<p class="muted day-note">' + esc(T("Prayers: " + (got.place.name || "Dubai") + (got.src === "device" ? ", worked out on this device" : ", times from AlAdhan") + ". Each prayer is 30 min at most, from about 10 min before the iqama, on quarter hours (Jumu'ah is longer, for the khutba); change your mosque's wait on the Time page. Client meetings come from Clients by themselves, each with 30 min of prep before. Morning and evening are the same every day; the work part is this day's own. Every block = the work + 25% buffer (the bar under it). 🍅 = 25 min focus, 5 min break; the clock stops for prayer and meetings. Drag ⠿ to reorder.",
         "الصلاة: " + (got.place.name || "دبي") + (got.src === "device" ? "، محسوبة على الجهاز" : "، المواعيد من AlAdhan") + ". كل صلاة 30 دقيقة بالكتير، من قبل الإقامة بحوالي 10 دقايق، على أرباع الساعة (الجمعة أطول عشان الخطبة)؛ غيّر انتظار مسجدك من صفحة Time. مواعيد العملاء بتيجي من Clients لوحدها، وقبل كل واحد نص ساعة تحضير. الصبح والليل نفسهم كل يوم؛ جزء الشغل خاص باليوم ده. كل بلوك = الشغل + 25% وقت احتياطي (الشريط اللي تحته). 🍅 = 25 دقيقة تركيز و5 بريك؛ العداد بيقف للصلاة والمواعيد. اسحب ⠿ عشان ترتّب.")) + "</p>" +
       (tday ? "" : '<div class="week-post"><span class="week-chip week-chip--uae">🇦🇪 ' + esc(T("Post, UAE time: LinkedIn Wed Thu Fri 4 PM · Instagram Tue Wed Thu 9 AM", "النشر بتوقيت الإمارات: LinkedIn الأربعاء والخميس والجمعة 4 العصر · Instagram الثلاثاء والأربعاء والخميس 9 الصبح")) + "</span>" +
@@ -1164,6 +1263,21 @@
     var t = e.target, b;
     if ((b = t.closest("[data-done]"))) { var ov = ensureOv(); if (!ov.done) ov.done = {}; var did = b.getAttribute("data-done"); if (ov.done[did]) delete ov.done[did]; else { var nw = new Date(); ov.done[did] = nw.getHours() * 60 + nw.getMinutes() || 1; } save(); return render(); }
     if (t.closest("[data-gc-now]")) { gcSync(); gcEvents(); return; }
+    if ((b = t.closest("[data-clash]"))) {
+      ensureOv(); var cx = find(b.getAttribute("data-cid")); if (!cx) return;
+      var how = b.getAttribute("data-clash"), ca = mins(cx.from), cb = mins(cx.to), pa = +b.getAttribute("data-pa"), pb = +b.getAttribute("data-pb");
+      if (how === "drop") drop1(cx.id);
+      else if (how === "move") { var len = cb - ca, st = pb, en = Math.min(1439, pb + len); cx.from = hhmm(st); cx.to = hhmm(en); }
+      else if (how === "trim") { if (pa - ca >= cb - pb) cx.to = hhmm(pa); else cx.from = hhmm(pb); }
+      sfx && sfx("pop"); save(); return render();
+    }
+    if ((b = t.closest("[data-rg]"))) { var rr = b.getAttribute("data-rg").split("|"); rgSet(rr[0], rr[1]); return render(); }
+    if ((b = t.closest("[data-rg-day]"))) {
+      var tdy = new Date(); tdy.setHours(12, 0, 0, 0);
+      var go = function () { viewOff = Math.round((new Date(b.getAttribute("data-rg-day") + "T12:00:00") - tdy) / 864e5); editing = null; render(); host.scrollIntoView({ behavior: "smooth", block: "start" }); };
+      if (mode !== "today") { var tt = document.querySelector('#tabbar [data-tab="today"]'); if (tt) tt.click(); setTimeout(go, 50); } else go();
+      return;
+    }
     if (t.closest("[data-feed-add]")) { GC.addOpen = !GC.addOpen; GC.addErr = ""; render(); var fi = host.querySelector("[data-feed-url]"); if (fi) fi.focus(); return; }
     if (t.closest("[data-feed-save]")) {
       var fu = (host.querySelector("[data-feed-url]") || {}).value || "", fnm = (host.querySelector("[data-feed-name]") || {}).value || "";
@@ -1264,7 +1378,10 @@
     editing = null; save(); render();
   });
 
+  host.addEventListener("toggle", function (e) { if (e.target.matches && e.target.matches("[data-rg-box]")) { RG.open = e.target.open; try { localStorage.setItem("week.rg", JSON.stringify(RG)); } catch (x) {} } }, true);
   host.addEventListener("change", function (e) {
+    var rf = e.target.closest && e.target.closest("[data-rg-from],[data-rg-to]");
+    if (rf) { var f0 = host.querySelector("[data-rg-from]").value, t0 = host.querySelector("[data-rg-to]").value; if (f0 && t0) { rgSet(f0 <= t0 ? f0 : t0, f0 <= t0 ? t0 : f0); render(); } return; }
     var dp = e.target.closest && e.target.closest("[data-daypick]"); if (!dp || !dp.value) return;
     var a = new Date(dp.value + "T12:00:00"), b = new Date(); b.setHours(12, 0, 0, 0);
     viewOff = Math.max(-120, Math.min(60, Math.round((a - b) / 864e5))); editing = null; render();
