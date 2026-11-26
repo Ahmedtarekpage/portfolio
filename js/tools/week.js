@@ -57,7 +57,7 @@
      Gym 1 h 30, 3 evenings (Sun, Tue, Thu), before that; those nights sleep is
      at 11 PM so the 2 h with people still fit. Other nights sleep 10:30 PM.
      Prayers 30 min at most around the iqama. */
-  var WEEK_V = 26;
+  var WEEK_V = 27;
   function seed() {
     var d = function (sec, from, to, en, ar, more) { var o = it(from, to, en, ar, more); o.sec = sec; return o; };
     var i = function (en, ar, est, ai) { var o = { en: en, ar: ar, est: est }; if (ai !== false) o.ai = 1; return o; };
@@ -79,7 +79,7 @@
       d("w", "10:00", "12:15", "🏢 Part-time job: the urgent things first, then the day's work", "🏢 البارت تايم: المستعجل الأول وبعدين شغل اليوم", { cat: "office", pomo: 1 }),
       d("w", "13:00", "14:45", "🏢 Part-time job work, then wrap up", "🏢 شغل البارت تايم وبعدين قفّل", { cat: "office", pomo: 1 })
     ]; };
-    var early = function (cat, items) { return d("w", "08:45", "09:30", "⭐ Business, at home before the office", "⭐ البيزنس، في البيت قبل المكتب", { cat: cat, pomo: 1, items: items }); };
+    var early = function (cat, items) { return d("w", "08:30", "09:30", "⭐ Business, at home before the office", "⭐ البيزنس، في البيت قبل المكتب", { cat: cat, pomo: 1, items: items }); };
     var day = function (cat, before, aEn, aAr, A, bEn, bAr, B, catA) {
       var o = office();
       return [early(cat, before), o[0], food(), o[1], job(),
@@ -88,15 +88,18 @@
     };
     return { v: WEEK_V, jobs: { daily: 5, log: {} }, meetings: [],
       myday: [
+        // owner, 2026-11-26: the morning routine is body and deen only and ends at 7 AM; 7 AM – 7 PM is work,
+        // starting at home with learning and the business, then the office from 10
+        d("m", "05:15", "05:30", "💧 Wake up: a glass of water, wudu, walk to the masjid", "💧 صحيان: كوباية مية، وضوء، والمشي للمسجد"),
         d("m", "06:00", "06:15", "📿 Morning azkar", "📿 أذكار الصباح"),
         d("m", "06:15", "06:30", "📖 Quran and khulwa: quiet time alone, phone away", "📖 قرآن وخلوة: وقت لوحدك والموبايل بعيد"),
+        d("m", "06:30", "06:45", "🍳 Breakfast: dates, eggs and water", "🍳 فطار: تمر وبيض ومية"),
+        d("m", "06:45", "07:00", "🚿 Shower and get dressed", "🚿 دش واِلبس"),
         // learn, then build it into the business the same morning (learning by building)
-        d("m", "06:30", "07:30", "🧠 Learn one thing the business needs this week (AI agents, marketing, product)", "🧠 اتعلم حاجة البيزنس محتاجها الأسبوع ده (AI agents، تسويق، منتج)", { pomo: 1, est: 48, on: [6, 1, 2, 3, 4, 5] }),
-        d("m", "07:30", "08:00", "🤖 Apply it to the business: one step of an AI agent (GoBachaloria first)", "🤖 طبّقه على البيزنس: خطوة في AI agent (GoBachaloria الأول)", { cat: "product", pomo: 1, on: [6, 1, 2, 3, 4, 5] }),
-        d("m", "08:00", "08:30", "🍳 Breakfast: dates and eggs", "🍳 فطار: تمر وبيض"),
-        d("m", "08:30", "08:45", "🚿 Shower", "🚿 دش"),
-        d("m", "09:30", "09:45", "👔 Get ready, pack the gym bag", "👔 اجهز وحضّر شنطة الجيم", { on: [6, 1, 2, 3, 4, 5] }),
-        d("m", "09:45", "10:00", "🚗 To the office (15 min)", "🚗 للمكتب (15 دقيقة)", { on: [6, 1, 2, 3, 4, 5] }),
+        d("w", "07:00", "08:00", "🧠 Learn one thing the business needs this week (AI agents, marketing, product)", "🧠 اتعلم حاجة البيزنس محتاجها الأسبوع ده (AI agents، تسويق، منتج)", { pomo: 1, est: 48, on: [6, 1, 2, 3, 4, 5] }),
+        d("w", "08:00", "08:30", "🤖 Apply it to the business: one step of an AI agent (GoBachaloria first)", "🤖 طبّقه على البيزنس: خطوة في AI agent (GoBachaloria الأول)", { cat: "product", pomo: 1, on: [6, 1, 2, 3, 4, 5] }),
+        d("w", "09:30", "09:45", "👔 Get ready, pack the gym bag", "👔 اجهز وحضّر شنطة الجيم", { on: [6, 1, 2, 3, 4, 5] }),
+        d("w", "09:45", "10:00", "🚗 To the office (15 min)", "🚗 للمكتب (15 دقيقة)", { on: [6, 1, 2, 3, 4, 5] }),
         // evening: gym Sun, Tue, Thu + sport Fri, 1 h 30 each and a 15-min buffer after it (shower, way
         // home); Sat, Mon, Wed off. Every night a 15-min wind-down buffer, lights off at 10:30 PM (7 h sleep).
         d("f", "19:30", "21:00", "🏋️ Gym after Isha: 1 h 30 of training", "🏋️ الجيم بعد العشا: ساعة ونص تمرين", { on: [0, 2, 4] }),
@@ -121,7 +124,7 @@
         ]),
         // the free day, shared like the evenings: wife 3 · family 2 · friends 1 · me 1
         0: [
-          d("w", "06:30", "08:00", "🎮 Me: a walk, a book, quiet time", "🎮 أنا: مشية، كتاب، وقت هادي"),
+          d("w", "07:00", "08:30", "🎮 Me: a walk, a book, quiet time", "🎮 أنا: مشية، كتاب، وقت هادي"),
           d("w", "08:45", "12:15", "💑 With my wife: a morning out together", "💑 مع مراتي: خروجة الصبح مع بعض"),
           d("w", "12:45", "15:15", "👨‍👩‍👧 With the family: lunch and a visit", "👨‍👩‍👧 مع العيلة: غدا وزيارة"),
           d("w", "15:45", "17:30", "🤝 With friends", "🤝 مع الصحاب"),
@@ -614,10 +617,23 @@
     if (W.v !== WEEK_V) {
       var fresh = seed();
       if (W.jobs) fresh.jobs = W.jobs;
+      if (Array.isArray(W.meetings)) fresh.meetings = W.meetings;
+      if (W.weekend) fresh.weekend = W.weekend;
+      // past days keep what happened; today and later follow the new week (prayer ticks kept)
+      if (W.dates) { var tk = iso(new Date()); fresh.dates = {}; Object.keys(W.dates).forEach(function (k) {
+        if (k < tk) fresh.dates[k] = W.dates[k];
+        else { var dn = (W.dates[k] && W.dates[k].done) || {}, keep = {}; Object.keys(dn).forEach(function (id) { if (/^pray:/.test(id)) keep[id] = dn[id]; }); if (Object.keys(keep).length) fresh.pendDone = Object.assign(fresh.pendDone || {}, k === tk ? keep : {}); }
+      }); }
       if (W.days && W.v) fresh.prev = { v: W.v, days: W.days };
       W = fresh; moved = true;
     }
     if (!Array.isArray(W.myday)) { W.myday = seed().myday; moved = true; }
+    if (W.pendDone) { // today's prayer ticks carried into the new week
+      var pk = iso(new Date()), pw = tpl(new Date().getDay()), cp = function (x) { var o = JSON.parse(JSON.stringify(x)); delete o.on; return o; };
+      W.dates = W.dates || {};
+      W.dates[pk] = { myday: W.myday.filter(function (x) { return !x.on || x.on.indexOf(pw) > -1; }).map(cp), work: (W.days[pw] || []).map(cp), done: W.pendDone };
+      delete W.pendDone; moved = true;
+    }
   }
   function load(done) {
     if (LOCAL) {
