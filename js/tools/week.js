@@ -389,10 +389,11 @@
   var GC = { configured: false, connected: false, last: "", err: "" }, GEV = [], GEVR = null, gcTimer = null;
   function gcStatus() {
     if (LOCAL) return;
+    feedsLoad().catch(function () {});
     fetch("/api/ideas?gcal=status", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       if (!d) return;
       GC.configured = !!d.configured; GC.connected = !!d.connected;
-      if (GC.connected) { gcSync(); gcEvents(); }
+      if (GC.connected) gcSync();
       if (W) render();
     }).catch(function () {});
   }
@@ -428,27 +429,43 @@
     }, 2000);
   }
   function gcEvents() {
-    if (LOCAL || !GC.connected) return;
+    if (LOCAL) return;
     var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
     // a week back and a month ahead (owner, 2026-11-26: a Preply lesson on Saturday did not show on Thursday);
     // opening a day outside that range fetches around that day
     var c = Date.now() + (mode === "today" ? viewOff : 0) * 864e5, from = iso(new Date(c - 7 * 864e5)), to = iso(new Date(c + 31 * 864e5));
     GEVR = { from: from, to: to };
-    fetch("/api/ideas?gcal=events&from=" + from + "&to=" + to + "&tz=" + encodeURIComponent(tz), { cache: "no-store" })
-      .then(function (r) { if (!r.ok) { GC.evErr = "events " + r.status; if (W) render(); return null; } GC.evErr = ""; return r.json(); }).then(function (d) { if (d && Array.isArray(d.events)) { GEV = d.events; GC.cals = d.calendars || []; GC.reconnect = !!d.reconnect; GC.diag = d; if (W) render(); } }).catch(function () {});
+    var qs = "&from=" + from + "&to=" + to + "&tz=" + encodeURIComponent(tz);
+    var get = function (what) { return fetch("/api/ideas?gcal=" + what + qs, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : { events: [], err: what + " " + r.status }; }).catch(function () { return { events: [], err: T("No connection", "مفيش نت") }; }); };
+    // the calendars by their iCal address (always), and Google's own connection when it is set up
+    Promise.all([get("ics"), GC.connected ? get("events") : Promise.resolve(null)]).then(function (x) {
+      var all = [], keys = {};
+      x.forEach(function (d) { if (d && Array.isArray(d.events)) d.events.forEach(function (e) { var k = e.title + "|" + new Date(e.start).getTime(); if (!keys[k]) { keys[k] = 1; all.push(e); } }); });
+      GEV = all; GC.seen = [].concat((x[0] && x[0].seen) || [], (x[1] && x[1].seen) || []);
+      GC.evErr = [x[0] && x[0].err, x[1] && x[1].err].filter(Boolean).join(" · ");
+      if (x[1]) { GC.reconnect = !!x[1].reconnect; }
+      if (W) render();
+    });
+  }
+  function feedsLoad(method, body, id) {
+    if (LOCAL) return Promise.resolve();
+    return fetch("/api/ideas?gcal=feeds" + (id ? "&id=" + id : ""), { method: method || "GET", cache: "no-store", headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || ("" + r.status)); return d; }); })
+      .then(function (d) { GC.feeds = d.feeds || []; gcEvents(); if (W) render(); });
   }
   function gcBar() {
-    if (LOCAL) return '<div class="gc-bar muted">📅 ' + esc(T("Google Calendar works on the live site", "جوجل كالندر شغال على الموقع نفسه")) + "</div>";
-    if (!GC.configured) return '<div class="gc-bar muted">📅 ' + esc(T("Google Calendar: waiting for the one-time Google setup", "جوجل كالندر: مستني إعداد جوجل مرة واحدة")) + "</div>";
-    if (!GC.connected) { var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
-      return '<div class="gc-bar"><a class="btn btn--primary btn--sm" href="/api/ideas?gcal=connect&tz=' + encodeURIComponent(tz) + '">📅 ' + esc(T("Connect Google Calendar", "اربط جوجل كالندر")) + '</a><span class="muted">' + esc(T("Today and tomorrow go to a 'My day' calendar, in real time; accepted meetings and interviews come in here.", "النهارده وبكرة يتكتبوا في كالندر 'My day' أول بأول، والمواعيد والمقابلات اللي قبلتها تيجي هنا.")) + "</span></div>"; }
-    if (GC.reconnect) { var tz2 = ""; try { tz2 = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
-      return '<div class="gc-bar gc-bar--warn"><a class="btn btn--primary btn--sm" href="/api/ideas?gcal=connect&tz=' + encodeURIComponent(tz2) + '">📅 ' + esc(T("Connect Google Calendar again", "اربط جوجل كالندر تاني")) + '</a><span>' + esc(T("One more permission is needed to read all your calendars (Preply, client meetings…). Pick the same Google account.", "محتاج إذن واحد كمان عشان يقرا كل الكالندرات (Preply، مواعيد العملاء…). اختار نفس حساب جوجل.")) + "</span></div>"; }
-    return '<div class="gc-bar"><span title="' + esc((GC.cals || []).join(", ")) + '">📅 ' + esc(T("Google Calendar: on", "جوجل كالندر: شغال")) + (GC.cals && GC.cals.length ? " · " + esc(T(GC.cals.length + " calendars", GC.cals.length + " كالندر")) : "") + (GC.err ? " · ⚠️ " + esc(GC.err) : GC.last ? " · " + esc(T("synced ", "اتزامن ") + GC.last) + " ✓" : "") + "</span>" +
-      (function () { var g = GC.diag; if (!g && !GC.evErr) return "";
-        var rows = g && g.seen ? g.seen.map(function (c) { return "<li>" + esc(c.name) + " · " + (c.err ? "⚠️ " + esc(c.err) : c.n + " " + esc(T("events", "حدث"))) + "</li>"; }).join("") : "";
-        return '<details class="gc-diag"><summary>' + esc(T("What is read", "بيقرا إيه")) + " (" + GEV.length + ")</summary><ul>" + rows + "</ul><small>" + esc((GC.evErr ? GC.evErr + " · " : "") + "list " + (g ? g.list : "?") + " · scope " + (g && g.scope ? "✓" : "✗") + " · " + (GEVR ? GEVR.from + " → " + GEVR.to : "")) + "</small></details>"; })() +
-      '<button type="button" class="btn btn--ghost btn--sm" data-gc-now>↻ ' + esc(T("Sync now", "زامن دلوقتي")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-gc-off>' + esc(T("Disconnect", "افصل")) + "</button></div>";
+    if (LOCAL) return '<div class="gc-bar muted">📅 ' + esc(T("Your calendars show on the live site", "الكالندر بتاعك بيظهر على الموقع نفسه")) + "</div>";
+    var feeds = GC.feeds || [];
+    var chips = feeds.map(function (f) { return '<span class="gc-chip">' + esc(f.name) + ' <button type="button" class="iconbtn" data-feed-del="' + f.id + '" aria-label="' + esc(T("Remove", "شيل")) + '">✕</button></span>'; }).join("");
+    var diag = (GC.seen && GC.seen.length) || GC.evErr ? '<details class="gc-diag"><summary>' + esc(T("What is read", "بيقرا إيه")) + " (" + GEV.length + ")</summary><ul>" +
+      (GC.seen || []).map(function (c) { return "<li>" + esc(c.name) + " · " + (c.err ? "⚠️ " + esc(c.err) : c.n + " " + esc(T("events", "حدث"))) + "</li>"; }).join("") + "</ul>" +
+      (GC.evErr ? "<small>⚠️ " + esc(GC.evErr) + "</small>" : "") + "</details>" : "";
+    var google = GC.configured && GC.connected && GC.reconnect ? '<a class="btn btn--ghost btn--sm" href="/api/ideas?gcal=connect">' + esc(T("Connect Google again", "اربط جوجل تاني")) + "</a>"
+      : GC.configured && !GC.connected ? '<a class="btn btn--ghost btn--sm" href="/api/ideas?gcal=connect">' + esc(T("Write my day to Google", "اكتب يومي في جوجل")) + "</a>" : "";
+    return '<div class="gc-bar' + (feeds.length ? "" : " gc-bar--warn") + '"><span>📅 ' + (feeds.length ? esc(T("My calendars:", "الكالندرات:")) + " " + chips
+        : esc(T("Add your Google calendars so their events (Preply, meetings…) show here.", "ضيف كالندرات جوجل بتاعتك عشان مواعيدها (Preply، الاجتماعات…) تظهر هنا."))) + "</span>" +
+      '<button type="button" class="btn btn--' + (feeds.length ? "ghost" : "primary") + ' btn--sm" data-feed-add>+ ' + esc(T("Add a calendar", "ضيف كالندر")) + "</button>" +
+      (feeds.length ? '<button type="button" class="btn btn--ghost btn--sm" data-gc-now>↻ ' + esc(T("Refresh", "حدّث")) + "</button>" : "") + google + diag + "</div>";
   }
   function loadMeetings() {
     if (LOCAL) return;
@@ -894,7 +911,7 @@
     }
   }
   function renderDay() {
-    if (mode === "today") { sel = viewDow(); var vk = todayKey(); if (GC.connected && GEVR && (vk < GEVR.from || vk > GEVR.to)) gcEvents(); }
+    if (mode === "today") { sel = viewDow(); var vk = todayKey(); if (GEVR && (vk < GEVR.from || vk > GEVR.to)) gcEvents(); }
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
     var secOf = function (m) { return m < 600 ? "m" : m < 1140 ? "w" : "f"; };
@@ -1139,6 +1156,15 @@
     var t = e.target, b;
     if ((b = t.closest("[data-done]"))) { var ov = ensureOv(); if (!ov.done) ov.done = {}; var did = b.getAttribute("data-done"); if (ov.done[did]) delete ov.done[did]; else { var nw = new Date(); ov.done[did] = nw.getHours() * 60 + nw.getMinutes() || 1; } save(); return render(); }
     if (t.closest("[data-gc-now]")) { gcSync(); gcEvents(); return; }
+    if (t.closest("[data-feed-add]")) {
+      var fu = window.prompt(T("Paste the calendar's secret address.\n\nGoogle Calendar → ⚙️ Settings → under 'Settings for my calendars' pick the calendar (e.g. Preply Schedule) → 'Integrate calendar' → copy 'Secret address in iCal format'.",
+        "الزق العنوان السري للكالندر.\n\nجوجل كالندر ← ⚙️ الإعدادات ← تحت 'إعدادات الكالندرات بتاعتي' اختار الكالندر (مثلاً Preply Schedule) ← 'Integrate calendar' ← انسخ 'Secret address in iCal format'."), "");
+      if (!fu || !fu.trim()) return;
+      var fnm = window.prompt(T("A short name for it", "اسم قصير ليه"), /preply/i.test(fu) ? "Preply" : "Google");
+      feedsLoad("POST", { url: fu.trim(), name: fnm || "Calendar" }).then(function () { note(T("Calendar added ✓", "الكالندر اتضاف ✓")); }).catch(function (x) { window.alert(x.message); });
+      return;
+    }
+    if ((b = t.closest("[data-feed-del]"))) { if (!window.confirm(T("Stop showing this calendar here?", "توقّف عرض الكالندر ده هنا؟"))) return; feedsLoad("DELETE", null, b.getAttribute("data-feed-del")).catch(function (x) { window.alert(x.message); }); return; }
     if (t.closest("[data-gc-off]")) {
       if (!window.confirm(T("Disconnect Google Calendar? The 'My day' calendar stays in Google; nothing is written to it any more.", "تفصل جوجل كالندر؟ كالندر 'My day' هيفضل في جوجل، بس مش هيتكتب فيه حاجة تاني."))) return;
       fetch("/api/ideas?gcal=disconnect", { method: "POST" }).then(function () { GC.connected = false; GEV = []; render(); });

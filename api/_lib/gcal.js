@@ -23,6 +23,7 @@
 //   POST ?gcal=disconnect             -> revokes the token, forgets everything
 import crypto from "node:crypto";
 import { json, sign, verifyToken } from "./util.js";
+import { feedTables, okUrl, parseIcs, expand } from "./ics.js";
 
 // calendarlist.readonly (owner, 2026-11-26): events.readonly alone cannot LIST the calendars, so no
 // calendar (Preply, Gobachaloria, client meetings…) was ever read. Older connections lack it: the
@@ -111,6 +112,34 @@ export async function gcal(req, res, sql) {
   if (act === "status") {
     const [row] = await sql`SELECT calendar_id, connected_at FROM gcal_auth WHERE id = 1`;
     return json(res, 200, { configured, connected: !!row, calendar: row ? row.calendar_id : null });
+  }
+  // calendars by their private iCal address: works without Google's OAuth keys (see ics.js)
+  if (act === "feeds") {
+    await feedTables(sql);
+    if (req.method === "POST") {
+      const b = req.body || {}, url = okUrl(b.url), name = String(b.name || "").trim().slice(0, 60) || "Calendar";
+      if (!url) return json(res, 400, { error: "Paste the calendar's secret iCal address (https://calendar.google.com/calendar/ical/…/basic.ics)" });
+      const t = await fetch(url).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+      if (!/BEGIN:VCALENDAR/.test(t)) return json(res, 400, { error: "That address did not give a calendar. Copy the secret address in iCal format again." });
+      await sql`INSERT INTO cal_feeds (name, url) VALUES (${name}, ${url})`;
+    } else if (req.method === "DELETE") {
+      await sql`DELETE FROM cal_feeds WHERE id = ${+q.id || 0}`;
+    }
+    const rows = await sql`SELECT id, name, url FROM cal_feeds ORDER BY id`;
+    return json(res, 200, { feeds: rows.map((r) => ({ id: r.id, name: r.name, host: new URL(r.url).hostname })) });
+  }
+  if (act === "ics") {
+    await feedTables(sql);
+    const from = isDate(q.from) ? q.from : new Date().toISOString().slice(0, 10);
+    let to = isDate(q.to) ? q.to : addDay(from, 1);
+    if (to < from || (Date.parse(to) - Date.parse(from)) / 864e5 > 62) to = addDay(from, 62);
+    const rows = await sql`SELECT id, name, url FROM cal_feeds ORDER BY id`;
+    const got = await Promise.all(rows.map((r) => fetch(r.url).then((x) => (x.ok ? x.text() : Promise.reject(x.status)))
+      .then((t) => ({ r, ev: expand(parseIcs(t), from, to, r.name) })).catch((e) => ({ r, ev: [], err: String(e) }))));
+    return json(res, 200, {
+      events: got.flatMap((g) => g.ev),
+      seen: got.map((g) => ({ name: g.r.name, n: g.ev.length, err: g.err || "" })),
+    });
   }
   if (!configured) return json(res, 409, { error: "Google Calendar is not set up yet (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)" });
 
