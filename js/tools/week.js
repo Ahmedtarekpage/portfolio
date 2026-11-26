@@ -465,7 +465,15 @@
     return '<div class="gc-bar' + (feeds.length ? "" : " gc-bar--warn") + '"><span>📅 ' + (feeds.length ? esc(T("My calendars:", "الكالندرات:")) + " " + chips
         : esc(T("Add your Google calendars so their events (Preply, meetings…) show here.", "ضيف كالندرات جوجل بتاعتك عشان مواعيدها (Preply، الاجتماعات…) تظهر هنا."))) + "</span>" +
       '<button type="button" class="btn btn--' + (feeds.length ? "ghost" : "primary") + ' btn--sm" data-feed-add>+ ' + esc(T("Add a calendar", "ضيف كالندر")) + "</button>" +
-      (feeds.length ? '<button type="button" class="btn btn--ghost btn--sm" data-gc-now>↻ ' + esc(T("Refresh", "حدّث")) + "</button>" : "") + google + diag + "</div>";
+      (feeds.length ? '<button type="button" class="btn btn--ghost btn--sm" data-gc-now>↻ ' + esc(T("Refresh", "حدّث")) + "</button>" : "") + google + diag +
+      (GC.addOpen ? '<div class="gc-add"><ol>' +
+        "<li>" + esc(T("Open Google Calendar settings:", "افتح إعدادات جوجل كالندر:")) + ' <a href="https://calendar.google.com/calendar/r/settings" target="_blank" rel="noopener">⚙️ ' + esc(T("Settings ↗", "الإعدادات ↗")) + "</a></li>" +
+        "<li>" + esc(T("On the left, under “Settings for my calendars”, click the calendar (e.g. Preply Schedule).", "على الشمال، تحت «Settings for my calendars»، دوس على الكالندر (مثلاً Preply Schedule).")) + "</li>" +
+        "<li>" + esc(T("Scroll to “Integrate calendar” and copy “Secret address in iCal format” (ends with basic.ics).", "انزل لـ «Integrate calendar» وانسخ «Secret address in iCal format» (آخره basic.ics).")) + "</li>" +
+        "<li>" + esc(T("Paste it here:", "الزقه هنا:")) + "</li></ol>" +
+        '<div class="gc-add__row"><input type="url" data-feed-url placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" dir="ltr"><input type="text" data-feed-name placeholder="' + esc(T("Name (Preply)", "الاسم (Preply)")) + '">' +
+        '<button type="button" class="btn btn--primary btn--sm" data-feed-save>' + esc(T("Add", "ضيف")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-feed-add>' + esc(T("Close", "اقفل")) + "</button></div>" +
+        (GC.addErr ? '<p class="gc-add__err">⚠️ ' + esc(GC.addErr) + "</p>" : "") + "</div>" : "") + "</div>";
   }
   function loadMeetings() {
     if (LOCAL) return;
@@ -1156,12 +1164,14 @@
     var t = e.target, b;
     if ((b = t.closest("[data-done]"))) { var ov = ensureOv(); if (!ov.done) ov.done = {}; var did = b.getAttribute("data-done"); if (ov.done[did]) delete ov.done[did]; else { var nw = new Date(); ov.done[did] = nw.getHours() * 60 + nw.getMinutes() || 1; } save(); return render(); }
     if (t.closest("[data-gc-now]")) { gcSync(); gcEvents(); return; }
-    if (t.closest("[data-feed-add]")) {
-      var fu = window.prompt(T("Paste the calendar's secret address.\n\nGoogle Calendar → ⚙️ Settings → under 'Settings for my calendars' pick the calendar (e.g. Preply Schedule) → 'Integrate calendar' → copy 'Secret address in iCal format'.",
-        "الزق العنوان السري للكالندر.\n\nجوجل كالندر ← ⚙️ الإعدادات ← تحت 'إعدادات الكالندرات بتاعتي' اختار الكالندر (مثلاً Preply Schedule) ← 'Integrate calendar' ← انسخ 'Secret address in iCal format'."), "");
-      if (!fu || !fu.trim()) return;
-      var fnm = window.prompt(T("A short name for it", "اسم قصير ليه"), /preply/i.test(fu) ? "Preply" : "Google");
-      feedsLoad("POST", { url: fu.trim(), name: fnm || "Calendar" }).then(function () { note(T("Calendar added ✓", "الكالندر اتضاف ✓")); }).catch(function (x) { window.alert(x.message); });
+    if (t.closest("[data-feed-add]")) { GC.addOpen = !GC.addOpen; GC.addErr = ""; render(); var fi = host.querySelector("[data-feed-url]"); if (fi) fi.focus(); return; }
+    if (t.closest("[data-feed-save]")) {
+      var fu = (host.querySelector("[data-feed-url]") || {}).value || "", fnm = (host.querySelector("[data-feed-name]") || {}).value || "";
+      if (!/^(https|webcal):\/\//i.test(fu.trim())) { GC.addErr = T("Paste the secret address that starts with https://calendar.google.com/calendar/ical/", "الزق العنوان السري اللي بيبدأ بـ https://calendar.google.com/calendar/ical/"); render(); return; }
+      var btn = t.closest("[data-feed-save]"); btn.disabled = true; btn.textContent = "…";
+      feedsLoad("POST", { url: fu.trim(), name: fnm.trim() || (/preply/i.test(fnm + fu) ? "Preply" : "Google") })
+        .then(function () { GC.addOpen = false; GC.addErr = ""; note(T("Calendar added ✓", "الكالندر اتضاف ✓")); render(); })
+        .catch(function (x) { GC.addErr = x.message; render(); });
       return;
     }
     if ((b = t.closest("[data-feed-del]"))) { if (!window.confirm(T("Stop showing this calendar here?", "توقّف عرض الكالندر ده هنا؟"))) return; feedsLoad("DELETE", null, b.getAttribute("data-feed-del")).catch(function (x) { window.alert(x.message); }); return; }
@@ -2578,7 +2588,7 @@
     render(); loadMeetings();
     window.MyWeek.ready = true;
     try { window.dispatchEvent(new CustomEvent("myweek:ready")); } catch (e) {}
-    setInterval(function () { if (!editing && !drag) render(); checkAlert(); }, 20000);
+    setInterval(function () { if (!editing && !drag && !GC.addOpen) render(); checkAlert(); }, 20000);
     gcStatus();
     if (nowHost) {
       renderNow(); finLoad(); clientsLoad();
