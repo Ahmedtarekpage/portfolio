@@ -435,7 +435,7 @@
     var c = Date.now() + (mode === "today" ? viewOff : 0) * 864e5, from = iso(new Date(c - 7 * 864e5)), to = iso(new Date(c + 31 * 864e5));
     GEVR = { from: from, to: to };
     fetch("/api/ideas?gcal=events&from=" + from + "&to=" + to + "&tz=" + encodeURIComponent(tz), { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && Array.isArray(d.events)) { GEV = d.events; GC.cals = d.calendars || []; GC.reconnect = !!d.reconnect; if (W) render(); } }).catch(function () {});
+      .then(function (r) { if (!r.ok) { GC.evErr = "events " + r.status; if (W) render(); return null; } GC.evErr = ""; return r.json(); }).then(function (d) { if (d && Array.isArray(d.events)) { GEV = d.events; GC.cals = d.calendars || []; GC.reconnect = !!d.reconnect; GC.diag = d; if (W) render(); } }).catch(function () {});
   }
   function gcBar() {
     if (LOCAL) return '<div class="gc-bar muted">📅 ' + esc(T("Google Calendar works on the live site", "جوجل كالندر شغال على الموقع نفسه")) + "</div>";
@@ -445,6 +445,9 @@
     if (GC.reconnect) { var tz2 = ""; try { tz2 = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
       return '<div class="gc-bar gc-bar--warn"><a class="btn btn--primary btn--sm" href="/api/ideas?gcal=connect&tz=' + encodeURIComponent(tz2) + '">📅 ' + esc(T("Connect Google Calendar again", "اربط جوجل كالندر تاني")) + '</a><span>' + esc(T("One more permission is needed to read all your calendars (Preply, client meetings…). Pick the same Google account.", "محتاج إذن واحد كمان عشان يقرا كل الكالندرات (Preply، مواعيد العملاء…). اختار نفس حساب جوجل.")) + "</span></div>"; }
     return '<div class="gc-bar"><span title="' + esc((GC.cals || []).join(", ")) + '">📅 ' + esc(T("Google Calendar: on", "جوجل كالندر: شغال")) + (GC.cals && GC.cals.length ? " · " + esc(T(GC.cals.length + " calendars", GC.cals.length + " كالندر")) : "") + (GC.err ? " · ⚠️ " + esc(GC.err) : GC.last ? " · " + esc(T("synced ", "اتزامن ") + GC.last) + " ✓" : "") + "</span>" +
+      (function () { var g = GC.diag; if (!g && !GC.evErr) return "";
+        var rows = g && g.seen ? g.seen.map(function (c) { return "<li>" + esc(c.name) + " · " + (c.err ? "⚠️ " + esc(c.err) : c.n + " " + esc(T("events", "حدث"))) + "</li>"; }).join("") : "";
+        return '<details class="gc-diag"><summary>' + esc(T("What is read", "بيقرا إيه")) + " (" + GEV.length + ")</summary><ul>" + rows + "</ul><small>" + esc((GC.evErr ? GC.evErr + " · " : "") + "list " + (g ? g.list : "?") + " · scope " + (g && g.scope ? "✓" : "✗") + " · " + (GEVR ? GEVR.from + " → " + GEVR.to : "")) + "</small></details>"; })() +
       '<button type="button" class="btn btn--ghost btn--sm" data-gc-now>↻ ' + esc(T("Sync now", "زامن دلوقتي")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-gc-off>' + esc(T("Disconnect", "افصل")) + "</button></div>";
   }
   function loadMeetings() {

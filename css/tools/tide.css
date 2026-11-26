@@ -865,3 +865,4 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 .week-err code { font-size: 0.78rem; opacity: .8; word-break: break-word; }
 .week-err__acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .gc-bar--warn { background: rgba(255, 179, 71, 0.18); }
+.gc-diag { font-weight: 500; } .gc-diag ul { margin: 4px 0; padding-inline-start: 18px; } .gc-diag summary { cursor: pointer; }

@@ -218,11 +218,12 @@ export async function gcal(req, res, sql) {
     if (!cals.length) cals = [{ id: "primary", summary: "Google" }]; // without the list, at least the main calendar
     const timeMin = new Date(from + "T00:00:00Z"); timeMin.setUTCDate(timeMin.getUTCDate() - 1);
     const timeMax = new Date(addDay(to, 1) + "T23:59:59Z");
-    const out = [];
+    const out = [], seen = [];
     for (const c of cals) {
       const g = await gfetch(tk.access, "/calendars/" + encodeURIComponent(c.id) + "/events?" + new URLSearchParams({
         timeMin: timeMin.toISOString(), timeMax: timeMax.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "250",
       }));
+      seen.push({ name: c.summary || c.id, n: g.ok && g.body ? (g.body.items || []).length : 0, err: g.ok ? "" : String(g.status) });
       if (!g.ok || !g.body) continue;
       for (const e of g.body.items || []) {
         if (e.status === "cancelled" || !e.start) continue;
@@ -236,7 +237,7 @@ export async function gcal(req, res, sql) {
         });
       }
     }
-    return json(res, 200, { events: out, calendars: cals.map((c) => c.summary || c.id), reconnect });
+    return json(res, 200, { events: out, calendars: cals.map((c) => c.summary || c.id), seen, list: list.ok ? "ok" : String(list.status), scope: /calendarlist/.test(tk.scope), reconnect });
   }
 
   return json(res, 400, { error: "Unknown gcal action" });
