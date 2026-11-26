@@ -903,3 +903,7 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 .clash small { color: var(--muted); font-weight: 500; }
 .clash__acts { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 600px) { .pvr { font-size: 0.72rem; } .pvr th, .pvr td { padding: 5px 3px; } .pvr-day { grid-template-columns: 1fr auto; } .pvr-day .pvr-bar { grid-column: 1 / -1; order: 3; } }
+.day-sec__btn { all: unset; cursor: pointer; display: inline-flex; gap: 6px; align-items: baseline; font: inherit; letter-spacing: inherit; color: inherit; padding: 4px 0; }
+.day-sec__btn em { font-style: normal; width: 1em; display: inline-block; }
+.day-sec__btn small { letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 600; }
+.day-sec__btn:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 6px; }

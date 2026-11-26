@@ -188,7 +188,7 @@
 
   var SEC = {
     m: { en: "🌅 Morning routine", ar: "🌅 روتين الصبح" },
-    w: { en: "💼 Work · office 10 AM – 7 PM", ar: "💼 الشغل · المكتب 10 الصبح – 7 بالليل" },
+    w: { en: "💼 Work · 7 AM – 7 PM", ar: "💼 الشغل · 7 الصبح – 7 بالليل" },
     f: { en: "🏡 Free time · me and family", ar: "🏡 الوقت الحر · أنا والعيلة" }
   };
 
@@ -837,6 +837,8 @@
       '<p class="muted pvr__note">' + esc(T("Real = blocks ticked ✓. + / − is real minus " + (viewOff === 0 ? "what was due by now" : "the plan") + ".", "الحقيقة = البلوكات المتعلّم عليها ✓. الـ + / − = الحقيقة ناقص " + (viewOff === 0 ? "اللي كان المفروض لحد دلوقتي" : "الخطة") + ".")) + "</p></details>";
   }
   // any range: weeks or from → to
+  // the day's three parts fold open / shut; remembered in this browser, all open at first
+  var SECSHUT = (function () { try { return JSON.parse(localStorage.getItem("week.secs") || "null") || {}; } catch (e) { return {}; } })();
   var RG = (function () { try { return JSON.parse(localStorage.getItem("week.rg") || "null") || {}; } catch (e) { return {}; } })();
   function rgSet(from, to) { RG = { from: from, to: to, open: true }; try { localStorage.setItem("week.rg", JSON.stringify(RG)); } catch (e) {} }
   function rangePanel() {
@@ -872,19 +874,36 @@
       var a = mins(x.from), b = mins(x.to);
       M.forEach(function (p) { var pa = p.from - 30; if (a < p.to && b > pa) out.push({ x: x, p: p, a: a, b: b, pa: pa }); });
     });
+    // the day's rules (owner, 2026-11-26): the morning routine ends before work at 7 AM; work is 7 AM – 7 PM; no work after 7 PM
+    var WORKC = /^(office|job|client|udacity|product|system|content|agents|biz|plan)$/, rules = [];
+    var mIds = {}; mdRows().forEach(function (x) { if (x.sec === "m") mIds[x.id] = 1; });
+    rowsOf(dow).forEach(function (x) {
+      if (!x.from || !x.to) return;
+      var a = mins(x.from), b = mins(x.to);
+      if (mIds[x.id] && b > 420) rules.push({ x: x, a: a, b: b, at: 420, why: T("Morning routine runs past 7 AM, when work starts", "روتين الصبح داخل في وقت الشغل (بعد 7 الصبح)") });
+      else if (WORKC.test(catOf(x)) && b > 1140) rules.push({ x: x, a: a, b: b, at: 1140, why: T("Work after 7 PM", "شغل بعد 7 بالليل") });
+    });
+    M.forEach(function (p) { if (p.to > 1140 && WORKC.test(catOf(p))) rules.push({ p: p, a: p.from, b: p.to, why: T("A meeting after 7 PM", "ميعاد بعد 7 بالليل") }); });
     var two = [];
     M.forEach(function (p, i) { M.slice(i + 1).forEach(function (r) { if (p.from < r.to && r.from < p.to) two.push([p, r]); }); });
-    return { rows: out, two: two };
+    return { rows: out, two: two, rules: rules };
   }
   function clashBar() {
-    var c = clashes(sel); if (!c.rows.length && !c.two.length) return "";
+    var c = clashes(sel); if (!c.rows.length && !c.two.length && !c.rules.length) return "";
+    var nAll = c.rows.length + c.two.length + c.rules.length;
     var ttl = function (p) { return T(p.en, p.ar).replace(/^📅 |^🎯 /, ""); };
-    return '<div class="clash"><b>⚠️ ' + esc(T(c.rows.length + c.two.length + " clash" + (c.rows.length + c.two.length > 1 ? "es" : "") + " on this day", "فيه " + (c.rows.length + c.two.length) + " تعارض في اليوم ده")) + "</b><ul>" +
+    return '<div class="clash"><b>⚠️ ' + esc(T(nAll + " clash" + (nAll > 1 ? "es" : "") + " on this day", "فيه " + nAll + " تعارض في اليوم ده")) + "</b><ul>" +
       c.rows.map(function (r) {
         var keepBefore = r.pa - r.a, keepAfter = r.b - r.p.to, canTrim = Math.max(keepBefore, keepAfter) >= 15;
         return "<li><span>" + esc((r.x.text || T(r.x.en, r.x.ar))) + " <small>(" + ap(r.a) + "–" + ap(r.b) + ")</small> ✕ " + esc(ttl(r.p)) + " <small>(" + ap(r.p.from) + "–" + ap(r.p.to) + esc(T(", prep from ", "، التحضير من ")) + ap(r.pa) + ")</small></span>" +
           '<span class="clash__acts"><button type="button" class="btn btn--ghost btn--sm" data-clash="move" data-cid="' + esc(r.x.id) + '" data-pa="' + r.pa + '" data-pb="' + r.p.to + '">⏩ ' + esc(T("Move after it", "أجّلها لبعده") + " (" + ap(r.p.to) + ")") + "</button>" +
           (canTrim ? '<button type="button" class="btn btn--ghost btn--sm" data-clash="trim" data-cid="' + esc(r.x.id) + '" data-pa="' + r.pa + '" data-pb="' + r.p.to + '">✂️ ' + esc(keepBefore >= keepAfter ? T("Shorten: end at " + ap(r.pa), "قصّرها: تخلص " + ap(r.pa)) : T("Shorten: start at " + ap(r.p.to), "قصّرها: تبدأ " + ap(r.p.to))) + "</button>" : "") +
+          '<button type="button" class="btn btn--ghost btn--sm" data-clash="drop" data-cid="' + esc(r.x.id) + '">✕ ' + esc(T("Skip it this day", "شيلها اليوم ده")) + "</button></span></li>";
+      }).join("") +
+      c.rules.map(function (r) {
+        if (r.p) return "<li><span>⏰ " + esc(r.why) + ": " + esc(ttl(r.p)) + " <small>(" + ap(r.a) + "–" + ap(r.b) + ")</small></span><span class=\"muted\">" + esc(T("Move it in Clients or its calendar if you can.", "غيّره من العملاء أو الكالندر بتاعه لو ينفع.")) + "</span></li>";
+        return "<li><span>⏰ " + esc(r.why) + ": " + esc(r.x.text || T(r.x.en, r.x.ar)) + " <small>(" + ap(r.a) + "–" + ap(r.b) + ")</small></span><span class=\"clash__acts\">" +
+          (r.a < r.at - 10 ? '<button type="button" class="btn btn--ghost btn--sm" data-clash="end" data-cid="' + esc(r.x.id) + '" data-at="' + r.at + '">✂️ ' + esc(T("End at " + ap(r.at), "تخلص " + ap(r.at))) + "</button>" : "") +
           '<button type="button" class="btn btn--ghost btn--sm" data-clash="drop" data-cid="' + esc(r.x.id) + '">✕ ' + esc(T("Skip it this day", "شيلها اليوم ده")) + "</button></span></li>";
       }).join("") +
       c.two.map(function (pr) { return "<li><span>📅 " + esc(ttl(pr[0])) + " <small>(" + ap(pr[0].from) + ")</small> ✕ " + esc(ttl(pr[1])) + " <small>(" + ap(pr[1].from) + ")</small></span><span class=\"muted\">" + esc(T("Two appointments at once: move one in its calendar.", "ميعادين في نفس الوقت: غيّر واحد منهم من الكالندر بتاعه.")) + "</span></li>"; }).join("") +
@@ -1021,7 +1040,7 @@
     if (mode === "today") { sel = viewDow(); var vk = todayKey(); if (GEVR && (vk < GEVR.from || vk > GEVR.to)) gcEvents(); }
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
-    var secOf = function (m) { return m < 600 ? "m" : m < 1140 ? "w" : "f"; };
+    var secOf = function (m) { return m < 420 ? "m" : m < 1140 ? "w" : "f"; };
     var groups = { m: [], w: [], f: [] };
     var free = tpl(sel) === 0;
     var shown = function (x) { return !x.on || x.on.indexOf(tpl(sel)) > -1; };
@@ -1029,7 +1048,7 @@
     mdRows().filter(shown).forEach(function (x) { if (x.sec === "w") lateWork.push(x); else (groups[x.sec] || groups.f).push({ x: x }); });
     // a work row before the office opens (Wednesday's 8 AM emails) sits in the morning, in time order
     work().forEach(function (x) {
-      if (x.from && mins(x.from) < 600) { var g = groups.m, k = 0; while (k < g.length && mins(g[k].x.from) <= mins(x.from)) k++; g.splice(k, 0, { x: x }); }
+      if (x.from && mins(x.from) < 420) { var g = groups.m, k = 0; while (k < g.length && mins(g[k].x.from) <= mins(x.from)) k++; g.splice(k, 0, { x: x }); }
       else groups.w.push({ x: x });
     });
     // a shared row that sits in the work part (Plan tomorrow) goes in by its time
@@ -1077,10 +1096,12 @@
       (isToday && nowM >= d0 && nowM <= d1 ? '<b class="day-strip__now" style="left:' + ((nowM - d0) / span * 100).toFixed(2) + '%"><span>' + esc(ap(nowM)) + "</span></b>" : "") +
       '</div><div class="day-strip__hours">' + hours.map(function (h) { return '<span style="left:' + ((h - d0) / span * 100).toFixed(2) + '%">' + esc(ap(h).replace(":00", "")) + "</span>"; }).join("") + "</div></div>";
     var sec = function (k, title) {
-      return '<h3 class="day-sec">' + esc(title) + "</h3>" +
-        '<ol class="week-list" data-sec="' + k + '">' + groups[k].map(function (g) { return g.p ? fixedRow(g.p) : row(g.x, P); }).join("") + "</ol>" +
+      var shut = !!SECSHUT[k], n = groups[k].filter(function (g) { return !g.p; }).length;
+      return '<h3 class="day-sec"><button type="button" class="day-sec__btn" data-sec-fold="' + k + '" aria-expanded="' + !shut + '"><em aria-hidden="true">' + (shut ? "▸" : "▾") + "</em> " + esc(title) +
+        (shut ? ' <small>· ' + n + " " + esc(T("blocks", "بلوك")) + "</small>" : "") + "</button></h3>" +
+        '<div class="day-sec__body"' + (shut ? " hidden" : "") + '><ol class="week-list" data-sec="' + k + '">' + groups[k].map(function (g) { return g.p ? fixedRow(g.p) : row(g.x, P); }).join("") + "</ol>" +
         '<div class="week__foot"><button type="button" class="btn btn--ghost btn--sm" data-add="' + k + '">+ ' + esc(T("Add a time", "ضيف وقت")) + "</button>" +
-        (k === "w" ? '<button type="button" class="btn btn--ghost btn--sm" data-meet>🤝 ' + esc(T("Client meeting", "ميعاد عميل")) + "</button>" : "") + "</div>";
+        (k === "w" ? '<button type="button" class="btn btn--ghost btn--sm" data-meet>🤝 ' + esc(T("Client meeting", "ميعاد عميل")) + "</button>" : "") + "</div></div>";
     };
     var tday = mode === "today", ov = curOv();
     var doneN = ov && ov.done ? Object.keys(ov.done).length : 0;
@@ -1268,9 +1289,11 @@
       var how = b.getAttribute("data-clash"), ca = mins(cx.from), cb = mins(cx.to), pa = +b.getAttribute("data-pa"), pb = +b.getAttribute("data-pb");
       if (how === "drop") drop1(cx.id);
       else if (how === "move") { var len = cb - ca, st = pb, en = Math.min(1439, pb + len); cx.from = hhmm(st); cx.to = hhmm(en); }
+      else if (how === "end") cx.to = hhmm(+b.getAttribute("data-at"));
       else if (how === "trim") { if (pa - ca >= cb - pb) cx.to = hhmm(pa); else cx.from = hhmm(pb); }
       sfx && sfx("pop"); save(); return render();
     }
+    if ((b = t.closest("[data-sec-fold]"))) { var sk = b.getAttribute("data-sec-fold"); if (SECSHUT[sk]) delete SECSHUT[sk]; else SECSHUT[sk] = 1; try { localStorage.setItem("week.secs", JSON.stringify(SECSHUT)); } catch (x) {} return render(); }
     if ((b = t.closest("[data-rg]"))) { var rr = b.getAttribute("data-rg").split("|"); rgSet(rr[0], rr[1]); return render(); }
     if ((b = t.closest("[data-rg-day]"))) {
       var tdy = new Date(); tdy.setHours(12, 0, 0, 0);
