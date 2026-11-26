@@ -853,3 +853,14 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 /* 📐 نفس عرض صفحة الأدمن (1080px في النص) لكل الصفحات (طلب صاحب الحساب، 2026-11-25) */
 .now-page .wrap.now-wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 80px; }
 @media (max-width: 1100px) { .now-page .wrap.now-wrap { padding: 8px; } }
+
+/* Today: open any day (← date →) beside Today / Tomorrow */
+.day-nav2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.day-nav2 input[type="date"] { font: 600 0.85rem var(--font-ui); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(127,127,127,.35); background: rgba(127,127,127,.12); color: inherit; color-scheme: light dark; min-height: 36px; }
+.day-nav2 .iconbtn { min-width: 36px; min-height: 36px; }
+.day-nav2 .day-view { margin: 0; margin-inline-start: auto; }
+@media (max-width: 600px) { .day-nav2 .day-view { margin-inline-start: 0; width: 100%; } }
+/* when the day cannot be drawn: say why, never a blank card */
+.week-err { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: rgba(255, 107, 91, .08); border: 1px solid rgba(255, 107, 91, .3); }
+.week-err code { font-size: 0.78rem; opacity: .8; word-break: break-word; }
+.week-err__acts { display: flex; gap: 8px; flex-wrap: wrap; }

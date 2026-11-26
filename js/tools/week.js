@@ -21,6 +21,7 @@
   if (!host) return;
 
   var T = window.T || function (en) { return en; };
+  function I18N_AR() { return !!(window.I18N && window.I18N.ar); }
   var LOCAL = /^(localhost|127\.0\.0\.1|\[::1\]|)$/.test(location.hostname);
   var KEY = "desk.v1", API = "/api/ideas?desk=data";
   var doc = {}, rev = "", W = null, saveTimer = null, status = "", moved = false;
@@ -355,7 +356,7 @@
       (to ? "<small>" + esc(T("to ", "لحد ")) + esc(ap(to)) + "</small><em>⏱ " + esc(howLong(from, to)) + "</em>" : "") + "</b>";
   }
   function catTag(cat) { var cc = CAT[cat]; return '<i class="day-cat" style="--cat:' + cc.c + '">' + cc.ico + " " + esc(T(cc.en, cc.ar)) + "</i>"; }
-  function dateOf(dow) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + ((dow - d.getDay() + 7) % 7)); return d; }
+  function dateOf(dow) { if (mode === "today" && dow === viewDow()) { var v = new Date(Date.now() + viewOff * 864e5); v.setHours(12, 0, 0, 0); return v; } var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + ((dow - d.getDay() + 7) % 7)); return d; }
   function prayers(dow) {
     var date = iso(dateOf(dow)), got = timesNow(date), t = got.t, set = iqamaSet(), fri = dow === 5;
     askTimes(date);
@@ -546,7 +547,7 @@
      the week, and the first change makes today's own copy (W.dates[date]: myday + work + done), so
      the week itself is never touched. In the My week tab ("week") the card edits the week. */
   var mode = "week", viewOff = 0;   // in the Today tab: 0 = today, 1 = tomorrow
-  function viewDow() { return (todayDow + viewOff) % 7; }
+  function viewDow() { return (((todayDow + viewOff) % 7) + 7) % 7; }
   function todayKey() { return iso(new Date(Date.now() + viewOff * 864e5)); }
   function curOv() { return mode === "today" && W.dates ? W.dates[todayKey()] || null : null; }
   function ensureOv() {
@@ -558,7 +559,7 @@
       W.dates[k] = { myday: W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(viewDow())) > -1; }).map(copy),
         work: (W.days[tpl(viewDow())] || []).map(copy), done: {} };
       // keep two weeks of days
-      var cut = iso(new Date(Date.now() - 14 * 864e5)); Object.keys(W.dates).forEach(function (d) { if (d < cut) delete W.dates[d]; });
+      var cut = iso(new Date(Date.now() - 120 * 864e5)); Object.keys(W.dates).forEach(function (d) { if (d < cut) delete W.dates[d]; });
     }
     return W.dates[k];
   }
@@ -590,7 +591,7 @@
       return done();
     }
     fetch(API, { cache: "no-store" }).then(function (r) {
-      if (r.status === 401) return null;         // the page's own sign-in takes over
+      if (r.status === 401) { host.innerHTML = '<div class="week-err"><b>🔒 ' + esc(T("Your sign-in ended, so your day could not load.", "الدخول بتاعك خلص، فاليوم ما اتحمّلش.")) + '</b><div class="week-err__acts"><button type="button" class="btn btn--sm" onclick="location.reload()">⟳ ' + esc(T("Sign in again", "ادخل تاني")) + "</button></div></div>"; return null; } // the page's own sign-in takes over
       rev = r.headers.get("X-Rev") || "";
       return r.status === 404 ? {} : r.json();
     }).then(function (d) { if (d === null) return; adopt(d); done(); })
@@ -663,7 +664,7 @@
       (x.from ? stub(x.from, x.to, cat) : '<b dir="ltr" class="cat-stub" style="--cat:' + CAT[cat].c + '" data-ico="' + CAT[cat].ico + '"><span class="cat-stub__ico">' + CAT[cat].ico + "</span><strong>--:--</strong></b>") +
       '<span><b class="day-title">' + esc(x.text || T(x.en, x.ar)) + "</b>" + extra + body + "</span>" +
       (live ? '<i class="badge">' + esc(T("now", "دلوقتي")) + "</i>" : "") +
-      '<span class="week-row__acts">' + (mode === "today" && !viewOff ? '<button type="button" class="iconbtn day-tick' + (dn ? " is-on" : "") + '" data-done="' + x.id + '" aria-pressed="' + dn + '" title="' + esc(T("Done", "خلصت")) + '">' + (dn ? "✓" : "○") + "</button>" : "") + '<button type="button" class="iconbtn" data-edit aria-label="' + esc(T("Edit", "عدّل")) + '" title="' + esc(T("Edit", "عدّل")) + '">✎</button>' +
+      '<span class="week-row__acts">' + (mode === "today" && viewOff <= 0 ? '<button type="button" class="iconbtn day-tick' + (dn ? " is-on" : "") + '" data-done="' + x.id + '" aria-pressed="' + dn + '" title="' + esc(T("Done", "خلصت")) + '">' + (dn ? "✓" : "○") + "</button>" : "") + '<button type="button" class="iconbtn" data-edit aria-label="' + esc(T("Edit", "عدّل")) + '" title="' + esc(T("Edit", "عدّل")) + '">✎</button>' +
       '<button type="button" class="iconbtn" data-del aria-label="' + esc(T("Delete", "امسح")) + '" title="' + esc(T("Delete", "امسح")) + '">✕</button></span></li>';
   }
 
@@ -680,7 +681,7 @@
       "<span>" + ico + esc(title) + (p.sub && p.sub[0] ? ' <i class="day-tag' + (p.kind === "pray" ? " day-tag--pray" : "") + '">' + esc(T(p.sub[0], p.sub[1])) + "</i>" : "") +
         (p.kind === "pray" ? ' <i class="day-tag">' + esc(T("no work", "مفيش شغل")) + "</i>" : "") + "</span>" +
       (live ? '<i class="badge">' + esc(T("now", "دلوقتي")) + "</i>" : "") +
-      (mode === "today" && !viewOff && p.kind === "pray" ? '<span class="week-row__acts"><button type="button" class="iconbtn day-tick' + (isDone("pray:" + p.k) ? " is-on" : "") + '" data-done="pray:' + p.k + '" title="' + esc(T("Prayed", "صليت")) + '">' + (isDone("pray:" + p.k) ? "✓" : "○") + "</button></span>" : "") +
+      (mode === "today" && viewOff <= 0 && p.kind === "pray" ? '<span class="week-row__acts"><button type="button" class="iconbtn day-tick' + (isDone("pray:" + p.k) ? " is-on" : "") + '" data-done="pray:' + p.k + '" title="' + esc(T("Prayed", "صليت")) + '">' + (isDone("pray:" + p.k) ? "✓" : "○") + "</button></span>" : "") +
       (p.kind === "meet" && p.mine ? '<span class="week-row__acts"><button type="button" class="iconbtn" data-meet-del="' + esc(p.id) + '" aria-label="' + esc(T("Delete the meeting", "امسح الميعاد")) + '" title="' + esc(T("Delete the meeting", "امسح الميعاد")) + '">✕</button></span>' : "") +
       "</li>";
   }
@@ -873,6 +874,16 @@
     return '<div class="wk-end"><span>🌿 ' + esc(T("My weekend", "الإجازة بتاعتي")) + '</span><div class="tp__tabs">' + b("auto", autoLbl) + b("fri", T("Friday", "الجمعة")) + b("sun", T("Sunday", "الأحد")) + "</div></div>";
   }
   function render() {
+    try { renderDay(); }
+    catch (err) {
+      try { console.error("My week:", err); } catch (x) {}
+      host.innerHTML = '<div class="week-err"><b>⚠️ ' + esc(T("This part could not be drawn", "الجزء ده ما اتعرضش")) + '</b><code dir="ltr">' + esc(String(err && err.message || err)) + "</code>" +
+        '<div class="week-err__acts"><button type="button" class="btn btn--ghost btn--sm" data-view="0">☀️ ' + esc(T("Back to today", "ارجع للنهارده")) + "</button>" +
+        (W && W.dates && W.dates[todayKey()] ? '<button type="button" class="btn btn--ghost btn--sm" data-reset-today>↺ ' + esc(T("Take this day from the week again", "رجّع اليوم ده زي الأسبوع")) + "</button>" : "") +
+        '<button type="button" class="btn btn--ghost btn--sm" onclick="location.reload()">⟳ ' + esc(T("Reload", "اعمل ريفريش")) + "</button></div></div>";
+    }
+  }
+  function renderDay() {
     if (mode === "today") sel = viewDow();
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
@@ -940,12 +951,19 @@
     var tday = mode === "today", ov = curOv();
     var doneN = ov && ov.done ? Object.keys(ov.done).length : 0;
     var vd = new Date(Date.now() + viewOff * 864e5);
-    var headToday = '<div class="card__head week__head"><h2>' + (viewOff ? "🌙 " + esc(T("Tomorrow", "بكرة")) : "☀️ " + esc(T("Today", "النهارده"))) + ' <small class="muted">' + esc(T(DAY[sel].en, DAY[sel].ar) + " " + vd.getDate()) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
-      '<div class="tp__tabs day-view" role="tablist"><button type="button" data-view="0" class="' + (viewOff ? "" : "is-on") + '" aria-selected="' + !viewOff + '">☀️ ' + esc(T("Today", "النهارده")) + '</button><button type="button" data-view="1" class="' + (viewOff ? "is-on" : "") + '" aria-selected="' + !!viewOff + '">🌙 ' + esc(T("Tomorrow: plan it", "بكرة: خطّطله")) + "</button></div>" +
-      (viewOff ? "" : alertBar()) + gcBar() +
-      '<div class="today-bar"><span>' + esc(viewOff
+    var dayName = viewOff === 0 ? "☀️ " + T("Today", "النهارده") : viewOff === 1 ? "🌙 " + T("Tomorrow", "بكرة") : viewOff === -1 ? "⏪ " + T("Yesterday", "امبارح") : (viewOff < 0 ? "📜 " : "📅 ") + T(DAY[sel].en, DAY[sel].ar);
+    var headToday = '<div class="card__head week__head"><h2>' + esc(dayName) + ' <small class="muted">' + esc((Math.abs(viewOff) > 1 ? "" : T(DAY[sel].en, DAY[sel].ar) + " ") + vd.getDate() + " " + vd.toLocaleString(I18N_AR() ? "ar-EG" : "en", { month: "short" })) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
+      '<div class="day-nav2"><button type="button" class="iconbtn" data-dayjump="-1" aria-label="' + esc(T("Previous day", "اليوم اللي قبله")) + '">' + (I18N_AR() ? "→" : "←") + '</button>' +
+      '<input type="date" data-daypick value="' + iso(vd) + '" aria-label="' + esc(T("Open any day", "افتح أي يوم")) + '">' +
+      '<button type="button" class="iconbtn" data-dayjump="1" aria-label="' + esc(T("Next day", "اليوم اللي بعده")) + '">' + (I18N_AR() ? "←" : "→") + '</button>' +
+      '<div class="tp__tabs day-view" role="tablist"><button type="button" data-view="0" class="' + (viewOff === 0 ? "is-on" : "") + '" aria-selected="' + (viewOff === 0) + '">☀️ ' + esc(T("Today", "النهارده")) + '</button><button type="button" data-view="1" class="' + (viewOff === 1 ? "is-on" : "") + '" aria-selected="' + (viewOff === 1) + '">🌙 ' + esc(T("Tomorrow: plan it", "بكرة: خطّطله")) + "</button></div></div>" +
+      (viewOff ? "" : alertBar()) + (viewOff < 0 ? "" : gcBar()) +
+      '<div class="today-bar"><span>' + esc(viewOff < 0
+        ? (ov ? T("✎ This day had its own changes · ✓ " + doneN + " done", "✎ اليوم ده كان متعدّل · ✓ " + doneN + " خلص") : T("This day as it was in My week (nothing ticked)", "اليوم ده زي ما كان في أسبوعي (مفيش حاجة متعلّم عليها)"))
+        : viewOff > 1 ? (ov ? T("✎ This day is planned, the week is as it was", "✎ اليوم ده متخطط، والأسبوع زي ما هو") : T("From My week. Change anything: it changes this day only", "من أسبوعي. عدّل أي حاجة: بتتغير اليوم ده بس"))
+        : viewOff
         ? (ov ? T("✎ Tomorrow is planned, the week is as it was", "✎ بكرة متخطط، والأسبوع زي ما هو") : T("Tomorrow from My week. Change anything: it changes tomorrow only", "بكرة من أسبوعي. عدّل أي حاجة: بتتغير بكرة بس"))
-        : (ov ? T("✎ Changed for today only, the week is as it was", "✎ متعدّل للنهارده بس، والأسبوع زي ما هو") : T("From My week. Change anything: it changes today only", "من أسبوعي. عدّل أي حاجة: بتتغير النهارده بس"))) + (doneN && !viewOff ? " · ✓ " + doneN : "") + "</span>" +
+        : (ov ? T("✎ Changed for today only, the week is as it was", "✎ متعدّل للنهارده بس، والأسبوع زي ما هو") : T("From My week. Change anything: it changes today only", "من أسبوعي. عدّل أي حاجة: بتتغير النهارده بس"))) + (doneN && viewOff === 0 ? " · ✓ " + doneN : "") + "</span>" +
       (ov ? '<button type="button" class="btn btn--ghost btn--sm" data-reset-today>↺ ' + esc(T("Back to the week", "رجّعه زي الأسبوع")) + "</button>" : "") +
       '<button type="button" class="btn btn--ghost btn--sm" data-to-week>🗓️ ' + esc(T("Edit the week", "عدّل الأسبوع")) + "</button></div>";
     // before the plan's first day (Thu 26 Nov): Today says so; Tomorrow on Wednesday shows Thursday
@@ -970,7 +988,7 @@
       }).join("") + "</div>") +
       '<p class="week__for"><b>' + esc(T(d.en, d.ar)) + " " + dateOf(sel).getDate() + ":</b> " + esc(T(d.len, d.lar)) +
         (nextP ? ' · <b>🕌 ' + esc(T(nextP.en + " iqama " + ap(nextP.iq), "إقامة " + nextP.ar + " " + ap(nextP.iq))) + "</b>" : "") +
-        " · " + gymNote() + " · 😴 " + esc(T("sleep ", "نوم ") + howLong(0, sleep)) + "</p>" + (tday ? (viewOff ? "" : progressPanel(groups, nowM)) : timePanel()) + strip +
+        " · " + gymNote() + " · 😴 " + esc(T("sleep ", "نوم ") + howLong(0, sleep)) + "</p>" + (tday ? (viewOff > 0 ? "" : progressPanel(groups, viewOff < 0 ? 1440 : nowM)) : timePanel()) + strip +
       sec("m", T(SEC.m.en, SEC.m.ar)) +
       sec("w", free ? T("🌿 " + DAY[sel].en + ": free day, no office, no business", "🌿 " + DAY[sel].ar + ": يوم حر، مفيش مكتب ولا بيزنس") : T(SEC.w.en, SEC.w.ar) + officeSplit()) +
       sec("f", T(SEC.f.en, SEC.f.ar)) +
@@ -1118,7 +1136,8 @@
     }
     if (t.closest("[data-al-test]")) { playAlert(); try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} return; }
     if ((b = t.closest("[data-view]"))) { viewOff = +b.getAttribute("data-view") ? 1 : 0; editing = null; return render(); }
-    if (t.closest("[data-reset-today]")) { if (!window.confirm(T("Undo today's changes and take today from the week again?", "ترجع النهارده زي الأسبوع وتلغي تعديلات النهارده؟"))) return; delete W.dates[todayKey()]; save(); return render(); }
+    if ((b = t.closest("[data-dayjump]"))) { viewOff = Math.max(-120, Math.min(60, viewOff + +b.getAttribute("data-dayjump"))); editing = null; return render(); }
+    if (t.closest("[data-reset-today]")) { if (!window.confirm(T("Undo this day's changes and take it from the week again?", "ترجع اليوم ده زي الأسبوع وتلغي تعديلاته؟"))) return; delete W.dates[todayKey()]; save(); return render(); }
     if (t.closest("[data-to-week]")) { var wt = document.querySelector('#tabbar [data-tab="week"]'); if (wt) wt.click(); return; }
     if ((b = t.closest("[data-weekend]"))) { var v = b.getAttribute("data-weekend"); if (v === "auto") delete W.weekend; else W.weekend = v; editing = null; save(); return render(); }
     if (t.closest("[data-tp-open]")) { TP.open = !TP.open; tpSave(); return render(); }
@@ -1199,6 +1218,11 @@
     editing = null; save(); render();
   });
 
+  host.addEventListener("change", function (e) {
+    var dp = e.target.closest && e.target.closest("[data-daypick]"); if (!dp || !dp.value) return;
+    var a = new Date(dp.value + "T12:00:00"), b = new Date(); b.setHours(12, 0, 0, 0);
+    viewOff = Math.max(-120, Math.min(60, Math.round((a - b) / 864e5))); editing = null; render();
+  });
   host.addEventListener("keydown", function (e) {
     var g = e.target.closest && e.target.closest("[data-tp-group]");
     if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.click(); }

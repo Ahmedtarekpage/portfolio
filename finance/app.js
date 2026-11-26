@@ -1643,7 +1643,7 @@ function renderToday(c) {
   el.innerHTML = `<button type="button" class="td-main" data-dailyview><small>🗓️ ${L('النهارده تقدر تصرف', 'Today you can spend')}</small><b dir="ltr">${fmt(DP.total, 2)} <span>Đ</span></b><small>${L(`فاضل ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')} في الدورة`, `${EN_N(DP.daysLeft, 'day')} left in the cycle`)} ›</small></button>
     <div class="td-side">
       <button type="button" class="td-mini" data-today="pay"><span>📅 ${L('القبض', 'Payday')}</span><b>${pi.none ? '—' : pi.due ? L('النهارده 🎉', 'Today 🎉') : L(`بعد ${plural(pi.days, 'يوم', 'يومين', 'أيام', 'يوم')}`, `in ${EN_N(pi.days, 'day')}`)}</b></button>
-      <button type="button" class="td-mini ${essLeft < -0.5 ? 'bad' : ''}" data-today="ess"><span>🍞 ${L('فاضل للأساسيات', 'Left for essentials')}</span><b dir="ltr">${fmt(essLeft)} Đ</b></button>
+      <button type="button" class="td-mini ${DP.realHave < -0.5 ? 'bad' : ''}" data-today="ess"><span>🍞 ${L('فاضل للأساسيات', 'Left for essentials')}</span><b dir="ltr">${fmt(DP.realHave)} Đ</b></button>
     </div>
     <button type="button" class="td-add" data-quick="spend" aria-label="${L('سجّل مصروف', 'Log an expense')}">＋ <span>${L('صرفت', 'Spent')}</span></button>`;
 }
@@ -1741,7 +1741,7 @@ function render() {
       else { if (!curs.includes(h.cur)) curs.push(h.cur); parts.push(`${fmt(h.amount)} ${CUR[h.cur].s}`); }
     }
     wal[k] = { curs, gold };
-    $(`#labels [data-b="${k}"] em`).textContent = parts.join(' · ') || L('فاضية', 'Empty');
+    $(`#labels [data-b="${k}"] em`).textContent = k === 'essentials' ? '' : (parts.join(' · ') || L('فاضية', 'Empty')); // الأساسيات: الجيبين تحت بيشرحوا
   }
   // وضع العرض في الهيرو: الكل بعملة واحدة، أو عملة واحدة بس بقيمتها الأصلية
   const view = viewOf(R), disp = CUR[S.disp]?.s ? S.disp : 'AED';
@@ -1983,7 +1983,7 @@ function essDetails() {
     ${(() => { // 🏦 الجيبين في البنك
       const pk2 = DP.pk2, pk1 = DP.pk1;
       return `<h4>🏦 ${L('في تطبيق البنك', 'In your bank app')}</h4><table class="sw-t">
-        <tr><td>👛 ${L(`جيب الشهر · لحد ${sd(to)}`, `This month · until ${sd(to)}`)}<br><small>${L(`فاضل الدورة ${fmt(E.leftNow)}${E.leftExtra > 0.5 ? ` + زيادة ${fmt(E.leftExtra)}` : ''}${DP.SF.fromM > 0.5 ? ` − سلفة الفلوس الحرّة ${fmt(DP.SF.fromM)}` : ''} · ${L('حد الأكل والسكن', '')} ${fmt(DP.floorM)}`, `Cycle left ${fmt(E.leftNow)}${E.leftExtra > 0.5 ? ` + extra ${fmt(E.leftExtra)}` : ''}${DP.SF.fromM > 0.5 ? ` − free money loan ${fmt(DP.SF.fromM)}` : ''} · food & housing floor ${fmt(DP.floorM)}`)}</small></td><td dir="ltr"><b>${fmt(pk1)}</b></td></tr>
+        <tr><td>👛 ${L(`جيب الشهر · لحد ${sd(to)}`, `This month · until ${sd(to)}`)}<br><small>${L(`محتاج لآخر الدورة ${fmt(DP.needM)}${pk1 < DP.needM - 0.5 ? ` · ناقص ${fmt(DP.needM - pk1)}` : ''} · منهم أكل وسكن ${fmt(DP.floorM)}`, `Needed until the cycle ends ${fmt(DP.needM)}${pk1 < DP.needM - 0.5 ? ` · ${fmt(DP.needM - pk1)} short` : ''} · of which food & housing ${fmt(DP.floorM)}`)}</small></td><td dir="ltr"><b>${fmt(pk1)}</b></td></tr>
         ${E.debtOn ? `<tr><td>🛟 ${L(`جيب الـ10 أيام · ${sd(n1)} → ${sd(n10)}`, `10-day pocket · ${sd(n1)} → ${sd(n10)}`)}<br><small>${L('ما تلمسوش لحد القبض', "Don't touch it until payday")}${DP.SF.fromN > 0.5 ? L(` · منه سلفة ${fmt(DP.SF.fromN)} للفلوس الحرّة`, ` · ${fmt(DP.SF.fromN)} lent to free money`) : ''} · ${L('حد الأكل والسكن', 'food & housing floor')} ${fmt(DP.floorN)}</small></td><td dir="ltr"><b>${fmt(pk2)}</b>${pk2 < E.En - 0.5 ? ` / ${fmt(E.En)}` : ''}</td></tr>` : ''}
         <tr class="ft"><td>💵 ${L('معاك فعلًا', 'You really have')}</td><td dir="ltr">${fmt(DP.realHave)}</td></tr></table>
         ${DP.solfa > 0.5 ? `<p class="note ${DP.SF.intoCore > 0.5 ? 'bad' : ''}">🎉 ${L(`سلفة الفلوس الحرّة من الأساسيات <b dir="ltr">${fmt(DP.solfa)}</b>: ${[DP.SF.fromX > 0.5 ? `${fmt(DP.SF.fromX)} من الزيادة` : '', DP.SF.fromN > 0.5 ? `${fmt(DP.SF.fromN)} من الـ10 أيام` : '', DP.SF.fromM > 0.5 ? `${fmt(DP.SF.fromM)} من جيب الشهر` : ''].filter(Boolean).join(' و')}${DP.SF.intoCore > 0.5 ? `، و${fmt(DP.SF.intoCore)} منها دخلت في فلوس الأكل والسكن` : ''}. بتترد من نصيب الفلوس الحرّة بس${solfaPaydays(c, DP.solfa)}.`, `Free money borrowed <b dir="ltr">${fmt(DP.solfa)}</b> from Essentials. It is paid back from the free money share only${solfaPaydays(c, DP.solfa)}.`)}</p>` : ''}
@@ -2294,9 +2294,9 @@ function dailyDetails() {
       <div class="wiz-top"><b>🗓️ ${L('مصروف النهارده', "Today's spending")}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
       <div class="dly-big"><small>${L('أقصى حاجة تصرفها النهارده', 'The most you can spend today')}</small><b dir="ltr">${fmt(P.total, 2)} Đ</b><small>${L(`فاضل ${P.daysLeft} يوم لحد ${dayName(P.end)} (آخر الدورة)`, `${P.daysLeft} days left until ${dayName(P.end)} (end of the cycle)`)}</small></div>
       <table class="sw-t dly-sum">
-        <tr><td>🧾 ${L('فاضل في الأساسيات للدورة دي', 'Left in Essentials for this cycle')}${P.sp.extra > 0.5 ? L(' (ومعاه اللي فوق المطلوب)', ' (with the extra above what is needed)') : ''}</td><td dir="ltr">${fmt(P.sp.avail)}</td></tr>
+        <tr><td>👛 ${L('جيب الشهر (لآخر الدورة)', "This month's pocket (until the cycle ends)")}${P.plan ? L(' · من الترتيب', ' · from the sorting') : ''}</td><td dir="ltr">${fmt(P.pk1)}</td></tr>
         ${P.offRemain > 0.5 ? `<tr><td>− ${L('فواتير لسه هتتدفع مرة واحدة', 'Bills still to pay in one go')}</td><td dir="ltr">${fmt(P.offRemain)}</td></tr>` : ''}
-        ${P.SF.fromM > 0.5 ? `<tr><td>− 🎉 ${L(`سلفة الفلوس الحرّة من جيب الشهر${P.SF.fromN > 0.5 ? ` (والباقي ${fmt(P.SF.fromN)} من جيب الـ10 أيام)` : ''}`, `Free money loan from this month${P.SF.fromN > 0.5 ? ` (the other ${fmt(P.SF.fromN)} from the 10-day pocket)` : ''}`)}</td><td dir="ltr">${fmt(P.SF.fromM)}</td></tr>` : P.SF.fromN > 0.5 ? `<tr><td>🎉 ${L(`سلفة الفلوس الحرّة ${fmt(P.SF.fromN)} اتاخدت من جيب الـ10 أيام عشان جيب الشهر وصل لحد الأكل والسكن`, `The free money loan of ${fmt(P.SF.fromN)} came from the 10-day pocket because this month hit the food & housing floor`)}</td><td></td></tr>` : ''}
+        ${P.solfa > 0.5 ? `<tr><td colspan="2"><small>🎉 ${L(`سلفة الفلوس الحرّة ${fmt(P.solfa)} محسوبة في الجيب: ${[P.SF.fromX > 0.5 ? `${fmt(P.SF.fromX)} من الزيادة` : '', P.SF.fromN > 0.5 ? `${fmt(P.SF.fromN)} من الـ10 أيام` : '', P.SF.fromM > 0.5 ? `${fmt(P.SF.fromM)} من جيب الشهر` : ''].filter(Boolean).join(' و')}`, `The free money loan of ${fmt(P.solfa)} is already counted in the pockets`)}</small></td></tr>` : ''}
         <tr><td>÷ ${L('الأيام الفاضلة', 'Days left')}</td><td dir="ltr">${P.daysLeft}</td></tr>
         <tr class="ft"><td>= ${L('الأساسيات في اليوم', 'Essentials a day')}</td><td dir="ltr">${fmt(P.essDaily, 2)}</td></tr>
         ${P.funDaily > 0.005 ? `<tr><td>+ 🎉 ${B.reward.n} ${L('في اليوم', 'a day')}</td><td dir="ltr">${fmt(P.funDaily, 2)}</td></tr>` : ''}
@@ -2405,7 +2405,7 @@ function debtDetails(only) {
     const ev = [];
     for (const t of S.tx) {
       const rw = R.rows[t.id], y = rw?.paidTo?.[d.id]; if (!(y > 0.005)) continue;
-      if (t.type === 'income') ev.push({ date: t.date, id: t.id, i: '💰', n: L(`نصيب النمو من دخل «${esc(t.note || '')}»`, `Growth share of income “${esc(t.note || '')}”`), s: L(`الدخل ${money(t.amount, cOf(t))} · راح للدين ${pc(y, rw.aed)} منه`, `Income ${money(t.amount, cOf(t))} · ${pc(y, rw.aed)} of it went to the debt`), aed: y });
+      if (t.type === 'income') ev.push({ date: t.date, id: t.id, i: '💰', n: L(`نصيب النمو من دخل «${esc(t.note || t.cat || t.sub || 'دخل')}»`, `Growth share of income “${esc(t.note || t.cat || t.sub || 'income')}”`), s: L(`الدخل ${money(t.amount, cOf(t))} · راح للدين ${pc(y, rw.aed)} منه`, `Income ${money(t.amount, cOf(t))} · ${pc(y, rw.aed)} of it went to the debt`), aed: y });
       else ev.push({ date: t.date, id: t.id, i: t.pair ? '🔁' : '💳', n: esc(t.note || L('سداد مباشر', 'Direct payment')), s: t.pair ? L('من تحويل عملة/دهب', 'from a currency/gold transfer') : L(`من محفظة ${B[t.bucket || 'growth']?.n || ''}`, `from the ${B[t.bucket || 'growth']?.n || ''} wallet`), aed: y });
     }
     ev.sort((a, b) => a.date.localeCompare(b.date) || (S.tx.findIndex(x => x.id === a.id) - S.tx.findIndex(x => x.id === b.id)));
