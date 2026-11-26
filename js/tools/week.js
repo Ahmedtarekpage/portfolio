@@ -435,14 +435,16 @@
     var c = Date.now() + (mode === "today" ? viewOff : 0) * 864e5, from = iso(new Date(c - 7 * 864e5)), to = iso(new Date(c + 31 * 864e5));
     GEVR = { from: from, to: to };
     fetch("/api/ideas?gcal=events&from=" + from + "&to=" + to + "&tz=" + encodeURIComponent(tz), { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && Array.isArray(d.events)) { GEV = d.events; if (W) render(); } }).catch(function () {});
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && Array.isArray(d.events)) { GEV = d.events; GC.cals = d.calendars || []; GC.reconnect = !!d.reconnect; if (W) render(); } }).catch(function () {});
   }
   function gcBar() {
     if (LOCAL) return '<div class="gc-bar muted">📅 ' + esc(T("Google Calendar works on the live site", "جوجل كالندر شغال على الموقع نفسه")) + "</div>";
     if (!GC.configured) return '<div class="gc-bar muted">📅 ' + esc(T("Google Calendar: waiting for the one-time Google setup", "جوجل كالندر: مستني إعداد جوجل مرة واحدة")) + "</div>";
     if (!GC.connected) { var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
       return '<div class="gc-bar"><a class="btn btn--primary btn--sm" href="/api/ideas?gcal=connect&tz=' + encodeURIComponent(tz) + '">📅 ' + esc(T("Connect Google Calendar", "اربط جوجل كالندر")) + '</a><span class="muted">' + esc(T("Today and tomorrow go to a 'My day' calendar, in real time; accepted meetings and interviews come in here.", "النهارده وبكرة يتكتبوا في كالندر 'My day' أول بأول، والمواعيد والمقابلات اللي قبلتها تيجي هنا.")) + "</span></div>"; }
-    return '<div class="gc-bar"><span>📅 ' + esc(T("Google Calendar: on", "جوجل كالندر: شغال")) + (GC.err ? " · ⚠️ " + esc(GC.err) : GC.last ? " · " + esc(T("synced ", "اتزامن ") + GC.last) + " ✓" : "") + "</span>" +
+    if (GC.reconnect) { var tz2 = ""; try { tz2 = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+      return '<div class="gc-bar gc-bar--warn"><a class="btn btn--primary btn--sm" href="/api/ideas?gcal=connect&tz=' + encodeURIComponent(tz2) + '">📅 ' + esc(T("Connect Google Calendar again", "اربط جوجل كالندر تاني")) + '</a><span>' + esc(T("One more permission is needed to read all your calendars (Preply, client meetings…). Pick the same Google account.", "محتاج إذن واحد كمان عشان يقرا كل الكالندرات (Preply، مواعيد العملاء…). اختار نفس حساب جوجل.")) + "</span></div>"; }
+    return '<div class="gc-bar"><span title="' + esc((GC.cals || []).join(", ")) + '">📅 ' + esc(T("Google Calendar: on", "جوجل كالندر: شغال")) + (GC.cals && GC.cals.length ? " · " + esc(T(GC.cals.length + " calendars", GC.cals.length + " كالندر")) : "") + (GC.err ? " · ⚠️ " + esc(GC.err) : GC.last ? " · " + esc(T("synced ", "اتزامن ") + GC.last) + " ✓" : "") + "</span>" +
       '<button type="button" class="btn btn--ghost btn--sm" data-gc-now>↻ ' + esc(T("Sync now", "زامن دلوقتي")) + '</button><button type="button" class="btn btn--ghost btn--sm" data-gc-off>' + esc(T("Disconnect", "افصل")) + "</button></div>";
   }
   function loadMeetings() {

@@ -24,7 +24,10 @@
 import crypto from "node:crypto";
 import { json, sign, verifyToken } from "./util.js";
 
-const SCOPES = "https://www.googleapis.com/auth/calendar.app.created https://www.googleapis.com/auth/calendar.events.readonly";
+// calendarlist.readonly (owner, 2026-11-26): events.readonly alone cannot LIST the calendars, so no
+// calendar (Preply, Gobachaloria, client meetings…) was ever read. Older connections lack it: the
+// page asks to connect once more, and until then only the main calendar is read.
+const SCOPES = "https://www.googleapis.com/auth/calendar.app.created https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 const API = "https://www.googleapis.com/calendar/v3";
 const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
 const isHm = (s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s || ""));
@@ -69,7 +72,7 @@ async function token(sql) {
     if (d.error === "invalid_grant") await sql`DELETE FROM gcal_auth WHERE id = 1`;
     return null;
   }
-  return { access: d.access_token, calendar: row.calendar_id };
+  return { access: d.access_token, calendar: row.calendar_id, scope: String(d.scope || "") };
 }
 
 async function gfetch(access, path, opts = {}) {
@@ -208,9 +211,11 @@ export async function gcal(req, res, sql) {
     let to = isDate(q.to) ? q.to : addDay(from, 1);
     if (to < from || (Date.parse(to) - Date.parse(from)) / 864e5 > 62) to = addDay(from, 62); // at most two months at a time
     const list = await gfetch(tk.access, "/users/me/calendarList?minAccessRole=reader");
-    const cals = (list.ok && list.body && list.body.items ? list.body.items : [])
+    let cals = (list.ok && list.body && list.body.items ? list.body.items : [])
       .filter((c) => c.id !== tk.calendar && c.selected !== false && !/#holiday@|#contacts@|#weeknum@/.test(c.id))
       .slice(0, 25);
+    const reconnect = !list.ok || !/calendarlist/.test(tk.scope);
+    if (!cals.length) cals = [{ id: "primary", summary: "Google" }]; // without the list, at least the main calendar
     const timeMin = new Date(from + "T00:00:00Z"); timeMin.setUTCDate(timeMin.getUTCDate() - 1);
     const timeMax = new Date(addDay(to, 1) + "T23:59:59Z");
     const out = [];
@@ -231,7 +236,7 @@ export async function gcal(req, res, sql) {
         });
       }
     }
-    return json(res, 200, { events: out });
+    return json(res, 200, { events: out, calendars: cals.map((c) => c.summary || c.id), reconnect });
   }
 
   return json(res, 400, { error: "Unknown gcal action" });

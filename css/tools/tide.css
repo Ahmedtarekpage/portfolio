@@ -864,3 +864,4 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 .week-err { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: rgba(255, 107, 91, .08); border: 1px solid rgba(255, 107, 91, .3); }
 .week-err code { font-size: 0.78rem; opacity: .8; word-break: break-word; }
 .week-err__acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.gc-bar--warn { background: rgba(255, 179, 71, 0.18); }
