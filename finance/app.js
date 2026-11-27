@@ -341,11 +341,30 @@ async function dailyCheck() {
 const debts = () => (Array.isArray(S.debts) ? S.debts : (S.debts = debtList(S).map(d => ({ ...d }))));
 const DKIND = { card: '💳', loan: '🏦', person: '🤝', other: '🧾' };
 const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
+/* 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): الاسم بيتكتب وبيستخبى افتراضيًا (أول حرف ونقط) في كل حتة،
+   وبيتبعت مستخبي للذكاء الاصطناعي؛ نفس الشخص ينفع يبقى ليه دين بكذا عملة (سطر لكل عملة)؛ وأي دين ليه ميعاد
+   سداد، أو قسط شهري (مبلغ × عدد شهور من تاريخ أول قسط). القسط جدول وتنبيه بس: الفلوس بتتسدد زي الأول. */
+const dMask = n => { const t = String(n || '').trim(); return t ? [...t][0] + '•••' : ''; };
+const dNm = d => (d && d.kind === 'person' && d.hide !== false && d.name ? dMask(d.name) : (d?.name || ''));
+const dAddMonths = (isoDay, k) => { const [y, m, dd] = isoDay.split('-').map(Number), last = new Date(y, m - 1 + k + 1, 0).getDate(), x = new Date(y, m - 1 + k, Math.min(dd, last)); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+const dDays = isoDay => Math.round((new Date(isoDay + 'T12:00:00') - new Date(today() + 'T12:00:00')) / 864e5);
+const dDate = isoDay => new Date(isoDay + 'T12:00:00').toLocaleDateString(L('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', year: 'numeric' });
+/** ميعاد الدين الجاي: من القسط (أول قسط + عدد اللي اتسدّد) أو من ميعاد السداد الواحد */
+function dNext(R, d) {
+  const left = dLeft(R, d); if (left <= 0.5) return null;
+  const pl = d.plan && +d.plan.amt > 0 && +d.plan.n > 0 && d.plan.first ? d.plan : null;
+  if (pl) {
+    const paidN = Math.min(pl.n - 1, Math.floor((dPaid(R, d) + 0.5) / pl.amt)), date = dAddMonths(pl.first, paidN);
+    return { date, days: dDays(date), amt: Math.min(+pl.amt, left), k: paidN + 1, n: +pl.n, last: dAddMonths(pl.first, pl.n - 1) };
+  }
+  return d.due ? { date: d.due, days: dDays(d.due), amt: left } : null;
+}
+const dWhen = n => n.days < 0 ? L(`متأخر ${-n.days} يوم`, `${-n.days} days late`) : n.days === 0 ? L('النهارده', 'today') : n.days === 1 ? L('بكرة', 'tomorrow') : L(`بعد ${n.days} يوم`, `in ${n.days} days`);
 /** الدين اللي بيتسد دلوقتي (أول واحد لسه عليه فلوس) — للرسايل زي "حوّل 500 لـ…" */
 function dName() {
   const ds = debts();
   const d = ds.find(x => (UI.R ? dLeft(UI.R, x) : +x.balance) > 0.5) || ds[0];
-  return d?.name || L('الدين', 'Debt');
+  return dNm(d) || L('الدين', 'Debt');
 }
 /** خلّي الباقي على الدين ده = v (من غير ما نلمس اللي اتسدّد قبل كده) */
 /** الباقي على الدين بعملته هو (R بيرجّع بعملة الأساس) */
@@ -840,13 +859,26 @@ function cardEssentials(c) {
 function cardDebts(R) {
   const cv = cardView(), ds = debts().filter(d => cv === 'ALL' || cOf(d) === cv); // في عرض دولة: ديونها هي بس
   const rows = ds.map(d => {
-    const r = { left: dLeft(R, d), paid: dPaid(R, d) }, done = r.left <= 0.5, cu = cOf(d);
+    const r = { left: dLeft(R, d), paid: dPaid(R, d) }, fresh = r.left <= 0.5 && r.paid <= 0.5, done = r.left <= 0.5 && !fresh, cu = cOf(d), person = d.kind === 'person', nx = dNext(R, d), planOpen = UI.dplan === d.id;
     return `<li class="row ${done ? 'ok' : ''}" data-row="debts:${d.id}">${grip}
       <button class="pill" data-dkind="${d.id}" title="${L('غيّر النوع', 'Change type')}">${DKIND[d.kind] || '🧾'} ${DKIND_N[d.kind] || DKIND_N.other}</button>
-      <div class="grow">${ed(`debts:${d.id}:name`, d.name)} <button class="pill" data-dcur="${d.id}" title="${L('عملة الدين (دولته)', "The debt's currency (country)")}">${CUR[cu].f} ${CUR[cu].s}</button>
-        <small>${done ? L('✅ خلص', '✅ Paid off') : `${L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid)}` : ''}</small></div>
+      <div class="grow">${person && !d.name ? `<button class="pill" data-dname="${d.id}">✏️ ${L('اكتب اسم الشخص', "Type the person's name")}</button>`
+          : person && d.hide !== false ? `<b class="dmask" title="${L('الاسم مستخبي', 'The name is hidden')}">${esc(dMask(d.name))}</b>` : ed(`debts:${d.id}:name`, d.name)}
+        ${person && d.name ? `<button class="pill" data-dhide="${d.id}" title="${L('اخفي / اظهر الاسم', 'Hide / show the name')}">${d.hide !== false ? '🙈' : '👁'}</button>` : ''}
+        <button class="pill" data-dcur="${d.id}" title="${L('عملة الدين (دولته)', "The debt's currency (country)")}">${CUR[cu].f} ${CUR[cu].s}</button>
+        ${person ? `<button class="pill" data-dmore="${d.id}" title="${L('نفس الشخص بعملة تانية', 'The same person in another currency')}">＋ ${L('عملة تانية', 'Another currency')}</button>` : ''}
+        <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid)}` : ''}</small>
+        ${done || fresh ? '' : `<div class="dextra">
+          ${nx ? `<span class="chipc ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : 'good'}">📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}: `, `Instalment ${nx.k} of ${nx.n}: `) : L('السداد: ', 'Pay back: ')}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> · ${dDate(nx.date)} · ${dWhen(nx)}</span>` : ''}
+          ${d.plan ? '' : `<label class="pill ddue">📅 ${L('ميعاد السداد', 'Due date')} <input type="date" data-ddue="${d.id}" value="${d.due || ''}"></label>`}
+          <button class="pill" data-dplan="${d.id}">🗓 ${d.plan ? L(`قسط ${fmt(d.plan.amt)} × ${d.plan.n} شهر`, `${fmt(d.plan.amt)} × ${d.plan.n} months`) : L('قسط شهري', 'Monthly instalment')}</button>
+          ${planOpen ? `<div class="dplan"><label>${L('كل شهر', 'Every month')} <input type="number" inputmode="decimal" min="0" step="any" data-dplan-amt value="${d.plan?.amt || ''}" placeholder="${fmt(r.left)}"> ${CUR[cu].s}</label>
+            <label>${L('لمدة', 'for')} <input type="number" inputmode="numeric" min="1" max="120" step="1" data-dplan-n value="${d.plan?.n || ''}" placeholder="6"> ${L('شهر', 'months')}</label>
+            <label>${L('أول قسط', 'First one')} <input type="date" data-dplan-first value="${d.plan?.first || d.due || today()}"></label>
+            <button class="pill" data-dplan-save="${d.id}">✅ ${L('احفظ', 'Save')}</button>${d.plan ? `<button class="pill" data-dplan-off="${d.id}">✕ ${L('شيل القسط', 'Remove')}</button>` : ''}</div>` : ''}
+        </div>`}</div>
       <button class="pill" data-debtview="${d.id}">📜 ${L('الحركات', 'Activity')}</button>
-      ${done ? '' : `<button class="pill" data-payoff="${d.id}">${L('✅ خلّصته', '✅ Paid it off')}</button>`}${del(`debts:${d.id}`)}</li>`;
+      ${done || fresh ? '' : `<button class="pill" data-payoff="${d.id}">${L('✅ خلّصته', '✅ Paid it off')}</button>`}${del(`debts:${d.id}`)}</li>`;
   }).join('');
   return `<h3>${L('💳 الديون', '💳 Debts')} <small>${L('بتتسد بالترتيب من نصيب النمو · اسحب ⠿ عشان تغيّر مين الأول · دوس على الرقم تعدّله', 'Paid in order from the Growth share · drag ⠿ to change which goes first · tap a number to edit it')}</small></h3>
     ${rows ? `<ul class="list" data-list="debts">${rows}</ul>` : `<p class="note">${L('مفيش ديون ✅', 'No debt ✅')}</p>`}
@@ -2416,7 +2448,7 @@ function debtDetails(only) {
         <span class="amt"><b dir="ltr" class="pos">−${fmt(e.aed)}</b><small dir="ltr">${pc(e.aed, start)}</small></span></li>`).join('');
     const added = `<li class="row tx dd-add"><span class="badge">➕</span><div class="grow"><b>${L('الدين اتضاف', 'Debt added')}</b><small>${d.since ? dayName(new Date(d.since + 'T00:00:00')) : L('من الأول', 'From the start')} · ${DKIND_N[d.kind] || ''} · ${CUR[cu].n}</small></div><span class="amt"><b dir="ltr" class="neg">+${fmt(start)}</b><small>100%</small></span></li>`;
     const other = Math.max(0, paid - ev.reduce((a, e) => a + e.aed, 0)); // سداد اتسجّل بتعديل الرقم بإيدك
-    return `<div class="dd-card"><b>${DKIND[d.kind] || '🧾'} ${esc(d.name)}</b>${bar(start ? paid / start : 0, '#34d399')}
+    return `<div class="dd-card"><b>${DKIND[d.kind] || '🧾'} ${esc(dNm(d))}</b>${bar(start ? paid / start : 0, '#34d399')}
       <div class="dd-kv"><span>${L('البداية', 'Started at')} <b dir="ltr">${fmt(start)} Đ</b></span><span>${L('اتسدّد', 'Paid')} <b dir="ltr" class="pos">${fmt(paid)} (${pc(paid, start)})</b></span><span>${L('الباقي', 'Left')} <b dir="ltr" class="neg">${fmt(left)} (${pc(left, start)})</b></span></div></div>
       <h3>📜 ${L('سجل الدين', 'Debt log')} <small>(${ev.length} ${L('سداد', 'payments')} · ${L('مجموع', 'total')} <b dir="ltr">${fmt(ev.reduce((a, e) => a + e.aed, 0))} Đ</b>)</small></h3>
       <ul class="list dd-list">${rows}${other > 0.5 ? `<li class="row tx"><span class="badge">✏️</span><div class="grow"><b>${L('اتعدّل بإيدك', 'Edited by hand')}</b><small>${L('الرقم الباقي اتغيّر من كارت الديون', 'The remaining amount was changed from the Debts card')}</small></div><span class="amt"><b dir="ltr" class="pos">−${fmt(other)}</b><small dir="ltr">${pc(other, start)}</small></span></li>` : ''}${added}</ul>`;
@@ -2478,6 +2510,13 @@ async function restoreView() {
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-restoreview]')) { e.stopPropagation(); restoreView(); } });
 
+// ميعاد سداد الدين (تاريخ واحد)
+document.addEventListener('change', e => {
+  if (!e.target.matches?.('[data-ddue]')) return;
+  const x = debts().find(y => y.id === e.target.dataset.ddue); if (!x) return;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) x.due = e.target.value; else delete x.due;
+  save(); render(); sfx.select();
+});
 // تاريخ البداية في مربع أول دورة: كل الحسابات (الأيام اللي فاضلة) بتتظبط عليه
 document.addEventListener('change', e => {
   if (!e.target.matches?.('[data-since]') || !/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) return;
@@ -2573,11 +2612,37 @@ cardsEl.addEventListener('click', e => {
     toast(L(`بقى بال${CUR[x.cur].n} ${CUR[x.cur].f}`, `Now in ${CUR[x.cur].n} ${CUR[x.cur].f}`));
   } else if (d.dkind) {
     const x = debts().find(y => y.id === d.dkind), ks = Object.keys(DKIND);
-    x.kind = ks[(ks.indexOf(x.kind) + 1) % ks.length]; save(); render();
+    x.kind = ks[(ks.indexOf(x.kind) + 1) % ks.length];
+    if (x.kind === 'person') { // سلفة من حد: الاسم لازم يتكتب، وبيستخبى افتراضيًا
+      if (x.hide === undefined) x.hide = true;
+      if ([L('كارت', 'Credit card'), 'كارت', 'Credit card'].includes(x.name)) x.name = '';
+      if (!x.name) { const v = (window.prompt(L('اسم الشخص اللي سلّفك (هيستخبى)', 'Name of the person who lent you (it will be hidden)'), '') || '').trim(); if (v) x.name = v; }
+    }
+    save(); render();
+  } else if (d.dname) {
+    const x = debts().find(y => y.id === d.dname), v = (window.prompt(L('اسم الشخص اللي سلّفك (هيستخبى)', 'Name of the person who lent you (it will be hidden)'), x.name || '') || '').trim();
+    if (v) { x.name = v; if (x.hide === undefined) x.hide = true; save(); render(); }
+  } else if (d.dhide) {
+    const x = debts().find(y => y.id === d.dhide); x.hide = x.hide === false; save(); render();
+    toast(x.hide ? L('🙈 الاسم مستخبي', '🙈 The name is hidden') : L('👁 الاسم ظاهر', '👁 The name is showing'));
+  } else if (d.dmore) { // نفس الشخص بعملة تانية: سطر جديد جنبه بأول عملة لسه مش عنده
+    const ds = debts(), x = ds.find(y => y.id === d.dmore), used = new Set(ds.filter(y => y.kind === 'person' && y.name === x.name).map(cOf));
+    const c = places().find(k => !used.has(k)); // العملات اللي الديون بتتحسب بيها (بلادك)
+    if (!c) toast(L('الشخص ده عنده دين بكل العملات فعلًا', 'This person already has a debt in every currency'));
+    else { ds.splice(ds.indexOf(x) + 1, 0, { id: uid(), name: x.name, kind: 'person', hide: x.hide, balance: 0, since: today(), cur: c }); save(); render(); toast(L(`＋ ${CUR[c].n} ${CUR[c].f}: اكتب المبلغ، ودوس على العملة تغيّرها`, `＋ ${CUR[c].n} ${CUR[c].f}: type the amount, tap the currency to change it`)); }
+  } else if (d.dplan) { UI.dplan = UI.dplan === d.dplan ? null : d.dplan; render();
+  } else if (d.dplanSave) {
+    const x = debts().find(y => y.id === d.dplanSave), box = e.target.closest('.dplan');
+    const amt = +box.querySelector('[data-dplan-amt]').value, n = Math.round(+box.querySelector('[data-dplan-n]').value), first = box.querySelector('[data-dplan-first]').value;
+    if (!(amt > 0) || !(n >= 1) || !/^\d{4}-\d{2}-\d{2}$/.test(first)) { toast(L('اكتب المبلغ وعدد الشهور وتاريخ أول قسط', 'Fill in the amount, the number of months and the first date')); return; }
+    x.plan = { amt, n: Math.min(120, n), first }; delete x.due; UI.dplan = null; save(); render();
+    toast(L(`🗓 قسط ${fmt(amt)} كل شهر لمدة ${n} شهر، أول قسط ${dDate(first)}`, `🗓 ${fmt(amt)} every month for ${n} months, first on ${dDate(first)}`));
+  } else if (d.dplanOff) {
+    const x = debts().find(y => y.id === d.dplanOff); delete x.plan; UI.dplan = null; save(); render();
   } else if (d.payoff) {
     const x = debts().find(y => y.id === d.payoff);
     setDebtLeft(d.payoff, 0); save(); render(); party(['💳', '🎉', '✅']); sfx.ok();
-    toast(L(`مبروك 🎉 ${x.name} خلص`, `Congrats 🎉 ${x.name} is paid off`));
+    toast(L(`مبروك 🎉 ${dNm(x)} خلص`, `Congrats 🎉 ${dNm(x)} is paid off`));
   } else if (d.toggle) {
     const h = S.holdings.find(x => x.id === d.toggle); h.spare = !h.spare; save(); render();
   } else if (d.cycle) {
@@ -3408,7 +3473,7 @@ async function flowInvested() {
 
 async function flowDebt() {
   const R = ctx().R, ds = debts(), open = ds.filter(d => dLeft(R, d) > 0.5);
-  const list = open.length ? `<ul class="alloc">${open.map(d => `<li><span>${DKIND[d.kind] || '🧾'} ${esc(d.name)}</span><b dir="ltr">${fmt(dLeft(R, d))} ${CUR[cOf(d)].s}</b></li>`).join('')}</ul>` : L('مفيش عليك ديون دلوقتي ✅', 'You have no debt right now ✅');
+  const list = open.length ? `<ul class="alloc">${open.map(d => `<li><span>${DKIND[d.kind] || '🧾'} ${esc(dNm(d))}</span><b dir="ltr">${fmt(dLeft(R, d))} ${CUR[cOf(d)].s}</b></li>`).join('')}</ul>` : L('مفيش عليك ديون دلوقتي ✅', 'You have no debt right now ✅');
   const what = await ask(`${L('💳 ديونك:', '💳 Your debts:')}${list}${L('عايز تعمل إيه؟', 'What do you want to do?')}`, [
     ...(open.length ? [{ l: L('✅ سدّدت دين', '✅ I paid a debt'), v: 'pay' }, { l: L('✏️ عدّل الباقي', '✏️ Change what\'s left'), v: 'edit' }] : []),
     { l: L('➕ دين جديد', '➕ New debt'), v: 'new' }, BACK]); if (what === null) return;
@@ -3422,7 +3487,7 @@ async function flowDebt() {
     save(); render();
     return bot(L(`اتسجّل 💳 ${esc(String(name))}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>. من دلوقتي نصيب النمو من أي دخل هيروح يسدّه الأول قبل الاستثمار.`, `Recorded 💳 ${esc(String(name))}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>. From now on the Growth share of any income goes to paying it before investing.`));
   }
-  const id = open.length === 1 ? open[0].id : await ask(L('أنهي دين؟', 'Which debt?'), [...open.map(d => ({ l: `${DKIND[d.kind] || '🧾'} ${d.name}`, v: d.id })), BACK]); if (id === null) return;
+  const id = open.length === 1 ? open[0].id : await ask(L('أنهي دين؟', 'Which debt?'), [...open.map(d => ({ l: `${DKIND[d.kind] || '🧾'} ${dNm(d)} ${CUR[cOf(d)].s}`, v: d.id })), BACK]); if (id === null) return;
   const d = ds.find(x => x.id === id), left = dLeft(R, d), k = 1 / rate(cOf(d)); // askNum بيرجّع درهم
   if (what === 'pay') {
     const all = await ask(L(`${esc(d.name)} فاضل عليه ${dm(d, left)}. سدّدته كله؟`, `${esc(d.name)} has ${dm(d, left)} left. Did you pay all of it?`), [{ l: L('✅ كله', '✅ All of it'), v: 'all' }, { l: L('💵 جزء منه', '💵 Part of it'), v: 'part' }, BACK]); if (all === null) return;
@@ -3667,7 +3732,7 @@ function aiData() {
     thisCycle: { income: r0(c.mo.income), essentialsCovered: r0(c.mo.essAlloc), essentialsSpent: r0(c.mo.essSpent), funSpent: r0(c.mo.rewardSpent), mode: c.mo.mode },
     lastCycles: Object.keys(R.months).sort().slice(-6).map(k => { const m = R.months[k]; return { cycle: k, incomeAED: r0(m.income), essentialsSpentAED: r0(m.essSpent), funSpentAED: r0(m.rewardSpent), mode: m.mode }; }),
     essentials: S.essentials.map(e => ({ name: e.name, cur: cOf(e), thisMonth: r0(itemFor(S, e, c.ym)), ...(e.where ? { bySituation: Object.fromEntries(['AED+AED', 'AED+EGP', 'EGP+EGP'].map(k => { const [me, wife] = k.split('+'); return [k, r0(amtAt(e, { me, wife }))]; })) } : {}), daily: !!e.daily, ...(e.where ? { dependsOnLocation: true } : {}), ...(e.paidTo ? { prepaidUntil: e.paidTo } : {}) })),
-    debts: debts().map(d => ({ name: d.name, kind: d.kind, cur: cOf(d), left: r0(dLeft(R, d)) })).filter(d => d.left > 0),
+    debts: debts().map(d => { const nx = dNext(R, d); return { name: d.kind === 'person' ? dMask(d.name) : d.name, kind: d.kind, cur: cOf(d), left: r0(dLeft(R, d)), ...(nx ? { nextDue: nx.date, nextAmount: r0(nx.amt), ...(nx.n ? { instalment: `${nx.k} of ${nx.n}` } : {}) } : {}) }; }).filter(d => d.left > 0),
     assets: S.holdings.filter(h => +h.amount > 0).map(h => ({ name: h.name, kind: h.kind || (h.cur === 'XAU' ? 'gold' : 'cash'), bucket: h.spare ? 'safety' : 'growth', valueAED: r0(holdingValue(h, rate)), ...(h.cost ? { paidAED: r0(h.cost * rate(homeOf(h))) } : {}) })),
     safetyMilestones: spareList(R).map(t => ({ name: t.name, targetAED: r0(t.amt), reached: R.stabilityAED >= t.amt - 0.5 })),
     bigGoals: (S.goals || []).map(g => ({ name: g.name, type: g.type, price: g.price, down: g.down, instalment: g.inst, months: g.n, monthly: g.monthly, pay: g.pay })),

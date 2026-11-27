@@ -1113,3 +1113,12 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .lbl small .ess-foot .ess-more { white-space: nowrap; }
 .lbl small .ess-need { display: block !important; margin-top: 4px; font-size: .62rem; line-height: 1.5; opacity: .9; white-space: normal; }
 .lbl small .ess-need b { display: inline !important; font-size: .72rem !important; color: #fde68a !important; }
+
+/* 🤝 Debts: a hidden name, a due date and a monthly instalment */
+.dmask { letter-spacing: 0.08em; }
+.dextra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.dextra .ddue { display: inline-flex; align-items: center; gap: 6px; }
+.dextra input[type="date"], .dplan input { font: inherit; color: inherit; background: rgba(127, 127, 127, 0.12); border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 8px; padding: 4px 8px; min-height: 32px; color-scheme: light dark; }
+.dplan { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-radius: 12px; background: rgba(127, 127, 127, 0.1); }
+.dplan label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.dplan input[type="number"] { width: 92px; }
