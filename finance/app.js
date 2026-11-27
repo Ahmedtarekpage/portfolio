@@ -467,11 +467,11 @@ async function cardSetup(d) {
   let a = await ask(L('١) نسبة الربا الشهرية كام؟ (مكتوبة في الكشف: Finance charge per month) — أغلب كروت ENBD لغير المواطنين 3.69%', '1) What is the monthly riba (interest) rate? (on the statement: Finance charge per month) — most ENBD cards for residents are 3.69%'), [{ l: '3.69%', v: '3.69' }, { l: '3.49%', v: '3.49' }, { l: '3.25%', v: '3.25' }, later], true);
   if (a === 'later') return snooze();
   const rateM = parseNum(a); if (!(rateM > 0 && rateM < 10)) return bot(L('النسبة مش واضحة. هسألك تاني لما تفتح فلوسي.', "That rate isn't clear. I'll ask again next time you open Floosy."));
-  a = await ask(L('٢) يوم كشف الحساب كام في الشهر؟ (Statement date)', '2) Which day of the month is the statement? (Statement date)'), [1, 5, 6, 10, 15, 20, 25].map(n => ({ l: String(n), v: String(n) })).concat([later]), true);
+  a = await askCal('dom', L('٢) يوم كشف الحساب كام في الشهر؟ (Statement date)', '2) Which day of the month is the statement? (Statement date)'), [1, 5, 6, 10, 15, 20, 25].map(n => ({ l: String(n), v: String(n) })).concat([later]), true);
   if (a === 'later') return snooze();
   const stmtDay = Math.round(parseNum(a)); if (!(stmtDay >= 1 && stmtDay <= 31)) return bot(L('اليوم مش واضح. هسألك تاني.', "That day isn't clear. I'll ask again."));
   const sug = new Date(2026, 0, stmtDay + 25).getDate();
-  a = await ask(L(`٣) آخر ميعاد للدفع يوم كام؟ (Payment due date)`, `3) Which day is the payment due? (Payment due date)`), [{ l: L(`📅 نفس يوم الكشف (${stmtDay}) في الشهر الجاي`, `📅 Same day as the statement (${stmtDay}), next month`), v: 'same' }, { l: L(`بعد 25 يوم (يوم ${sug})`, `25 days later (day ${sug})`), v: '25d' }, later], true);
+  a = await askCal('dom', L(`٣) آخر ميعاد للدفع يوم كام؟ (Payment due date)`, `3) Which day is the payment due? (Payment due date)`), [{ l: L(`📅 نفس يوم الكشف (${stmtDay}) في الشهر الجاي`, `📅 Same day as the statement (${stmtDay}), next month`), v: 'same' }, { l: L(`بعد 25 يوم (يوم ${sug})`, `25 days later (day ${sug})`), v: '25d' }, later], true);
   if (a === 'later') return snooze();
   let dueDays = 25, dueDay = null;
   if (a === 'same') dueDay = stmtDay;
@@ -2789,6 +2789,49 @@ addEventListener('pagehide', flushChat);
 // 🦈 وضع قرش: شاشة كاملة فوق الشات نفسه
 const SX = sharkMode({ L, esc, sfx, logEl, chipsEl, form: $('#say'), sayIn });
 let curOpts = [], curFree = false;
+/* 📅 أي سؤال عن تاريخ أو يوم في الشهر بيفتح تقويم (طلب صاحب الحساب، 2026-11-27): askCal('date' | 'dom', …) زي ask
+   بالظبط، بس بيفتح نافذة تختار منها بدل ما تكتب "18/11". الكتابة والأزرار اللي تحت لسه شغالين، وزرار 📅 بيفتحه تاني. */
+let calNext = null, calEl = null;
+const askCal = (kind, q, opts = [], free = false) => { calNext = kind; return ask(q, opts, free); };
+function calClose() { if (calEl) { calEl.remove(); calEl = null; document.removeEventListener('keydown', calKey); } }
+function calKey(e) { if (e.key === 'Escape') calClose(); }
+function calChip(kind, q, opts) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip chip-cal'; b.textContent = L('📅 افتح التقويم', '📅 Open the calendar');
+  b.onclick = () => calOpen(kind, q, opts); chipsEl.prepend(b);
+}
+function calOpen(kind, q, opts = []) {
+  calClose(); if (!pending) return;
+  const quick = opts.filter(o => o && o.v !== null && o !== BACK);
+  const now = new Date(); let ym = { y: now.getFullYear(), m: now.getMonth() };
+  calEl = document.createElement('div'); calEl.className = 'fcal'; calEl.setAttribute('role', 'dialog'); calEl.setAttribute('aria-modal', 'true');
+  const title = String(q).replace(/<[^>]+>/g, ' ').replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
+  const draw = () => {
+    let body;
+    if (kind === 'dom') {
+      body = `<div class="fcal-grid fcal-dom">${Array.from({ length: 31 }, (_, i) => `<button type="button" class="fcal-d${i + 1 === now.getDate() ? ' is-today' : ''}" data-dom="${i + 1}">${i + 1}</button>`).join('')}</div>
+        <p class="fcal-note">${L('يوم في الشهر، بيتكرر كل شهر', 'A day of the month, repeated every month')}</p>`;
+    } else {
+      const first = new Date(ym.y, ym.m, 1, 12), lead = (first.getDay() + 1) % 7, days = new Date(ym.y, ym.m + 1, 0).getDate(), t0 = today();
+      const names = L(['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'], ['Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr']);
+      let cells = '<span></span>'.repeat(lead);
+      for (let d = 1; d <= days; d++) { const k = iso(new Date(ym.y, ym.m, d, 12)); cells += `<button type="button" class="fcal-d${k === t0 ? ' is-today' : ''}" data-day="${k}">${d}</button>`; }
+      body = `<div class="fcal-nav"><button type="button" data-nav="-1" aria-label="${L('الشهر اللي قبله', 'Previous month')}">${L('›', '‹')}</button><b>${first.toLocaleDateString(L('ar-EG', 'en-GB'), { month: 'long', year: 'numeric' })}</b><button type="button" data-nav="1" aria-label="${L('الشهر اللي بعده', 'Next month')}">${L('‹', '›')}</button></div>
+        <div class="fcal-grid fcal-dow">${names.map(n => `<i>${n}</i>`).join('')}</div><div class="fcal-grid">${cells}</div>`;
+    }
+    calEl.innerHTML = `<div class="fcal-box"><button type="button" class="fcal-x" data-x aria-label="${L('اقفل', 'Close')}">✕</button><h3>📅 ${esc(title)}</h3>
+      ${quick.length ? `<div class="fcal-quick">${quick.map((o, i) => `<button type="button" class="chip" data-q="${i}">${esc(String(o.l))}</button>`).join('')}</div>` : ''}${body}</div>`;
+  };
+  calEl.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (e.target === calEl || b?.dataset.x !== undefined) return calClose();
+    if (!b) return;
+    if (b.dataset.nav) { const d = new Date(ym.y, ym.m + +b.dataset.nav, 1); ym = { y: d.getFullYear(), m: d.getMonth() }; return draw(); }
+    if (b.dataset.q !== undefined) { const o = quick[+b.dataset.q]; return answer(o.v, o.l); }
+    if (b.dataset.dom) return answer(String(b.dataset.dom), L(`يوم ${b.dataset.dom}`, `Day ${b.dataset.dom}`));
+    if (b.dataset.day) return answer(b.dataset.day, new Date(b.dataset.day + 'T12:00:00').toLocaleDateString(L('ar-EG', 'en-GB'), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }));
+  });
+  draw(); document.body.append(calEl); document.addEventListener('keydown', calKey);
+}
 function setChips(opts) {
   curOpts = opts || [];
   chipsEl.innerHTML = '';
@@ -2799,6 +2842,7 @@ async function ask(q, opts = [], free = false) {
   if (!free && /اكتب|type the|your own words|in your words/i.test(String(q))) free = true;
   await bot(q); setChips(opts); curFree = free; UI.lastQ = String(q).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
   const pr = new Promise(res => { pending = res; });
+  if (calNext) { const k = calNext; calNext = null; calChip(k, q, opts); calOpen(k, q, opts); }
   if (UI.hint && opts.length) autoFill(opts);
   return pr;
 }
@@ -2850,6 +2894,7 @@ function matchOpt(t, opts) {
   return near.length === 1 ? near[0].o : null;
 }
 function answer(v, label, echo = true) {
+  calClose();
   if (!pending) return;
   if (v === null) sfx.back?.(); // رجوع / وقّف / لأ: صوت الرجوع
   if (echo) me(label ?? v); const p = pending; pending = null; atMenu = false; setChips([]); p(v);
@@ -3536,12 +3581,12 @@ async function flowDebt() {
     const dates = [{ l: L(`أول الشهر الجاي (${dDate(nextFirst)})`, `The 1st of next month (${dDate(nextFirst)})`), v: nextFirst }, { l: L('بعد شهر', 'In a month'), v: dAddMonths(t0, 1) }, { l: L('بعد 3 شهور', 'In 3 months'), v: dAddMonths(t0, 3) }];
     const how = await ask(L('📅 هترجّعها إمتى؟', '📅 When will you pay it back?'), [{ l: L('📅 مرة واحدة في تاريخ', '📅 All at once, on a date'), v: 'date' }, { l: L('🗓 قسط كل شهر', '🗓 A monthly instalment'), v: 'plan' }, { l: L('⏭ من غير ميعاد', '⏭ No date'), v: 'skip' }, BACK]); if (how === null) return;
     if (how === 'date') {
-      const v = await ask(L('اختار التاريخ، أو اكتبه (مثال: 15/12 أو 2026-12-15)', 'Pick the date, or type it (e.g. 15/12 or 2026-12-15)'), [...dates, BACK], true); if (v === null) return;
+      const v = await askCal('date', L('تاريخ السداد إمتى؟', 'What is the pay-back date?'), [...dates, BACK], true); if (v === null) return;
       const d1 = pd(v); if (d1) nd.due = d1;
     } else if (how === 'plan') {
       const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`), [], false, cu); if (pa == null) return;
       const pn = await ask(L('لمدة كام شهر؟ اختار أو اكتب الرقم', 'For how many months? Pick or type the number'), [3, 6, 12].map(k => ({ l: L(`${k} شهور`, `${k} months`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
-      const v = await ask(L('أول قسط إمتى؟ اختار، أو اكتب التاريخ (مثال: 5/12)', 'When is the first one? Pick, or type the date (e.g. 5/12)'), [...dates.slice(0, 2), BACK], true); if (v === null) return;
+      const v = await askCal('date', L('أول قسط إمتى؟', 'When is the first instalment?'), [...dates.slice(0, 2), BACK], true); if (v === null) return;
       const n = Math.max(1, Math.min(120, Math.round(parseFloat(String(pn).replace(/[^\d.]/g, '')) || 0))), f1 = pd(v);
       if (pa > 0 && n >= 1 && f1) nd.plan = { amt: +(pa / rate(cu)).toFixed(2), n, first: f1 };
     }
@@ -3684,7 +3729,7 @@ async function flowWhere() {
   const to = await ask(L(`📍 إنت دلوقتي في ${CUR[w].f} ${PLACE_N[w]}. رايح فين؟`, `📍 You're now in ${CUR[w].f} ${PLACE_N[w]}. Where to?`), [...places().filter(x => x !== w).map(x => ({ l: `✈️ ${CUR[x].f} ${PLACE_N[x]}`, v: x })), BACK]); if (to === null) return;
   let d;
   for (let q = L('من إمتى؟', 'From when?'); ;) {
-    const v = await ask(q, [{ l: L('النهارده', 'Today'), v: 'النهارده' }, { l: L('بكرة', 'Tomorrow'), v: iso(new Date(Date.now() + 864e5)) }, BACK]); if (v === null) return;
+    const v = await askCal('date', q, [{ l: L('النهارده', 'Today'), v: 'النهارده' }, { l: L('بكرة', 'Tomorrow'), v: iso(new Date(Date.now() + 864e5)) }, BACK]); if (v === null) return;
     d = parseDay(v); if (d) break;
     sfx.err(); q = L('مش فاهم التاريخ 😅 اكتبه كده: 25/11', "I couldn't read that date 😅 Type it like this: 25/11");
   }
@@ -3743,13 +3788,13 @@ async function flowPay() {
   const isNew = await ask(L('دي شغلانة جديدة ولا شغال فيها من قبل كده؟', 'Is this a new job, or have you been there a while?'), [{ l: L('🆕 جديدة', '🆕 New'), v: 'new' }, { l: L('👍 شغال فيها من زمان', '👍 Been there a while'), v: 'old' }, BACK]); if (isNew === null) return;
   let start = null, covers = 'prev';
   if (isNew === 'new') {
-    for (let q = L('بدأت إمتى؟ 📆 (مثال: 18/11)', 'When did you start? 📆 (e.g. 18/11)'); ;) {
-      const v = await ask(q, [{ l: L('النهارده', 'Today'), v: 'النهارده' }, { l: L('إمبارح', 'Yesterday'), v: 'إمبارح' }, BACK]); if (v === null) return;
+    for (let q = L('بدأت إمتى؟ 📆', 'When did you start? 📆'); ;) {
+      const v = await askCal('date', q, [{ l: L('النهارده', 'Today'), v: 'النهارده' }, { l: L('إمبارح', 'Yesterday'), v: 'إمبارح' }, BACK]); if (v === null) return;
       start = parseDay(v); if (start) break;
       sfx.err(); q = L('مش فاهم التاريخ 😅 اكتبه كده: 18/11', 'I couldn\'t read that date 😅 Type it like this: 18/11');
     }
   }
-  const d = await ask(L('بتقبض يوم كام في الشهر؟ 📅', 'Which day of the month do you get paid? 📅'), [1, 5, 25, 28].map(n => ({ l: L(`يوم ${n}`, `Day ${n}`), v: n })).concat(BACK)); if (d === null) return;
+  const d = await askCal('dom', L('بتقبض يوم كام في الشهر؟ 📅', 'Which day of the month do you get paid? 📅'), [1, 5, 25, 28].map(n => ({ l: L(`يوم ${n}`, `Day ${n}`), v: n })).concat(BACK)); if (d === null) return;
   const day = Math.min(28, Math.max(1, Math.round(parseNum(d)) || 5));
   // الأول العملة وبعدين الرقم (طلب صاحب الحساب، 2026-11-20)
   const scur = await askCur(L('المرتب بأنهي عملة؟ 💱', 'Which currency is the salary in? 💱')); if (!scur) return;
