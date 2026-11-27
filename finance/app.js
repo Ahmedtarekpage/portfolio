@@ -3892,11 +3892,33 @@ function photoSmall(file) {
   el.addEventListener('dblclick', e => { const c = e.target.closest('.dc[data-did]'); if (!c) return; e.preventDefault(); UI.dbSwipeAt = Date.now(); debtEdit(c.dataset.did); });
   el.addEventListener('keydown', e => { const g = e.target.closest('[data-dbgo]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hand(+g.dataset.dbgo); } });
   // swipe the bar to turn it
-  let x0 = null;
-  el.addEventListener('pointerdown', e => { x0 = e.clientX; el.classList.add('is-drag'); });
-  el.addEventListener('pointermove', e => { if (x0 == null) return; const dx = e.clientX - x0; if (Math.abs(dx) > 40) { UI.dbSwipeAt = Date.now(); x0 = null; hand(dx < 0 ? 1 : -1); } }); // one turn per drag
-  const up = () => { x0 = null; el.classList.remove('is-drag'); };
-  el.addEventListener('pointerup', up); el.addEventListener('pointerleave', up); el.addEventListener('pointercancel', up);
+  // the card follows the finger / mouse (owner, 2026-11-27): drag slowly and watch it turn, the next one turning in;
+  // let go past a quarter of the card (or flick) and it moves on, otherwise it springs back
+  let x0 = null, t0 = 0, dx = 0, moved = false;
+  const parts = () => ({ cur: el.querySelector('.dc[data-pos="0"]'), next: el.querySelector('.dc[data-pos="1"]') || el.querySelector('.dc[data-pos="gone"]'), prev: el.querySelector('.dc[data-pos="gone"]') });
+  const paint = () => {
+    const { cur, next, prev } = parts(); if (!cur) return;
+    const w = cur.offsetWidth || 300, p = Math.max(-1, Math.min(1, dx / w)), inc = dx < 0 ? next : prev;
+    cur.style.transform = `translateX(${dx * .9}px) rotateY(${p * 55}deg) scale(${1 - Math.abs(p) * .08})`; cur.style.opacity = String(1 - Math.abs(p) * .6);
+    el.querySelectorAll('.dc').forEach(c => { if (c !== cur && c !== inc) { c.style.transform = ''; c.style.opacity = ''; } });
+    if (inc && inc !== cur) { const side = dx < 0 ? 1 : -1; inc.style.transform = `translateX(${side * (w - Math.abs(dx)) * .55}px) rotateY(${-side * 80 * (1 - Math.abs(p))}deg) scale(${.9 + Math.abs(p) * .1})`; inc.style.opacity = String(Math.abs(p)); }
+  };
+  const clear = () => el.querySelectorAll('.dc').forEach(c => { c.style.transform = ''; c.style.opacity = ''; });
+  el.addEventListener('pointerdown', e => { if (e.target.closest('.db-curs, .db-foot') || e.button > 0) return; x0 = e.clientX; t0 = Date.now(); dx = 0; moved = false; });
+  el.addEventListener('pointermove', e => {
+    if (x0 == null) return; dx = e.clientX - x0;
+    if (!moved && Math.abs(dx) > 6) { moved = true; el.classList.add('is-drag'); dbHold = true; try { el.setPointerCapture(e.pointerId); } catch {} }
+    if (moved) { UI.dbSwipeAt = Date.now(); requestAnimationFrame(paint); }
+  });
+  const up = () => {
+    if (x0 == null) return; x0 = null; el.classList.remove('is-drag');
+    if (!moved) return;
+    const w = el.querySelector('.dc[data-pos="0"]')?.offsetWidth || 300, fast = Math.abs(dx) / Math.max(1, Date.now() - t0) > .5;
+    UI.dbSwipeAt = Date.now(); clear();
+    if (Math.abs(dx) > w * .25 || (fast && Math.abs(dx) > 30)) hand(dx < 0 ? 1 : -1);
+    dbHold = el.matches(':hover'); dx = 0;
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
   el.addEventListener('dragstart', e => e.preventDefault());
 })();
 
