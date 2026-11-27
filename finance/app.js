@@ -3632,25 +3632,82 @@ function dCount(ms) { // 3d 04:12:09
   const s = Math.floor(ms / 1000), dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0');
   return `${dd ? dd + L(' يوم ', 'd ') : ''}${p(h)}:${p(m)}:${p(x)}`;
 }
+// the countdown as 3D flip cards: days · hours · minutes · seconds (owner, 2026-11-27)
+function dParts(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return [Math.floor(s / 86400), Math.floor(s % 86400 / 3600), Math.floor(s % 3600 / 60), s % 60]; }
+function dCards(ms) {
+  const lab = [L('يوم', 'days'), L('ساعة', 'hrs'), L('دقيقة', 'min'), L('ثانية', 'sec')];
+  return `<span class="fcs" dir="ltr">${dParts(ms).map((v, k) => `<span class="fc"><b>${String(v).padStart(2, '0')}</b><i>${lab[k]}</i></span>`).join('')}</span>`;
+}
+function dTick(root) { // update every card on screen; a card whose number changed flips
+  (root || document).querySelectorAll('.db-count[data-due]').forEach(c => {
+    const ps = dParts(new Date(c.dataset.due + 'T00:00:00') - Date.now()), bs = c.querySelectorAll('.fc b');
+    if (bs.length !== 4) { c.innerHTML = dCards(new Date(c.dataset.due + 'T00:00:00') - Date.now()); return; }
+    bs.forEach((b, k) => { const t = String(ps[k]).padStart(2, '0'); if (b.textContent !== t) { b.textContent = t; const f = b.parentNode; f.classList.remove('flip'); void f.offsetWidth; f.classList.add('flip'); } });
+  });
+}
+setInterval(() => dTick(), 1000);
 function dSoonest(R) {
   let best = null;
   dOpen(R).forEach(d => { const nx = dNext(R, d); if (nx && (!best || nx.date < best.nx.date)) best = { d, nx }; });
   return best;
 }
+// the bar is a 3D ring of circles (owner, 2026-11-27): every 2 s the next debt turns to the front with its details,
+// then a last "all together" circle with the total; hovering (or focusing) stops it
+let dbI = 0, dbN = 0, dbHold = false;
+function dbSlide(R, d) {
+  const cu = cOf(d), left = dLeft(R, d), nx = dNext(R, d), fx = dConv(left, cu)[0];
+  return `<small>${esc(dNm(d))} · ${DKIND_N[d.kind] || ''}</small><b dir="ltr">${fmt(left, 2)} ${CUR[cu].s}${fx ? ` <small class="db-fx">≈ ${fmt(fx.v)} ${CUR[fx.c].s}</small>` : ''}</b>` +
+    (nx ? `<small>${nx.n ? L(`قسط ${nx.k}/${nx.n}`, `Payment ${nx.k}/${nx.n}`) : L('السداد', 'Pay back')}: <b dir="ltr">${fmt(nx.amt, 2)}</b> · <b class="db-count${nx.days < 0 ? ' bad' : nx.days <= 3 ? ' warn' : ''}" dir="ltr" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></small>` : `<small>${L('من غير ميعاد', 'No date')}</small>`);
+}
+function renderDebtBarInfo(info, R, open, i) { info.innerHTML = i < open.length ? dbSlide(R, open[i]) : (UI.dbTot || ''); }
 function renderDebtBar() {
   const el = document.getElementById('debtBar'); if (!el || !UI.R) return;
   const R = UI.R, open = dOpen(R);
-  if (!open.length) { el.hidden = true; return; }
-  const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), soon = dSoonest(R), many = open.length > 4;
-  const circles = open.map(d => dAvatar(d, 30)).join('');
+  if (!open.length) { el.hidden = true; dbN = 0; return; }
+  const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), egp = rate('EGP') > 0 ? tot / rate('EGP') : 0, soon = dSoonest(R);
+  const n = open.length + 1; if (n !== dbN) { dbI = Math.min(dbI, n - 1); UI.dbAng = -dbI * 360 / n; } dbN = n;
+  // the last circle: all the debts' circles together
+  const combo = `<span class="db-combo">${open.slice(0, 4).map(d => dAvatar(d, 22)).join('')}${open.length > 4 ? `<i>+${open.length - 4}</i>` : ''}</span>`;
+  const faces = open.map(d => dAvatar(d, 44)).concat([combo]);
+  const step = 360 / n, rad = Math.max(34, Math.round(26 / Math.tan(Math.PI / Math.max(3, n))));
+  const totSlide = `<small>💳 ${L(`كل الديون · ${open.length}`, `All debts · ${open.length}`)}</small><b dir="ltr">≈ ${fmt(tot)} Đ${egp ? ` <small class="db-fx">≈ ${fmt(egp)} ${CUR.EGP.s}</small>` : ''}</b>` +
+    (soon ? `<small>${L('أقرب قسط', 'Next payment')}: ${esc(dNm(soon.d))} · <b class="db-count${soon.nx.days < 0 ? ' bad' : soon.nx.days <= 3 ? ' warn' : ''}" dir="ltr" ${soon.nx.days < 0 ? '' : `data-due="${soon.nx.date}"`}>${soon.nx.days < 0 ? L(`متأخر ${-soon.nx.days} يوم`, `${-soon.nx.days} days late`) : dCards(new Date(soon.nx.date + 'T00:00:00') - Date.now())}</b></small>` : '');
   el.hidden = false;
-  const egp = rate('EGP') > 0 ? tot / rate('EGP') : 0;
-  el.innerHTML = `<span class="db-tot"><small>💳 ${L('الديون', 'Debts')} · ${open.length}</small><b dir="ltr">≈ ${fmt(tot)} Đ</b>${egp ? `<small dir="ltr">≈ ${fmt(egp)} ${CUR.EGP.s}</small>` : ''}</span>` +
-    (soon ? `<span class="db-next"><small>${L('القسط الجاي', 'Next payment')}: ${esc(dNm(soon.d))} · <b dir="ltr">${fmt(soon.nx.amt, 2)} ${CUR[cOf(soon.d)].s}</b></small><b class="db-count${soon.nx.days < 0 ? ' bad' : soon.nx.days <= 3 ? ' warn' : ''}" dir="ltr" data-due="${soon.nx.date}">${soon.nx.days < 0 ? L(`متأخر ${-soon.nx.days} يوم`, `${-soon.nx.days} days late`) : dCount(new Date(soon.nx.date + 'T00:00:00') - Date.now())}</b></span>` : '') +
-    `<span class="db-avs${many ? ' is-many' : ''}" aria-hidden="true"><span class="db-track">${circles}${many ? circles : ''}</span></span>`;
-  el.setAttribute('aria-label', L(`الديون: ${open.length}. دوس تشوفهم واحد واحد`, `Debts: ${open.length}. Tap to see them one by one`));
+  el.style.setProperty('--db-step', step + 'deg'); el.style.setProperty('--db-r', rad + 'px');
+  el.innerHTML = `<span class="db-stage" aria-hidden="true"><span class="db-ring" style="transform: translateZ(calc(var(--db-r) * -1)) rotateY(${UI.dbAng ?? -dbI * step}deg)">` +
+      faces.map((f, k) => `<span class="db-face${k === dbI ? ' is-front' : ''}" style="transform: rotateY(${k * step}deg) translateZ(var(--db-r))">${f}</span>`).join('') + `</span></span>` +
+    `<span class="db-info">${dbI < open.length ? dbSlide(R, open[dbI]) : totSlide}</span>` +
+    `<span class="db-nav"><span role="button" tabindex="0" class="db-go" data-dbgo="-1" aria-label="${L('اللي قبله', 'Previous')}">‹</span><span role="button" tabindex="0" class="db-go" data-dbgo="1" aria-label="${L('اللي بعده', 'Next')}">›</span></span>` +
+    `<span class="db-dots" aria-hidden="true">${faces.map((_, k) => `<i class="${k === dbI ? 'on' : ''}${k === n - 1 ? ' all' : ''}"></i>`).join('')}</span>`;
+  el.dataset.i = dbI; UI.dbTot = totSlide;
+  el.setAttribute('aria-label', L(`الديون: ${open.length}، الإجمالي تقريبًا ${fmt(tot)} درهم. دوس تشوفهم واحد واحد`, `Debts: ${open.length}, about ${fmt(tot)} AED in all. Tap to see them one by one`));
 }
-setInterval(() => { const c = document.querySelector('#debtBar .db-count[data-due]'); if (c && !c.classList.contains('bad')) c.textContent = dCount(new Date(c.dataset.due + 'T00:00:00') - Date.now()); }, 1000);
+setInterval(() => { // turn the ring every 2 s, unless hovered / focused / hidden / reduced motion
+  const el = document.getElementById('debtBar');
+  if (!el || el.hidden || dbHold || dbN < 2 || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (Date.now() - (UI.dbManual || 0) < 6000) return; // a hand turn gives you 6 s to read it
+  dbTurn(1);
+}, 2000);
+// turn the ring in place (so the 3D turn animates) and swap the details with a fade
+function dbTurn(k = 1) {
+  dbI = ((dbI + k) % dbN + dbN) % dbN;
+  const el = document.getElementById('debtBar'), ring = el?.querySelector('.db-ring'), R = UI.R;
+  if (!ring || !R) return renderDebtBar();
+  const open = dOpen(R); if (open.length + 1 !== dbN) return renderDebtBar();
+  UI.dbAng = (UI.dbAng ?? 0) - k * 360 / dbN; // the ring keeps turning the way you went
+  ring.style.transform = `translateZ(calc(var(--db-r) * -1)) rotateY(${UI.dbAng}deg)`;
+  ring.querySelectorAll('.db-face').forEach((f, k) => f.classList.toggle('is-front', k === dbI));
+  el.querySelectorAll('.db-dots i').forEach((d, k) => d.classList.toggle('on', k === dbI));
+  const info = el.querySelector('.db-info'); if (!info) return;
+  info.classList.add('is-out');
+  setTimeout(() => { const keep = dbI; renderDebtBarInfo(info, R, open, keep); info.classList.remove('is-out'); }, 180);
+  el.dataset.i = dbI;
+}
+(() => { const el = document.getElementById('debtBar'); if (!el) return;
+  const hold = v => () => { dbHold = v; el.classList.toggle('is-held', v); };
+  el.addEventListener('mouseenter', hold(true)); el.addEventListener('mouseleave', hold(false));
+  el.addEventListener('focus', hold(true)); el.addEventListener('blur', hold(false));
+})();
 function debtPop(start = 0) {
   const R = ctx().R, open = dOpen(R); if (!open.length) return;
   let i = Math.max(0, Math.min(open.length - 1, start));
@@ -3663,7 +3720,7 @@ function debtPop(start = 0) {
       <div class="dpop-big"><small>${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} ${cu}</b>
         ${dConv(left, cOf(d)).map(x => `<span class="dpop-fx" dir="ltr">≈ <b>${fmt(x.v, 2)} ${CUR[x.c].s}</b> <small>${x.r}${UI.fxLive ? ' · ' + L('لايف', 'live') : ''}</small></span>`).join('')}</div>
       <div class="dpop-bar"><i style="width:${pct}%"></i></div><small>${L(`اتسدّد ${fmt(paid, 2)} من ${fmt(all, 2)} (${pct}%)`, `Paid ${fmt(paid, 2)} of ${fmt(all, 2)} (${pct}%)`)}</small>
-      ${nx ? `<div class="dpop-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><span>📅 ${nx.n ? L(`القسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')}: <b dir="ltr">${fmt(nx.amt, 2)} ${cu}</b> · ${dDate(nx.date)}</span><b dir="ltr" class="db-count" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCount(new Date(nx.date + 'T00:00:00') - Date.now())}</b></div>` : `<p class="note">${L('مفيش ميعاد سداد. حطه من كارت الديون.', 'No pay-back date. Set it on the Debts card.')}</p>`}
+      ${nx ? `<div class="dpop-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><span>📅 ${nx.n ? L(`القسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')}: <b dir="ltr">${fmt(nx.amt, 2)} ${cu}</b> · ${dDate(nx.date)}</span><b dir="ltr" class="db-count" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></div>` : `<p class="note">${L('مفيش ميعاد سداد. حطه من كارت الديون.', 'No pay-back date. Set it on the Debts card.')}</p>`}
       ${d.kind === 'person' ? `<div class="dpop-photo"><span>${L('الصورة:', 'Picture:')}</span>
         <label class="pill">📷 ${L('ارفع صورة', 'Upload a photo')}<input type="file" accept="image/*" data-dphoto hidden></label>
         <button type="button" class="pill${!d.photo && d.av !== 'f' ? ' on' : ''}" data-dav="m">👨 ${L('راجل', 'Man')}</button>
@@ -3678,7 +3735,7 @@ function debtPop(start = 0) {
   const go = k => { i = (i + k + open.length) % open.length; sfx.page?.(); draw(); };
   const key = e => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(L(1, -1)); else if (e.key === 'ArrowRight') go(L(-1, 1)); };
   document.addEventListener('keydown', key);
-  const tk = setInterval(() => { const c = o.querySelector('.db-count[data-due]'); if (c) c.textContent = dCount(new Date(c.dataset.due + 'T00:00:00') - Date.now()); }, 1000);
+  const tk = 0; // the cards tick with everything else (dTick)
   o.addEventListener('click', e => {
     const t = e.target;
     if (t === o || t.closest('[data-close]')) return close();
@@ -3704,7 +3761,18 @@ function photoSmall(file) {
     r.readAsDataURL(file);
   });
 }
-document.getElementById('debtBar')?.addEventListener('click', () => debtPop(0));
+(() => { const el = document.getElementById('debtBar'); if (!el) return;
+  const hand = k => { UI.dbManual = Date.now(); dbTurn(k); try { sfx.page?.(); } catch {} };
+  el.addEventListener('click', e => {
+    const g = e.target.closest('[data-dbgo]'); if (g) { e.stopPropagation(); return hand(+g.dataset.dbgo); }
+    if (UI.dbSwiped) { UI.dbSwiped = false; return; }
+    const R = ctx().R; debtPop(dbI < dOpen(R).length ? dbI : 0);
+  });
+  el.addEventListener('keydown', e => { const g = e.target.closest('[data-dbgo]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hand(+g.dataset.dbgo); } });
+  // swipe the bar to turn it
+  let x0 = null; el.addEventListener('pointerdown', e => { x0 = e.clientX; });
+  el.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 35) { UI.dbSwiped = true; hand(dx < 0 ? 1 : -1); } });
+})();
 
 /** a debt was just added: a sound, a toast, and its row on the Debts card lights up (owner, 2026-11-27) */
 function debtAdded(d) {

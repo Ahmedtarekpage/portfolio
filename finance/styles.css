@@ -1158,22 +1158,33 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 @keyframes justAdded { 0%, 30% { box-shadow: 0 0 0 3px rgba(52, 211, 153, .8); background: rgba(52, 211, 153, .14); } 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
 @media (prefers-reduced-motion: reduce) { .row.just-added { animation: none; outline: 2px solid rgba(52, 211, 153, .8); } }
 
-/* 💳 debt bar above the rates: total, next payment countdown, circles; tap → debts one by one */
-.debt-bar { flex-basis: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; border: 1px solid rgba(255, 107, 91, .3); background: linear-gradient(135deg, rgba(255, 107, 91, .12), rgba(255, 255, 255, .04)); color: var(--ink); font: inherit; text-align: start; cursor: pointer; min-width: 0; }
+/* 💳 debt bar above the rates: a 3D ring of circles that turns every 2 s, the front one's details beside it, then the total */
+.debt-bar { flex-basis: 100%; display: flex; align-items: center; gap: 14px; padding: 8px 14px; border-radius: 16px; border: 1px solid rgba(255, 107, 91, .3); background: linear-gradient(135deg, rgba(255, 107, 91, .12), rgba(255, 255, 255, .04)); color: var(--ink); font: inherit; text-align: start; cursor: pointer; min-width: 0; position: relative; }
 .debt-bar[hidden] { display: none; }
-.debt-bar:hover { border-color: rgba(255, 107, 91, .6); }
-.debt-bar small { display: block; color: var(--mut, #9aa3b5); font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.debt-bar b { font-size: .95rem; }
-.db-tot, .db-next { display: grid; min-width: 0; }
-.db-next { flex: 1; }
+.debt-bar:hover, .debt-bar.is-held { border-color: rgba(255, 107, 91, .65); }
+.debt-bar small { color: var(--mut, #9aa3b5); font-size: .72rem; }
+.db-stage { width: 96px; height: 60px; flex: none; perspective: 420px; display: grid; place-items: center; }
+.db-ring { position: relative; width: 48px; height: 48px; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.2, .8, .2, 1); }
+.db-face { position: absolute; inset: 0; display: grid; place-items: center; backface-visibility: hidden; opacity: .45; transition: opacity .6s, filter .6s; filter: saturate(.6); }
+.db-face.is-front { opacity: 1; filter: none; }
+.db-face.is-front .dav, .db-face.is-front .db-combo { box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 2px rgba(255, 107, 91, .7); }
+.db-combo { width: 44px; height: 44px; border-radius: 50%; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 1px; background: rgba(255, 255, 255, .1); border: 2px solid rgba(255, 255, 255, .25); }
+.db-combo .dav { border-width: 1px; margin: -2px; }
+.db-combo i { font-style: normal; font-size: .6rem; font-weight: 800; }
+.db-info { display: grid; gap: 1px; min-width: 0; flex: 1; transition: opacity .18s, transform .18s; }
+.db-info.is-out { opacity: 0; transform: translateY(4px); }
+.db-info > small, .db-info > b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-info > b { font-size: 1rem; }
+.db-fx { font-weight: 600; }
 .db-count { font-variant-numeric: tabular-nums; color: #34d399; }
 .db-count.warn { color: #fbbf24; } .db-count.bad { color: #f87171; }
-.db-avs { display: block; width: 116px; overflow: hidden; flex: none; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
-.db-track { display: flex; gap: 6px; width: max-content; }
-.db-avs.is-many .db-track { animation: dbRoll 12s linear infinite; }
-.debt-bar:hover .db-track { animation-play-state: paused; }
-@keyframes dbRoll { to { transform: translateX(calc(-50% - 3px)); } }
-@media (prefers-reduced-motion: reduce) { .db-avs.is-many .db-track { animation: none; } }
+.db-dots { position: absolute; bottom: 4px; inset-inline-start: 50%; transform: translateX(50%); display: flex; gap: 4px; }
+[dir="ltr"] .db-dots { transform: translateX(-50%); }
+.db-dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, .25); transition: background .3s, width .3s; }
+.db-dots i.on { background: var(--acc); width: 12px; border-radius: 3px; }
+.db-dots i.all.on { background: #34d399; }
+@media (prefers-reduced-motion: reduce) { .db-ring, .db-face, .db-info { transition: none; } }
+@media (max-width: 520px) { .db-stage { width: 70px; } }
 .dav { border-radius: 50%; object-fit: cover; flex: none; border: 2px solid rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .08); display: inline-grid; place-items: center; }
 .dpop { max-width: 420px; display: grid; gap: 10px; }
 .dpop-all { color: var(--mut, #9aa3b5); font-size: .75rem; margin-inline-start: auto; margin-inline-end: 8px; }
@@ -1191,3 +1202,19 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .dpop-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dpop-dots { display: flex; gap: 5px; } .dpop-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .25); } .dpop-dots i.on { background: var(--acc); }
 @media (max-width: 520px) { .db-avs { width: 70px; } .debt-bar { gap: 8px; } }
+/* the countdown as 3D flip cards (days · hours · minutes · seconds) */
+.fcs { display: inline-flex; gap: 3px; vertical-align: middle; perspective: 300px; }
+.fc { display: inline-grid; justify-items: center; min-width: 26px; padding: 2px 3px 1px; border-radius: 6px; background: linear-gradient(180deg, rgba(255, 255, 255, .16) 0 50%, rgba(255, 255, 255, .08) 50%); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .15); transform-style: preserve-3d; }
+.fc b { font: 800 .82rem/1.1 var(--font, inherit); font-variant-numeric: tabular-nums; color: inherit; }
+.fc i { font-style: normal; font-size: .5rem; opacity: .7; line-height: 1; }
+.fc.flip { animation: fcFlip .45s cubic-bezier(.3, .7, .3, 1); }
+@keyframes fcFlip { 0% { transform: rotateX(-90deg); } 60% { transform: rotateX(12deg); } 100% { transform: none; } }
+.dpop .fc { min-width: 40px; padding: 4px 5px 2px; } .dpop .fc b { font-size: 1.15rem; } .dpop .fc i { font-size: .6rem; }
+.db-count .fcs { margin-inline-start: 2px; }
+@media (prefers-reduced-motion: reduce) { .fc.flip { animation: none; } }
+.db-nav { display: flex; gap: 4px; flex: none; }
+.db-go { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem; font-weight: 800; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .15); cursor: pointer; transition: background .15s, transform .1s; user-select: none; }
+.db-go:hover { background: rgba(255, 107, 91, .3); }
+.db-go:active { transform: scale(.9); }
+.db-go:focus-visible { outline: 2px solid var(--acc); }
+.debt-bar { touch-action: pan-y; }
