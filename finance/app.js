@@ -3735,7 +3735,7 @@ function renderDebtBar() {
     // Apple Wallet style: every card in its own brand's colours (banks by their name)
     const bank = (/enbd|emirates ?nbd|الإمارات دبي/i.test(d.name || '') && 'enbd') || (/adcb/i.test(d.name || '') && 'adcb') || (/\bfab\b|first abu dhabi/i.test(d.name || '') && 'fab') || (/mashreq|المشرق/i.test(d.name || '') && 'mashreq') || (/\bdib\b|dubai islamic/i.test(d.name || '') && 'dib') || (/\bcib\b/i.test(d.name || '') && 'cib') || (/\bnbe\b|الأهلي/i.test(d.name || '') && 'nbe') || (/banque misr|بنك مصر/i.test(d.name || '') && 'bm');
     return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}" data-did="${d.id}" title="${L('دبل كليك عشان تعدّل', 'Double-click to edit')}">
-      <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span></span>
+      <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(d.name || dNm(d))}</b><small class="dc-sub">${d.item ? `<b class="dc-item">${esc(d.item)}</b> · ` : ''}${d.kind === 'tabby' ? L('من غير فوايد', 'no interest') : DKIND_N[d.kind] || ''}</small></span></span>
       ${d.desc ? `<small class="dc-desc">📝 ${esc(d.desc)}</small>` : ''}
       ${multi ? `<span class="dc-amt"><small class="dc-lbl">${L(`الباقي · ${g.length} عملات`, `Left · ${g.length} currencies`)}</small>
         <span class="dc-multi">${g.map(x => `<b dir="ltr">${CUR[cOf(x)].f} ${fmt(dLeft(R, x), 2)} <em>${CUR[cOf(x)].s}</em></b>`).join('')}</span>
