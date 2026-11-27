@@ -3699,7 +3699,7 @@ function renderDebtBar() {
   if (!open.length) { el.hidden = true; dbN = 0; return; }
   const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), egp = rate('EGP') > 0 ? tot / rate('EGP') : 0, soon = dSoonest(R);
   const n = open.length + 1; if (n !== dbN) dbI = Math.min(dbI, n - 1); dbN = n;
-  const cd = nx => nx ? `<span class="dc-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><small>${nx.n ? L(`قسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')} · <b dir="ltr">${fmt(nx.amt, 2)}</b> · ${dDate(nx.date)}</small>` +
+  const cd = nx => nx ? `<span class="dc-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><small>📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')} · <b dir="ltr">${fmt(nx.amt, 2)}</b> · ${dDate(nx.date)}</small>` +
       `<b class="db-count" dir="ltr" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></span>`
     : `<span class="dc-next"><small>${L('من غير ميعاد سداد', 'No pay-back date')}</small></span>`;
   const card = (d, k) => {
@@ -3707,14 +3707,16 @@ function renderDebtBar() {
     // Apple Wallet style: every card in its own brand's colours (banks by their name)
     const bank = (/enbd|emirates ?nbd|الإمارات دبي/i.test(d.name || '') && 'enbd') || (/adcb/i.test(d.name || '') && 'adcb') || (/\bfab\b|first abu dhabi/i.test(d.name || '') && 'fab') || (/mashreq|المشرق/i.test(d.name || '') && 'mashreq') || (/\bdib\b|dubai islamic/i.test(d.name || '') && 'dib') || (/\bcib\b/i.test(d.name || '') && 'cib') || (/\bnbe\b|الأهلي/i.test(d.name || '') && 'nbe') || (/banque misr|بنك مصر/i.test(d.name || '') && 'bm');
     return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}">
-      <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span><i class="dc-chip" aria-hidden="true"></i></span>
-      <span class="dc-amt"><b dir="ltr">${fmt(left, 2)} ${CUR[cu].s}</b>${fx.map(x => `<small dir="ltr">≈ ${fmt(x.v)} ${CUR[x.c].s}</small>`).join('')}</span>
+      <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span></span>
+      <span class="dc-amt"><small class="dc-lbl">${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} <em>${CUR[cu].s}</em></b>
+        ${fx.length ? `<span class="dc-fx">${fx.map(x => `<span dir="ltr">${CUR[x.c].f} ≈ ${fmt(x.v)} ${CUR[x.c].s}</span>`).join('')}</span>` : ''}</span>
       ${cd(dNext(R, d))}</span>`;
   };
   const combo = `<span class="db-combo">${open.slice(0, 4).map(d => dAvatar(d, 20)).join('')}${open.length > 4 ? `<i>+${open.length - 4}</i>` : ''}</span>`;
   const total = `<span class="dc dc--all" data-k="${n - 1}">
       <span class="dc-top">${combo}<span><b>${L('كل الديون', 'All debts')} · ${open.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
-      <span class="dc-amt"><b dir="ltr">≈ ${fmt(tot)} Đ</b>${egp ? `<small dir="ltr">≈ ${fmt(egp)} ${CUR.EGP.s}</small>` : ''}</span>
+      <span class="dc-amt"><small class="dc-lbl">${L('الإجمالي', 'Total')}</small><b dir="ltr">≈ ${fmt(tot)} <em>Đ</em></b>
+        ${egp ? `<span class="dc-fx"><span dir="ltr">${CUR.EGP.f} ≈ ${fmt(egp)} ${CUR.EGP.s}</span></span>` : ''}</span>
       ${soon ? cd(soon.nx).replace('<small>', `<small>${esc(dNm(soon.d))} · `) : ''}</span>`;
   el.hidden = false;
   el.innerHTML = `<span class="db-deck">${open.map(card).join('')}${total}</span>` +
