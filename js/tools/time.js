@@ -3958,6 +3958,103 @@
     });
   }
 
+  /* ---------------- a day's photo, before it is saved (owner, 2026-11-27) ----------------
+     "Check the orientation while uploading, and crop, reposition or fit." The picture is read the
+     way the camera held it (its orientation tag is applied), then shown in the frame it will hang
+     in: drag to move it, zoom, turn it a quarter at a time, or Fit to keep the whole picture.
+     Saved: the square as framed (the small one on the rope) and the whole picture, turned the same
+     way, for the full-size view. */
+  function loadOrientedImage(file) {
+    var viaTag = function () {
+      return new Promise(function (resolve, reject) {
+        var url = URL.createObjectURL(file), img = new Image();
+        img.onload = function () { resolve({ src: img, w: img.naturalWidth, h: img.naturalHeight, done: function () { URL.revokeObjectURL(url); } }); };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error(T("Could not read that image", "مقدرناش نقرا الصورة دي"))); };
+        img.src = url;   // an <img> turns the picture by its orientation tag on its own
+      });
+    };
+    if (!window.createImageBitmap) return viaTag();
+    return createImageBitmap(file, { imageOrientation: "from-image" })
+      .then(function (bmp) { return { src: bmp, w: bmp.width, h: bmp.height, done: function () { if (bmp.close) bmp.close(); } }; })
+      .catch(viaTag);
+  }
+  function editDayPhoto(file) {
+    return loadOrientedImage(file).then(function (im) {
+      return new Promise(function (resolve, reject) {
+        // the working copy: never larger than 1800 on its long side, turned as chosen
+        var st = { rot: 0, mode: "fill", zoom: 1, cx: 0.5, cy: 0.5 }, work = document.createElement("canvas");
+        var bake = function () {
+          var k = Math.min(1, 1800 / Math.max(im.w, im.h)), w = Math.max(1, Math.round(im.w * k)), h = Math.max(1, Math.round(im.h * k)), q = st.rot % 2;
+          work.width = q ? h : w; work.height = q ? w : h;
+          var c = work.getContext("2d"); c.save(); c.translate(work.width / 2, work.height / 2); c.rotate(st.rot * Math.PI / 2); c.drawImage(im.src, -w / 2, -h / 2, w, h); c.restore();
+        };
+        var paint = function (cv) {
+          var S = cv.width, c = cv.getContext("2d"), w = work.width, h = work.height;
+          c.fillStyle = "#F4EDE0"; c.fillRect(0, 0, S, S);
+          if (st.mode === "fit") {
+            // the whole picture, on a soft blurred copy of itself so the frame is still full
+            var cov = Math.max(S / w, S / h) * 1.15;
+            c.save(); if ("filter" in c) c.filter = "blur(" + Math.round(S / 22) + "px) brightness(0.92)"; c.globalAlpha = 0.9; c.drawImage(work, (S - w * cov) / 2, (S - h * cov) / 2, w * cov, h * cov); c.restore();
+            var k = Math.min(S / w, S / h); c.drawImage(work, (S - w * k) / 2, (S - h * k) / 2, w * k, h * k);
+            return;
+          }
+          var sc = Math.max(S / w, S / h) * st.zoom, hw = S / 2 / (w * sc), hh = S / 2 / (h * sc);
+          st.cx = Math.max(hw, Math.min(1 - hw, st.cx)); st.cy = Math.max(hh, Math.min(1 - hh, st.cy));   // never past the picture's edge
+          c.drawImage(work, S / 2 - st.cx * w * sc, S / 2 - st.cy * h * sc, w * sc, h * sc);
+        };
+        var el = document.createElement("div"); el.className = "pcrop"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", T("Frame the photo", "ظبّط الصورة"));
+        el.innerHTML = '<div class="pcrop__box"><h3>' + T("Frame the photo", "ظبّط الصورة") + '</h3>' +
+          '<div class="pcrop__frame"><canvas class="pcrop__cv" width="640" height="640"></canvas><i class="pcrop__grid" aria-hidden="true"></i></div>' +
+          '<p class="pcrop__hint muted"></p>' +
+          '<div class="pcrop__tools"><button type="button" class="btn btn--ghost btn--sm" data-pc="left" aria-label="' + T("Turn left", "لف شمال") + '">⟲ ' + T("Turn", "لف") + '</button>' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-pc="right" aria-label="' + T("Turn right", "لف يمين") + '">⟳ ' + T("Turn", "لف") + '</button>' +
+            '<span class="pcrop__modes" role="group"><button type="button" data-pc="fill">' + T("Fill", "املا") + '</button><button type="button" data-pc="fit">' + T("Fit", "كلها") + "</button></span></div>" +
+          '<label class="pcrop__zoom">' + T("Zoom", "زوم") + ' <input type="range" min="1" max="4" step="0.01" value="1" data-pc-zoom></label>' +
+          '<div class="pcrop__acts"><button type="button" class="btn btn--ghost" data-pc="cancel">' + T("Cancel", "إلغاء") + '</button><button type="button" class="btn btn--primary" data-pc="save">' + T("Save photo", "احفظ الصورة") + "</button></div></div>";
+        document.body.appendChild(el);
+        var cv = el.querySelector(".pcrop__cv"), zoom = el.querySelector("[data-pc-zoom]"), hint = el.querySelector(".pcrop__hint");
+        var draw = function () {
+          paint(cv);
+          el.querySelectorAll(".pcrop__modes button").forEach(function (b) { b.classList.toggle("is-on", b.getAttribute("data-pc") === st.mode); b.setAttribute("aria-pressed", b.getAttribute("data-pc") === st.mode); });
+          zoom.disabled = st.mode === "fit"; cv.classList.toggle("is-fit", st.mode === "fit"); el.querySelector(".pcrop__grid").hidden = st.mode === "fit";
+          hint.textContent = st.mode === "fit" ? T("The whole picture is kept. Turn it if it is on its side.", "الصورة كلها باينة. لفها لو مقلوبة.") : T("Drag to move it, zoom to get closer. Turn it if it is on its side.", "اسحب تحرّكها، وقرّب بالزوم. لفها لو مقلوبة.");
+        };
+        var finish = function (out) { document.removeEventListener("keydown", onKey); el.remove(); im.done(); if (out) resolve(out); else reject({ cancelled: true }); };
+        var onKey = function (e) { if (e.key === "Escape") finish(null); };
+        document.addEventListener("keydown", onKey);
+        el.addEventListener("click", function (e) {
+          var b = e.target.closest("[data-pc]"), k = b && b.getAttribute("data-pc");
+          if (e.target === el || k === "cancel") return finish(null);
+          if (!k) return;
+          if (k === "left" || k === "right") { var ox = st.cx, oy = st.cy; st.rot = (st.rot + (k === "right" ? 1 : 3)) % 4; if (k === "right") { st.cx = 1 - oy; st.cy = ox; } else { st.cx = oy; st.cy = 1 - ox; } bake(); return draw(); }
+          if (k === "fill" || k === "fit") { st.mode = k; return draw(); }
+          if (k === "save") {
+            var th = document.createElement("canvas"); th.width = th.height = 400; paint(th);
+            return finish({ thumb: th.toDataURL("image/jpeg", 0.78), full: work.toDataURL("image/jpeg", 0.85) });
+          }
+        });
+        zoom.addEventListener("input", function () { st.zoom = +zoom.value || 1; draw(); });
+        cv.addEventListener("wheel", function (e) { if (st.mode !== "fill") return; e.preventDefault(); st.zoom = Math.max(1, Math.min(4, st.zoom * (e.deltaY < 0 ? 1.06 : 0.94))); zoom.value = st.zoom; draw(); }, { passive: false });
+        // one finger moves it, two fingers zoom
+        var pts = {}, pinch0 = 0, zoom0 = 1;
+        var dist = function () { var k = Object.keys(pts); return Math.hypot(pts[k[0]].x - pts[k[1]].x, pts[k[0]].y - pts[k[1]].y); };
+        cv.addEventListener("pointerdown", function (e) { if (st.mode !== "fill") return; pts[e.pointerId] = { x: e.clientX, y: e.clientY }; try { cv.setPointerCapture(e.pointerId); } catch (x) {} if (Object.keys(pts).length === 2) { pinch0 = dist(); zoom0 = st.zoom; } });
+        cv.addEventListener("pointermove", function (e) {
+          var p = pts[e.pointerId]; if (!p) return;
+          var n = Object.keys(pts).length, dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+          if (n === 2 && pinch0) { st.zoom = Math.max(1, Math.min(4, zoom0 * dist() / pinch0)); zoom.value = st.zoom; return draw(); }
+          if (n !== 1) return;
+          var shown = cv.getBoundingClientRect().width, sc = Math.max(shown / work.width, shown / work.height) * st.zoom;
+          st.cx -= dx / (work.width * sc); st.cy -= dy / (work.height * sc); draw();
+        });
+        var up = function (e) { delete pts[e.pointerId]; pinch0 = 0; };
+        cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+        bake(); draw();
+        var sv = el.querySelector('[data-pc="save"]'); if (sv) sv.focus();
+      });
+    });
+  }
+
   // the whole tracked span: the earliest quarter's first day to the latest one's last
   function allQuartersSpan() {
     var qs = state.quarters || [];
@@ -3988,6 +4085,21 @@
     var quarters = state.quarters || [];
     var all = state.daysScope === "all" && quarters.length > 0;
     var quarter = state.quarterDetail && state.quarterDetail.quarter;
+    /* owner, 2026-11-27: the days start where the plan starts, and a day's percentage is its plan in
+       My week (the blocks ticked), so the tab works with no quarter at all. */
+    var MW = window.MyWeek && window.MyWeek.loaded ? window.MyWeek : null, planFrom = MW && MW.start;
+    if (MW && !MW.loaded()) { clearTimeout(loadDaysGallery.wait); loadDaysGallery.wait = setTimeout(function () { if (!document.querySelector('.tabpanel[data-tabpanel="days"]').hidden) loadDaysGallery({ animate: false }); }, 900); }
+    if (!all && !quarter && planFrom) {
+      $("#noDaysQuarter").hidden = true; $("#daysQuarterPicker").hidden = true;
+      // owner, 2026-11-27: the number of cards is the quarter's. With a quarter it is that quarter's days
+      // (below); with none yet, one quarter of 13 weeks from the plan's first day
+      var pTo = addDays(planFrom, 90);
+      $("#daysQuarterLabel").textContent = fmtDate(planFrom) + " – " + fmtDate(pTo) + " · " + T("91 days", "91 يوم");
+      $("#daysGoalsValue").textContent = "—"; $("#daysGoalsSub").textContent = T("no quarter yet", "مفيش ربع لسه");
+      return api("/api/day-photos?from=" + planFrom + "&to=" + pTo).then(function (r) {
+        renderDaysGallery(planFrom, pTo, planStats([], planFrom, pTo), (r && r.photos) || [], Object.assign(opts || {}, { noQuarter: true }));
+      }).catch(function (e) { toast(e.message, true); });
+    }
     if (!all && !quarter) {
       $("#dayGallery").innerHTML = "";
       $("#noDaysQuarter").hidden = false;
@@ -4009,6 +4121,7 @@
 
     var span = all ? allQuartersSpan() : { from: String(quarter.start_date).slice(0, 10), to: String(quarter.end_date).slice(0, 10) };
     var from = span.from, to = span.to;
+    if (!all && planFrom && from < planFrom && planFrom <= to) from = planFrom;   // one quarter: its days start with the plan
     $("#daysQuarterLabel").textContent = (all ? plural(quarters.length, "quarter") + " · " : quarters.length < 2 ? quarter.name + " · " : "") +
       fmtDate(from) + " – " + fmtDate(to);
 
@@ -4025,8 +4138,17 @@
       opts.goalsEstimatedByDate = series.estimated;
       opts.all = all;
       opts.goalsByQuarter = results[3] ? results[3].goals || [] : null;
-      renderDaysGallery(from, to, results[0].stats, results[1].photos, opts);
+      renderDaysGallery(from, to, planStats(results[0].stats, from, to), results[1].photos, opts);
     }).catch(function (e) { toast(e.message, true); });
+  }
+
+  // a day's done / total: from its plan in My week (minutes ticked of minutes planned) from the plan's
+  // first day on; an older day keeps what its to-do list says
+  function planStats(stats, from, to) {
+    var MW = window.MyWeek, out = (stats || []).filter(function (x) { return !MW || !MW.start || String(x.date).slice(0, 10) < MW.start; });
+    if (!MW || !MW.loaded || !MW.loaded()) return stats || [];
+    for (var d = from > MW.start ? from : MW.start; d <= to; d = addDays(d, 1)) { var p = MW.pct(d); if (p) out.push({ date: d, done: p.done, total: p.total }); }
+    return out;
   }
 
   /* The quarters as a row of cards: name, dates, and "Now" on the running one.
@@ -4153,7 +4275,9 @@
       goalsEstimatedByDate: opts.goalsEstimatedByDate || {},
     };
 
-    if (opts.all) {
+    if (opts.noQuarter) {
+      // no quarter: the goals tile was filled by the caller
+    } else if (opts.all) {
       // across quarters, each quarter's own goals figure counts once — one
       // quarter with far more goals shouldn't speak for all the others
       var byQuarter = {};
@@ -4217,6 +4341,7 @@
   function renderDayTiles(from, to, animate) {
     var box = $("#dayGallery");
     box.innerHTML = "";
+    paintWeekdayHead();
     daySegments(from, to).forEach(function (seg) {
       if (seg.label) {
         var head = document.createElement("div");
@@ -4276,7 +4401,7 @@
 
     // weeks start Saturday: pad the grid with blank cells so day `from`
     // lands in its real weekday column and every row is one calendar week
-    var leadingBlanks = (new Date(from + "T00:00:00Z").getUTCDay() + 1) % 7;
+    var leadingBlanks = (new Date(from + "T00:00:00Z").getUTCDay() - weekFirstDow() + 7) % 7;
     for (var i = 0; i < leadingBlanks; i++) {
       var blank = document.createElement("div");
       blank.className = "day-tile day-tile--placeholder";
@@ -4291,7 +4416,7 @@
 
       var estimated = !!estimatedByDate[d];
       var tile = document.createElement("div");
-      tile.className = "day-tile" + (d === today ? " day-tile--today" : "") +
+      tile.className = "day-tile" + (photo ? " day-tile--has-photo" : "") + (d === today ? " day-tile--today" : "") +
         (estimated ? " day-tile--estimated" : "") + (animate ? " day-tile--enter" : "");
       tile.setAttribute("data-day", d);
       if (estimated) {
@@ -4327,7 +4452,8 @@
       meta.className = "day-tile__meta";
       meta.title = T("Open " + fmtDate(d) + "'s to-do list", "افتح مهام " + fmtDate(d));
       meta.innerHTML = "<span>" + fmtDayMonth(d) + "</span><b>" + (pct == null ? "—" : pct + "%") + "</b>";
-      meta.addEventListener("click", function (dd) { return function () { openDayDetail(dd); }; }(d));
+      // a day of the plan opens in the Today tab, where its blocks are ticked; an older one opens its to-do list
+      meta.addEventListener("click", function (dd) { return function () { var MW = window.MyWeek; if (MW && MW.start && dd >= MW.start) MW.open(dd); else openDayDetail(dd); }; }(d));
       tile.appendChild(meta);
 
       if (photo) {
@@ -4354,15 +4480,15 @@
         return function () {
           var file = this.files[0];
           if (!file) return;
-          var hold = keepDayPlace(dd);
+          var hold = keepDayPlace(dd), input = this;
           this.blur(); // a focused input is something a phone scrolls to
-          Promise.all([resizeImageFile(file, 320, 0.72), resizeImageFile(file, 1800, 0.85)])
+          editDayPhoto(file)
             .then(function (sizes) {
-              return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: sizes[0], photo_full: sizes[1] } });
+              return api("/api/day-photos", { method: "POST", body: { date: dd, photo_data: sizes.thumb, photo_full: sizes.full } });
             })
             .then(function () { playAddSound(); toast(T("Photo saved ✓", "الصورة اتحفظت ✓")); return loadDaysGallery({ animate: false }); })
             .then(hold)
-            .catch(function (e) { toast(e.message, true); });
+            .catch(function (e) { input.value = ""; if (!e || !e.cancelled) toast((e && e.message) || T("Could not save the photo", "الصورة ما اتحفظتش"), true); });
         };
       }(d));
 
@@ -4377,9 +4503,22 @@
      no extra request, and the quarter line stays on screen for comparison. */
 
   // weeks start Saturday here, same as the day-tile grid
+  /* owner, 2026-11-27: the week starts the day after the day off, from the weekend switch in My week:
+     day off Sunday → the week is Monday to Sunday; day off Friday → Saturday to Friday. */
+  function weekFirstDow() {
+    var MW = window.MyWeek, off = MW && MW.offDay ? MW.offDay() : null;
+    return off == null ? 6 : (off + 1) % 7;
+  }
+  // the weekday names over the photo grid, in that order
+  function paintWeekdayHead() {
+    var box = document.querySelector(".day-gallery__weekdays"); if (!box) return;
+    var names = [["Sun", "الأحد"], ["Mon", "الاتنين"], ["Tue", "التلات"], ["Wed", "الأربع"], ["Thu", "الخميس"], ["Fri", "الجمعة"], ["Sat", "السبت"]], first = weekFirstDow();
+    var spans = box.querySelectorAll("span");
+    for (var i = 0; i < spans.length && i < 7; i++) { var n = names[(first + i) % 7]; spans[i].textContent = T(n[0], n[1]); spans[i].setAttribute("data-ar", n[1]); }
+  }
   function weekStart(iso) {
     var dow = new Date(iso + "T00:00:00Z").getUTCDay(); // 0 = Sun … 6 = Sat
-    return addDays(iso, -((dow + 1) % 7));
+    return addDays(iso, -((dow - weekFirstDow() + 7) % 7));
   }
 
   function clampToQuarter(iso) {
@@ -4534,9 +4673,9 @@
     if (opts.tiles !== false) {
       renderDayTiles(f.from, f.to, opts.animateTiles !== false);
       $("#dayGalleryHint").textContent = zoomed
-        ? T("Showing " + plural(slice.length, "day") + " — tap a day's percentage to open its to-do list.",
-          "معروض " + plural(slice.length, "day") + " — دوس على نسبة أي يوم عشان تفتح مهامه.")
-        : T("Tap a day's percentage to open its to-do list.", "دوس على نسبة أي يوم عشان تفتح مهامه.");
+        ? T("Showing " + plural(slice.length, "day") + ". Tap a photo to add or change it, and a percentage to open that day's plan.",
+          "معروض " + plural(slice.length, "day") + ". دوس على الصورة تضيفها أو تغيّرها، وعلى النسبة تفتح خطة اليوم.")
+        : T("Tap a photo to add or change the day's picture, and its percentage to open that day's plan.", "دوس على الصورة تضيف أو تغيّر صورة اليوم، ودوس على النسبة تفتح خطة اليوم.");
     }
 
     window.renderDaysChart($("#daysChart"), $("#daysChartTip"), zoomed ? slice : data.days, {

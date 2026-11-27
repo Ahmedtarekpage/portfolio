@@ -1273,7 +1273,7 @@
     // sounds (only for today): 3 notes when a prayer comes in; 2 when focus starts, 1 when a break starts
     if (!isToday) return;
     var TP = P;
-    PR.forEach(function (p) { var key = ymd(now) + p.k; if ((hm === hhmm(p.at) || hm === hhmm(p.from)) && !alerted[key + hm]) { alerted[key + hm] = 1; beep(3); } });
+    PR.forEach(function (p) { var key = ymd(now) + p.k; if ((hm === hhmm(p.at) || hm === hhmm(p.from)) && !alerted[key + hm]) { alerted[key + hm] = 1; if (!AL.on) beep(3); } });   // with the adhan sound on, no tones
     var liveRow = mdRows().filter(shown).concat(work()).filter(function (x) { return x.pomo && hm >= x.from && hm < x.to; })[0], ph = "";
     if (liveRow) { var pm = pomo(liveRow, TP, nowM); ph = liveRow.id + (pm.pray ? "p" : pm.focus ? "f" + pm.cycle : "b" + pm.cycle); }
     if (lastPhase && ph && ph !== lastPhase) beep(ph.indexOf("f") > -1 ? 2 : 1);
@@ -1287,7 +1287,11 @@
   var AL = (function () { try { return JSON.parse(localStorage.getItem("week.alert") || "null") || {}; } catch (e) { return {}; } })();
   if (AL.on == null) AL.on = true;
   if (!(AL.before >= 0)) AL.before = 10;
-  if (["chime", "bell", "beeps", "custom"].indexOf(AL.sound) < 0) AL.sound = "chime";
+  /* owner, 2026-11-27: no music. At the adhan time the adhan itself plays (Makkah or Madinah, or his own
+     file); the reminder N minutes before is the first takbir of that adhan, then it fades. */
+  if (AL.sound === "custom") AL.adhan = "custom";                          // his own file was the reminder: now it is the adhan
+  if (["takbir", "none"].indexOf(AL.sound) < 0) AL.sound = "takbir";       // the old tones, bell and beeps are gone
+  if (["makkah", "madinah", "custom", "off"].indexOf(AL.adhan) < 0) AL.adhan = "makkah";
   var alFired = {};
   function alSave() { try { localStorage.setItem("week.alert", JSON.stringify(AL)); } catch (e) {} }
   function tone(seq) {
@@ -1312,21 +1316,49 @@
     else if (k === "pop") tone([{ f: 420, d: 0.07, t: 0, v: 0.1 }, { f: 840, d: 0.12, t: 0.04, v: 0.08 }]);
     else if (k === "page") tone([{ f: 600, d: 0.08, t: 0, v: 0.05, type: "triangle" }, { f: 900, d: 0.1, t: 0.05, v: 0.05, type: "triangle" }]);
   }
-  function playAlert() {
-    if (AL.sound === "custom") {
-      var src = ""; try { src = localStorage.getItem("week.alert.file") || ""; } catch (e) {}
-      if (src) { try { var a = new Audio(src); a.play().catch(function () {}); return; } catch (e) {} }
-    }
-    if (AL.sound === "bell") return tone([{ f: 523, d: 2.2, v: 0.35 }, { f: 1046, d: 1.6, v: 0.12 }, { f: 523, d: 2.2, t: 2.4, v: 0.35 }, { f: 1046, d: 1.6, t: 2.4, v: 0.12 }].map(function (n) { n.t = n.t || 0; return n; }));
-    if (AL.sound === "beeps") return tone([0, 0.45, 0.9, 1.35].map(function (t) { return { f: 880, d: 0.3, t: t, type: "square", v: 0.12 }; }));
-    tone([{ f: 659, d: 0.9, t: 0 }, { f: 784, d: 0.9, t: 0.45 }, { f: 988, d: 1.4, t: 0.9 }]);
+  var adhanAud = null, adhanFade = null;
+  function adhanStop() { clearInterval(adhanFade); adhanFade = null; if (adhanAud) { try { adhanAud.pause(); } catch (e) {} adhanAud = null; } alRefresh(); }
+  function adhanSrc() {
+    if (AL.adhan === "custom") { var src = ""; try { src = localStorage.getItem("week.alert.file") || ""; } catch (e) {} if (src) return src; }
+    return "/assets/adhan/" + (AL.adhan === "madinah" ? "madinah" : "makkah") + ".mp3?v=1";
+  }
+  // the whole adhan, or only its first takbir (about 10 seconds, then it fades out)
+  function playAdhan(whole) {
+    adhanStop();
+    try {
+      // owner, 2026-11-27: the reminder is always the first 10 seconds of the second adhan (Madinah)
+      var a = new Audio(whole ? adhanSrc() : "/assets/adhan/madinah.mp3?v=1"); adhanAud = a; a.volume = 1;
+      a.addEventListener("ended", function () { if (adhanAud === a) adhanStop(); });
+      a.play().then(alRefresh).catch(function () { if (adhanAud === a) { adhanAud = null; alRefresh(); } note(T("Tap the page once so the browser lets the adhan play.", "دوس على الصفحة مرة عشان المتصفح يسمح بتشغيل الأذان.")); });
+      if (!whole) setTimeout(function () {
+        if (adhanAud !== a) return;
+        adhanFade = setInterval(function () { if (adhanAud !== a) return clearInterval(adhanFade); if (a.volume > 0.08) a.volume = Math.max(0, a.volume - 0.07); else adhanStop(); }, 150);
+      }, 9000);
+    } catch (e) {}
+  }
+  function playAlert() { if (AL.sound !== "none") playAdhan(false); }
+  // the Stop button comes and goes with the sound, without waiting for the next redraw
+  function alRefresh() { var on = !!adhanAud; [host, nowHost].forEach(function (h) { if (!h) return; var b = h.querySelectorAll("[data-al-stop]"); for (var i = 0; i < b.length; i++) b[i].hidden = !on; }); }
+  // the buttons of the sound bar, the same on Time and on Now
+  function alClick(t) {
+    if (t.closest("[data-al-stop]")) { adhanStop(); return true; }
+    if (t.closest("[data-al-test-adhan]")) { playAdhan(true); return true; }
+    if (t.closest("[data-al-test]")) { playAlert(); try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} return true; }
+    return false;
   }
   function checkAlert() {
     if (!AL.on || !W) return;
     var now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), day = ymd(now);
     prayers(todayDow).forEach(function (p) {
       var at = p.at - (+AL.before || 0), key = day + p.k;
-      if (nowM >= at && nowM < at + 2 && !alFired[key]) {
+      // the adhan itself, when its time comes
+      if (AL.adhan !== "off" && nowM >= p.at && nowM < p.at + 2 && !alFired[key + "A"]) {
+        alFired[key + "A"] = 1; playAdhan(true);
+        var am = T(p.en + " adhan now · iqama " + ap(p.iq), "أذان " + p.ar + " دلوقتي · الإقامة " + ap(p.iq));
+        try { if (window.Notification && Notification.permission === "granted") new Notification("🕌 " + T(p.en, p.ar), { body: am, tag: key + "A" }); } catch (e) {}
+        note("🕌 " + am); return;
+      }
+      if ((+AL.before || 0) > 0 && nowM >= at && nowM < at + 2 && !alFired[key]) {
         alFired[key] = 1; playAlert();
         var msg = T(p.en + " adhan in " + (AL.before || 0) + " min (" + ap(p.at) + ") · iqama " + ap(p.iq), "أذان " + p.ar + " بعد " + (AL.before || 0) + " دقيقة (" + ap(p.at) + ") · الإقامة " + ap(p.iq));
         try { if (window.Notification && Notification.permission === "granted") new Notification("🕌 " + T(p.en, p.ar), { body: msg, tag: key }); } catch (e) {}
@@ -1335,13 +1367,16 @@
     });
   }
   function alertBar() {
-    var o = function (v, l) { return '<option value="' + v + '"' + (AL.sound === v ? " selected" : "") + ">" + esc(l) + "</option>"; };
+    var o = function (cur, v, l) { return '<option value="' + v + '"' + (cur === v ? " selected" : "") + ">" + esc(l) + "</option>"; };
     var has = false; try { has = !!localStorage.getItem("week.alert.file"); } catch (e) {}
-    return '<div class="al-bar"><label class="al-on"><input type="checkbox" data-al-on' + (AL.on ? " checked" : "") + "> 🔔 " + esc(T("Sound before the adhan", "صوت قبل الأذان")) + "</label>" +
-      '<label>' + '<input type="number" min="0" max="60" step="1" value="' + (+AL.before || 0) + '" data-al-before aria-label="' + esc(T("Minutes before", "دقايق قبل")) + '"> ' + esc(T("min before", "دقيقة قبل")) + "</label>" +
-      '<select data-al-sound aria-label="' + esc(T("Sound", "الصوت")) + '">' + o("chime", T("🎵 Three tones", "🎵 تلات نغمات")) + o("bell", T("🔔 Bell", "🔔 جرس")) + o("beeps", T("📢 Beeps", "📢 تنبيه")) + o("custom", T("🕌 My own adhan file", "🕌 ملف أذان من عندي")) + "</select>" +
-      (AL.sound === "custom" ? '<label class="btn btn--ghost btn--sm al-file">' + esc(has ? T("Change the file", "غيّر الملف") : T("Choose a file", "اختار ملف")) + '<input type="file" accept="audio/*" data-al-file hidden></label>' : "") +
-      '<button type="button" class="btn btn--ghost btn--sm" data-al-test>▶ ' + esc(T("Test", "جرّب")) + "</button></div>";
+    return '<div class="al-bar"><label class="al-on"><input type="checkbox" data-al-on' + (AL.on ? " checked" : "") + "> 🕌 " + esc(T("Adhan sound", "صوت الأذان")) + "</label>" +
+      '<label>' + esc(T("At the adhan", "وقت الأذان")) + ' <select data-al-adhan aria-label="' + esc(T("The adhan", "الأذان")) + '">' + o(AL.adhan, "makkah", T("🕋 Makkah", "🕋 مكة")) + o(AL.adhan, "madinah", T("🕌 Madinah", "🕌 المدينة")) + o(AL.adhan, "custom", T("📁 My own file", "📁 ملف من عندي")) + o(AL.adhan, "off", T("🔕 No sound", "🔕 من غير صوت")) + "</select></label>" +
+      (AL.adhan === "custom" ? '<label class="btn btn--ghost btn--sm al-file">' + esc(has ? T("Change the file", "غيّر الملف") : T("Choose a file", "اختار ملف")) + '<input type="file" accept="audio/*" data-al-file hidden></label>' : "") +
+      '<button type="button" class="btn btn--ghost btn--sm" data-al-test-adhan>▶ ' + esc(T("Hear it", "اسمعه")) + "</button>" +
+      '<label><input type="number" min="0" max="60" step="1" value="' + (+AL.before || 0) + '" data-al-before aria-label="' + esc(T("Minutes before", "دقايق قبل")) + '"> ' + esc(T("min before:", "دقيقة قبله:")) +
+      ' <select data-al-sound aria-label="' + esc(T("Reminder before the adhan", "تنبيه قبل الأذان")) + '">' + o(AL.sound, "takbir", T("Takbir, Madinah (10 sec)", "تكبير المدينة (10 ثواني)")) + o(AL.sound, "none", T("Message only", "رسالة بس")) + "</select></label>" +
+      '<button type="button" class="btn btn--ghost btn--sm" data-al-test>▶ ' + esc(T("Hear it", "اسمعه")) + "</button>" +
+      '<button type="button" class="btn btn--primary btn--sm" data-al-stop' + (adhanAud ? "" : " hidden") + ">⏹ " + esc(T("Stop", "وقّف")) + "</button></div>";
   }
 
   // "2:30 PM", "2:30 م", "14:30", "2 pm" → minutes; null if it cannot be read
@@ -1355,6 +1390,20 @@
   /* What the Today tab takes from the week (js/tools/time.js prayerPlan): that date's breakfast,
      gym or sport, and sleep from bedtime to the next Fajr. null until the week has loaded. */
   window.MyWeek = {
+    // for the Days tab (owner, 2026-11-27): the plan's first day, a day's done / planned minutes from its
+    // ticks (null before the plan or after today), and a jump to that day in the Today tab
+    start: PLAN_START,
+    offDay: function () { return W ? offDay() : null; },   // 0 = Sunday is the day off, 5 = Friday
+    loaded: function () { return !!W; },
+    pct: function (date) {
+      if (!W || date < PLAN_START || date > iso(new Date())) return null;
+      var t = tally(planOf(date), 1440), plan = 0, done = 0; for (var c in t) { plan += t[c].plan; done += t[c].done; }
+      return plan ? { done: done, total: plan } : null;
+    },
+    open: function (date) {
+      var tt = document.querySelector('#tabbar [data-tab="today"]'); if (tt) tt.click();
+      setTimeout(function () { viewOff = Math.max(OFF_MIN, Math.min(OFF_MAX, offOf(new Date(date + "T12:00:00")))); editing = null; render(); host.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
+    },
     life: function (date) {
       if (!W) return null;
       if (date < PLAN_START) return { none: true };
@@ -1429,7 +1478,7 @@
       fetch("/api/ideas?gcal=disconnect", { method: "POST" }).then(function () { GC.connected = false; GEV = []; render(); });
       return;
     }
-    if (t.closest("[data-al-test]")) { playAlert(); try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} return; }
+    if (alClick(t)) return;
     if ((b = t.closest("[data-view]"))) { viewOff = +b.getAttribute("data-view") ? planOff() : 0; editing = null; return render(); }
     if ((b = t.closest("[data-cal-toggle]"))) { CALP.open = !CALP.open; CALP.ym = ""; return render(); }
     if ((b = t.closest("[data-cal-nav]"))) {
@@ -1498,11 +1547,12 @@
     if (el.matches("[data-al-on]")) { AL.on = el.checked; alSave(); if (AL.on) { try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (x) {} } return render(); }
     if (el.matches("[data-al-before]")) { AL.before = Math.max(0, Math.min(60, Math.round(+el.value) || 0)); alSave(); return; }
     if (el.matches("[data-al-sound]")) { AL.sound = el.value; alSave(); return render(); }
+    if (el.matches("[data-al-adhan]")) { AL.adhan = el.value; alSave(); adhanStop(); return render(); }
     if (el.matches("[data-al-file]") && el.files && el.files[0]) {
       var f = el.files[0];
       if (f.size > 3 * 1024 * 1024) { window.alert(T("Please choose a file under 3 MB.", "اختار ملف أقل من 3 ميجا.")); return; }
       var rd = new FileReader();
-      rd.onload = function () { try { localStorage.setItem("week.alert.file", rd.result); note(T("Saved: your adhan sound", "اتحفظ صوت الأذان بتاعك")); playAlert(); } catch (x) { window.alert(T("This browser could not keep the file; try a shorter one.", "المتصفح ما قدرش يحفظ الملف؛ جرّب واحد أقصر.")); } render(); if (nowHost) renderNow(); };
+      rd.onload = function () { try { localStorage.setItem("week.alert.file", rd.result); note(T("Saved: your adhan sound", "اتحفظ صوت الأذان بتاعك")); playAdhan(true); } catch (x) { window.alert(T("This browser could not keep the file; try a shorter one.", "المتصفح ما قدرش يحفظ الملف؛ جرّب واحد أقصر.")); } render(); if (nowHost) renderNow(); };
       rd.readAsDataURL(f);
     }
   }
@@ -2620,7 +2670,7 @@
       if ((b = t.closest("[data-whide]"))) { var wh = boardWidgets()[b.getAttribute("data-whide")]; if (wh.locked) return note(T("It is locked: unlock it first.", "دي مقفولة: افتحها الأول.")); wh.hidden = true; bsave(); return renderNow(); }
       if (t.closest("[data-wcards]")) { cardsOpen = !cardsOpen; return renderNow(); }
       if ((b = t.closest("[data-wshow]"))) { boardWidgets()[b.getAttribute("data-wshow")].hidden = false; bsave(); renderNow(); return stackCol3(); }
-      if (t.closest("[data-al-test]")) { playAlert(); return; }
+      if (alClick(t)) return;
       if ((b = t.closest("[data-b-export]"))) return bExport(b.getAttribute("data-b-export"));
       if (t.closest("[data-tab-add]")) {
         var nm = window.prompt(T("Name of the new page", "اسم الصفحة الجديدة"), T("Page ", "صفحة ") + boardRoot().tabs.length); if (nm == null) return;
