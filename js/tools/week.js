@@ -57,7 +57,7 @@
      Gym 1 h 30, 3 evenings (Sun, Tue, Thu), before that; those nights sleep is
      at 11 PM so the 2 h with people still fit. Other nights sleep 10:30 PM.
      Prayers 30 min at most around the iqama. */
-  var WEEK_V = 27;
+  var WEEK_V = 31;
   function seed() {
     var d = function (sec, from, to, en, ar, more) { var o = it(from, to, en, ar, more); o.sec = sec; return o; };
     var i = function (en, ar, est, ai) { var o = { en: en, ar: ar, est: est }; if (ai !== false) o.ai = 1; return o; };
@@ -80,38 +80,46 @@
       d("w", "13:00", "14:45", "🏢 Part-time job work, then wrap up", "🏢 شغل البارت تايم وبعدين قفّل", { cat: "office", pomo: 1 })
     ]; };
     var early = function (cat, items) { return d("w", "08:30", "09:30", "⭐ Business, at home before the office", "⭐ البيزنس، في البيت قبل المكتب", { cat: cat, pomo: 1, items: items }); };
-    var day = function (cat, before, aEn, aAr, A, bEn, bAr, B, catA) {
+    var day = function (cat, before, aEn, aAr, A, bEn, bAr, B, catA, gym) {
       var o = office();
-      return [early(cat, before), o[0], food(), o[1], job(),
-        d("w", "15:45", "17:30", aEn, aAr, { cat: catA || cat, pomo: 1, items: A }),
-        d("w", "18:00", "18:45", bEn, bAr, { cat: cat, pomo: 1, items: B.concat([comments()]) })];
+      return (gym ? [] : [early(cat, before)]).concat([o[0], food(), o[1], job(),
+        d("w", "15:45", "17:30", aEn, aAr, { cat: catA || cat, pomo: 1, items: gym ? before.concat(A) : A }),
+        d("w", "18:00", "18:30", bEn, bAr, { cat: cat, pomo: 1, items: B.concat([comments()]) })]);
     };
     return { v: WEEK_V, jobs: { daily: 5, log: {} }, meetings: [],
       myday: [
         // owner, 2026-11-26: the morning routine is body and deen only and ends at 7 AM; 7 AM – 7 PM is work,
         // starting at home with learning and the business, then the office from 10
-        d("m", "05:15", "05:30", "💧 Wake up: a glass of water, wudu, walk to the masjid", "💧 صحيان: كوباية مية، وضوء، والمشي للمسجد"),
-        d("m", "06:00", "06:15", "📿 Morning azkar", "📿 أذكار الصباح"),
-        d("m", "06:15", "06:30", "📖 Quran and khulwa: quiet time alone, phone away", "📖 قرآن وخلوة: وقت لوحدك والموبايل بعيد"),
-        d("m", "06:30", "06:45", "🍳 Breakfast: dates, eggs and water", "🍳 فطار: تمر وبيض ومية"),
-        d("m", "06:45", "07:00", "🚿 Shower and get dressed", "🚿 دش واِلبس"),
+        d("m", "05:15", "05:30", "⏰ Wake up: a glass of water, wudu, walk to the masjid", "⏰ صحيان: كوباية مية، وضوء، والمشي للمسجد"),
+        d("m", "06:00", "06:15", "📿 Morning azkar", "📿 أذكار الصباح", { on: [6, 1, 2, 3, 4, 5] }),
+        d("m", "06:15", "06:30", "📖 Quran and khulwa: quiet time alone, phone away", "📖 قرآن وخلوة: وقت لوحدك والموبايل بعيد", { on: [6, 1, 2, 3, 4, 5] }),
+        d("m", "06:30", "06:45", "🍳 Breakfast: dates, eggs and water", "🍳 فطار: تمر وبيض ومية", { on: [2, 4, 5] }),
+        d("m", "06:45", "07:00", "🚿 Shower and get dressed", "🚿 دش واِلبس", { on: [2, 4, 5] }),
+        // owner, 2026-11-27: the gym is in the morning, three work days (Mon, Wed, Sat), so the morning routine runs
+        // to 8:30 there and the learning hour takes the place of the business hour before the office
+        d("m", "06:30", "08:00", "🏋️ Gym after the Quran: 1 h 30 of training", "🏋️ الجيم بعد القرآن: ساعة ونص تمرين", { cat: "fitness", on: [6, 1, 3] }),
+        d("m", "08:00", "08:15", "🍳 Breakfast: dates, eggs and water", "🍳 فطار: تمر وبيض ومية", { on: [6, 1, 3] }),
+        d("m", "08:15", "08:30", "🚿 Shower and get dressed", "🚿 دش واِلبس", { on: [6, 1, 3] }),
         // learn, then build it into the business the same morning (learning by building)
-        d("w", "07:00", "08:00", "🧠 Learn one thing the business needs this week (AI agents, marketing, product)", "🧠 اتعلم حاجة البيزنس محتاجها الأسبوع ده (AI agents، تسويق، منتج)", { pomo: 1, est: 48, on: [6, 1, 2, 3, 4, 5] }),
-        d("w", "08:00", "08:30", "🤖 Apply it to the business: one step of an AI agent (GoBachaloria first)", "🤖 طبّقه على البيزنس: خطوة في AI agent (GoBachaloria الأول)", { cat: "product", pomo: 1, on: [6, 1, 2, 3, 4, 5] }),
-        d("w", "09:30", "09:45", "👔 Get ready, pack the gym bag", "👔 اجهز وحضّر شنطة الجيم", { on: [6, 1, 2, 3, 4, 5] }),
+        d("w", "07:00", "08:00", "🧠 Learn one thing the business needs this week (AI agents, marketing, product)", "🧠 اتعلم حاجة البيزنس محتاجها الأسبوع ده (AI agents، تسويق، منتج)", { pomo: 1, est: 48, on: [2, 4, 5] }),
+        d("w", "08:00", "08:30", "🤖 Apply it to the business: one step of an AI agent (GoBachaloria first)", "🤖 طبّقه على البيزنس: خطوة في AI agent (GoBachaloria الأول)", { cat: "product", pomo: 1, on: [2, 4, 5] }),
+        d("w", "08:30", "09:30", "🧠 Learn one thing the business needs this week (AI agents, marketing, product)", "🧠 اتعلم حاجة البيزنس محتاجها الأسبوع ده (AI agents، تسويق، منتج)", { pomo: 1, est: 48, on: [6, 1, 3] }),
+        d("w", "09:30", "09:45", "👔 Get ready for the office", "👔 اجهز للمكتب", { on: [6, 1, 2, 3, 4, 5] }),
         d("w", "09:45", "10:00", "🚗 To the office (15 min)", "🚗 للمكتب (15 دقيقة)", { on: [6, 1, 2, 3, 4, 5] }),
-        // evening: gym Sun, Tue, Thu + sport Fri, 1 h 30 each and a 15-min buffer after it (shower, way
-        // home); Sat, Mon, Wed off. Every night a 15-min wind-down buffer, lights off at 10:30 PM (7 h sleep).
-        d("f", "19:30", "21:00", "🏋️ Gym after Isha: 1 h 30 of training", "🏋️ الجيم بعد العشا: ساعة ونص تمرين", { on: [0, 2, 4] }),
-        d("f", "19:30", "21:00", "⚽ Sport: football, padel or swimming (1 h 30)", "⚽ رياضة: كورة أو بادل أو سباحة (ساعة ونص)", { on: [5] }),
-        d("f", "21:00", "21:15", "🛟 Sport buffer: shower, the way home", "🛟 احتياطي الرياضة: دش والمشوار للبيت", { cat: "bufSport", on: [0, 2, 4, 5] }),
-        d("f", "21:15", "22:15", "👨‍👩‍👧 With the family: dinner together, phone away", "👨‍👩‍👧 مع العيلة: عشا مع بعض، والموبايل بعيد", { on: [0, 5] }),
-        d("f", "21:15", "22:15", "🎮 Me: anything I enjoy", "🎮 أنا: أي حاجة بحبها", { on: [2] }),
-        d("f", "21:15", "22:15", "🤝 With friends", "🤝 مع الصحاب", { on: [4] }),
-        d("f", "19:30", "19:45", "🏠 Home (15 min)", "🏠 البيت (15 دقيقة)", { on: [6, 1, 3] }),
-        d("f", "19:45", "22:15", "💑 With my wife: dinner and time together, phone away", "💑 مع مراتي: عشا ووقت مع بعض، والموبايل بعيد", { on: [6, 1, 3] }),
-        d("w", "18:45", "19:00", "📋 Plan tomorrow: open Tomorrow in the Today tab, move or add what you need", "📋 خطّط لبكرة: افتح بكرة في تاب النهارده، وحرّك أو ضيف اللي محتاجه", { cat: "plan" }),
-        d("f", "22:15", "22:30", "🛟 Sleep buffer: wind down, wudu, sleep azkar, lights off at 10:30 PM", "🛟 احتياطي النوم: تهدية ووضوء وأذكار النوم والنور يتقفل 10:30", { cat: "bufSleep" })
+        d("w", "18:30", "18:45", "📋 Plan tomorrow: open Tomorrow in the Today tab, move or add what you need", "📋 خطّط لبكرة: افتح بكرة في تاب النهارده، وحرّك أو ضيف اللي محتاجه", { cat: "plan", on: [6, 1, 2, 3, 4, 5] }),
+        // after Isha: never work. Evenings with people: wife 3 (Sat, Mon, Wed), me (Tue), friends (Thu), family (Fri and
+        // the day off). The night before the day off ("eve") is the late one; every other night lights off at 10:30 PM.
+        d("f", "19:30", "19:45", "🏠 Home (15 min)", "🏠 البيت (15 دقيقة)", { on: [6, 1, 2, 3, 4, 5] }),
+        d("f", "19:45", "22:15", "💑 With my wife: dinner and time together, phone away", "💑 مع مراتي: عشا ووقت مع بعض، والموبايل بعيد", { on: [6, 1, 3], noeve: 1 }),
+        d("f", "19:45", "22:15", "🎮 Me: anything I enjoy", "🎮 أنا: أي حاجة بحبها", { on: [2], noeve: 1 }),
+        d("f", "19:45", "22:15", "🤝 With friends", "🤝 مع الصحاب", { on: [4], noeve: 1 }),
+        d("f", "19:45", "22:15", "👨‍👩‍👧 With the family: dinner together, phone away", "👨‍👩‍👧 مع العيلة: عشا مع بعض، والموبايل بعيد", { on: [5], noeve: 1 }),
+        d("f", "19:45", "23:30", "💑 Late night with my wife: out or at home, tomorrow is off", "💑 سهرة مع مراتي: خروجة أو في البيت، وبكرة إجازة", { eve: 1 }),
+        d("f", "19:30", "19:45", "🛟 Sport buffer: shower, the way home", "🛟 احتياطي الرياضة: دش والمشوار للبيت", { cat: "bufSport", on: [0] }),
+        d("f", "19:45", "21:00", "🎮 Me: anything I enjoy", "🎮 أنا: أي حاجة بحبها", { on: [0] }),
+        d("f", "21:00", "22:15", "👨‍👩‍👧 With the family: dinner together, phone away", "👨‍👩‍👧 مع العيلة: عشا مع بعض، والموبايل بعيد", { on: [0] }),
+        d("f", "22:15", "22:30", "🛟 Sleep buffer: wind down, wudu, sleep azkar, lights off at 10:30 PM (work tomorrow)", "🛟 احتياطي النوم: تهدية ووضوء وأذكار النوم والنور يتقفل 10:30 (بكرة شغل)", { cat: "bufSleep", noeve: 1 }),
+        d("f", "23:30", "23:45", "🛟 Sleep buffer: wudu, sleep azkar, lights off at 11:45 PM", "🛟 احتياطي النوم: وضوء وأذكار النوم والنور يتقفل 11:45", { cat: "bufSleep", eve: 1 })
       ],
       days: {
         6: day("plan", [
@@ -121,14 +129,19 @@
           i("This week's problems: which one becomes a system or an AI agent (not a one-off fix)", "مشاكل الأسبوع: أنهي واحدة تتحول لسيستم أو AI agent (مش حل مرة واحدة)", 20)
         ], "🧭 Plan the week: the tasks", "🧭 خطة الأسبوع: المهام", [
           i("Tasks in order: GoBachaloria 5, Techmakerz 3, Ashrhly 2, into the desk, sent to the team", "المهام بالترتيب: GoBachaloria 5، Techmakerz 3، Ashrhly 2، في الـdesk ومتبعتة للفريق", 35)
-        ]),
+        ], null, true),
         // the free day, shared like the evenings: wife 3 · family 2 · friends 1 · me 1
         0: [
-          d("w", "07:00", "08:30", "🎮 Me: a walk, a book, quiet time", "🎮 أنا: مشية، كتاب، وقت هادي"),
-          d("w", "08:45", "12:15", "💑 With my wife: a morning out together", "💑 مع مراتي: خروجة الصبح مع بعض"),
-          d("w", "12:45", "15:15", "👨‍👩‍👧 With the family: lunch and a visit", "👨‍👩‍👧 مع العيلة: غدا وزيارة"),
-          d("w", "15:45", "17:30", "🤝 With friends", "🤝 مع الصحاب"),
-          d("w", "18:00", "18:45", "💑 With my wife: time together", "💑 مع مراتي: وقت مع بعض")
+          // the day off has no work at all: its rows are morning ("m") or free time ("f"), never work.
+          // After the late night: back to sleep after Fajr; the sport is after Maghrib, never in the morning.
+          d("m", "06:00", "08:30", "😴 Back to sleep after Fajr", "😴 نوم تاني بعد الفجر", { cat: "sleep" }),
+          d("m", "08:30", "08:45", "📿 Morning azkar", "📿 أذكار الصباح"),
+          d("m", "08:45", "09:00", "📖 Quran and khulwa: quiet time alone, phone away", "📖 قرآن وخلوة: وقت لوحدك والموبايل بعيد"),
+          d("m", "09:00", "09:30", "🍳 Breakfast, then shower and get dressed", "🍳 فطار وبعدين دش واِلبس"),
+          d("f", "09:30", "12:15", "💑 With my wife: a morning out together", "💑 مع مراتي: خروجة الصبح مع بعض"),
+          d("f", "12:45", "15:15", "👨‍👩‍👧 With the family: lunch and a visit", "👨‍👩‍👧 مع العيلة: غدا وزيارة"),
+          d("f", "15:45", "17:30", "🤝 With friends", "🤝 مع الصحاب"),
+          d("f", "18:00", "19:00", "⚽ Sport after Maghrib: padel, football or swimming, until Isha", "⚽ رياضة بعد المغرب: بادل أو كورة أو سباحة، لحد العشا", { cat: "fitness" })
         ],
         1: day("content", [
           i("6 video scripts with Claude: 3 English, 3 Arabic", "6 سكريبتات فيديو مع Claude: 3 إنجليزي و3 عربي", 35)
@@ -138,7 +151,7 @@
         ], "🎥 Shoot: Arabic", "🎥 تصوير: عربي", [
           i("Shoot 3 Arabic videos, or make them with AI", "صوّر 3 فيديوهات عربي، أو اعملهم بالذكاء الاصطناعي", 25),
           i("Upload the raw videos to one folder", "ارفع الفيديوهات الخام في فولدر واحد", 5, false)
-        ]),
+        ], null, true),
         2: day("content", [
           i("13 product posts with AI: GoBachaloria 6, Techmakerz 4, Ashrhly 3", "13 بوست للمنتجات بالذكاء الاصطناعي: GoBachaloria 6، Techmakerz 4، Ashrhly 3", 35)
         ], "🎬 Montage: the English videos", "🎬 مونتاج: الفيديوهات الإنجليزي", [
@@ -150,13 +163,13 @@
         ]),
         3: [
           d("w", "08:00", "08:15", "✉️ Emails go out on their own (UAE 8 AM, Egypt schools 10 AM)", "✉️ الإيميلات بتتبعت لوحدها (الإمارات 8 الصبح، مدارس مصر 10 الصبح)", { cat: "content" }),
-          early("content", [i("Today's call list and DMs, written with Claude", "ليستة مكالمات النهارده والرسايل، مكتوبة مع Claude", 35)]),
           office()[0], food(), office()[1], job(),
           d("w", "15:45", "17:30", "🇦🇪 Distribute: UAE (offices still open)", "🇦🇪 التوزيع: الإمارات (المكاتب لسه فاتحة)", { cat: "content", pomo: 1, items: [
+            i("Today's call list and DMs, written with Claude", "ليستة مكالمات النهارده والرسايل، مكتوبة مع Claude", 35),
             i("Cold calls to UAE businesses, about 5", "مكالمات لشركات في الإمارات، حوالي 5", 25, false),
             i("Send the DMs", "ابعت الرسايل", 10, false)
           ] }),
-          d("w", "18:00", "18:45", "🇪🇬 Distribute: Egypt (4 PM Cairo, after school) + clients", "🇪🇬 التوزيع: مصر (4 العصر بتوقيت القاهرة، بعد المدرسة) + العملاء", { cat: "content", pomo: 1, items: [
+          d("w", "18:00", "18:30", "🇪🇬 Distribute: Egypt (4 PM Cairo, after school) + clients", "🇪🇬 التوزيع: مصر (4 العصر بتوقيت القاهرة، بعد المدرسة) + العملاء", { cat: "content", pomo: 1, items: [
             i("Replies to paying students + DMs to who tried and did not pay", "ردود للطلبة الدافعين + رسايل للي جرّبوا وما دفعوش", 30),
             i("Reply to current clients", "رد على العملاء الحاليين", 8, false),
             comments()
@@ -180,7 +193,7 @@
             i("What stops clients from paying", "اللي بيمنع العميل يدفع", 30),
             i("One new feature, tested on the live site", "ميزة جديدة واحدة، ومتجربة على الموقع الحقيقي", 30)
           ] }),
-          d("w", "18:00", "18:45", "🤖 One problem → one AI agent", "🤖 مشكلة واحدة ← AI agent واحد", { cat: "product", pomo: 1, items: [
+          d("w", "18:00", "18:30", "🤖 One problem → one AI agent", "🤖 مشكلة واحدة ← AI agent واحد", { cat: "product", pomo: 1, items: [
             i("Pick the problem from Saturday's list (GoBachaloria first)", "اختار المشكلة من ليستة السبت (GoBachaloria الأول)", 8, false),
             i("Build the agent with Claude", "ابني الـagent مع Claude", 30),
             i("Test it, switch it on, write how it works", "جرّبه وشغّله واكتب بيشتغل إزاي", 10)
@@ -191,7 +204,7 @@
 
   var SEC = {
     m: { en: "🌅 Morning routine", ar: "🌅 روتين الصبح" },
-    w: { en: "💼 Work · 7 AM – 7 PM", ar: "💼 الشغل · 7 الصبح – 7 بالليل" },
+    w: { en: "💼 Work", ar: "💼 الشغل" },
     f: { en: "🏡 Free time · me and family", ar: "🏡 الوقت الحر · أنا والعيلة" }
   };
 
@@ -292,7 +305,7 @@
     agents:  { c: "#B48EE8", ico: "🤖", en: "Good AI Agents", ar: "Good AI Agents" },
     plan:    { c: "#8FA3C2", ico: "📋", en: "Planning", ar: "التخطيط" },
     biz:     { c: "#5E86C1", ico: "💼", en: "Open business time", ar: "وقت بيزنس مفتوح" },
-    rest:    { c: "#7CC6A4", ico: "🌿", en: "Sunday free hours", ar: "ساعات الأحد الحرة" },
+    rest:    { c: "#7CC6A4", ico: "🌿", en: "Free hours", ar: "ساعات حرة" },
     buffer:  { c: "#C4C9D6", ico: "🛟", en: "Buffer time", ar: "وقت احتياطي" },
     bufSport: { c: "#C9E3A8", ico: "🛟", en: "Buffer: sport (shower, way home)", ar: "احتياطي: الرياضة (دش ومشوار)" },
     bufSleep: { c: "#AEB8D6", ico: "🛟", en: "Buffer: sleep (wind down)", ar: "احتياطي: النوم (تهدية)" },
@@ -351,10 +364,13 @@
     return "product";
   }
   // the time stub: start big with AM/PM small, the end under it, and how long
-  function stub(from, to, cat, extraCls) {
-    var a = ap(from).split(" "), cc = CAT[cat];
-    return '<b dir="ltr" class="cat-stub' + (extraCls || "") + '" style="--cat:' + cc.c + '" data-ico="' + cc.ico + '" title="' + esc(T(cc.en, cc.ar)) + '">' +
-      '<span class="cat-stub__ico">' + cc.ico + "</span>" +
+  // a block's own picture: the emoji its title starts with (⏰ Wake up, 📿 azkar, 🏋️ Gym …); none → the category's
+  var LEAD_ICO = null; try { LEAD_ICO = new RegExp("^\\s*((?:\\p{Extended_Pictographic}|\\p{Regional_Indicator})(?:\\uFE0F|\\u200D\\p{Extended_Pictographic}|[\\u{1F3FB}-\\u{1F3FF}]|\\p{Regional_Indicator})*)", "u"); } catch (e) {}
+  function ownIco(x) { var m = LEAD_ICO && LEAD_ICO.exec(String((x && (x.text || T(x.en, x.ar))) || "")); return m ? m[1] : ""; }
+  function stub(from, to, cat, extraCls, ico) {
+    var a = ap(from).split(" "), cc = CAT[cat]; ico = ico || cc.ico;
+    return '<b dir="ltr" class="cat-stub' + (extraCls || "") + '" style="--cat:' + cc.c + '" data-ico="' + ico + '" title="' + esc(T(cc.en, cc.ar)) + '">' +
+      '<span class="cat-stub__ico">' + ico + "</span>" +
       "<strong>" + esc(a[0]) + "<sup>" + esc(a[1]) + "</sup></strong>" +
       (to ? "<small>" + esc(T("to ", "لحد ")) + esc(ap(to)) + "</small><em>⏱ " + esc(howLong(from, to)) + "</em>" : "") + "</b>";
   }
@@ -402,7 +418,7 @@
   }
   function dayEvents(off) {
     var dow = (todayDow + off) % 7, d = new Date(Date.now() + off * 864e5), key = iso(d);
-    var o = W.dates && W.dates[key], rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
+    var o = W.dates && W.dates[key], rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return onDay(x, dow); }).concat(W.days[tpl(dow)] || []);
     var done = (o && o.done) || {}, ev = [];
     rows.forEach(function (x) {
       if (!x.from || !x.to) return;
@@ -416,7 +432,10 @@
   }
   // the new plan starts on Thursday 26 Nov 2026 (owner, 2026-11-24): nothing from it goes to Google
   // Calendar or into the Today tab for an earlier day
-  var PLAN_START = "2026-11-26";
+  // owner, 2026-11-27: the plan starts on Monday 30 Nov. Before it a day has no plan; as the one exception the
+  // "Tomorrow" button opens that first day, so it can be planned ahead as if it were tomorrow.
+  var PLAN_START = "2026-11-30";
+  function planOff() { var n = Math.round((new Date(PLAN_START + "T12:00:00") - new Date(iso(new Date()) + "T12:00:00")) / 864e5); return n > 1 ? n : 1; }
   function gcSync() {
     if (LOCAL || !GC.connected || !W) return;
     clearTimeout(gcTimer);
@@ -578,6 +597,10 @@
     if (w === "fri") return 5; if (w === "sun") return 0;
     return (place().cc || "AE") === "EG" ? 5 : 0;
   }
+  // the night before the day off is the late one (owner, 2026-11-27): it follows the weekend switch
+  function isEve(d) { return (d + 1) % 7 === offDay(); }
+  // is this shared row on that day: its template days, and "eve" rows only on that night ("noeve" never on it)
+  function onDay(x, d) { return (!x.on || x.on.indexOf(tpl(d)) > -1) && (!x.eve || isEve(d)) && (!x.noeve || !isEve(d)); }
   function tpl(d) { if (offDay() === 5) { if (d === 5) return 0; if (d === 0) return 5; } return d; }
   /* Two views of one card (owner, 2026-11-24: "today is the day I am in from this week, but I can
      add, remove, rearrange, change times"). In the Today tab ("today"), the card shows today from
@@ -592,8 +615,8 @@
     if (!W.dates) W.dates = {};
     var k = todayKey();
     if (!W.dates[k]) {
-      var copy = function (x) { var o = JSON.parse(JSON.stringify(x)); delete o.on; return o; };
-      W.dates[k] = { myday: W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(viewDow())) > -1; }).map(copy),
+      var copy = function (x) { var o = JSON.parse(JSON.stringify(x)); delete o.on; delete o.eve; delete o.noeve; return o; };
+      W.dates[k] = { myday: W.myday.filter(function (x) { return onDay(x, viewDow()); }).map(copy),
         work: (W.days[tpl(viewDow())] || []).map(copy), done: {} };
       // keep two weeks of days
       var cut = iso(new Date(Date.now() - 120 * 864e5)); Object.keys(W.dates).forEach(function (d) { if (d < cut) delete W.dates[d]; });
@@ -629,9 +652,9 @@
     }
     if (!Array.isArray(W.myday)) { W.myday = seed().myday; moved = true; }
     if (W.pendDone) { // today's prayer ticks carried into the new week
-      var pk = iso(new Date()), pw = tpl(new Date().getDay()), cp = function (x) { var o = JSON.parse(JSON.stringify(x)); delete o.on; return o; };
+      var pk = iso(new Date()), pw = tpl(new Date().getDay()), cp = function (x) { var o = JSON.parse(JSON.stringify(x)); delete o.on; delete o.eve; delete o.noeve; return o; };
       W.dates = W.dates || {};
-      W.dates[pk] = { myday: W.myday.filter(function (x) { return !x.on || x.on.indexOf(pw) > -1; }).map(cp), work: (W.days[pw] || []).map(cp), done: W.pendDone };
+      W.dates[pk] = { myday: W.myday.filter(function (x) { return onDay(x, new Date().getDay()); }).map(cp), work: (W.days[pw] || []).map(cp), done: W.pendDone };
       delete W.pendDone; moved = true;
     }
   }
@@ -711,7 +734,7 @@
     var dn = mode === "today" && isDone(x.id);
     return '<li class="week-row has-cat' + (live ? " is-now" : "") + (past ? " is-past" : "") + (dn ? " is-done" : "") + '" data-id="' + x.id + '" style="--cat:' + CAT[cat].c + '">' +
       '<button type="button" class="week-row__grip" data-drag aria-label="' + esc(T("Drag to move", "اسحب عشان تنقل")) + '" title="' + esc(T("Drag to move", "اسحب عشان تنقل")) + '">⠿</button>' +
-      (x.from ? stub(x.from, x.to, cat) : '<b dir="ltr" class="cat-stub" style="--cat:' + CAT[cat].c + '" data-ico="' + CAT[cat].ico + '"><span class="cat-stub__ico">' + CAT[cat].ico + "</span><strong>--:--</strong></b>") +
+      (x.from ? stub(x.from, x.to, cat, "", ownIco(x)) : '<b dir="ltr" class="cat-stub" style="--cat:' + CAT[cat].c + '" data-ico="' + CAT[cat].ico + '"><span class="cat-stub__ico">' + CAT[cat].ico + "</span><strong>--:--</strong></b>") +
       '<span><b class="day-title">' + esc(x.text || T(x.en, x.ar)) + "</b>" + extra + body + "</span>" +
       (live ? '<i class="badge">' + esc(T("now", "دلوقتي")) + "</i>" : "") +
       '<span class="week-row__acts">' + (mode === "today" && viewOff <= 0 ? '<button type="button" class="iconbtn day-tick' + (dn ? " is-on" : "") + '" data-done="' + x.id + '" aria-pressed="' + dn + '" title="' + esc(T("Done", "خلصت")) + '">' + (dn ? "✓" : "○") + "</button>" : "") + '<button type="button" class="iconbtn" data-edit aria-label="' + esc(T("Edit", "عدّل")) + '" title="' + esc(T("Edit", "عدّل")) + '">✎</button>' +
@@ -749,7 +772,7 @@
   function rowsOf(dow) {
     var o = mode === "today" && dow === viewDow() ? curOv() : null;
     if (o) return o.myday.concat(o.work);
-    return W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
+    return W.myday.filter(function (x) { return onDay(x, dow); }).concat(W.days[tpl(dow)] || []);
   }
   // minutes per category over the 24 hours of a day: the rows, prayers and meetings on top, sleep around them
   function dayMinutes(dow) {
@@ -770,8 +793,8 @@
     var bed = ends.length ? Math.max.apply(null, ends) : 1350;
     var wake = Math.min(prayers(dow)[0].from, rows.reduce(function (n, x) { return x.from ? Math.min(n, mins(x.from)) : n; }, 1440));
     fill(0, wake, "sleep", false); fill(bed, 1440, "sleep", false);
-    var gapCat = tpl(dow) === 0 ? "rest" : dayFocus(dow);
-    for (var m = 0; m < 1440; m++) { var c = map[m] || gapCat; out[c] = (out[c] || 0) + 1; }
+    var gapCat = tpl(dow) === 0 ? "rest" : dayFocus(dow), wEnd = workEnd(dow);
+    for (var m = 0; m < 1440; m++) { var c = map[m] || (m < 420 || m >= wEnd ? "rest" : gapCat); out[c] = (out[c] || 0) + 1; }
     return out;
   }
   /* "where the time goes": one panel that can be hidden, with a Day / Week switch.
@@ -816,7 +839,7 @@
   function hm2(n) { n = Math.round(n); var h = Math.floor(Math.abs(n) / 60), m = Math.abs(n) % 60; return (n < 0 ? "−" : "") + (h ? h + T("h", "س") : "") + (h && m ? " " : "") + (m || !h ? m + T("m", "د") : ""); }
   function planOf(key) {
     var d = new Date(key + "T12:00:00"), dow = d.getDay(), o = W.dates && W.dates[key];
-    var rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
+    var rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return onDay(x, dow); }).concat(W.days[tpl(dow)] || []);
     var items = [];
     rows.forEach(function (x) { if (x.from && x.to && mins(x.to) > mins(x.from)) items.push({ id: x.id, cat: catOf(x), a: mins(x.from), b: mins(x.to) }); });
     prayers(dow).forEach(function (p) { items.push({ id: "pray:" + p.k, cat: "deen", a: p.from, b: p.to }); });
@@ -883,6 +906,10 @@
         : '<p class="muted">' + esc(T("Nothing to compare yet: the plan starts on 26 Nov.", "مفيش حاجة تتقارن لسه: الخطة بدأت 26 نوفمبر.")) + "</p>") + "</details>";
   }
   // clashes: a block of the day under a meeting or lesson (with its prep), or two meetings at once
+  // work stops when the Isha block starts (7 PM in a Dubai winter, later in summer)
+  // what counts as work for the three parts of the day: it never sits in Morning routine or Free time
+  var WORK_PART = /^(office|job|client|udacity|product|system|content|agents|biz|plan|learn)$/;
+  function workEnd(dow) { var p = prayers(dow)[4]; return p ? p.from : 1140; }
   function clashes(dow) {
     var M = meetings(dow).filter(function (p) { return p.kind === "meet"; }), out = [];
     rowsOf(dow).forEach(function (x) {
@@ -892,14 +919,16 @@
     });
     // the day's rules (owner, 2026-11-26): the morning routine ends before work at 7 AM; work is 7 AM – 7 PM; no work after 7 PM
     var WORKC = /^(office|job|client|udacity|product|system|content|agents|biz|plan)$/, rules = [];
-    var mIds = {}; mdRows().forEach(function (x) { if (x.sec === "m") mIds[x.id] = 1; });
+    // owner, 2026-11-27: work is 7 AM until Isha, and never after it; a morning with the gym in it runs to 8:30
+    var mIds = {}, mEnd = 420, wEnd = workEnd(dow); mdRows().forEach(function (x) { if (x.sec === "m") mIds[x.id] = 1; });
+    rowsOf(dow).forEach(function (x) { if (mIds[x.id] && catOf(x) === "fitness") mEnd = 510; });
     rowsOf(dow).forEach(function (x) {
       if (!x.from || !x.to) return;
       var a = mins(x.from), b = mins(x.to);
-      if (mIds[x.id] && b > 420) rules.push({ x: x, a: a, b: b, at: 420, why: T("Morning routine runs past 7 AM, when work starts", "روتين الصبح داخل في وقت الشغل (بعد 7 الصبح)") });
-      else if (WORKC.test(catOf(x)) && b > 1140) rules.push({ x: x, a: a, b: b, at: 1140, why: T("Work after 7 PM", "شغل بعد 7 بالليل") });
+      if (mIds[x.id] && b > mEnd) rules.push({ x: x, a: a, b: b, at: mEnd, why: T("Morning routine runs past " + ap(mEnd) + ", when work starts", "روتين الصبح داخل في وقت الشغل (بعد " + ap(mEnd) + ")") });
+      else if (WORKC.test(catOf(x)) && b > wEnd) rules.push({ x: x, a: a, b: b, at: wEnd, why: T("Work after Isha", "شغل بعد العشا") });
     });
-    M.forEach(function (p) { if (p.to > 1140 && WORKC.test(catOf(p))) rules.push({ p: p, a: p.from, b: p.to, why: T("A meeting after 7 PM", "ميعاد بعد 7 بالليل") }); });
+    M.forEach(function (p) { if (p.to > wEnd && WORKC.test(catOf(p))) rules.push({ p: p, a: p.from, b: p.to, why: T("A meeting after Isha", "ميعاد بعد العشا") }); });
     var two = [];
     M.forEach(function (p, i) { M.slice(i + 1).forEach(function (r) { if (p.from < r.to && r.from < p.to) two.push([p, r]); }); });
     return { rows: out, two: two, rules: rules };
@@ -1030,8 +1059,8 @@
   }
   // the day line says what kind of evening it is: gym, sport or off
   function gymNote() {
-    var f = mdRows().filter(function (x) { return (!x.on || x.on.indexOf(tpl(sel)) > -1) && catOf(x) === "fitness"; })[0];
-    var days = function (re) { return ORDER.filter(function (n) { return W.myday.some(function (x) { return x.on && x.on.indexOf(tpl(n)) > -1 && catOf(x) === "fitness" && re.test(x.en || ""); }); }).map(function (n) { return T(DAY[n].en, DAY[n].ar); }).join(" · "); };
+    var f = mdRows().filter(function (x) { return onDay(x, sel) && catOf(x) === "fitness"; })[0] || (W.days[tpl(sel)] || []).filter(function (x) { return catOf(x) === "fitness"; })[0];
+    var days = function (re) { return ORDER.filter(function (n) { return W.myday.filter(function (x) { return x.on && onDay(x, n); }).concat(W.days[tpl(n)] || []).some(function (x) { return catOf(x) === "fitness" && re.test(x.en || ""); }); }).map(function (n) { return T(DAY[n].en, DAY[n].ar); }).join(" · "); };
     if (f) return "<b>" + esc((/sport/i.test(f.en) ? "⚽ " + T("Sport day: ", "يوم رياضة: ") : "🏋️ " + T("Gym day: ", "يوم جيم: ")) + ap(f.from) + " · " + howLong(f.from, f.to)) + "</b>";
     return esc("🛋️ " + T("Rest from sport today (gym: " + days(/gym/i) + " · sport: " + days(/sport/i) + ")", "راحة من الرياضة النهارده (جيم: " + days(/gym/i) + " · رياضة: " + days(/sport/i) + ")"));
   }
@@ -1052,27 +1081,72 @@
         '<button type="button" class="btn btn--ghost btn--sm" onclick="location.reload()">⟳ ' + esc(T("Reload", "اعمل ريفريش")) + "</button></div></div>";
     }
   }
+  /* Today tab (owner, 2026-11-27): the same day squares as My week, for the week of the day on screen
+     (Sat → Fri), each with its date; today's has a "Today" arrow above it. A square, the calendar and
+     the ← → arrows all set the same thing (viewOff, days from today), so they never disagree. */
+  var OFF_MIN = -120, OFF_MAX = 60;
+  function noon(d) { var x = new Date(d); x.setHours(12, 0, 0, 0); return x; }
+  function offOf(d) { return Math.round((noon(d) - noon(new Date())) / 864e5); }
+  function dayTiles(vd) {
+    var start = noon(vd); start.setDate(start.getDate() - ((start.getDay() + 1) % 7));
+    var mon = function (d) { return d.toLocaleString(I18N_AR() ? "ar-EG" : "en", { month: "short" }); };
+    return '<div class="week-days week-days--today" role="tablist" aria-label="' + esc(T("The days of this week", "أيام الأسبوع ده")) + '">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
+      var d = new Date(start); d.setDate(start.getDate() + i);
+      var n = d.getDay(), off = offOf(d), x = DAY[tpl(n)], on = off === viewOff, out = off < OFF_MIN || off > OFF_MAX;
+      return '<button type="button" role="tab" class="week-day' + (on ? " is-on" : "") + (off === 0 ? " is-today" : "") + (iso(d) < PLAN_START ? " is-noplan" : "") + '" data-daygo="' + off + '" aria-selected="' + on + '"' + (out ? " disabled" : "") + ">" +
+        (off === 0 ? '<span class="week-day__now">' + esc(T("Today", "النهارده")) + ' <i aria-hidden="true">▼</i></span>' : "") +
+        "<small>" + esc(T(DAY[n].en, DAY[n].ar)) + "</small><strong>" + d.getDate() + " <span>" + esc(mon(d)) + "</span></strong>" +
+        (iso(d) < PLAN_START ? "<em>💤</em><b>" + esc(T("No plans", "مفيش خطة")) + "</b>" : "<em>" + x.ico + "</em><b>" + esc(T(x.fen, x.far)) + "</b>") + "</button>";
+    }).join("") + "</div>";
+  }
+  // the calendar: a month at a time, weeks from Saturday; a dot on days that were changed or ticked
+  var CALP = { open: false, ym: "" };
+  function calPop(vd) {
+    var ym = CALP.ym || iso(vd).slice(0, 7), y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1;
+    var first = new Date(y, m, 1, 12), lead = (first.getDay() + 1) % 7, days = new Date(y, m + 1, 0).getDate(), cells = "";
+    var title = first.toLocaleString(I18N_AR() ? "ar-EG" : "en", { month: "long", year: "numeric" });
+    for (var i = 0; i < lead; i++) cells += "<span></span>";
+    for (var dd = 1; dd <= days; dd++) {
+      var d = new Date(y, m, dd, 12), off = offOf(d), k = iso(d), out = off < OFF_MIN || off > OFF_MAX;
+      cells += '<button type="button" class="dpk-day' + (off === 0 ? " is-today" : "") + (off === viewOff ? " is-on" : "") + (tpl(d.getDay()) === 0 ? " dpk-off" : "") + (W.dates && W.dates[k] ? " has-own" : "") +
+        '" data-daygo="' + off + '"' + (out ? " disabled" : "") + ' aria-label="' + esc(T(DAY[d.getDay()].en, DAY[d.getDay()].ar) + " " + dd + " " + title) + '">' + dd + "</button>";
+    }
+    return '<div class="dpk-pop" role="dialog" aria-label="' + esc(T("Pick a day", "اختار يوم")) + '">' +
+      '<div class="dpk-pop__head"><button type="button" class="iconbtn" data-cal-nav="-1" aria-label="' + esc(T("Previous month", "الشهر اللي قبله")) + '">' + (I18N_AR() ? "›" : "‹") + "</button><b>" + esc(title) + '</b>' +
+      '<button type="button" class="iconbtn" data-cal-nav="1" aria-label="' + esc(T("Next month", "الشهر اللي بعده")) + '">' + (I18N_AR() ? "‹" : "›") + "</button></div>" +
+      '<div class="dpk-pop__grid dpk-pop__dow">' + ORDER.map(function (n) { return "<i>" + esc(T(DAY[n].en, DAY[n].ar).slice(0, I18N_AR() ? 6 : 2)) + "</i>"; }).join("") + "</div>" +
+      '<div class="dpk-pop__grid">' + cells + "</div>" +
+      '<div class="dpk-pop__foot"><button type="button" class="btn btn--ghost btn--sm" data-daygo="0">☀️ ' + esc(T("Today", "النهارده")) + '</button><span class="muted"><i class="dpk-dot"></i> ' + esc(T("changed or ticked", "متعدّل أو متعلّم عليه")) + "</span></div></div>";
+  }
   function renderDay() {
     if (mode === "today") { sel = viewDow(); var vk = todayKey(); if (GEVR && (vk < GEVR.from || vk > GEVR.to)) gcEvents(); }
     var got = timesNow(iso(dateOf(sel))), d = { en: DAY[sel].en, ar: DAY[sel].ar, len: DAY[tpl(sel)].len, lar: DAY[tpl(sel)].lar }, PR = prayers(sel), P = PR.concat(meetings(sel)), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), hm = hhmm(nowM);
     var fri = sel === 5, isToday = sel === todayDow;
-    var secOf = function (m) { return m < 420 ? "m" : m < 1140 ? "w" : "f"; };
+    var wEndM = workEnd(sel), secOf = function (m) { return m < 420 ? "m" : m < wEndM ? "w" : "f"; };
     var groups = { m: [], w: [], f: [] };
     var free = tpl(sel) === 0;
-    var shown = function (x) { return !x.on || x.on.indexOf(tpl(sel)) > -1; };
-    var lateWork = [];
-    mdRows().filter(shown).forEach(function (x) { if (x.sec === "w") lateWork.push(x); else (groups[x.sec] || groups.f).push({ x: x }); });
-    // a work row before the office opens (Wednesday's 8 AM emails) sits in the morning, in time order
+    var shown = function (x) { return onDay(x, sel); };
+    /* The three parts (owner, 2026-11-27): Morning routine and Free time never hold work. A block whose
+       category is work (part-time, business, planning, job hunt, clients, learning) is always in Work,
+       whatever part it was added to; the day off has no Work rows at all. */
+    var isWorkRow = function (x) { return WORK_PART.test(catOf(x)); };
+    var put = function (k, x) { groups[k].push({ x: x }); };
+    mdRows().filter(shown).forEach(function (x) { put(isWorkRow(x) || x.sec === "w" ? "w" : x.sec === "m" ? "m" : "f", x); });
     work().forEach(function (x) {
-      if (x.from && mins(x.from) < 420) { var g = groups.m, k = 0; while (k < g.length && mins(g[k].x.from) <= mins(x.from)) k++; g.splice(k, 0, { x: x }); }
-      else groups.w.push({ x: x });
+      if (isWorkRow(x)) put("w", x);
+      else if (x.sec === "m" || x.sec === "f") put(x.sec, x);
+      else if (free) put(x.from && mins(x.from) < 570 ? "m" : "f", x);
+      else put("w", x);
     });
-    // a shared row that sits in the work part (Plan tomorrow) goes in by its time
-    lateWork.forEach(function (x) { var g = groups.w, k = 0; while (k < g.length && mins(g[k].x.from) <= mins(x.from)) k++; g.splice(k, 0, { x: x }); });
-    // each prayer and meeting goes into its part of the day, before the first row that starts after it
+    ["m", "w", "f"].forEach(function (k) { groups[k].sort(function (a, b) { return mins(a.x.from || "00:00") - mins(b.x.from || "00:00"); }); });
+    // where the morning ends: 7 AM, later on a gym morning or the day off
+    var mEndM = groups.m.reduce(function (n, g) { return g.x.to ? Math.max(n, mins(g.x.to)) : n; }, 420);
+    secOf = function (m) { return m < mEndM ? "m" : free ? "f" : m < wEndM ? "w" : "f"; };
+    // each prayer and meeting goes into its part of the day, before the first row that starts after it;
+    // a client meeting or its prep is work, so it is always in the Work part
     P.slice().sort(function (a, b) { return a.from - b.from; }).forEach(function (p) {
-      var g = groups[secOf(p.from)], i = 0;
-      while (i < g.length && (g[i].p || mins(g[i].x.from) <= p.from)) i++;
+      var g = groups[p.kind !== "pray" && isWorkRow(p) ? "w" : secOf(p.from)], i = 0;
+      while (i < g.length && ((g[i].p ? g[i].p.from : mins(g[i].x.from)) <= p.from)) i++;
       g.splice(i, 0, { p: p });
     });
     // the gaps between blocks (15 min or more): open business time, or free hours on Sunday
@@ -1082,10 +1156,11 @@
     }); });
     have.sort(function (a, b) { return a[0] - b[0]; });
     var cur = have.length ? have[0][0] : 0, gaps = [];
-    have.forEach(function (h) { if (h[0] - cur >= 15) gaps.push({ kind: "gap", cat: free ? "rest" : dayFocus(sel), from: cur, to: h[0] }); cur = Math.max(cur, h[1]); });
+    have.forEach(function (h) { if (h[0] - cur >= 15) gaps.push({ kind: "gap", cat: free || secOf(cur) !== "w" ? "rest" : dayFocus(sel), from: cur, to: h[0] }); cur = Math.max(cur, h[1]); });
     gaps.forEach(function (gp) {
-      gp.en = free ? "Free: rest, wife, family, an outing" : "Open time → " + CAT[gp.cat].en + ": the next task from the desk";
-      gp.ar = free ? "حر: راحة ومراتي والعيلة وخروجة" : "وقت مفتوح ← " + CAT[gp.cat].ar + ": المهمة الجاية من الـdesk";
+      var fr = gp.cat === "rest"; // an empty stretch outside work time is free, never business
+      gp.en = fr ? "Free: rest, wife, family, an outing" : "Open time → " + CAT[gp.cat].en + ": the next task from the desk";
+      gp.ar = fr ? "حر: راحة ومراتي والعيلة وخروجة" : "وقت مفتوح ← " + CAT[gp.cat].ar + ": المهمة الجاية من الـdesk";
       var g = groups[secOf(gp.from)], i = 0;
       while (i < g.length && ((g[i].p ? g[i].p.from : mins(g[i].x.from)) <= gp.from)) i++;
       g.splice(i, 0, { p: gp });
@@ -1111,10 +1186,23 @@
       blocks.map(function (b) { return '<i style="--cat:' + CAT[b.cat].c + ";left:" + ((b.from - d0) / span * 100).toFixed(2) + "%;width:" + ((b.to - b.from) / span * 100).toFixed(2) + '%" title="' + esc(ap(b.from) + " – " + ap(b.to) + " · " + b.name) + '"></i>'; }).join("") +
       (isToday && nowM >= d0 && nowM <= d1 ? '<b class="day-strip__now" style="left:' + ((nowM - d0) / span * 100).toFixed(2) + '%"><span>' + esc(ap(nowM)) + "</span></b>" : "") +
       '</div><div class="day-strip__hours">' + hours.map(function (h) { return '<span style="left:' + ((h - d0) / span * 100).toFixed(2) + '%">' + esc(ap(h).replace(":00", "")) + "</span>"; }).join("") + "</div></div>";
+    // one part's summary: its hours per category (business as one), prayers and meetings on top of the blocks
+    var secSum = function (k) {
+      var map = {}, lo = 1440, hi = 0, got = {}, all = 0;
+      var fill = function (a, b, c, over) { lo = Math.min(lo, a); hi = Math.max(hi, b); for (var m = a; m < b; m++) if (over || !map[m]) map[m] = c; };
+      groups[k].forEach(function (g) { if (!g.p && g.x.from && g.x.to) fill(mins(g.x.from), mins(g.x.to), catOf(g.x), false); });
+      groups[k].forEach(function (g) { if (g.p) fill(g.p.from, g.p.to, catOf(g.p), g.p.kind !== "gap"); });
+      for (var m in map) { var c = map[m], grp = GROUPS[0].cats.indexOf(c) > -1 ? "g:biz" : /^buf/.test(c) ? "g:spare" : c; got[grp] = (got[grp] || 0) + 1; all++; }
+      if (!all) return { range: "", html: "" };
+      var lbl = function (c) { var g = c === "g:biz" ? GROUPS[0] : c === "g:spare" ? GROUPS[3] : null, cc = g ? null : CAT[c]; return { c: g ? CAT[g.cats[0]].c : cc.c, t: g ? g.ico + " " + T(g.en, g.ar) : cc.ico + " " + T(cc.en, cc.ar).replace(/ · .*/, "") }; };
+      return { range: " · " + ap(lo) + " – " + ap(hi) + " · " + howLong(0, all),
+        html: '<p class="day-sec__sum">' + Object.keys(got).sort(function (a, b) { return got[b] - got[a]; }).map(function (c) { var l = lbl(c);
+          return '<i class="day-cat" style="--cat:' + l.c + '">' + esc(l.t) + " <b>" + esc(howLong(0, got[c])) + "</b> <small>" + Math.round(got[c] / all * 100) + "%</small></i>"; }).join("") + "</p>" };
+    };
     var sec = function (k, title) {
-      var shut = !!SECSHUT[k], n = groups[k].filter(function (g) { return !g.p; }).length;
-      return '<h3 class="day-sec"><button type="button" class="day-sec__btn" data-sec-fold="' + k + '" aria-expanded="' + !shut + '"><em aria-hidden="true">' + (shut ? "▸" : "▾") + "</em> " + esc(title) +
-        (shut ? ' <small>· ' + n + " " + esc(T("blocks", "بلوك")) + "</small>" : "") + "</button></h3>" +
+      var shut = !!SECSHUT[k], n = groups[k].filter(function (g) { return !g.p; }).length, sm = secSum(k);
+      return '<h3 class="day-sec"><button type="button" class="day-sec__btn" data-sec-fold="' + k + '" aria-expanded="' + !shut + '"><em aria-hidden="true">' + (shut ? "▸" : "▾") + "</em> " + esc(title + sm.range) +
+        (shut ? ' <small>· ' + n + " " + esc(T("blocks", "بلوك")) + "</small>" : "") + "</button></h3>" + sm.html +
         '<div class="day-sec__body"' + (shut ? " hidden" : "") + '><ol class="week-list" data-sec="' + k + '">' + groups[k].map(function (g) { return g.p ? fixedRow(g.p) : row(g.x, P); }).join("") + "</ol>" +
         '<div class="week__foot"><button type="button" class="btn btn--ghost btn--sm" data-add="' + k + '">+ ' + esc(T("Add a time", "ضيف وقت")) + "</button>" +
         (k === "w" ? '<button type="button" class="btn btn--ghost btn--sm" data-meet>🤝 ' + esc(T("Client meeting", "ميعاد عميل")) + "</button>" : "") + "</div></div>";
@@ -1122,12 +1210,15 @@
     var tday = mode === "today", ov = curOv();
     var doneN = ov && ov.done ? Object.keys(ov.done).length : 0;
     var vd = new Date(Date.now() + viewOff * 864e5);
-    var dayName = viewOff === 0 ? "☀️ " + T("Today", "النهارده") : viewOff === 1 ? "🌙 " + T("Tomorrow", "بكرة") : viewOff === -1 ? "⏪ " + T("Yesterday", "امبارح") : (viewOff < 0 ? "📜 " : "📅 ") + T(DAY[sel].en, DAY[sel].ar);
+    var fd0 = new Date(PLAN_START + "T12:00:00"), firstDay = { en: DAY[fd0.getDay()].en, ar: DAY[fd0.getDay()].ar, d: fd0.getDate() + " " + fd0.toLocaleString(I18N_AR() ? "ar-EG" : "en", { month: "short" }) };
+    var dayName = viewOff > 1 && viewOff === planOff() ? "🌙 " + T("First day of the plan", "أول يوم في الخطة") : viewOff === 0 ? "☀️ " + T("Today", "النهارده") : viewOff === 1 ? "🌙 " + T("Tomorrow", "بكرة") : viewOff === -1 ? "⏪ " + T("Yesterday", "امبارح") : (viewOff < 0 ? "📜 " : "📅 ") + T(DAY[sel].en, DAY[sel].ar);
     var headToday = '<div class="card__head week__head"><h2>' + esc(dayName) + ' <small class="muted">' + esc((Math.abs(viewOff) > 1 ? "" : T(DAY[sel].en, DAY[sel].ar) + " ") + vd.getDate() + " " + vd.toLocaleString(I18N_AR() ? "ar-EG" : "en", { month: "short" })) + '</small></h2><span class="muted week__status">' + esc(status) + "</span></div>" +
       '<div class="day-nav2"><button type="button" class="iconbtn" data-dayjump="-1" aria-label="' + esc(T("Previous day", "اليوم اللي قبله")) + '">' + (I18N_AR() ? "→" : "←") + '</button>' +
-      '<input type="date" data-daypick value="' + iso(vd) + '" aria-label="' + esc(T("Open any day", "افتح أي يوم")) + '">' +
+      '<span class="dpk-wrap"><button type="button" class="dpk-btn' + (CALP.open ? " is-on" : "") + '" data-cal-toggle aria-expanded="' + CALP.open + '" aria-label="' + esc(T("Open any day", "افتح أي يوم")) + '">📅 ' +
+        esc(T(DAY[sel].en, DAY[sel].ar) + " " + vd.getDate() + " " + vd.toLocaleString(I18N_AR() ? "ar-EG" : "en", { month: "short" }) + " " + vd.getFullYear()) + ' <i aria-hidden="true">▾</i></button>' + (CALP.open ? calPop(vd) : "") + "</span>" +
       '<button type="button" class="iconbtn" data-dayjump="1" aria-label="' + esc(T("Next day", "اليوم اللي بعده")) + '">' + (I18N_AR() ? "←" : "→") + '</button>' +
-      '<div class="tp__tabs day-view" role="tablist"><button type="button" data-view="0" class="' + (viewOff === 0 ? "is-on" : "") + '" aria-selected="' + (viewOff === 0) + '">☀️ ' + esc(T("Today", "النهارده")) + '</button><button type="button" data-view="1" class="' + (viewOff === 1 ? "is-on" : "") + '" aria-selected="' + (viewOff === 1) + '">🌙 ' + esc(T("Tomorrow: plan it", "بكرة: خطّطله")) + "</button></div></div>" +
+      '<div class="tp__tabs day-view" role="tablist"><button type="button" data-view="0" class="' + (viewOff === 0 ? "is-on" : "") + '" aria-selected="' + (viewOff === 0) + '">☀️ ' + esc(T("Today", "النهارده")) + '</button><button type="button" data-view="1" class="' + (viewOff === planOff() ? "is-on" : "") + '" aria-selected="' + (viewOff === planOff()) + '">🌙 ' + esc(planOff() > 1 ? T(firstDay.en + " " + firstDay.d + ": plan it", firstDay.ar + " " + firstDay.d + ": خطّطله") : T("Tomorrow: plan it", "بكرة: خطّطله")) + "</button></div></div>" +
+      dayTiles(vd) +
       (viewOff ? "" : alertBar()) + (viewOff < 0 ? "" : gcBar()) +
       '<div class="today-bar"><span>' + esc(viewOff < 0
         ? (ov ? T("✎ This day had its own changes · ✓ " + doneN + " done", "✎ اليوم ده كان متعدّل · ✓ " + doneN + " خلص") : T("This day as it was in My week (nothing ticked)", "اليوم ده زي ما كان في أسبوعي (مفيش حاجة متعلّم عليها)"))
@@ -1140,8 +1231,13 @@
     // before the plan's first day (Thu 26 Nov): Today says so; Tomorrow on Wednesday shows Thursday
     if (tday && todayKey() < PLAN_START) {
       var startD = new Date(PLAN_START + "T12:00:00");
-      host.innerHTML = headToday + '<div class="plan-wait"><b>🗓️ ' + esc(T("Your plan starts on " + DAY[startD.getDay()].en + " " + startD.getDate() + " " + startD.toLocaleString("en", { month: "short" }) + ".", "خطتك بتبدأ " + DAY[startD.getDay()].ar + " " + startD.getDate() + " نوفمبر.")) + "</b><span>" +
-        esc(iso(new Date(Date.now() + 864e5)) >= PLAN_START ? T("Open 🌙 Tomorrow to see and plan the first day.", "افتح 🌙 بكرة تشوف أول يوم وتخطّطله.") : T("Nothing is scheduled before it. The day before, open 🌙 Tomorrow to plan the first day.", "مفيش حاجة متجدولة قبله. اليوم اللي قبله افتح 🌙 بكرة وخطّط لأول يوم.")) + "</span></div>";
+      // a day with no plan: a small sleeping moon, and the way to the first day
+      host.innerHTML = headToday + '<div class="plan-wait"><div class="nop" aria-hidden="true"><i class="nop__star nop__star--1">✦</i><i class="nop__star nop__star--2">✦</i><i class="nop__star nop__star--3">✧</i>' +
+        '<div class="nop__moon"><span class="nop__eye nop__eye--l"></span><span class="nop__eye nop__eye--r"></span><span class="nop__mouth"></span><span class="nop__cheek nop__cheek--l"></span><span class="nop__cheek nop__cheek--r"></span></div>' +
+        '<b class="nop__z nop__z--1">z</b><b class="nop__z nop__z--2">z</b><b class="nop__z nop__z--3">Z</b><div class="nop__cloud"></div></div>' +
+        "<b>" + esc(viewOff === 0 ? T("No plans today", "مفيش خطة النهارده") : T("No plans this day", "مفيش خطة اليوم ده")) + "</b><span>" +
+        esc(T("Rest easy. Your plan starts on " + firstDay.en + " " + firstDay.d + ".", "ارتاح. خطتك بتبدأ " + firstDay.ar + " " + firstDay.d + ".")) + "</span>" +
+        '<button type="button" class="btn btn--primary btn--sm" data-view="1">🌙 ' + esc(T("Plan " + firstDay.en + " now", "خطّط " + firstDay.ar + " دلوقتي")) + "</button></div>";
       return;
     }
     host.innerHTML = (tday ? headToday :
@@ -1334,7 +1430,14 @@
       return;
     }
     if (t.closest("[data-al-test]")) { playAlert(); try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} return; }
-    if ((b = t.closest("[data-view]"))) { viewOff = +b.getAttribute("data-view") ? 1 : 0; editing = null; return render(); }
+    if ((b = t.closest("[data-view]"))) { viewOff = +b.getAttribute("data-view") ? planOff() : 0; editing = null; return render(); }
+    if ((b = t.closest("[data-cal-toggle]"))) { CALP.open = !CALP.open; CALP.ym = ""; return render(); }
+    if ((b = t.closest("[data-cal-nav]"))) {
+      var cy = CALP.ym || iso(new Date(Date.now() + viewOff * 864e5)).slice(0, 7), cd = new Date(+cy.slice(0, 4), +cy.slice(5, 7) - 1 + +b.getAttribute("data-cal-nav"), 1, 12);
+      CALP.ym = iso(cd).slice(0, 7); return render();
+    }
+    if ((b = t.closest("[data-daygo]"))) { viewOff = Math.max(OFF_MIN, Math.min(OFF_MAX, +b.getAttribute("data-daygo"))); CALP.open = false; CALP.ym = ""; editing = null; return render(); }
+    if (CALP.open && !t.closest(".dpk-pop")) { CALP.open = false; CALP.ym = ""; render(); }
     if ((b = t.closest("[data-dayjump]"))) { viewOff = Math.max(-120, Math.min(60, viewOff + +b.getAttribute("data-dayjump"))); editing = null; return render(); }
     if (t.closest("[data-reset-today]")) { if (!window.confirm(T("Undo this day's changes and take it from the week again?", "ترجع اليوم ده زي الأسبوع وتلغي تعديلاته؟"))) return; delete W.dates[todayKey()]; save(); return render(); }
     if (t.closest("[data-to-week]")) { var wt = document.querySelector('#tabbar [data-tab="week"]'); if (wt) wt.click(); return; }
@@ -1425,6 +1528,9 @@
     var a = new Date(dp.value + "T12:00:00"), b = new Date(); b.setHours(12, 0, 0, 0);
     viewOff = Math.max(-120, Math.min(60, Math.round((a - b) / 864e5))); editing = null; render();
   });
+  // the calendar closes on Escape and on a click anywhere outside the card
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && CALP.open) { CALP.open = false; CALP.ym = ""; render(); } });
+  document.addEventListener("click", function (e) { if (CALP.open && (e.composedPath ? e.composedPath().indexOf(host) < 0 : !host.contains(e.target))) { CALP.open = false; CALP.ym = ""; render(); } });
   host.addEventListener("keydown", function (e) {
     var g = e.target.closest && e.target.closest("[data-tp-group]");
     if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); g.click(); }
@@ -1547,8 +1653,8 @@
   }
   // what is on now and in the next 2 hours, from Today (with today's own changes), prayers and meetings
   function nowItems() {
-    var dow = todayDow, o = W.dates && W.dates[iso(new Date())], rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return !x.on || x.on.indexOf(tpl(dow)) > -1; }).concat(W.days[tpl(dow)] || []);
-    if (iso(new Date()) < PLAN_START) rows = [];   // the plan starts Thu 26 Nov: only prayers and meetings before
+    var dow = todayDow, o = W.dates && W.dates[iso(new Date())], rows = o ? o.myday.concat(o.work) : W.myday.filter(function (x) { return onDay(x, dow); }).concat(W.days[tpl(dow)] || []);
+    if (iso(new Date()) < PLAN_START) rows = [];   // before the plan starts: only prayers and meetings
     var list = rows.filter(function (x) { return x.from && x.to; }).map(function (x) { return { from: mins(x.from), to: mins(x.to), title: x.text || T(x.en, x.ar), cat: catOf(x), items: x.items, id: x.id }; });
     prayers(dow).forEach(function (p) { list.push({ from: p.from, to: p.to, title: "🕌 " + T(p.en, p.ar) + " · " + T("iqama ", "الإقامة ") + ap(p.iq), cat: "deen", pray: p }); });
     meetings(dow).forEach(function (m) { list.push({ from: m.from, to: m.to, title: (m.kind === "prep" ? "📝 " : "🤝 ") + T(m.en, m.ar), cat: catOf(m) }); });
@@ -1765,6 +1871,146 @@
     nowHost.addEventListener("dragleave", function (e) { var f = e.target.closest && e.target.closest("[data-arc-drop]"); if (f) f.classList.remove("is-drop"); });
     nowHost.addEventListener("drop", function (e) { var f = e.target.closest && e.target.closest("[data-arc-drop]"); if (!f) return; e.preventDefault(); f.classList.remove("is-drop"); arcUpload(+f.getAttribute("data-arc-drop"), e.dataTransfer.files); });
   }
+  /* ---------- World clock on /now (owner, 2026-11-27): a 3D clock that shows now in any time zone ----------
+     The big clock is one zone; the list under it is the others at the same instant. The arrows move
+     that instant (15 minutes or an hour at a time; also ← → ↑ ↓ on the card) to see "what time is it
+     there when it is X here"; Now goes back to the live time. Zones are kept in this browser. */
+  var CK = (function () { var d = null; try { d = JSON.parse(localStorage.getItem("now.clock") || "null"); } catch (e) {}
+    var here = "Asia/Dubai"; try { here = Intl.DateTimeFormat().resolvedOptions().timeZone || here; } catch (e) {}
+    // owner, 2026-11-27: three clocks to start with: Dubai, Cairo and Saudi Arabia
+    if (!d || d.v !== 2 || !Array.isArray(d.zones)) d = { v: 2, zones: ["Asia/Dubai", "Africa/Cairo", "Asia/Riyadh"] };
+    d.zones = d.zones.filter(function (z, i) { return d.zones.indexOf(z) === i; });
+    return d; })(), CKOFF = 0, CKF = {}, CKLIST = "";
+  function ckSave() { try { localStorage.setItem("now.clock", JSON.stringify(CK)); } catch (e) {} }
+  function ckCity(z) { return z.split("/").pop().replace(/_/g, " "); }
+  function ckAt() { return new Date(Date.now() + CKOFF * 60000); }
+  function ckParts(z, d) {
+    var f = CKF[z] || (CKF[z] = new Intl.DateTimeFormat("en-GB", { timeZone: z, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit", timeZoneName: "shortOffset" }));
+    var o = {}; f.formatToParts(d).forEach(function (p) { o[p.type] = p.value; });
+    return { h: +o.hour % 24, m: +o.minute, s: +o.second, gmt: o.timeZoneName || "" };
+  }
+  function ckDay(z, d) { return new Intl.DateTimeFormat(I18N_AR() ? "ar-EG" : "en-GB", { timeZone: z, weekday: "short", day: "numeric", month: "short" }).format(d); }
+  function ckTime(p, withSec) { var pm = p.h >= 12; return (p.h % 12 || 12) + ":" + ("0" + p.m).slice(-2) + (withSec ? ":" + ("0" + p.s).slice(-2) : "") + " " + T(pm ? "PM" : "AM", pm ? "م" : "ص"); }
+  function ckValid(z) { try { new Intl.DateTimeFormat("en-GB", { timeZone: z }); return true; } catch (e) { return false; } }
+  function ckAll() { try { return Intl.supportedValuesOf("timeZone"); } catch (e) { return ["Asia/Dubai", "Africa/Cairo", "Asia/Riyadh", "Europe/London", "Europe/Berlin", "Europe/Amsterdam", "America/New_York", "America/Los_Angeles", "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney"]; } }
+  // a typed city or zone: the exact zone, or the first one whose city starts with / holds those letters
+  function ckAdd(v) {
+    v = String(v || "").trim(); if (!v) return false;
+    var all = ckAll(), q = v.toLowerCase().replace(/ /g, "_");
+    var z = all.filter(function (x) { return x.toLowerCase() === q; })[0] || all.filter(function (x) { return x.split("/").pop().toLowerCase() === q; })[0] ||
+      all.filter(function (x) { return x.split("/").pop().toLowerCase().indexOf(q) === 0; })[0] || all.filter(function (x) { return x.toLowerCase().indexOf(q) > -1; })[0] || (ckValid(v) ? v : "");
+    if (!z || !ckValid(z)) return false;
+    if (CK.zones.indexOf(z) < 0) { CK.zones.push(z); ckSave(); }
+    return true;
+  }
+  function ckStep(min) { CKOFF = Math.max(-7 * 1440, Math.min(7 * 1440, CKOFF + min)); clockTick(); }
+  function ckOffTxt() {
+    if (!CKOFF) return T("live", "مباشر");
+    var a = Math.abs(CKOFF), h = Math.floor(a / 60), m = a % 60;
+    return (CKOFF > 0 ? "+" : "−") + (h ? h + T(" h", " س") : "") + (h && m ? " " : "") + (m ? m + T(" min", " د") : "") + T(" from now", " من دلوقتي");
+  }
+  /* Each clock is one real watch for one time zone (owner, 2026-11-27: "many clocks, every one real, an
+     Arabic dial with numbers, like a luxury watch"): a fluted gold bezel, a sunburst dial, the hours in
+     Eastern Arabic numerals (١ … ١٢), a date window, and three hands that move every second. */
+  // the country of a time zone, for the flag on its clock (the common ones; any other zone shows a globe)
+  var CK_CC = { "Asia/Dubai": "AE", "Africa/Cairo": "EG", "Asia/Riyadh": "SA", "Asia/Kuwait": "KW", "Asia/Qatar": "QA", "Asia/Bahrain": "BH", "Asia/Muscat": "OM", "Asia/Amman": "JO", "Asia/Beirut": "LB", "Asia/Baghdad": "IQ",
+    "Asia/Damascus": "SY", "Asia/Gaza": "PS", "Asia/Hebron": "PS", "Asia/Aden": "YE", "Africa/Tripoli": "LY", "Africa/Tunis": "TN", "Africa/Algiers": "DZ", "Africa/Casablanca": "MA", "Africa/Khartoum": "SD", "Europe/Istanbul": "TR",
+    "Asia/Tehran": "IR", "Asia/Karachi": "PK", "Asia/Kolkata": "IN", "Asia/Calcutta": "IN", "Asia/Dhaka": "BD", "Asia/Jakarta": "ID", "Asia/Kuala_Lumpur": "MY", "Asia/Singapore": "SG", "Asia/Bangkok": "TH", "Asia/Manila": "PH",
+    "Asia/Hong_Kong": "HK", "Asia/Shanghai": "CN", "Asia/Seoul": "KR", "Asia/Tokyo": "JP", "Australia/Sydney": "AU", "Australia/Melbourne": "AU", "Australia/Perth": "AU", "Pacific/Auckland": "NZ",
+    "Europe/London": "GB", "Europe/Dublin": "IE", "Europe/Lisbon": "PT", "Europe/Madrid": "ES", "Europe/Paris": "FR", "Europe/Brussels": "BE", "Europe/Amsterdam": "NL", "Europe/Berlin": "DE", "Europe/Zurich": "CH", "Europe/Rome": "IT",
+    "Europe/Vienna": "AT", "Europe/Prague": "CZ", "Europe/Warsaw": "PL", "Europe/Stockholm": "SE", "Europe/Oslo": "NO", "Europe/Copenhagen": "DK", "Europe/Helsinki": "FI", "Europe/Athens": "GR", "Europe/Bucharest": "RO", "Europe/Kyiv": "UA", "Europe/Kiev": "UA", "Europe/Moscow": "RU",
+    "Africa/Lagos": "NG", "Africa/Nairobi": "KE", "Africa/Johannesburg": "ZA", "Africa/Addis_Ababa": "ET", "Africa/Accra": "GH",
+    "America/New_York": "US", "America/Chicago": "US", "America/Denver": "US", "America/Los_Angeles": "US", "America/Phoenix": "US", "America/Anchorage": "US", "Pacific/Honolulu": "US", "America/Toronto": "CA", "America/Vancouver": "CA",
+    "America/Mexico_City": "MX", "America/Bogota": "CO", "America/Lima": "PE", "America/Santiago": "CL", "America/Sao_Paulo": "BR", "America/Argentina/Buenos_Aires": "AR", "America/Buenos_Aires": "AR" };
+  function ckFlag(z) { var c = CK_CC[z]; return c ? String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65, 0x1F1E6 + c.charCodeAt(1) - 65) : "🌐"; }
+  var CK_NUM = ["١٢", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠", "١١"];
+  var CK_DIAL = [["#1f8a5b", "#0b3d2a"], ["#2a4d8f", "#0e1d3d"], ["#f3e2b4", "#c9a45c"], ["#3a3a3f", "#0c0c0e"], ["#8a2f3a", "#3d0f17"], ["#d9dde3", "#8e96a3"]];
+  function ckAng(p) { return { h: (((p.h % 12) + p.m / 60) * 30).toFixed(2), m: ((p.m + p.s / 60) * 6).toFixed(2), s: p.s * 6 }; }
+  function ckDom(z, d) { return new Intl.DateTimeFormat("en-GB", { timeZone: z, day: "numeric" }).format(d); }
+  function ckArabic(n) { return String(n).replace(/\d/g, function (c) { return "٠١٢٣٤٥٦٧٨٩"[+c]; }); }
+  function ckWatch(z, i, d, sfx0) {
+    var p = ckParts(z, d), a = ckAng(p), col = CK_DIAL[i % CK_DIAL.length], light = i % CK_DIAL.length === 2 || i % CK_DIAL.length === 5, ink = light ? "#3b2a08" : "#f6e3a1", id = "ckg" + (sfx0 || "") + i, flute = "", track = "", nums = "";
+    for (var k = 0; k < 72; k++) { var fa = k * 5 * Math.PI / 180; flute += '<line x1="' + (100 + Math.sin(fa) * 86).toFixed(1) + '" y1="' + (100 - Math.cos(fa) * 86).toFixed(1) + '" x2="' + (100 + Math.sin(fa) * 97).toFixed(1) + '" y2="' + (100 - Math.cos(fa) * 97).toFixed(1) + '"/>'; }
+    for (k = 0; k < 60; k++) { var ta = k * 6 * Math.PI / 180, r1 = k % 5 ? 79 : 76; track += '<line x1="' + (100 + Math.sin(ta) * r1).toFixed(1) + '" y1="' + (100 - Math.cos(ta) * r1).toFixed(1) + '" x2="' + (100 + Math.sin(ta) * 82).toFixed(1) + '" y2="' + (100 - Math.cos(ta) * 82).toFixed(1) + '"' + (k % 5 ? "" : ' stroke-width="1.8"') + "/>"; }
+    for (k = 0; k < 12; k++) { if (k === 3) continue; var na = k * 30 * Math.PI / 180; nums += '<text x="' + (100 + Math.sin(na) * 62).toFixed(1) + '" y="' + (100 - Math.cos(na) * 62 + 6.5).toFixed(1) + '">' + CK_NUM[k] + "</text>"; }
+    return '<li class="ckw"><div class="ckw__stage" data-ck-big title="' + esc(T("Open it big", "افتحها كبيرة")) + '"><svg class="ckw__svg" viewBox="0 0 200 200" role="img" aria-label="' + esc(ckCity(z) + " " + ckTime(p)) + '">' +
+      '<defs><radialGradient id="' + id + 'd" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="' + col[0] + '"/><stop offset="1" stop-color="' + col[1] + '"/></radialGradient>' +
+        '<linearGradient id="' + id + 'b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset="0.45" stop-color="#d9a93c"/><stop offset="0.7" stop-color="#9c6f17"/><stop offset="1" stop-color="#f1d27a"/></linearGradient>' +
+        '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.34"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>' +
+      '<circle cx="100" cy="100" r="99" fill="url(#' + id + 'b)"/><g stroke="#7a560f" stroke-width="1.3" opacity="0.55">' + flute + "</g>" +
+      '<circle cx="100" cy="100" r="85.5" fill="#6b4a0c"/><circle cx="100" cy="100" r="84" fill="url(#' + id + 'd)"/>' +
+      '<g stroke="' + ink + '" stroke-width="1" opacity="0.85">' + track + "</g>" +
+      '<g class="ckw__nums" fill="' + ink + '">' + nums + "</g>" +
+      '<rect x="146" y="91" width="24" height="18" rx="2.5" fill="#fffdf5" stroke="url(#' + id + 'b)" stroke-width="1.6"/><text class="ckw__date" x="158" y="105" data-ck-dom="' + esc(z) + '">' + ckArabic(ckDom(z, d)) + "</text>" +
+      '<text class="ckw__flag" x="100" y="82">' + ckFlag(z) + '</text><text class="ckw__city" x="100" y="138" fill="' + ink + '">' + esc(ckCity(z).toUpperCase().slice(0, 14)) + "</text>" +
+      '<g class="ckw__hands"><g data-ck-h="' + esc(z) + '" transform="rotate(' + a.h + ' 100 100)"><path d="M97 104 L97 66 a3 3 0 0 1 6 0 L103 104 z" fill="url(#' + id + 'b)" stroke="#5c400a" stroke-width="0.6"/><circle cx="100" cy="64" r="7" fill="url(#' + id + 'b)" stroke="#5c400a" stroke-width="0.6"/><circle cx="100" cy="64" r="4.2" fill="#fffbe8"/></g>' +
+        '<g data-ck-m="' + esc(z) + '" transform="rotate(' + a.m + ' 100 100)"><path d="M97.4 106 L97.4 30 L100 24 L102.6 30 L102.6 106 z" fill="url(#' + id + 'b)" stroke="#5c400a" stroke-width="0.6"/><rect x="99" y="34" width="2" height="48" fill="#fffbe8"/></g>' +
+        '<g data-ck-s="' + esc(z) + '" transform="rotate(' + a.s + ' 100 100)"><line x1="100" y1="122" x2="100" y2="22" stroke="#f6e3a1" stroke-width="1.2"/><circle cx="100" cy="40" r="3.2" fill="#f6e3a1"/></g></g>' +
+      '<circle cx="100" cy="100" r="5" fill="url(#' + id + 'b)" stroke="#5c400a" stroke-width="0.6"/><ellipse cx="100" cy="60" rx="70" ry="44" fill="url(#' + id + 'g)" pointer-events="none"/></svg></div>' +
+      '<div class="ckw__cap"><b>' + ckFlag(z) + " " + esc(ckCity(z)) + '</b><strong dir="ltr" data-ck-z="' + esc(z) + '">' + esc(ckTime(p, true)) + '</strong><small><span data-ck-zd="' + esc(z) + '">' + esc(ckDay(z, d)) + '</span> · <span dir="ltr">' + esc(p.gmt) + "</span></small></div>" +
+      '<button type="button" class="ckw__del" data-ck-del="' + esc(z) + '" aria-label="' + esc(T("Remove " + ckCity(z), "شيل " + ckCity(z))) + '">✕</button></li>';
+  }
+  function clockHtml() {
+    CK.zones = CK.zones.filter(ckValid);
+    var d = ckAt();
+    if (!CKLIST) CKLIST = ckAll().map(function (z) { return '<option value="' + esc(z) + '">'; }).join("");
+    var arrow = function (n, lbl, ico) { return '<button type="button" class="btn btn--ghost btn--sm" data-ck-step="' + n + '" title="' + esc(lbl) + '" aria-label="' + esc(lbl) + '">' + ico + "</button>"; };
+    return '<section class="nw nw--clock" tabindex="0" data-ck-card><div class="nw__k">🕰️ ' + esc(T("World clocks", "ساعات العالم")) + ' <button type="button" class="btn btn--ghost btn--sm ck__bigbtn" data-ck-big>⛶ ' + esc(T("Full screen", "ملء الشاشة")) + "</button></div>" +
+      (CK.zones.length ? '<ul class="ckw-grid">' + CK.zones.map(function (z, i) { return ckWatch(z, i, d); }).join("") + "</ul>" : '<p class="muted ck__hint">' + esc(T("No clocks yet: add a city below.", "مفيش ساعات لسه: ضيف مدينة تحت.")) + "</p>") +
+      '<div class="ck__set" role="group" aria-label="' + esc(T("Move the time", "حرّك الوقت")) + '">' + arrow(-60, T("One hour back", "ساعة لورا"), "⏪") + arrow(-15, T("15 minutes back", "ربع ساعة لورا"), "◀") +
+        '<button type="button" class="btn btn--ghost btn--sm ck__now" data-ck-now>' + esc(T("Now", "دلوقتي")) + "</button>" + arrow(15, T("15 minutes forward", "ربع ساعة لقدام"), "▶") + arrow(60, T("One hour forward", "ساعة لقدام"), "⏩") +
+        '<em data-ck-off class="' + (CKOFF ? "is-set" : "") + '">' + esc(ckOffTxt()) + "</em></div>" +
+      '<div class="nw__form ck__add"><input type="text" list="ckZones" data-ck-add autocomplete="off" placeholder="' + esc(T("＋ Add a clock: a city or time zone (Tokyo, Europe/Berlin)", "＋ ضيف ساعة: مدينة أو منطقة زمنية (Tokyo، Europe/Berlin)")) + '" aria-label="' + esc(T("Add a clock", "ضيف ساعة")) + '">' +
+        '<datalist id="ckZones">' + CKLIST + "</datalist></div>" +
+      '<p class="muted ck__hint">' + esc(T("Each clock is one time zone. Arrows move the time on all of them (← → 15 min, ↑ ↓ 1 hour).", "كل ساعة منطقة زمنية واحدة. الأسهم بتحرّك الوقت في كل الساعات (← → ربع ساعة، ↑ ↓ ساعة).")) + "</p></section>";
+  }
+  /* Full screen (owner, 2026-11-27: "very small to see"): the same clocks, large, over the whole page, with
+     the arrows. A click on a clock or on ⛶ opens it; Escape, ✕ or a click on the dark part closes it. */
+  var ckBigEl = null;
+  function ckBigDraw() {
+    if (!ckBigEl) return; var d = ckAt();
+    var arrow = function (n, ico) { return '<button type="button" class="btn btn--ghost" data-ck-step="' + n + '">' + ico + "</button>"; };
+    ckBigEl.innerHTML = '<div class="ckbig__box" data-ck-card><button type="button" class="ckbig__x" data-ck-close aria-label="' + esc(T("Close", "اقفل")) + '">✕</button>' +
+      '<ul class="ckw-grid ckw-grid--big">' + CK.zones.map(function (z, i) { return ckWatch(z, i, d, "B"); }).join("") + "</ul>" +
+      '<div class="ck__set">' + arrow(-60, "⏪") + arrow(-15, "◀") + '<button type="button" class="btn btn--ghost ck__now" data-ck-now>' + esc(T("Now", "دلوقتي")) + "</button>" + arrow(15, "▶") + arrow(60, "⏩") +
+      '<em data-ck-off class="' + (CKOFF ? "is-set" : "") + '">' + esc(ckOffTxt()) + "</em></div></div>";
+  }
+  function ckBigOpen() {
+    if (ckBigEl) return;
+    ckBigEl = document.createElement("div"); ckBigEl.className = "ckbig"; ckBigEl.setAttribute("role", "dialog"); ckBigEl.setAttribute("aria-modal", "true"); ckBigEl.setAttribute("aria-label", T("World clocks", "ساعات العالم"));
+    document.body.appendChild(ckBigEl); ckBigDraw();
+    ckBigEl.addEventListener("click", function (e) {
+      var b; if ((b = e.target.closest("[data-ck-step]"))) return ckStep(+b.getAttribute("data-ck-step"));
+      if (e.target.closest("[data-ck-now]")) { CKOFF = 0; return clockTick(); }
+      if (e.target === ckBigEl || e.target.closest("[data-ck-close]")) ckBigClose();
+    });
+    var x = ckBigEl.querySelector("[data-ck-close]"); if (x) x.focus();
+  }
+  function ckBigClose() { if (ckBigEl) { ckBigEl.remove(); ckBigEl = null; } }
+  document.addEventListener("keydown", function (e) {
+    if (!ckBigEl) return;
+    if (e.key === "Escape") return ckBigClose();
+    var n = { ArrowLeft: -15, ArrowRight: 15, ArrowUp: 60, ArrowDown: -60 }[e.key]; if (n) { e.preventDefault(); ckStep(n); }
+  });
+  // every second: the hands, the time and the date of every clock, without drawing the card again
+  function clockTick() {
+    if (!nowHost) return;
+    [nowHost.querySelector("[data-ck-card]"), ckBigEl].forEach(function (card) { if (card) clockTickIn(card); });
+  }
+  function clockTickIn(card) {
+    var d = ckAt(), set = function (el, v) { if (el && el.textContent !== v) el.textContent = v; }, one = function (k, z) { return card.querySelector("[" + k + '="' + z + '"]'); };
+    CK.zones.forEach(function (z) {
+      var p = ckParts(z, d), a = ckAng(p), hh = one("data-ck-h", z), mm = one("data-ck-m", z), ss = one("data-ck-s", z);
+      if (hh) hh.setAttribute("transform", "rotate(" + a.h + " 100 100)"); if (mm) mm.setAttribute("transform", "rotate(" + a.m + " 100 100)"); if (ss) ss.setAttribute("transform", "rotate(" + a.s + " 100 100)");
+      set(one("data-ck-z", z), ckTime(p, true)); set(one("data-ck-zd", z), ckDay(z, d)); set(one("data-ck-dom", z), ckArabic(ckDom(z, d)));
+    });
+    var off = card.querySelector("[data-ck-off]"); if (off) { set(off, ckOffTxt()); off.classList.toggle("is-set", !!CKOFF); }
+  }
+  if (nowHost) nowHost.addEventListener("keydown", function (e) {
+    var c = e.target.closest && e.target.closest("[data-ck-card]"); if (!c || e.target.matches("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
+    var n = { ArrowLeft: -15, ArrowRight: 15, ArrowUp: 60, ArrowDown: -60 }[e.key]; if (!n) return;
+    e.preventDefault(); e.stopPropagation(); ckStep(I18N_AR() && Math.abs(n) === 15 ? -n : n);
+  });
   function renderNow() {
     if (!nowHost || !W) return;
     if (nbDrag || tabDrag || nowHost.querySelector(".nt__text:focus") || nowHost.querySelector(".sndp :focus") || nowHost.querySelector(".nw__form :focus") || nowHost.querySelector("[contenteditable='true']")) return;   // not under a drag or the typing
@@ -1839,14 +2085,14 @@
         '<button type="button" class="bw__hide" data-whide="' + k + '" title="' + esc(T("Hide this card (bring it back from 🧩 Cards)", "اخفي الكارت (ترجّعه من 🧩 الكروت)")) + '">✕</button>' +
         '<button type="button" class="bw__lock" data-wlock="' + k + '" title="' + esc(g.locked ? T("Locked: tap to unlock", "مقفول: دوس تفتحه") : T("Lock in place", "اقفله مكانه")) + '">' + (g.locked ? "🔒" : "🔓") + "</button></div>"; };
       var head = '<h2>⏱️ ' + esc(T("Now", "دلوقتي")) + ' <small class="muted" data-now-clock>' + esc(ap(m)) + '</small></h2><span class="nwp__nav"><a class="btn btn--ghost btn--sm" href="/time">⏱ ' + esc(T("Time", "الوقت")) + '</a><a class="btn btn--ghost btn--sm" href="/admin">← ' + esc(T("Home", "الرئيسية")) + "</a></span>";
-      var hiddenW = Object.keys(WG).filter(function (k) { return WG[k].hidden; }), WNAMES = { pray: T("🕌 Prayer", "🕌 الصلاة"), rem: T("⏰ Remind me", "⏰ فكّرني"), arc: T("🗄️ Archive", "🗄️ الأرشيف"), do: T("▶️ Now", "▶️ دلوقتي"), cal: T("📅 Today", "📅 النهارده"), money: T("💰 Money", "💰 الفلوس"), meet: T("🤝 Meeting", "🤝 ميعاد") };
+      var hiddenW = Object.keys(WG).filter(function (k) { return WG[k].hidden; }), WNAMES = { pray: T("🕌 Prayer", "🕌 الصلاة"), rem: T("⏰ Remind me", "⏰ فكّرني"), arc: T("🗄️ Archive", "🗄️ الأرشيف"), do: T("▶️ Now", "▶️ دلوقتي"), cal: T("📅 Today", "📅 النهارده"), money: T("💰 Money", "💰 الفلوس"), meet: T("🤝 Meeting", "🤝 ميعاد"), clock: T("🕰️ World clock", "🕰️ ساعة العالم") };
       if (isMainTab()) head += '<span class="wcards"><button type="button" class="btn btn--ghost btn--sm" data-wcards>🧩 ' + esc(T("Cards", "الكروت")) + (hiddenW.length ? " (" + hiddenW.length + ")" : "") + "</button>" +
         (cardsOpen ? '<span class="wcards__menu">' + (hiddenW.length ? hiddenW.map(function (k) { return '<button type="button" data-wshow="' + k + '">＋ ' + esc(WNAMES[k] || k) + "</button>"; }).join("") : '<em>' + esc(T("All cards are showing.", "كل الكروت ظاهرة.")) + "</em>") + "</span>" : "") + "</span>";
       head += '<a class="btn btn--ghost btn--sm nw__notion" href="https://app.notion.com/p/awasisai/Workstation-75dde5a5cb184f0abc1aab133d9deb59" target="_blank" rel="noopener">📓 Notion</a>' +
         '<button type="button" class="btn btn--ghost btn--sm" data-theme-tg title="' + esc(T("Light / dark", "فاتح / غامق")) + '">' + (document.documentElement.getAttribute("data-theme") === "light" ? "🌙" : "☀️") + "</button>" +
         '<button type="button" class="btn btn--ghost btn--sm" data-snd title="' + esc(T("Sounds", "الأصوات")) + '">' + (SFX ? "🔊" : "🔇") + "</button>" +
         (sndOpen ? '<div class="sndp nw__form"><label class="al-on"><input type="checkbox" data-sfx-on' + (SFX ? " checked" : "") + "> 🔊 " + esc(T("Sound effects (clicks, coins, notes)", "مؤثرات صوتية (كليك، فلوس، نوتس)")) + "</label>" + alertBar() + "</div>" : "");
-      nowHost.innerHTML = boardHtml("full", isMainTab() ? wcard("pray", prayHtml) + wcard("rem", remHtml()) + wcard("arc", arcHtml()) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml) : "", head);
+      nowHost.innerHTML = boardHtml("full", isMainTab() ? wcard("pray", prayHtml) + wcard("rem", remHtml()) + wcard("arc", arcHtml()) + wcard("do", doHtml) + wcard("cal", calHtml) + wcard("money", moneyHtml) + wcard("meet", meetHtml) + wcard("clock", clockHtml()) : "", head);
       setTimeout(selBar, 0);
       return calSetup(keepScroll);
     }
@@ -2125,7 +2371,7 @@
   var nowMin = -1;
   function tickNow() {
     if (!nowHost || !W) return;
-    boardTick(); remTick();
+    boardTick(); remTick(); clockTick();
     var now = new Date(), m = now.getHours() * 60 + now.getMinutes();
     if (m !== nowMin) { nowMin = m; return renderNow(); }
     var cdEl = nowHost.querySelector(".nw__cd"); if (!cdEl) return;
@@ -2159,7 +2405,7 @@
   function board() { var R = boardRoot(); return R.tabs.filter(function (t) { return t.id === R.cur; })[0] || R.tabs[0]; }
   function isMainTab() { return board().id === "main"; }
   // three columns: the masjid | today's whiteboard | now, money, meeting; notes to the right
-  var WDEF = { rem: { x: 20, y: 380, w: 340 }, arc: { x: 20, y: 640, w: 340 }, pray: { x: 20, y: 20, w: 340 }, cal: { x: 390, y: 20, w: 380 }, do: { x: 800, y: 20, w: 380 }, money: { x: 800, y: 300, w: 380 }, meet: { x: 800, y: 660, w: 380 } };
+  var WDEF = { rem: { x: 20, y: 380, w: 340 }, arc: { x: 20, y: 640, w: 340 }, pray: { x: 20, y: 20, w: 340 }, cal: { x: 390, y: 20, w: 380 }, do: { x: 800, y: 20, w: 380 }, money: { x: 800, y: 300, w: 380 }, meet: { x: 800, y: 660, w: 380 }, clock: { x: 1210, y: 20, w: 800 } };
   // stack the third column by the cards' real heights so none covers another
   function stackCol3() {
     var R = boardRoot();
@@ -2183,6 +2429,9 @@
     var added = false;
     Object.keys(WDEF).forEach(function (k) { if (!B.widgets[k]) { B.widgets[k] = JSON.parse(JSON.stringify(WDEF[k])); added = true; } });
     if (added) setTimeout(function () { if (isMainTab()) { stackCol3(); bsave(); } }, 80);   // a new card: make room for it
+    // the clocks were too small to read: the card is wider now, and the board is shown whole once so it is in view
+    if (B.widgets.clock && B.widgets.clock.w < WDEF.clock.w) { B.widgets.clock.w = WDEF.clock.w; added = true; }
+    if (added) setTimeout(function () { if (isMainTab()) { nbFit(); bsave(); } }, 160);
     return B.widgets;
   }
   function bSnap() { undoStack.push(JSON.stringify(board().items)); if (undoStack.length > 50) undoStack.shift(); }
@@ -2345,6 +2594,10 @@
   if (nowHost) {
     nowHost.addEventListener("click", function (e) {
       var t = e.target, b;
+      if ((b = t.closest("[data-ck-step]"))) { ckStep(+b.getAttribute("data-ck-step")); return; }
+      if (t.closest("[data-ck-now]")) { CKOFF = 0; clockTick(); return; }
+      if (t.closest("[data-ck-big]")) { ckBigOpen(); return; }
+      if ((b = t.closest("[data-ck-del]"))) { var dz = b.getAttribute("data-ck-del"); CK.zones = CK.zones.filter(function (z) { return z !== dz; }); ckSave(); return renderNow(); }
       if (t.closest("[data-snd]")) { sndOpen = !sndOpen; return renderNow(); }
       if ((b = t.closest("[data-rem-in]"))) { var rf = b.closest("form"); remAdd(rf.elements.text.value, +b.getAttribute("data-rem-in")); rf.reset(); if (document.activeElement) document.activeElement.blur(); return renderNow(); }
       if ((b = t.closest("[data-rem-del]"))) { var rid = b.getAttribute("data-rem-del"); W.reminders = rems().filter(function (x) { return x.id !== rid; }); save(); return; }
@@ -2446,6 +2699,7 @@
     }
     nowHost.addEventListener("dblclick", boardDouble);
     nowHost.addEventListener("change", function (e) {
+      if (e.target.matches("[data-ck-add]")) { if (ckAdd(e.target.value)) { e.target.value = ""; e.target.blur(); renderNow(); } else if (e.target.value) note(T("No time zone with that name: pick one from the list.", "مفيش منطقة زمنية بالاسم ده: اختار من القايمة.")); return; }
       if (e.target.matches("[data-sfx-on]")) { SFX = e.target.checked; try { localStorage.setItem("now.sfx", SFX ? "on" : "off"); } catch (x) {} sfx("click"); return renderNow(); }
       if (e.target.closest(".sndp")) { alChange(e); renderNow(); }
     });

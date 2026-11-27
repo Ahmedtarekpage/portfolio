@@ -907,3 +907,135 @@ html:not([data-theme="light"]) .wcards__menu { background: #17223f; color: #F4ED
 .day-sec__btn em { font-style: normal; width: 1em; display: inline-block; }
 .day-sec__btn small { letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 600; }
 .day-sec__btn:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 6px; }
+
+/* a part of the day (morning, work, free time): its hours per category, under the heading */
+.day-sec__sum { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 12px; }
+.day-sec__sum .day-cat { color: #14213D; font-size: 0.8rem; font-weight: 600; padding: 4px 10px; background: color-mix(in srgb, var(--cat) 30%, #fff); border: 1px solid color-mix(in srgb, var(--cat) 60%, #14213D 10%); opacity: 1; }
+.day-sec__sum .day-cat b { font-weight: 800; margin-inline-start: 4px; }
+.day-sec__sum .day-cat small { opacity: 0.7; font-weight: 600; }
+
+/* Today tab: the week's day squares with their dates, a "Today" arrow above today's */
+.week-days--today { margin: 26px 0 14px; }
+.week-days--today .week-day { position: relative; }
+.week-day strong { font: 800 1.05rem var(--font-ui); line-height: 1.1; }
+.week-day strong span { font-size: 0.66rem; font-weight: 700; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.04em; }
+.week-day:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.week-day__now { position: absolute; inset-inline: 0; top: -22px; text-align: center; font: 800 0.66rem var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--coral); white-space: nowrap; pointer-events: none; }
+.week-day__now i { font-style: normal; display: inline-block; animation: weekNowBob 1.6s ease-in-out infinite; }
+@keyframes weekNowBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .week-day__now i { animation: none; } }
+/* the calendar: a button with the date, and a month that opens under it */
+.dpk-wrap { position: relative; display: inline-block; }
+.dpk-btn { appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--glass-brd); background: var(--wash); color: var(--ink); font: 700 0.85rem var(--font-ui); white-space: nowrap; }
+.dpk-btn i { font-style: normal; font-size: 0.7rem; opacity: 0.6; }
+.dpk-btn:hover, .dpk-btn.is-on { border-color: var(--coral); }
+.dpk-btn:focus-visible, .dpk-day:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.dpk-pop { position: absolute; z-index: 40; top: calc(100% + 8px); inset-inline-start: 0; width: 292px; max-width: calc(100vw - 48px); padding: 14px; border-radius: 18px; background: #FFFAF2; color: #14213D; border: 1px solid rgba(20, 33, 61, 0.12); box-shadow: 0 18px 44px rgba(20, 33, 61, 0.22); }
+.dpk-pop__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.dpk-pop__head b { font: 800 0.95rem var(--font-ui); }
+.dpk-pop__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dpk-pop__dow i { font: 700 0.64rem var(--font-ui); font-style: normal; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(20, 33, 61, 0.55); padding-bottom: 4px; }
+.dpk-day { appearance: none; cursor: pointer; position: relative; aspect-ratio: 1; border-radius: 12px; border: 1.5px solid transparent; background: transparent; color: #14213D; font: 600 0.85rem var(--font-ui); }
+.dpk-day:hover:not(:disabled) { background: rgba(255, 107, 91, 0.14); }
+.dpk-day.dpk-off { color: #BF3A2A; }
+.dpk-day.is-today { border-color: var(--coral); font-weight: 800; }
+.dpk-day.is-on { background: var(--coral); color: #14213D; font-weight: 800; }
+.dpk-day:disabled { opacity: 0.28; cursor: not-allowed; }
+.dpk-day.has-own::after, .dpk-dot { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #14213D; }
+.dpk-day.has-own::after { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); }
+.dpk-dot { display: inline-block; vertical-align: middle; }
+.dpk-pop__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 0.72rem; }
+
+/* /now: the world clock, a clay 3D face tilted back, with the other time zones under it */
+.nw--clock:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+.ck3 { perspective: 800px; display: grid; place-items: center; padding: 16px 0 26px; }
+.ck3__face { position: relative; width: 190px; height: 190px; border-radius: 50%; transform: rotateX(26deg); transform-style: preserve-3d; transition: transform 0.45s ease, background 0.6s ease;
+  background: radial-gradient(circle at 35% 26%, #fffdf8, #F4EDE0 58%, #dfd2bb);
+  box-shadow: 0 0 0 8px #14213D, 0 12px 0 8px #0b1427, 0 34px 36px rgba(20, 33, 61, 0.45), inset 0 8px 16px rgba(20, 33, 61, 0.2); --ck-ink: #14213D; }
+.ck3:hover .ck3__face { transform: rotateX(8deg) rotateY(-8deg); }
+.ck3__face.is-night { background: radial-gradient(circle at 35% 26%, #33466f, #14213D 60%, #0b1427); box-shadow: 0 0 0 8px #F4EDE0, 0 12px 0 8px #cfc3ad, 0 34px 36px rgba(0, 0, 0, 0.5), inset 0 8px 16px rgba(0, 0, 0, 0.4); --ck-ink: #F4EDE0; }
+.ck3__tick { position: absolute; left: 50%; top: 50%; width: 2px; height: 8px; margin: -4px 0 0 -1px; border-radius: 2px; background: var(--ck-ink); opacity: 0.55; transform: rotate(var(--r)) translateY(-82px); }
+.ck3__tick.is-big { width: 4px; height: 12px; margin: -6px 0 0 -2px; opacity: 0.9; transform: rotate(var(--r)) translateY(-80px); }
+.ck3__n { position: absolute; font: 800 0.95rem var(--font-ui); color: var(--ck-ink); transform: translateZ(4px); }
+.ck3__n--12 { left: 50%; top: 20px; margin-left: -9px; } .ck3__n--6 { left: 50%; bottom: 20px; margin-left: -4px; }
+.ck3__n--3 { right: 24px; top: 50%; margin-top: -10px; } .ck3__n--9 { left: 24px; top: 50%; margin-top: -10px; }
+.ck3__hand { position: absolute; left: 50%; bottom: 50%; border-radius: 6px; background: var(--ck-ink); transform-origin: 50% 100%; box-shadow: 0 6px 6px rgba(0, 0, 0, 0.25); }
+.ck3__hand--h { width: 7px; height: 48px; margin-left: -3.5px; }
+.ck3__hand--m { width: 5px; height: 70px; margin-left: -2.5px; }
+.ck3__hand--s { width: 2px; height: 78px; margin-left: -1px; background: var(--coral); }
+.ck3__pin { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 3px var(--ck-ink); transform: translateZ(20px); }
+@media (prefers-reduced-motion: reduce) { .ck3__face { transition: none; } .ck3:hover .ck3__face { transform: rotateX(26deg); } }
+.ck__read { text-align: center; display: grid; gap: 2px; }
+.ck__read b { font: 800 1.7rem/1.1 var(--font-ui); color: var(--ink); font-variant-numeric: tabular-nums; }
+.ck__read small { color: var(--muted); font-weight: 600; }
+.ck__set { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 12px 0 4px; }
+.ck__set em { flex-basis: 100%; text-align: center; font: 700 0.72rem var(--font-ui); font-style: normal; color: var(--muted); letter-spacing: 0.04em; }
+.ck__set em.is-set { color: var(--coral); }
+.ck__zones { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.ck__zones li { display: flex; align-items: stretch; gap: 6px; }
+.ck__zone { appearance: none; cursor: pointer; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--glass-brd); background: rgba(127, 127, 127, 0.08); color: var(--ink); font-family: var(--font-ui); text-align: start; }
+.ck__zone:hover { border-color: var(--coral); }
+.ck__zone span { display: grid; min-width: 0; } .ck__zone small span { display: inline; }
+.ck__zone b { font-weight: 800; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck__zone small { color: var(--muted); font-size: 0.7rem; font-weight: 600; }
+.ck__zone strong { font: 800 1rem var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ck__del { appearance: none; cursor: pointer; width: 32px; border-radius: 10px; border: 0; background: rgba(127, 127, 127, 0.12); color: inherit; font-size: 0.75rem; }
+.ck__del:hover { background: rgba(255, 107, 91, 0.25); }
+.ck__add input { width: 100%; margin-top: 10px; min-height: 38px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--glass-brd); background: rgba(127, 127, 127, 0.1); color: var(--ink); font: 600 0.85rem var(--font-ui); }
+.ck__hint { font-size: 0.7rem; margin-top: 8px; text-align: center; }
+
+/* a day with no plan: a sleeping moon on a cloud, breathing, with rising z's and blinking stars */
+.plan-wait .btn { justify-self: center; margin-top: 8px; }
+.week-day.is-noplan:not(.is-on) { border-style: dashed; opacity: 0.75; }
+.nop { position: relative; width: 150px; height: 120px; margin: 0 auto 6px; }
+.nop__moon { position: absolute; left: 39px; top: 22px; width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff6d8, #F9D77E 62%, #eebd55); box-shadow: 0 0 0 6px rgba(249, 215, 126, 0.22), 0 0 34px rgba(249, 215, 126, 0.55), inset -8px -8px 0 rgba(20, 33, 61, 0.08); animation: nopFloat 3.6s ease-in-out infinite; }
+.nop__eye { position: absolute; top: 31px; width: 14px; height: 8px; border-bottom: 3px solid #14213D; border-radius: 0 0 14px 14px; }
+.nop__eye--l { left: 15px; } .nop__eye--r { right: 15px; }
+.nop__mouth { position: absolute; left: 50%; top: 46px; width: 10px; height: 7px; margin-left: -5px; border-radius: 50%; background: #14213D; animation: nopBreath 3.6s ease-in-out infinite; }
+.nop__cheek { position: absolute; top: 42px; width: 11px; height: 7px; border-radius: 50%; background: rgba(255, 107, 91, 0.55); }
+.nop__cheek--l { left: 7px; } .nop__cheek--r { right: 7px; }
+.nop__cloud { position: absolute; left: 22px; bottom: 6px; width: 106px; height: 26px; border-radius: 26px; background: #fff; box-shadow: 18px -10px 0 -2px #fff, 46px -14px 0 0 #fff, 74px -8px 0 -4px #fff, 0 10px 18px rgba(20, 33, 61, 0.18); animation: nopCloud 3.6s ease-in-out infinite; }
+.nop__z { position: absolute; left: 104px; top: 26px; font: 800 0.8rem var(--font-ui); color: var(--coral); opacity: 0; animation: nopZ 3.6s ease-out infinite; }
+.nop__z--2 { animation-delay: 1.2s; font-size: 1rem; } .nop__z--3 { animation-delay: 2.4s; font-size: 1.25rem; }
+.nop__star { position: absolute; font-style: normal; color: #F9B233; animation: nopTwinkle 2.4s ease-in-out infinite; }
+.nop__star--1 { left: 10px; top: 12px; font-size: 0.9rem; } .nop__star--2 { right: 2px; top: 64px; font-size: 0.7rem; animation-delay: 0.8s; } .nop__star--3 { left: 24px; top: 58px; font-size: 0.75rem; animation-delay: 1.6s; }
+@keyframes nopFloat { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-7px) rotate(3deg); } }
+@keyframes nopBreath { 0%, 100% { transform: scale(0.8); } 50% { transform: scale(1.25); } }
+@keyframes nopCloud { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+@keyframes nopZ { 0% { opacity: 0; transform: translate(0, 0) scale(0.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(22px, -34px) scale(1.2) rotate(12deg); } }
+@keyframes nopTwinkle { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+@media (prefers-reduced-motion: reduce) { .nop__moon, .nop__mouth, .nop__cloud, .nop__star { animation: none; } .nop__z { animation: none; opacity: 1; } .nop__z--2 { transform: translate(10px, -12px); } .nop__z--3 { transform: translate(20px, -26px); } }
+
+/* /now: world clocks, each one a watch for one time zone (fluted gold bezel, Arabic numerals) */
+.ckw-grid { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 26px 18px; }
+.ckw { position: relative; display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.ckw__stage { perspective: 900px; width: 100%; max-width: 250px; cursor: zoom-in; }
+.ckw__svg { display: block; width: 100%; height: auto; transform: rotateX(20deg); transition: transform 0.45s ease; filter: drop-shadow(0 7px 0 #6b4a0c) drop-shadow(0 18px 14px rgba(20, 33, 61, 0.45)); }
+.ckw:hover .ckw__svg { transform: rotateX(4deg) rotateY(-6deg); }
+.ckw__nums text { font: 800 15px "Noto Naskh Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif; text-anchor: middle; }
+.ckw__date { font: 800 12px "Geeza Pro", "Segoe UI", Tahoma, sans-serif; text-anchor: middle; fill: #14213D; }
+.ckw__city { font: 700 6.5px var(--font-ui); letter-spacing: 1.6px; text-anchor: middle; opacity: 0.85; }
+.ckw__hands { filter: drop-shadow(0 2px 1.5px rgba(0, 0, 0, 0.45)); }
+.ckw__cap { display: grid; justify-items: center; text-align: center; min-width: 0; max-width: 100%; }
+.ckw__cap b { font: 800 0.88rem var(--font-ui); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.ckw__cap strong { font: 800 0.95rem var(--font-ui); font-variant-numeric: tabular-nums; color: var(--ink); }
+.ckw__cap small { font-size: 0.66rem; font-weight: 600; color: var(--muted); }
+.ckw__del { appearance: none; cursor: pointer; position: absolute; top: -4px; inset-inline-end: 0; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(127, 127, 127, 0.18); color: inherit; font-size: 0.65rem; opacity: 0; transition: opacity 0.15s ease; }
+.ckw:hover .ckw__del, .ckw__del:focus-visible { opacity: 1; }
+.ckw__del:hover { background: rgba(255, 107, 91, 0.35); }
+@media (hover: none) { .ckw__del { opacity: 0.7; } }
+@media (prefers-reduced-motion: reduce) { .ckw__svg { transition: none; } .ckw:hover .ckw__svg { transform: rotateX(20deg); } }
+.ckw__flag { font-size: 17px; text-anchor: middle; }
+
+/* bigger clocks on the card, and the full-screen view */
+.ckw__cap b { font-size: 1.15rem; } .ckw__cap strong { font-size: 1.5rem; } .ckw__cap small { font-size: 0.85rem; }
+.ck__bigbtn { margin-inline-start: auto; letter-spacing: 0; text-transform: none; }
+.ckbig { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; padding: 24px; background: rgba(11, 20, 39, 0.82); backdrop-filter: blur(6px); overflow: auto; }
+.ckbig__box { position: relative; width: min(1500px, 100%); padding: 44px 28px 26px; border-radius: 28px; background: #FFFAF2; color: #14213D; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5); --ink: #14213D; --muted: rgba(20, 33, 61, 0.62); }
+.ckbig__x { appearance: none; cursor: pointer; position: absolute; top: 14px; inset-inline-end: 14px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(20, 33, 61, 0.1); color: #14213D; font-size: 1rem; }
+.ckbig__x:hover { background: rgba(255, 107, 91, 0.35); }
+.ckw-grid--big { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 40px 28px; }
+.ckw-grid--big .ckw__stage { max-width: min(440px, 62vh); cursor: default; }
+.ckw-grid--big .ckw__cap b { font-size: 1.6rem; } .ckw-grid--big .ckw__cap strong { font-size: 2.3rem; } .ckw-grid--big .ckw__cap small { font-size: 1.05rem; }
+.ckw-grid--big .ckw__del { display: none; }
+.ckbig .ck__set { margin-top: 28px; } .ckbig .ck__set em { font-size: 0.95rem; }

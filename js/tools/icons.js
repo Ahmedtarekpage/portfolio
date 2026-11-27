@@ -36,6 +36,8 @@
     people: ["M9 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6zM3 19a6 6 0 0 1 12 0", "M16 5.5a3 3 0 0 1 0 5.5M17.5 14a6 6 0 0 1 3.5 5"],
     person: ["M4 20a8 8 0 0 1 16 0", "M12 4a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"],
     clock: ["M12 5a8 8 0 1 0 0 16a8 8 0 0 0 0-16zM10 2h4", "M12 9v4l3 2"],
+    // waking up: an alarm clock ringing (two bells, two feet)
+    alarm: ["M12 6a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM7.5 19.5L6 22M16.5 19.5L18 22M12 10v3.5l2.5 1.5", "M3.5 6.5L7 3.5M20.5 6.5L17 3.5M1.5 11h1.5M21 11h1.5"],
     coin: [C9, "M12 7.5a4.5 4.5 0 1 0 0 9a4.5 4.5 0 0 0 0-9z"],
     bag: ["M9 4h6l-1.5 3h-3zM10.5 7C7 9 5 12.5 5 15.5c0 3 2.500 4.500 7 4.500s7-1.500 7-4.500c0-3-2-6.500-5.500-8.500", "M12 11v6M14 12.5h-3a1.250 1.250 0 0 0 0 2.500h2a1.250 1.250 0 0 1 0 2.500h-3"],
     card: ["M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM7 15h4", "M3 10h18"],
@@ -98,7 +100,7 @@
   var MAP = {
     "🎫": "ticket", "📅": "calendar", "📆": "calendar", "🗓": "calendar", "🛠": "wrench", "🔧": "wrench",
     "⏳": "hourglass", "⌛": "hourglass", "📈": "chartLine", "📊": "chartBar", "✅": "check", "☑": "check",
-    "📦": "box", "⚙": "gear", "👥": "people", "👫": "people", "👤": "person", "⏱": "clock", "🕒": "clock", "⏰": "clock",
+    "📦": "box", "⚙": "gear", "👥": "people", "👫": "people", "👤": "person", "⏱": "clock", "🕒": "clock", "⏰": "alarm",
     "🪙": "coin", "💰": "bag", "💳": "card", "💵": "cash", "💸": "cash", "💱": "cash", "🎯": "target", "📍": "pin", "📌": "pushpin",
     "🧾": "receipt", "📜": "receipt", "📋": "receipt", "📝": "receipt", "📒": "receipt", "✏": "pencil", "✍": "pencil",
     "➕": "plus", "🗑": "trash", "🔔": "bell", "🔗": "link", "📎": "link", "🔒": "lock", "🔐": "lock", "🛡": "shield",
