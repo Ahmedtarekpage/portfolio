@@ -1722,7 +1722,22 @@ function renderToday(c) {
       { ico: '🛟', l: L('احتياطي الـ 10 أيام', 'The 10-day reserve'), v: `${fmt(DP.pk2 || 0)} Đ`, s: L('بعد القبض، ما تلمسوش دلوقتي', 'after payday, not for now') }
     ];
     const i = ((UI.psI ?? 1) % 3 + 3) % 3, x = views[i];
-    return `<div class="ps-row ps-swipe ${DP.realHave < -0.5 ? 'bad' : ''}" data-psswipe role="button" tabindex="0" title="${L('اسحب أو دوس تشوف التاني', 'Swipe or tap for the next')}"><span class="ps-ico">${x.ico}</span><span class="ps-l">${x.l}<small>${x.s}</small></span><b dir="ltr">${x.v}</b><span class="ps-dots">${views.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span></div>`;
+    // how each number is made (owner, 2026-11-27: "this month, the 10 days, the cycle: tell me the details")
+    const bills = (DP.rows || []).filter(r => !r.daily && !r.fun && r.remain > 0.5), r2 = v => `<b dir="ltr">${fmt(v)}</b>`;
+    const pay = DP.end instanceof Date ? new Date(DP.end.getFullYear(), DP.end.getMonth(), DP.end.getDate() + 1) : null, dm = d => d ? `${d.getDate()}/${d.getMonth() + 1}` : '';
+    const resEnd = pay ? new Date(pay.getFullYear(), pay.getMonth(), pay.getDate() + 9) : null;
+    const det = [
+      `<li>${L('جيب الشهر', "This month's pocket")} ${r2(DP.pk1 || 0)} − ${L('فواتير لسه', 'bills still due')} ${r2(DP.offRemain || 0)} = ${r2(Math.max(0, (DP.pk1 || 0) - (DP.offRemain || 0)))}</li>
+       <li>÷ ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')} ${L('لحد', 'until')} ${endD} = ${r2(DP.essDaily || 0)} ${L('في اليوم', 'a day')}${DP.funDaily > 0.005 ? ` + ${L('فلوس حرّة', 'free money')} ${r2(DP.funDaily)}` : ''}</li>`,
+      `<li>${L(`الدورة دي لحد ${endD}: محتاج`, `This cycle until ${endD}: you need`)} ${r2(DP.needM || 0)} · ${L('معاك ليها', 'you have for it')} ${r2(DP.pk1 || 0)}${(DP.needM || 0) - (DP.pk1 || 0) > 0.5 ? ` · <span class="bad">${L('ناقص', 'short')} ${fmt(DP.needM - DP.pk1)}</span>` : ''}</li>` +
+        (bills.length ? `<li>${L('الفواتير اللي لسه:', 'Bills still due:')} ${bills.slice(0, 4).map(r => `${r.icon || '🧾'} ${esc(r.name)} ${r2(r.remain)}`).join(' · ')}${bills.length > 4 ? ' …' : ''}</li>` : '') +
+        `<li>${L('الباقي للصرف اليومي', 'Left for day-to-day')} ${r2(Math.max(0, (DP.pk1 || 0) - (DP.offRemain || 0)))} = ${r2(DP.essDaily || 0)} × ${DP.daysLeft}</li>`,
+      `<li>${L(`من ${dm(pay)} لـ ${dm(resEnd)} (أول 10 أيام بعد القبض)`, `From ${dm(pay)} to ${dm(resEnd)} (the first 10 days after payday)`)}</li>
+       <li>${L('محتاج', 'You need')} ${r2(DP.En || 0)} · ${L('معاك', 'you have')} ${r2(DP.pk2 || 0)}${DP.resShort > 0.5 ? ` · <span class="bad">${L('ناقص', 'short')} ${fmt(DP.resShort)}</span>` : ' ✅'}</li>
+       <li>${L('ده أمان لحد ما المرتب يدخل ويتوزّع، ما تصرفوش دلوقتي', 'A cushion until the salary lands and is split: not for now')}</li>`
+    ][i];
+    return `<div class="ps-row ps-swipe ${DP.realHave < -0.5 ? 'bad' : ''}" data-psswipe role="button" tabindex="0" title="${L('اسحب أو دوس تشوف التاني', 'Swipe or tap for the next')}"><span class="ps-ico">${x.ico}</span><span class="ps-l">${x.l}<small>${x.s}</small></span><b dir="ltr">${x.v}</b><span class="ps-dots">${views.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span></div>` +
+      `<ul class="ps-det">${det}</ul>`;
   };
   // the live-prices card's summary (owner, 2026-11-27): what you have, what you can spend until payday, payday, the next instalment
   const ps = document.getElementById('pulseSum');
