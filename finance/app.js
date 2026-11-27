@@ -2769,8 +2769,25 @@ const unpress = () => cardsEl.querySelectorAll('.pressed, .lit').forEach(x => { 
 const logEl = $('#log'), chipsEl = $('#chips'), sayIn = $('#sayIn');
 let pending = null, atMenu = false;
 const BACK = { get l() { return L('↩️ رجوع', '↩️ Back'); }, v: null };
+const RESTART = { get l() { return L('⏮ من الأول', '⏮ Start over'); }, v: '__restart' };
+/** run a flow so that ↩️ goes back one question (earlier answers replayed quietly) and ⏮ starts it again */
+async function runFlow(key) {
+  const start = logEl.children.length; let replay = [];
+  try {
+    for (let guard = 0; guard < 40; guard++) {
+      UI.rec = []; UI.replay = replay.slice(); UI.quiet = replay.length > 0; UI.backReq = null;
+      await FLOWS[key]();
+      if (UI.backReq === 'restart') { while (logEl.children.length > start) logEl.lastChild.remove(); replay = []; continue; }
+      if (UI.backReq !== 'back' || !UI.rec.length) break;
+      const prev = UI.rec[UI.rec.length - 1]; // the question before the one where ↩️ was pressed
+      while (logEl.children.length > prev.mark) logEl.lastChild.remove();
+      replay = UI.rec.slice(0, -1);
+    }
+  } finally { UI.rec = null; UI.replay = []; UI.quiet = false; UI.backReq = null; }
+}
 const scrollLog = () => { logEl.scrollTop = logEl.scrollHeight; };
 async function bot(html, cls = '') {
+  if (UI.quiet) { const d = document.createElement('div'); d.innerHTML = html; return d; }
   const el = document.createElement('div'); el.className = 'msg bot typing'; el.innerHTML = '<i></i><i></i><i></i>';
   logEl.append(el); scrollLog(); await sleep(380);
   if (UI.greet) { cls += ' greet'; UI.greet = false; } // ترحيب القايمة: في وضع قرش بيظهر سطر صغير تحت الرد
@@ -2780,6 +2797,7 @@ async function bot(html, cls = '') {
   return el;
 }
 function me(text) {
+  if (UI.quiet) return;
   const el = document.createElement('div'); el.className = 'msg me' + (LOCK ? '' : ' priv');
   el.textContent = LOCK ? String(text).replace(/[\d٠-٩]/g, '•') : text; // والأرقام مستخبية، اللي بتكتبه بيتغطى
   logEl.append(el); scrollLog(); sfx.send();
@@ -2902,6 +2920,10 @@ function setChips(opts) {
     b.onclick = () => answer(o.v, o.l); chipsEl.append(b); });
 }
 async function ask(q, opts = [], free = false) {
+  // ↩️ Back = one step back (owner, 2026-11-27): a flow is run again with the earlier answers replayed quietly
+  if (UI.replay && UI.replay.length) { const r = UI.replay.shift(); UI.rec?.push(r); if (!UI.replay.length) UI.quiet = false; numNext = false; calNext = null; return r.v; }
+  const mark = logEl.children.length;
+  if (UI.rec && !UI.noRec && UI.rec.length && !atMenu) opts = [...opts, RESTART];
   // سؤال بيقول "اكتب" (اسم الشركة، الهدف…) بياخد أي كلام حتى لو فيه اختيارات تحت
   if (!free && /اكتب|type the|your own words|in your words/i.test(String(q))) free = true;
   // "how many months / payments / years…" questions open the number pad too (owner, 2026-11-27)
@@ -2910,7 +2932,17 @@ async function ask(q, opts = [], free = false) {
   const pr = new Promise(res => { pending = res; });
   if (calNext) { const k = calNext; calNext = null; calChip(k, q, opts); calOpen(k, q, opts); }
   if (UI.hint && opts.length) autoFill(opts);
-  return pr;
+  let v = await pr;
+  if (v === '__restart') { // ⏮ from the beginning: ask first
+    UI.noRec = true;
+    const c = await ask(L('⏮ تبدأ من الأول؟ كل اللي اخترته هنا هيتمسح', '⏮ Start over? Everything you chose here will be cleared'), [{ l: L('✅ آه، من الأول', '✅ Yes, start over'), v: 'y' }, { l: L('❌ لأ، كمّل', '❌ No, carry on'), v: 'n' }]);
+    UI.noRec = false;
+    if (c === 'y') { UI.backReq = 'restart'; return null; }
+    return ask(q, opts.filter(o => o !== RESTART), free);
+  }
+  if (v === null && UI.rec && UI.rec.length && !UI.noRec) UI.backReq = 'back';
+  else if (UI.rec && !UI.noRec && v !== null) UI.rec.push({ v, mark });
+  return v;
 }
 /* ───────────── 🦈 قرش بيفهم الكلام: أي حاجة مكتوبة مش اختيار بتروح للذكاء الاصطناعي يقرر (طلب صاحب الحساب، 2026-11-20) ─────────────
  * pick = قصدك اختيار من اللي تحت · free = إجابة حرة · reply = سؤال جانبي: يرد ويفضل نفس السؤال · switch = عايز حاجة تانية خالص
@@ -4344,7 +4376,7 @@ async function menu() {
     UI.greet = true; const p = ask(q, MENU); atMenu = true;
     const a = await p;
     try {
-      if (FLOWS[a]) await FLOWS[a]();
+      if (FLOWS[a]) await runFlow(a);
       else if (a && parseList(a).length >= 2) await flowPasteList(parseList(a));
       else {
         const m = a && parseMoney(a), words = String(a || '').trim().split(/\s+/).length;
