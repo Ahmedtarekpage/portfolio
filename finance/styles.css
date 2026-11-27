@@ -1517,3 +1517,27 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .ps-det .ps-sum { font-weight: 800; color: var(--ink); border-bottom: 0; }
 .ps-tag { font-style: normal; font-size: .62rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: rgba(52, 211, 153, .18); color: #6ee7b7; margin-inline-start: 4px; }
 .ps-tag.bill { background: rgba(251, 191, 36, .18); color: #fcd34d; }
+/* split wizard: pick which debt the income pays, by due date */
+.sw-picks { display: grid; gap: 6px; margin: 10px 0; text-align: start; }
+.sw-picks > b { font-size: .82rem; }
+.sw-pick { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "n a" "w a"; gap: 2px 10px; align-items: center; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .04); color: var(--ink); font: inherit; text-align: start; cursor: pointer; transition: background .15s, border-color .15s; }
+.sw-pick span { grid-area: n; font-weight: 700; } .sw-pick small { grid-area: w; color: var(--mute, #9aa3b5); } .sw-pick b { grid-area: a; }
+.sw-pick:hover { background: rgba(255, 255, 255, .08); }
+.sw-pick.on { border-color: var(--acc); background: rgba(255, 107, 91, .12); }
+/* the debt choices as small wallet cards (owner, 2026-11-28) */
+.sw-pcards { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x mandatory; }
+.sw-pick.dc { position: relative; inset: auto; flex: 0 0 168px; min-height: 108px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; padding: 12px; border-radius: 16px; transform: none; opacity: .72; scroll-snap-align: start; transition: transform .2s, opacity .2s, box-shadow .2s; grid-template-areas: none; }
+.sw-pick.dc:hover { opacity: .95; transform: translateY(-2px); }
+.sw-pick.dc.on { opacity: 1; transform: translateY(-3px) scale(1.02); box-shadow: 0 0 0 3px #fff, 0 10px 24px rgba(0, 0, 0, .45); }
+.sw-pt { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: .85rem; }
+.sw-pick.dc b { font-size: 1rem; } .sw-pick.dc small { font-size: .68rem; }
+.sw-soon { position: absolute; top: 8px; inset-inline-end: 8px; font-style: normal; font-size: .6rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: #fff; }
+.sw-chk { position: absolute; bottom: 8px; inset-inline-end: 10px; font-style: normal; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #16a34a; font-weight: 900; }
+.sw-pcards .sw-pick.dc { color: #fff; background: linear-gradient(135deg, #5d6b85, #2a3245); border: 0; }
+.sw-pcards .sw-pick.dc--tabby { background: #98F99A; color: #0a0a0a; }
+.sw-pcards .sw-pick.dc--tamara { background: linear-gradient(125deg, #FDCDAA, #FBE7A7 22%, #ECA0BA 48%, #CA93C6 70%, #B5E0F9); color: #0a0a0a; }
+.sw-pcards .sw-pick.dc--person { background: linear-gradient(135deg, #8d6be8, #3e2a86); }
+.sw-pcards .sw-pick.dc--card { background: linear-gradient(135deg, #2b2b30, #0c0c0e); }
+.sw-pcards .sw-pick.dc--loan { background: linear-gradient(135deg, #3a6fd8, #16336b); }
+.sw-pcards .sw-pick.dc--tabby small, .sw-pcards .sw-pick.dc--tamara small { color: rgba(10, 10, 10, .7); }
+.sw-pcards .sw-pick.dc small { color: rgba(255, 255, 255, .78); }

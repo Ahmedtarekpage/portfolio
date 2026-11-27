@@ -3191,9 +3191,14 @@ async function flowIncome(kind, preset, opt = {}) {
     }
     if (m0?.toSafety > 0.5) held.push({ label: L('🛟 زيادة راحت للأمان', '🛟 Extra moved to Safety'), aed: -m0.toSafety });
     const dl = debts().map(d => ({ name: d.name, left: dLeft(R0, d) * rate(cOf(d)) })).filter(d => d.left > 0.5);
-    const res = await splitWizard({ L, fmt, esc, parseNum, sfx, sym: CUR[cur].s, k: 1 / pv.r, r: pv, debtName: dName(), tx, items, held, debts: dl });
+    // the open debts by due date (soonest first; no date last) so the income can be sent to the one that is due
+    const debtsPick = debts().filter(d => dLeft(R0, d) > 0.5).map(d => ({ d, nx: dNext(R0, d) })).sort((a, b) => (a.nx ? a.nx.date : '9999') < (b.nx ? b.nx.date : '9999') ? -1 : 1)
+      .map(({ d, nx }) => ({ id: d.id, ico: dAvatar(d, 34), cls: dBrand(d) ? 'dc--' + dBrand(d) : d.kind === 'person' ? 'dc--person' : 'dc--' + (d.kind || 'other'), name: dNm(d), left: `${fmt(dLeft(R0, d), 2)} ${CUR[cOf(d)].s}`, when: nx ? `📅 ${dDate(nx.date)} · ${dWhen(nx)}` : L('من غير ميعاد', 'no date') }));
+    const res = await splitWizard({ L, fmt, esc, parseNum, sfx, sym: CUR[cur].s, k: 1 / pv.r, r: pv, debtName: dName(), tx, items, held, debts: dl, debtsPick });
     if (!res) return bot(L('تمام، ما سجّلتش الدخل ده 👍 لما تحب ابدأ تاني.', "Okay, I didn't save that income 👍 Start again whenever you like."));
     if (Object.keys(res.ov).length) tx.ov = res.ov;
+    // debts are paid in list order: the chosen one moves to the front so this income goes to it
+    if (res.debtId) { const ds = debts(), j = ds.findIndex(x => x.id === res.debtId); if (j > 0) ds.unshift(ds.splice(j, 1)[0]); }
   }
   S.tx.push(tx); save(); render();
   const c = ctx(), r = c.R.rows[tx.id], k = 1 / r.r, pct = fmt(r.E / r.incomeAfter * 100);
@@ -3775,10 +3780,14 @@ function renderDebtBar() {
   // every 2 s (or a drag / swipe) the front card flips away and the next comes forward
   const el = document.getElementById('debtBar'); if (!el || !UI.R) return;
   const R = UI.R, open = dOpen(R);
-  if (!open.length) { el.hidden = true; dbN = 0; return; }
+  // 🎉 the debts just reached zero: a celebration once (owner, 2026-11-27)
+  try { const had = localStorage.getItem('floosy.hadDebt'); if (open.length) localStorage.setItem('floosy.hadDebt', '1'); else if (had === '1') { localStorage.setItem('floosy.hadDebt', '0'); setTimeout(debtFreeShow, 300); } } catch {}
+  // after the debts, the same deck carries the next steps: the safety target, then the big goals (each marked now / later)
+  const next = nextCards(R, open.length > 0);
+  if (!open.length && !next.length) { el.hidden = true; dbN = 0; return; }
   const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), egp = rate('EGP') > 0 ? tot / rate('EGP') : 0, soon = dSoonest(R);
   const groups = dGroups(open); UI.dbGroups = groups;
-  const n = groups.length + 1; if (n !== dbN) dbI = Math.min(dbI, n - 1); dbN = n;
+  const nDebt = open.length ? groups.length + 1 : 0, n = nDebt + next.length; if (n !== dbN) dbI = Math.min(dbI, n - 1); dbN = n;
   const cd = nx => nx ? `<span class="dc-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}${nx.days <= 7 ? ' urgent' : ''}"><small>📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')} · <b dir="ltr">${fmt(nx.amt, 2)}</b> · ${dDate(nx.date)}</small>` +
       `<b class="db-count" dir="ltr" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></span>`
     : `<span class="dc-next"><small>${L('من غير ميعاد سداد', 'No pay-back date')}</small></span>`;
@@ -3806,20 +3815,59 @@ function renderDebtBar() {
     `<b class="db-core">${faces.length > 24 ? '+' + (faces.length - 24) : faces.length}</b></span>`;
   const main = CUR[dbCur] ? dbCur : 'AED', totMain = tot / rate(main);
   const badges = [...new Set(['AED', 'EGP', 'SAR', 'USD', main])].filter(k => k !== main && CUR[k] && rate(k) > 0).map(k => `<span class="db-badge" dir="ltr"><i>${CUR[k].f}</i><b>${fmt(tot / rate(k))}</b><small>${CUR[k].s}</small></span>`).join('');
-  const total = `<span class="dc dc--all" data-k="${n - 1}">
+  const total = !open.length ? '' : `<span class="dc dc--all" data-k="${nDebt - 1}">
       <span class="dc-top">${orbit}<span><b>${L('كل الديون', 'All debts')} · ${groups.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
       <span class="dc-amt"><small class="dc-lbl">${L('الإجمالي', 'Total')} · ${CUR[main].f} ${CUR[main].n}</small><b dir="ltr">≈ ${fmt(totMain)} <em>${CUR[main].s}</em></b>
         <span class="db-badges">${badges}</span></span>
       ${soon ? cd(soon.nx).replace('<small>', `<small>${esc(dNm(soon.d))} · `) : ''}</span>`;
   const curBar = `<span class="db-curs" role="group" aria-label="${L('العملة الأساسية', 'Main currency')}"><small>${L('العملة', 'Currency')}</small>${dbCurs().map(k => `<span role="button" tabindex="0" class="db-cur${k === main ? ' on' : ''}" data-dbcur="${k}">${CUR[k].f} ${CUR[k].s}</span>`).join('')}</span>`;
   el.hidden = false;
-  el.innerHTML = curBar + `<span class="db-deck">${groups.map(card).join('')}${total}</span>` +
-    `<span class="db-foot"><span class="db-dots" aria-hidden="true">${Array.from({ length: n }, (_, k) => `<i class="${k === dbI ? 'on' : ''}${k === n - 1 ? ' all' : ''}"></i>`).join('')}</span>` +
+  el.innerHTML = curBar + `<span class="db-deck">${groups.map(card).join('')}${total}${next.map((x, j) => x.html(nDebt + j)).join('')}</span>` +
+    `<span class="db-foot"><span class="db-dots" aria-hidden="true">${Array.from({ length: n }, (_, k) => `<i class="${k === dbI ? 'on' : ''}${open.length && k === nDebt - 1 ? ' all' : ''}${k >= nDebt ? ' nx' : ''}"></i>`).join('')}</span>` +
     `<span role="button" tabindex="0" class="db-speed" data-dbspeed title="${L('سرعة اللف', 'Turning speed')}">${dbSpeedLbl()}</span></span>`;
   dbPlace(el);
   el.setAttribute('aria-label', L(`الديون: ${open.length}، الإجمالي تقريبًا ${fmt(tot)} درهم. اسحب تقلّب، ودوس تفتح`, `Debts: ${open.length}, about ${fmt(tot)} AED in all. Drag to flip, tap to open`));
 }
 // each card's place in the stack: 0 = front, 1–2 = waiting behind, the one before = flipped away
+/** the cards after the debts: 🛟 the safety target, then 🧠 the big goals, in that order (now / later) */
+function nextCards(R, inDebt) {
+  const out = []; let c; try { c = ctx(); } catch { return out; }
+  const tag = now => `<span class="dc-stage ${now ? 'now' : ''}">${now ? L('⭐ دلوقتي', '⭐ Now') : L('⏳ بعدين', '⏳ Later')}</span>`;
+  const bar = (pct, col) => `<span class="dc-prog"><i style="width:${Math.round(Math.min(1, pct) * 100)}%;background:${col}"></i></span>`;
+  let safeDone = true;
+  try {
+    const t = spareList(R)[0], have = R.stabilityAED || 0;
+    if (t && t.amt > 0.5) {
+      safeDone = have >= t.amt - 0.5;
+      const sd = spareDates(c), dt = safeDone ? null : sd.at(t.amt), now = !inDebt && !safeDone;
+      out.push({ html: k => `<span class="dc dc--safe" data-k="${k}" data-go="c-spare">
+        <span class="dc-top"><span class="dav dav--e" style="width:38px;height:38px;font-size:21px">🛟</span><span><b>${L('صندوق الأمان', 'Safety fund')}</b><small class="dc-sub">${esc(t.name)}</small></span>${tag(now)}</span>
+        <span class="dc-amt"><small class="dc-lbl">${safeDone ? L('وصلت ✅', 'Reached ✅') : L('معاك من الهدف', 'You have of the target')}</small><b dir="ltr">${fmt(Math.min(have, t.amt))} <em>/ ${fmt(t.amt)} Đ</em></b>${bar(have / t.amt, '#34d399')}</span>
+        <span class="dc-next"><small>${safeDone ? L('🎉 الأمان كامل: الفلوس بتروح للأهداف', '🎉 Safety is full: money goes to the goals') : inDebt ? L('بيبدأ يتملي بجد بعد ما الديون تخلص', 'Fills for real once the debts are paid') : dt ? L(`📅 المتوقع ${monthName(dt)} · فاضل ${fmt(t.amt - have)}`, `📅 Expected ${monthName(dt)} · ${fmt(t.amt - have)} to go`) : L(`فاضل ${fmt(t.amt - have)}`, `${fmt(t.amt - have)} to go`)}</small></span></span>` });
+    }
+  } catch {}
+  try {
+    const list = S.goals || [];
+    if (list.length) {
+      const base = goalBase(c), p = plan(base, list);
+      p.res.forEach(({ g, s }, i) => {
+        const dt = s == null ? null : new Date(base.start.getFullYear(), base.start.getMonth() + s, 1), now = !inDebt && safeDone && i === 0;
+        out.push({ html: k => `<span class="dc dc--goal" data-k="${k}" data-go="c-goals">
+          <span class="dc-top"><span class="dav dav--e" style="width:38px;height:38px;font-size:21px">${g.type === 'buy' ? '🏠' : '🎯'}</span><span><b>${esc(g.name || '')}</b><small class="dc-sub">${GTYPE[g.type] || ''}</small></span>${tag(now)}</span>
+          <span class="dc-amt"><small class="dc-lbl">${L('الخطة', 'The plan')}</small><b class="dc-gsum">${gSum(g)}</b></span>
+          <span class="dc-next"><small>${dt ? L(`📅 المتوقع ${monthName(dt)}${s ? ` (${eta(s)})` : ''}`, `📅 Expected ${monthName(dt)}${s ? ` (${eta(s)})` : ''}`) : L('📅 محتاج دخل أكتر أو هدف أصغر', '📅 Needs more income or a smaller goal')}${inDebt ? L(' · بعد الديون', ' · after the debts') : !safeDone ? L(' · بعد الأمان', ' · after Safety') : ''}</small></span></span>` });
+      });
+    }
+  } catch {}
+  return out;
+}
+/** 🎉 debt-free: a short motion graphic over the page */
+function debtFreeShow() {
+  const o = document.createElement('div'); o.className = 'dfree'; o.setAttribute('role', 'status');
+  o.innerHTML = `<div class="dfree-card"><div class="dfree-burst"></div><b>🎉 ${L('خلّصت كل الديون!', 'All debts paid off!')}</b><small>${L('من النهارده الفلوس بتروح للأمان وبعدها للأهداف 🛟 → 🏠', 'From today the money goes to Safety, then the goals 🛟 → 🏠')}</small></div>`;
+  document.body.appendChild(o); try { sfx.coins?.(); party(['🎉', '💸', '🏆', '✨', '🥳']); setTimeout(() => party(['🎉', '🪙', '✨']), 700); } catch {}
+  o.addEventListener('click', () => o.remove()); setTimeout(() => { o.classList.add('out'); setTimeout(() => o.remove(), 600); }, 4200);
+}
 function dbPlace(el) {
   el.querySelectorAll('.dc').forEach(c => {
     const k = +c.dataset.k, off = (k - dbI + dbN) % dbN;
@@ -3841,7 +3889,7 @@ const dbSpeedLbl = () => ({ 0: L('⏸ واقف', '⏸ Paused'), 4000: L('🐢 ب
 function dbTurn(k = 1) {
   dbI = ((dbI + k) % dbN + dbN) % dbN;
   const el = document.getElementById('debtBar');
-  if (!el?.querySelector('.dc') || !UI.R || dGroups(dOpen(UI.R)).length + 1 !== dbN) return renderDebtBar();
+  if (!el?.querySelector('.dc') || !UI.R || el.querySelectorAll('.dc').length !== dbN) return renderDebtBar();
   el.classList.toggle('is-back', k < 0); dbPlace(el);
 }
 (() => { const el = document.getElementById('debtBar'); if (!el) return;
@@ -3941,7 +3989,7 @@ function photoSmall(file) {
     if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; // that was a drag, not a tap
     if (e.target.closest('.db-curs, .db-foot')) return;
     clearTimeout(UI.dbClickT); if (e.detail > 1) return; // a double-click edits instead
-    UI.dbClickT = setTimeout(() => { if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; const R = ctx().R, op = dOpen(R), grp = (UI.dbGroups || [])[dbI]; debtPop(grp ? Math.max(0, op.indexOf(grp[0])) : 0); }, 260);
+    UI.dbClickT = setTimeout(() => { if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; const front = el.querySelector('.dc[data-pos="0"]'); if (front?.dataset.go) { const cdv = document.getElementById(front.dataset.go); if (cdv) { cdv.classList.remove('fold'); cdv.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; } const R = ctx().R, op = dOpen(R), grp = (UI.dbGroups || [])[dbI]; debtPop(grp ? Math.max(0, op.indexOf(grp[0])) : 0); }, 260);
   });
   el.addEventListener('dblclick', e => { const c = e.target.closest('.dc[data-did]'); if (!c) return; e.preventDefault(); UI.dbSwipeAt = Date.now(); debtEdit(c.dataset.did); });
   el.addEventListener('keydown', e => { const g = e.target.closest('[data-dbgo]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hand(+g.dataset.dbgo); } });
