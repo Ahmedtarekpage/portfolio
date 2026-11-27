@@ -1719,9 +1719,9 @@ function renderToday(c) {
     const soon = dSoonest(R), row = (ico, lbl, val, sub, cls = '') => `<div class="ps-row ${cls}"><span class="ps-ico">${ico}</span><span class="ps-l">${lbl}${sub ? `<small>${sub}</small>` : ''}</span><b dir="ltr">${val}</b></div>`;
     ps.innerHTML =
       row('💰', L('معاك دلوقتي', 'You have now'), `${fmt(have)} Đ`, L('كل المحافظ', 'all wallets')) +
+      row('📅', L('القبض', 'Payday'), pi.none ? '—' : pi.due ? L('النهارده 🎉', 'Today 🎉') : L(`بعد ${plural(pi.days, 'يوم', 'يومين', 'أيام', 'يوم')}`, `in ${EN_N(pi.days, 'day')}`), L('الفلوس الجاية', 'money coming in'), '') +
       row('🛒', L('تقدر تصرف لحد القبض', 'You can spend until payday'), `${fmt(Math.max(0, DP.realHave))} Đ`, L(`≈ ${fmt(DP.total, 2)} في اليوم · ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')}`, `≈ ${fmt(DP.total, 2)} a day · ${EN_N(DP.daysLeft, 'day')}`), DP.realHave < -0.5 ? 'bad' : '') +
-      row('📅', L('القبض', 'Payday'), pi.none ? '—' : pi.due ? L('النهارده 🎉', 'Today 🎉') : L(`بعد ${plural(pi.days, 'يوم', 'يومين', 'أيام', 'يوم')}`, `in ${EN_N(pi.days, 'day')}`), '') +
-      (soon ? row('💳', L('القسط الجاي', 'Next instalment'), `${fmt(soon.nx.amt, 2)} ${CUR[cOf(soon.d)].s}`, `${esc(dNm(soon.d))} · ${dWhen(soon.nx)}`, soon.nx.days < 0 ? 'bad' : soon.nx.days <= 3 ? 'warn' : '') : '');
+      (soon ? row('💳', L('عليك قسط', 'Next instalment'), `${fmt(soon.nx.amt, 2)} ${CUR[cOf(soon.d)].s}`, `${esc(dNm(soon.d))} · ${dWhen(soon.nx)}`, soon.nx.days < 0 ? 'bad' : soon.nx.days <= 3 ? 'warn' : '') : '');
   } catch (e) { ps.innerHTML = ''; }
 }
 function quickSpend() {
@@ -1737,7 +1737,7 @@ document.addEventListener('click', e => {
 { const fab = document.createElement('button'); fab.type = 'button'; fab.className = 'fab-add'; fab.dataset.quick = 'spend'; fab.textContent = '＋'; fab.setAttribute('aria-label', 'سجّل مصروف'); document.body.append(fab); }
 
 function render() {
-  { const t = document.querySelector('.pulse-tt'); if (t) t.textContent = L('الأسعار لايف', 'Live prices'); }
+  { const t = document.querySelector('.pulse-tt'); if (t) t.textContent = L('قرشي', 'My money'); const u = document.querySelector('.pulse-st'); if (u) u.textContent = L('الأسعار لايف', 'Live prices'); }
   try { let ch = false; (S.debts || []).forEach(d => { const en = d.kind === 'person' && EN_NAME[String(d.name || '').trim()]; if (en) { d.name = en; ch = true; } }); if (ch) setTimeout(save, 0); } catch {}
   try { setTimeout(renderDebtBar, 0); } catch {}
   regCur();

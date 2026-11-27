@@ -1410,3 +1410,12 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .ps-row.bad b { color: #f87171; } .ps-row.warn b { color: #fbbf24; }
 .pulse-fx { align-content: start; }
 .pulse .debt-bar { align-content: center; }
+/* "قرشي": an animated title, a spinning coin, the prices labelled underneath (owner, 2026-11-27) */
+.pulse-t { font-size: 1.2rem; gap: 10px; }
+.pulse-tt { background: linear-gradient(90deg, #f5c542, #ff8a6b, #34d399, #f5c542); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ttShine 6s linear infinite; font-weight: 900; letter-spacing: .01em; }
+@keyframes ttShine { to { background-position: 300% 0; } }
+.pulse-coin { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c8, #f5c542 45%, #b8860b); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .25), 0 3px 10px rgba(245, 197, 66, .45); animation: coinSpin 3.2s ease-in-out infinite; position: relative; }
+.pulse-coin::after { content: 'ق'; position: absolute; inset: 0; display: grid; place-items: center; font: 900 .8rem var(--font, inherit); color: #8a5a00; }
+@keyframes coinSpin { 0%, 100% { transform: rotateY(0); } 50% { transform: rotateY(180deg); } }
+.pulse-sub { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .8rem; color: var(--mute, #9aa3b5); margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .pulse-tt, .pulse-coin { animation: none; } }
