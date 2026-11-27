@@ -362,13 +362,15 @@ const debts = () => (Array.isArray(S.debts) ? S.debts : (S.debts = debtList(S).m
 const DKIND = { card: '💳', tabby: '🟣', loan: '🏦', person: '🤝', other: '🧾' };
 // Tabby / Tamara show their own logo (finance/brand/*.png); every other debt keeps its emoji
 const dBrand = d => d && (d.kind === 'tabby' || /tabby|tamara|تابي|تمارا/i.test(d.name || '')) ? (/tamara|تمارا/i.test(d.name || '') ? 'tamara' : 'tabby') : null;
-const dIco = d => { const b = dBrand(d); return b ? `<img class="dlogo" src="brand/${b}.png" alt="${b === 'tamara' ? 'Tamara' : 'Tabby'}" width="18" height="18">` : (DKIND[d?.kind] || '🧾'); };
+const dIco = d => { if (d?.kind === 'person') return dAvatar(d, 20); const b = dBrand(d); return b ? `<img class="dlogo" src="brand/${b}.png" alt="${b === 'tamara' ? 'Tamara' : 'Tabby'}" width="18" height="18">` : (DKIND[d?.kind] || '🧾'); };
 const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get tabby() { return L('تابي / تمارا (من غير فوايد)', 'Tabby / Tamara (no interest)'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
 /* 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): الاسم بيتكتب وبيستخبى افتراضيًا (أول حرف ونقط) في كل حتة،
    وبيتبعت مستخبي للذكاء الاصطناعي؛ نفس الشخص ينفع يبقى ليه دين بكذا عملة (سطر لكل عملة)؛ وأي دين ليه ميعاد
    سداد، أو قسط شهري (مبلغ × عدد شهور من تاريخ أول قسط). القسط جدول وتنبيه بس: الفلوس بتتسدد زي الأول. */
+// lenders' names are kept in English (owner, 2026-11-27): بابا → Dad, …
+const EN_NAME = { 'بابا': 'Dad', 'ابويا': 'Dad', 'أبويا': 'Dad', 'ماما': 'Mum', 'امي': 'Mum', 'أمي': 'Mum', 'أخويا': 'Brother', 'اخويا': 'Brother', 'أختي': 'Sister', 'اختي': 'Sister', 'صاحبي': 'Friend', 'My brother': 'Brother', 'My sister': 'Sister', 'A friend': 'Friend' };
 const dMask = n => { const t = String(n || '').trim(); return t ? [...t][0] + '•••' : ''; };
-const dNm = d => (d && d.kind === 'person' && d.hide !== false && d.name ? dMask(d.name) : (d?.name || ''));
+const dNm = d => (d && d.kind === 'person' && d.hide === 'always' && d.name ? dMask(d.name) : (d?.name || '')); // owner, 2026-11-27: show the full name
 const dAddMonths = (isoDay, k) => { const [y, m, dd] = isoDay.split('-').map(Number), last = new Date(y, m - 1 + k + 1, 0).getDate(), x = new Date(y, m - 1 + k, Math.min(dd, last)); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
 const dDays = isoDay => Math.round((new Date(isoDay + 'T12:00:00') - new Date(today() + 'T12:00:00')) / 864e5);
 const dDate = isoDay => new Date(isoDay + 'T12:00:00').toLocaleDateString(L('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', year: 'numeric' });
@@ -1724,6 +1726,7 @@ document.addEventListener('click', e => {
 { const fab = document.createElement('button'); fab.type = 'button'; fab.className = 'fab-add'; fab.dataset.quick = 'spend'; fab.textContent = '＋'; fab.setAttribute('aria-label', 'سجّل مصروف'); document.body.append(fab); }
 
 function render() {
+  try { let ch = false; (S.debts || []).forEach(d => { const en = d.kind === 'person' && EN_NAME[String(d.name || '').trim()]; if (en) { d.name = en; ch = true; } }); if (ch) setTimeout(save, 0); } catch {}
   try { setTimeout(renderDebtBar, 0); } catch {}
   regCur();
   const c = ctx(), { R } = c;
@@ -3679,7 +3682,6 @@ function renderDebtBar() {
   el.innerHTML = `<span class="db-stage" aria-hidden="true"><span class="db-ring" style="transform: translateZ(calc(var(--db-r) * -1)) rotateY(${UI.dbAng ?? -dbI * step}deg)">` +
       faces.map((f, k) => `<span class="db-face${k === dbI ? ' is-front' : ''}" style="transform: rotateY(${k * step}deg) translateZ(var(--db-r))">${f}</span>`).join('') + `</span></span>` +
     `<span class="db-info">${dbI < open.length ? dbSlide(R, open[dbI]) : totSlide}</span>` +
-    `<span class="db-nav"><span role="button" tabindex="0" class="db-go" data-dbgo="-1" aria-label="${L('اللي قبله', 'Previous')}">‹</span><span role="button" tabindex="0" class="db-go" data-dbgo="1" aria-label="${L('اللي بعده', 'Next')}">›</span></span>` +
     `<span class="db-dots" aria-hidden="true">${faces.map((_, k) => `<i class="${k === dbI ? 'on' : ''}${k === n - 1 ? ' all' : ''}"></i>`).join('')}</span>`;
   el.dataset.i = dbI; UI.dbTot = totSlide;
   el.setAttribute('aria-label', L(`الديون: ${open.length}، الإجمالي تقريبًا ${fmt(tot)} درهم. دوس تشوفهم واحد واحد`, `Debts: ${open.length}, about ${fmt(tot)} AED in all. Tap to see them one by one`));
@@ -3767,13 +3769,17 @@ function photoSmall(file) {
   const hand = k => { UI.dbManual = Date.now(); dbTurn(k); try { sfx.page?.(); } catch {} };
   el.addEventListener('click', e => {
     const g = e.target.closest('[data-dbgo]'); if (g) { e.stopPropagation(); return hand(+g.dataset.dbgo); }
-    if (UI.dbSwiped) { UI.dbSwiped = false; return; }
+    if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; // that was a drag, not a tap
     const R = ctx().R; debtPop(dbI < dOpen(R).length ? dbI : 0);
   });
   el.addEventListener('keydown', e => { const g = e.target.closest('[data-dbgo]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hand(+g.dataset.dbgo); } });
   // swipe the bar to turn it
-  let x0 = null; el.addEventListener('pointerdown', e => { x0 = e.clientX; });
-  el.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 35) { UI.dbSwiped = true; hand(dx < 0 ? 1 : -1); } });
+  let x0 = null;
+  el.addEventListener('pointerdown', e => { x0 = e.clientX; el.classList.add('is-drag'); });
+  el.addEventListener('pointermove', e => { if (x0 == null) return; const dx = e.clientX - x0; if (Math.abs(dx) > 40) { UI.dbSwipeAt = Date.now(); x0 = null; hand(dx < 0 ? 1 : -1); } }); // one turn per drag
+  const up = () => { x0 = null; el.classList.remove('is-drag'); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointerleave', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('dragstart', e => e.preventDefault());
 })();
 
 /** a debt was just added: a sound, a toast, and its row on the Debts card lights up (owner, 2026-11-27) */
@@ -3796,14 +3802,15 @@ async function flowDebt() {
     // 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): اختار بابا / ماما / … أو اللي سلّفك قبل كده، أو اكتب اسم.
     // السؤال "حر" (free) عشان الاسم المكتوب يتاخد زي ما هو، مش يتفهم إنه اختيار من اللي تحت.
     const person = kind === 'person', prev = [...new Set(debts().filter(x => x.kind === 'person' && x.name).map(x => x.name))];
-    const name = person
+    let name = person
       ? await ask(L('🤝 مين اللي سلّفك؟ اختار، أو اكتب الاسم. (الاسم هيستخبى)', '🤝 Who lent you the money? Pick one, or type the name. (It will be hidden)'),
           [...prev.map(n => ({ l: `${dMask(n)} ${L('(عندك)', '(saved)')}`, v: n })),
-            ...[L('بابا', 'Dad'), L('ماما', 'Mum'), L('أخويا', 'My brother'), L('أختي', 'My sister'), L('صاحبي', 'A friend')].filter(n => !prev.includes(n)).map(n => ({ l: n, v: n })), BACK], true)
+            ...[['بابا', 'Dad'], ['ماما', 'Mum'], ['أخويا', 'Brother'], ['أختي', 'Sister'], ['صاحبي', 'Friend']].filter(([, en]) => !prev.includes(en)).map(([ar, en]) => ({ l: L(`${ar} · ${en}`, en), v: en })), BACK], true)
       : kind === 'tabby'
       ? await ask(`<img class="dlogo" src="brand/tabby.png" alt="Tabby"> <img class="dlogo" src="brand/tamara.png" alt="Tamara"> ` + L('اشتريت إيه بتابي؟ اكتب اسمه (مثال: تابي - موبايل)', 'What did you buy with Tabby? Type it (e.g. Tabby - phone)'), [{ l: 'Tabby', v: 'Tabby', img: 'brand/tabby.png' }, { l: 'Tamara', v: 'Tamara', img: 'brand/tamara.png' }, BACK], true)
       : await ask(L('سمّيه إيه؟ اكتب الاسم (مثال: كارت ADCB)', 'What should I call it? Type the name (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK], true);
     if (name === null) return;
+    if (person && EN_NAME[String(name).trim()]) name = EN_NAME[String(name).trim()];
     let av = null;
     if (person) { av = await ask(L('🖼 صورته في التطبيق إيه؟ (تقدر ترفع صورة حقيقية بعدين من الدايرة فوق)', '🖼 Which picture for them? (you can upload a real photo later from the circle at the top)'), [{ l: L('👨 راجل', '👨 Man'), v: 'm', img: AV.m }, { l: L('👩 ست', '👩 Woman'), v: 'f', img: AV.f }, BACK]); if (av === null) return; }
     let cu = null;
