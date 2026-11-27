@@ -1509,3 +1509,11 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .ps-det li::before { content: '• '; color: var(--acc); }
 .ps-det b { color: var(--ink); }
 .ps-det .bad { color: #f87171; font-weight: 700; }
+.ps-det .ps-h { margin-top: 4px; font-weight: 800; color: var(--ink); }
+.ps-det .ps-h::before { content: ''; }
+.ps-det .ps-it { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dashed rgba(255, 255, 255, .08); }
+.ps-det .ps-it::before { content: ''; }
+.ps-det .ps-it small { opacity: .75; }
+.ps-det .ps-sum { font-weight: 800; color: var(--ink); border-bottom: 0; }
+.ps-tag { font-style: normal; font-size: .62rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: rgba(52, 211, 153, .18); color: #6ee7b7; margin-inline-start: 4px; }
+.ps-tag.bill { background: rgba(251, 191, 36, .18); color: #fcd34d; }

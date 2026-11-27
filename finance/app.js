@@ -1723,16 +1723,19 @@ function renderToday(c) {
     ];
     const i = ((UI.psI ?? 1) % 3 + 3) % 3, x = views[i];
     // how each number is made (owner, 2026-11-27: "this month, the 10 days, the cycle: tell me the details")
-    const bills = (DP.rows || []).filter(r => !r.daily && !r.fun && r.remain > 0.5), r2 = v => `<b dir="ltr">${fmt(v)}</b>`;
+    const items = (DP.rows || []).filter(r => !r.fun && r.remain > 0.5).sort((a, b) => b.remain - a.remain), daily = items.filter(r => r.daily), bills = items.filter(r => !r.daily), r2 = v => `<b dir="ltr">${fmt(v)}</b>`;
     const pay = DP.end instanceof Date ? new Date(DP.end.getFullYear(), DP.end.getMonth(), DP.end.getDate() + 1) : null, dm = d => d ? `${d.getDate()}/${d.getMonth() + 1}` : '';
     const resEnd = pay ? new Date(pay.getFullYear(), pay.getMonth(), pay.getDate() + 9) : null;
     const det = [
       `<li>${L('جيب الشهر', "This month's pocket")} ${r2(DP.pk1 || 0)} − ${L('فواتير لسه', 'bills still due')} ${r2(DP.offRemain || 0)} = ${r2(Math.max(0, (DP.pk1 || 0) - (DP.offRemain || 0)))}</li>
-       <li>÷ ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')} ${L('لحد', 'until')} ${endD} = ${r2(DP.essDaily || 0)} ${L('في اليوم', 'a day')}${DP.funDaily > 0.005 ? ` + ${L('فلوس حرّة', 'free money')} ${r2(DP.funDaily)}` : ''}</li>`,
+       <li>÷ ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')} ${L('لحد', 'until')} ${endD} = ${r2(DP.essDaily || 0)} ${L('في اليوم', 'a day')}${DP.funDaily > 0.005 ? ` + ${L('فلوس حرّة', 'free money')} ${r2(DP.funDaily)}` : ''}</li>` +
+      (daily.length ? `<li class="ps-h">${L('بيتصرفوا كل يوم:', 'Spent day by day:')}</li>` + daily.map(r => `<li class="ps-it"><span>${r.icon || '🧾'} ${esc(r.name)}</span><span dir="ltr">${fmt(r.today, 2)} / ${L('يوم', 'day')} · ${L('فاضل', 'left')} ${fmt(r.remain)}</span></li>`).join('') : ''),
       `<li>${L(`الدورة دي لحد ${endD}: محتاج`, `This cycle until ${endD}: you need`)} ${r2(DP.needM || 0)} · ${L('معاك ليها', 'you have for it')} ${r2(DP.pk1 || 0)}${(DP.needM || 0) - (DP.pk1 || 0) > 0.5 ? ` · <span class="bad">${L('ناقص', 'short')} ${fmt(DP.needM - DP.pk1)}</span>` : ''}</li>` +
-        (bills.length ? `<li>${L('الفواتير اللي لسه:', 'Bills still due:')} ${bills.slice(0, 4).map(r => `${r.icon || '🧾'} ${esc(r.name)} ${r2(r.remain)}`).join(' · ')}${bills.length > 4 ? ' …' : ''}</li>` : '') +
+        (items.length ? `<li class="ps-h">${L('كل بند وفاضل منه كام لحد', 'Every item and what is left until')} ${endD}:</li>` + items.map(r => `<li class="ps-it"><span>${r.icon || '🧾'} ${esc(r.name)} <i class="ps-tag ${r.daily ? '' : 'bill'}">${r.daily ? L('يومي', 'daily') : L('فاتورة', 'bill')}</i></span><span dir="ltr">${fmt(r.remain)}${r.spent > 0.5 ? ` <small>(${L('اتصرف', 'spent')} ${fmt(r.spent)} ${L('من', 'of')} ${fmt(r.amt)})</small>` : ''}</span></li>`).join('') +
+          `<li class="ps-it ps-sum"><span>${L('المجموع', 'Total')}</span><span dir="ltr">${fmt(items.reduce((n, r) => n + r.remain, 0))}</span></li>` : '') +
         `<li>${L('الباقي للصرف اليومي', 'Left for day-to-day')} ${r2(Math.max(0, (DP.pk1 || 0) - (DP.offRemain || 0)))} = ${r2(DP.essDaily || 0)} × ${DP.daysLeft}</li>`,
       `<li>${L(`من ${dm(pay)} لـ ${dm(resEnd)} (أول 10 أيام بعد القبض)`, `From ${dm(pay)} to ${dm(resEnd)} (the first 10 days after payday)`)}</li>
+       <li>${L('المحتاج = أساسيات الدورة الجاية في اليوم', "Needed = next cycle's essentials a day")} ${r2((DP.En || 0) / 10)} × 10 ${L('أيام', 'days')} = ${r2(DP.En || 0)}</li>
        <li>${L('محتاج', 'You need')} ${r2(DP.En || 0)} · ${L('معاك', 'you have')} ${r2(DP.pk2 || 0)}${DP.resShort > 0.5 ? ` · <span class="bad">${L('ناقص', 'short')} ${fmt(DP.resShort)}</span>` : ' ✅'}</li>
        <li>${L('ده أمان لحد ما المرتب يدخل ويتوزّع، ما تصرفوش دلوقتي', 'A cushion until the salary lands and is split: not for now')}</li>`
     ][i];
