@@ -2901,6 +2901,8 @@ function setChips(opts) {
 async function ask(q, opts = [], free = false) {
   // سؤال بيقول "اكتب" (اسم الشركة، الهدف…) بياخد أي كلام حتى لو فيه اختيارات تحت
   if (!free && /اكتب|type the|your own words|in your words/i.test(String(q))) free = true;
+  // "how many months / payments / years…" questions open the number pad too (owner, 2026-11-27)
+  if (/كام\s*(شهر|شهور|دفعة|دفعات|قسط|أقساط|سنة|سنين|يوم|أيام|مرة|جرام)|how many|number of/i.test(String(q).replace(/<[^>]+>/g, ' '))) numNext = true;
   await bot(q); setChips(opts); if (numNext) { numNext = false; numPad(true); } curFree = free; UI.lastQ = String(q).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
   const pr = new Promise(res => { pending = res; });
   if (calNext) { const k = calNext; calNext = null; calChip(k, q, opts); calOpen(k, q, opts); }
@@ -3831,7 +3833,7 @@ async function flowDebt() {
           { l: L('💵 اكتب مبلغ', '💵 Type an amount'), v: 'amt' }, BACK]); if (pv === null) return;
       let pre = 0;
       if (pv === 'amt') { const x = await askNum(L(`دفعت كام لحد دلوقتي (بال${CUR[cu].n})؟`, `How much have you paid so far (in ${CUR[cu].n})?`), [], true, cu); if (x == null) return; pre = Math.min(T, x / rate(cu)); }
-      else pre = Math.min(n, +String(pv).slice(1) || 0) * per;
+      else pre = Math.min(n, /^n\d+$/.test(String(pv)) ? +String(pv).slice(1) : (parseFloat(String(pv).replace(/[^\d.]/g, '')) || 0)) * per; // a chip (n2) or a typed number (2)
       const nd = { id: uid(), name: String(name).trim().slice(0, 40) || 'Tabby', kind, balance: +(T - pre).toFixed(2), since: today(), cur: cu, total: +T.toFixed(2), plan: { amt: +per.toFixed(2), n, first: f1, ...(pre > 0 ? { pre: +pre.toFixed(2) } : {}) } };
       if (nd.balance <= 0.005) return bot(L('دي متدفعة كلها خلاص ✅ مفيش دين تتسجل.', 'That is already fully paid ✅ nothing to record.'));
       debts().push(nd); save(); render(); debtAdded(nd);
