@@ -2924,6 +2924,20 @@ document.addEventListener('keydown', e => {
   const k = e.key === 'Backspace' ? '⌫' : e.key === 'Enter' ? '✓' : e.key === 'Escape' ? 'C' : /^[0-9.]$/.test(e.key) ? e.key : /^[٠-٩]$/.test(e.key) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(e.key)) : e.key === ',' ? '.' : null;
   if (k) { e.preventDefault(); numKey(k); }
 });
+/* ↕ drag the bar between the chat and its buttons to make the buttons area bigger or smaller (owner, 2026-11-27); remembered */
+(() => {
+  const g = document.getElementById('chipsGrip'), box = document.getElementById('chips'), chat = document.getElementById('chat'); if (!g || !box || !chat) return;
+  const lim = h => Math.max(56, Math.min(Math.round(chat.clientHeight * .7), h));
+  const set = h => { h = lim(h); box.style.maxHeight = h + 'px'; box.style.height = box.scrollHeight > h ? h + 'px' : ''; chat.style.setProperty('--chips-h', h + 'px'); try { localStorage.setItem('floosy.chipsH', h); } catch {} };
+  try { const h = +localStorage.getItem('floosy.chipsH'); if (h > 0) setTimeout(() => set(h), 0); } catch {}
+  let y0 = null, h0 = 0;
+  g.addEventListener('pointerdown', e => { y0 = e.clientY; h0 = box.getBoundingClientRect().height; g.setPointerCapture(e.pointerId); g.classList.add('on'); e.preventDefault(); });
+  g.addEventListener('pointermove', e => { if (y0 == null) return; const h = h0 + (y0 - e.clientY); box.style.maxHeight = lim(h) + 'px'; box.style.height = lim(h) + 'px'; });
+  const up = () => { if (y0 == null) return; y0 = null; g.classList.remove('on'); set(box.getBoundingClientRect().height); };
+  g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+  g.addEventListener('dblclick', () => { box.style.height = ''; box.style.maxHeight = ''; try { localStorage.removeItem('floosy.chipsH'); } catch {} });
+  g.addEventListener('keydown', e => { if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return; e.preventDefault(); set(box.getBoundingClientRect().height + (e.key === 'ArrowUp' ? 24 : -24)); });
+})();
 function setChips(opts) {
   curOpts = opts || []; numPad(false);
   chipsEl.innerHTML = '';

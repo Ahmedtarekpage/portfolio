@@ -1488,3 +1488,9 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .debt-bar.is-drag { cursor: grabbing; }
 /* the hide/show numbers eye sits in the قرشي card title (owner, 2026-11-27) */
 .pulse-t .eye { margin-inline-start: auto; }
+/* ↕ the handle between the conversation and its buttons */
+.chips-grip { flex: none; height: 14px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; border-top: 1px solid var(--line); }
+.chips-grip i { width: 44px; height: 5px; border-radius: 999px; background: rgba(255, 255, 255, .22); transition: background .15s, width .15s; }
+.chips-grip:hover i, .chips-grip.on i, .chips-grip:focus-visible i { background: var(--acc); width: 64px; }
+.chips-grip:focus-visible { outline: none; }
+.chat .chips { border-top: 0; }
