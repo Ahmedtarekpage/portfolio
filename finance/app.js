@@ -3041,7 +3041,7 @@ async function ask(q, opts = [], free = false) {
   // سؤال بيقول "اكتب" (اسم الشركة، الهدف…) بياخد أي كلام حتى لو فيه اختيارات تحت
   if (!free && /اكتب|type the|your own words|in your words/i.test(String(q))) free = true;
   // "how many months / payments / years…" questions open the number pad too (owner, 2026-11-27)
-  if (/كام\s*(شهر|شهور|دفعة|دفعات|قسط|أقساط|سنة|سنين|يوم|أيام|مرة|جرام)|how many|number of/i.test(String(q).replace(/<[^>]+>/g, ' '))) numNext = true;
+  if (/كام|قد إيه|المبلغ|how much|how many|number of|the amount/i.test(String(q).replace(/<[^>]+>/g, ' ')) && !/اختار من|اكتب (اسم|الاسم)|type (the|its) name/i.test(String(q))) numNext = true; // any "how much / how many" question opens the number pad
   await bot(q); setChips(opts); if (numNext) { numNext = false; numPad(true); } curFree = free; UI.lastQ = String(q).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
   const pr = new Promise(res => { pending = res; });
   if (calNext) { const k = calNext; calNext = null; calChip(k, q, opts); calOpen(k, q, opts); }
