@@ -48,6 +48,26 @@ const CUR = {
   EUR: { get n() { return L('يورو', 'EUR'); }, f: '🇪🇺', s: '€' }, SAR: { get n() { return L('ريال', 'SAR'); }, f: '🇸🇦', s: 'SR' }, XAU: { get n() { return L('جرام دهب', 'g gold'); }, f: '🥇', get s() { return L('جم', 'g'); } },
 };
 const MONEY = ['AED', 'EGP', 'USD', 'EUR', 'SAR'];
+/* 💱 دين بأي عملة (طلب صاحب الحساب، 2026-11-27): الخمس عملات دول جاهزين، وأي عملة تانية (KWD، GBP…) بتتسجّل
+   بكودها في S.xcur وسعرها بييجي من نفس مصدر الأسعار الاحتياطي (open.er-api.com) ويتحدث مع باقي الأسعار. */
+const XCUR_API = 'https://open.er-api.com/v6/latest/AED';
+const curName = c => { try { return new Intl.DisplayNames([L('ar', 'en')], { type: 'currency' }).of(c) || c; } catch { return c; } };
+function regCur() { // سجّل العملات الزيادة في جدول العملات (آمن يتنادى كل مرة)
+  for (const c of [...(S.xcur || []), ...(Array.isArray(S.debts) ? S.debts.map(d => d.cur) : [])]) if (c && !CUR[c] && /^[A-Z]{3}$/.test(c)) CUR[c] = { get n() { return curName(c); }, f: '💱', s: c };
+}
+async function ensureCur(code) { // عملة جديدة: لازم يكون ليها سعر حقيقي قبل ما تتقبل
+  const c = String(code || '').toUpperCase(); if (!/^[A-Z]{3}$/.test(c) || c === 'XAU') return null;
+  if (CUR[c] && (c === 'AED' || S.rates[c] > 0)) return c;
+  try {
+    const j = await (await fetch(XCUR_API, { cache: 'no-store' })).json(); if (j.result !== 'success' || !(j.rates[c] > 0)) return null;
+    S.rates[c] = 1 / j.rates[c]; if (!MONEY.includes(c)) S.xcur = [...new Set([...(S.xcur || []), c])]; regCur(); save(); return c;
+  } catch { return null; }
+}
+async function refreshXcur() { // أسعار العملات الزيادة مع كل تحديث للأسعار
+  const xs = (S.xcur || []).filter(c => !S.manual?.[c]); if (!xs.length) return;
+  try { const j = await (await fetch(XCUR_API, { cache: 'no-store' })).json(); if (j.result === 'success') { for (const c of xs) if (j.rates[c] > 0) S.rates[c] = 1 / j.rates[c]; } } catch { /* آخر سعر محفوظ */ }
+}
+const debtCurs = () => [...MONEY, ...(S.xcur || []).filter(c => !MONEY.includes(c))];
 const B = {
   essentials: { get n() { return L('الأساسيات', 'Essentials'); }, i: '🍞', c: '#fbbf24' },
   growth: { get n() { return L('النمو', 'Growth'); }, i: '📈', c: '#34d399' },
@@ -865,7 +885,8 @@ function cardDebts(R) {
       <div class="grow">${person && !d.name ? `<button class="pill" data-dname="${d.id}">✏️ ${L('اكتب اسم الشخص', "Type the person's name")}</button>`
           : person && d.hide !== false ? `<b class="dmask" title="${L('الاسم مستخبي', 'The name is hidden')}">${esc(dMask(d.name))}</b>` : ed(`debts:${d.id}:name`, d.name)}
         ${person && d.name ? `<button class="pill" data-dhide="${d.id}" title="${L('اخفي / اظهر الاسم', 'Hide / show the name')}">${d.hide !== false ? '🙈' : '👁'}</button>` : ''}
-        <button class="pill" data-dcur="${d.id}" title="${L('عملة الدين (دولته)', "The debt's currency (country)")}">${CUR[cu].f} ${CUR[cu].s}</button>
+        <button class="pill" data-dcur="${d.id}" title="${L('عملة الدين: دوس تغيّرها', "The debt's currency: tap to change it")}">${CUR[cu].f} ${CUR[cu].s}</button>
+        ${cu !== 'AED' ? `<small class="dfx" dir="ltr">1 ${CUR[cu].s} = ${fmt(rate(cu), 3)} Đ</small>` : ''}
         ${person ? `<button class="pill" data-dmore="${d.id}" title="${L('نفس الشخص بعملة تانية', 'The same person in another currency')}">＋ ${L('عملة تانية', 'Another currency')}</button>` : ''}
         <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid)}` : ''}</small>
         ${done || fresh ? '' : `<div class="dextra">
@@ -1692,6 +1713,7 @@ document.addEventListener('click', e => {
 { const fab = document.createElement('button'); fab.type = 'button'; fab.className = 'fab-add'; fab.dataset.quick = 'spend'; fab.textContent = '＋'; fab.setAttribute('aria-label', 'سجّل مصروف'); document.body.append(fab); }
 
 function render() {
+  regCur();
   const c = ctx(), { R } = c;
   try { renderToday(c); } catch (e) { console.warn(e); }
   const focusP = document.activeElement?.dataset?.p;
@@ -2607,7 +2629,7 @@ cardsEl.addEventListener('click', e => {
     sitChanged(before, L('↩️ اتمسح آخر تغيير في المكان.', '↩️ Removed the last change of place.'));
   } else if (d.cview) { S.view = d.cview; save(); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
   } else if (d.ecur || d.dcur) { // غيّر دولة البند/الدين (العملة)؛ المبلغ بيفضل نفس الرقم
-    const x = d.ecur ? S.essentials.find(y => y.id === d.ecur) : debts().find(y => y.id === d.dcur), o = places();
+    const x = d.ecur ? S.essentials.find(y => y.id === d.ecur) : debts().find(y => y.id === d.dcur), o = d.ecur ? places() : debtCurs().filter(k => CUR[k]);
     x.cur = o[(o.indexOf(cOf(x)) + 1) % o.length]; save(); render();
     toast(L(`بقى بال${CUR[x.cur].n} ${CUR[x.cur].f}`, `Now in ${CUR[x.cur].n} ${CUR[x.cur].f}`));
   } else if (d.dkind) {
@@ -2627,7 +2649,7 @@ cardsEl.addEventListener('click', e => {
     toast(x.hide ? L('🙈 الاسم مستخبي', '🙈 The name is hidden') : L('👁 الاسم ظاهر', '👁 The name is showing'));
   } else if (d.dmore) { // نفس الشخص بعملة تانية: سطر جديد جنبه بأول عملة لسه مش عنده
     const ds = debts(), x = ds.find(y => y.id === d.dmore), used = new Set(ds.filter(y => y.kind === 'person' && y.name === x.name).map(cOf));
-    const c = places().find(k => !used.has(k)); // العملات اللي الديون بتتحسب بيها (بلادك)
+    const c = debtCurs().find(k => CUR[k] && !used.has(k));
     if (!c) toast(L('الشخص ده عنده دين بكل العملات فعلًا', 'This person already has a debt in every currency'));
     else { ds.splice(ds.indexOf(x) + 1, 0, { id: uid(), name: x.name, kind: 'person', hide: x.hide, balance: 0, since: today(), cur: c }); save(); render(); toast(L(`＋ ${CUR[c].n} ${CUR[c].f}: اكتب المبلغ، ودوس على العملة تغيّرها`, `＋ ${CUR[c].n} ${CUR[c].f}: type the amount, tap the currency to change it`)); }
   } else if (d.dplan) { UI.dplan = UI.dplan === d.dplan ? null : d.dplan; render();
@@ -3131,11 +3153,11 @@ async function flowFun() {
 
 
 /** رقم من الشات، والصفر مسموح (مقدّم صفر مثلًا) */
-async function askNum(q, quick = [], zero = false) {
+async function askNum(q, quick = [], zero = false, defCur = 'AED') {
   for (let prompt = q; ;) {
     const v = await ask(prompt, [...quick.map(o => typeof o === 'object' ? o : { l: LOCK ? '•••' : Number(o).toLocaleString('en-US'), v: String(o) }), BACK]);
     if (v === null) return null;
-    const m = parseMoney(v); if (m && (m.amount > 0 || (zero && m.amount === 0))) return m.amount * rate(m.cur || 'AED');
+    const m = parseMoney(v); if (m && (m.amount > 0 || (zero && m.amount === 0))) return m.amount * rate(m.cur || defCur);
     sfx.err(); prompt = L('مش فاهم الرقم 😅 اكتبه تاني، مثال: 1500 أو 300 جنيه', "I didn't get that number 😅 Type it again, e.g. 1500 or 300 EGP");
   }
 }
@@ -3488,8 +3510,15 @@ async function flowDebt() {
             ...[L('بابا', 'Dad'), L('ماما', 'Mum'), L('أخويا', 'My brother'), L('أختي', 'My sister'), L('صاحبي', 'A friend')].filter(n => !prev.includes(n)).map(n => ({ l: n, v: n })), BACK], true)
       : await ask(L('سمّيه إيه؟ اكتب الاسم (مثال: كارت ADCB)', 'What should I call it? Type the name (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK], true);
     if (name === null) return;
-    const cu = places().includes(cardView()) ? cardView() : await ask(L('في أنهي بلد؟', 'In which country?'), [...places().map(c => ({ l: `${CUR[c].f} ${PLACE_N[c]}`, v: c })), BACK]); if (!cu) return;
-    const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`)); if (amt == null) return;
+    let cu = null;
+    for (let q = L('💱 بأنهي عملة؟ اختار، أو اكتب كود أي عملة (مثال: KWD أو GBP)', '💱 In which currency? Pick one, or type any currency code (e.g. KWD or GBP)'); !cu;) {
+      const first = places().includes(cardView()) ? cardView() : 'AED', list = [first, ...debtCurs().filter(k => k !== first)].filter(k => CUR[k]);
+      const v = await ask(q, [...list.map(k => ({ l: `${CUR[k].f} ${CUR[k].n}`, v: k })), BACK], true); if (v === null) return;
+      const t = String(v).trim(), code = CUR[t] ? t : curOf(t) || (/^[a-zA-Z]{3}$/.test(t) ? t.toUpperCase() : (/\b([A-Z]{3})\b/.exec(t.toUpperCase()) || [])[1]);
+      cu = code ? await ensureCur(code) : null;
+      if (!cu) { sfx.err(); q = L('مش لاقي سعر للعملة دي 😅 اكتب الكود بتاعها بالإنجليزي (3 حروف، مثال: KWD) أو اختار من اللي تحت', "I can't find a rate for that currency 😅 Type its 3-letter code (e.g. KWD) or pick one below"); }
+    }
+    const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
     // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
     const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true } : {}) };
     // هترجّعها إمتى؟ تاريخ واحد، أو قسط كل شهر (مبلغ × عدد شهور)، أو من غير ميعاد
@@ -3505,7 +3534,7 @@ async function flowDebt() {
       const v = await ask(L('اختار التاريخ، أو اكتبه (مثال: 15/12 أو 2026-12-15)', 'Pick the date, or type it (e.g. 15/12 or 2026-12-15)'), [...dates, BACK], true); if (v === null) return;
       const d1 = pd(v); if (d1) nd.due = d1;
     } else if (how === 'plan') {
-      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`)); if (pa == null) return;
+      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`), [], false, cu); if (pa == null) return;
       const pn = await ask(L('لمدة كام شهر؟ اختار أو اكتب الرقم', 'For how many months? Pick or type the number'), [3, 6, 12].map(k => ({ l: L(`${k} شهور`, `${k} months`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
       const v = await ask(L('أول قسط إمتى؟ اختار، أو اكتب التاريخ (مثال: 5/12)', 'When is the first one? Pick, or type the date (e.g. 5/12)'), [...dates.slice(0, 2), BACK], true); if (v === null) return;
       const n = Math.max(1, Math.min(120, Math.round(parseFloat(String(pn).replace(/[^\d.]/g, '')) || 0))), f1 = pd(v);
@@ -3521,7 +3550,7 @@ async function flowDebt() {
   if (what === 'pay') {
     const all = await ask(L(`${esc(d.name)} فاضل عليه ${dm(d, left)}. سدّدته كله؟`, `${esc(d.name)} has ${dm(d, left)} left. Did you pay all of it?`), [{ l: L('✅ كله', '✅ All of it'), v: 'all' }, { l: L('💵 جزء منه', '💵 Part of it'), v: 'part' }, BACK]); if (all === null) return;
     let v = 0;
-    if (all === 'part') { const p = await askNum(L(`دفعت كام (بال${CUR[cOf(d)].n})؟`, `How much did you pay (in ${CUR[cOf(d)].n})?`)); if (p == null) return; v = Math.max(0, left - p * k); }
+    if (all === 'part') { const p = await askNum(L(`دفعت كام (بال${CUR[cOf(d)].n})؟`, `How much did you pay (in ${CUR[cOf(d)].n})?`), [], false, cOf(d)); if (p == null) return; v = Math.max(0, left - p * k); }
     // 💳 دفعته منين؟ أي محفظة بعملة الدين (طلب صاحب الحساب، 2026-11-25): الفلوس بتتخصم منها والدين بينزل في نفس المعاملة
     const cu = cOf(d), nat = (left - v) * k, heldIn = b => b === 'essentials' ? essHeld(cu) : Math.max(0, R.bal[cu]?.[b] || 0);
     const wallets = ['essentials', 'growth', 'stability', 'reward'].filter(b => heldIn(b) > 0.5);
@@ -3552,7 +3581,7 @@ async function flowDebt() {
     if (v <= 0.5) { party(['💳', '🎉', '✅']); sfx.ok(); return bot(L(`🎉 مبروك! ${esc(d.name)} خلص. ومن دلوقتي نصيب النمو بيروح ${open.length > 1 ? 'للدين اللي بعده' : 'استثمار 📈'}.`, `🎉 Congrats! ${esc(d.name)} is paid off. From now on the Growth share goes ${open.length > 1 ? 'to the next debt' : 'to investing 📈'}.`)); }
     return bot(L(`تمام 👍 ${esc(d.name)} فاضل عليه ${dm(d, v)}.`, `Done 👍 ${esc(d.name)} has ${dm(d, v)} left.`));
   }
-  const v0 = await askNum(L(`الباقي الصح على ${esc(d.name)} كام بال${CUR[cOf(d)].n}؟ (اكتب 0 لو خلص)`, `What's really left on ${esc(d.name)} in ${CUR[cOf(d)].n}? (type 0 if it's paid off)`), [{ l: '0', v: '0' }], true); if (v0 == null) return;
+  const v0 = await askNum(L(`الباقي الصح على ${esc(d.name)} كام بال${CUR[cOf(d)].n}؟ (اكتب 0 لو خلص)`, `What's really left on ${esc(d.name)} in ${CUR[cOf(d)].n}? (type 0 if it's paid off)`), [{ l: '0', v: '0' }], true, cOf(d)); if (v0 == null) return;
   const v = v0 * k;
   // تصفير دين = تأكيد الأول (طلب صاحب الحساب بعد ما ENBD اتصفّر بالغلط)
   if (v <= 0.5 && dLeft(ctx().R, d) > 0.5) {
@@ -4046,6 +4075,7 @@ async function loadRates() {
       tile('💵', L('1 دولار', '1 USD'), mf(rate('USD'), 2), L('درهم', 'AED'), UI.fxLive, L('الدولار بكام درهم', 'How many AED one USD costs')),
     ].join('') + `<small class="mk-at">${UI.fxLive || UI.goldLive ? L('🟢 لايف', '🟢 Live') : L('🟡 آخر سعر', '🟡 Last price')}${at ? ' · ' + at : ''}</small>`
     : `<span class="mk-off">${L('🔴 مفيش نت، شغال بآخر أسعار محفوظة', '🔴 No internet, running on the last saved prices')}</span>`;
+  await refreshXcur();
   if (!document.activeElement?.classList?.contains('ed')) render();
 }
 

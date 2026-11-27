@@ -1122,3 +1122,4 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .dplan { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-radius: 12px; background: rgba(127, 127, 127, 0.1); }
 .dplan label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
 .dplan input[type="number"] { width: 92px; }
+.dfx { opacity: 0.7; white-space: nowrap; }
