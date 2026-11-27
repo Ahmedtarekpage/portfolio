@@ -173,9 +173,33 @@ export function splitWizard(deps) {
     why: () => debtOn ? L('عليك دين، فنصيب الأمان كله بيروح للدين.', "You have debt, so all of Safety's share goes to the debt.")
       : r.capped ? L('الأمان وصل 5 شهور، فنصيبه رايح للاستثمار.', 'Safety reached 5 months, so its share goes to investing.') : L('نصيب الأمان بنسب الفيديو.', "Safety's share by the video's ratios.") });
   // which debt this income pays (owner, 2026-11-28): the list is sorted by due date, the soonest picked first
+  // tap debts to pay them in that order; a must-pay-in-full debt (Tabby) is only paid when the whole instalment fits (owner, 2026-11-28)
   const picks = deps.debtsPick || [];
-  let pickId = picks[0]?.id || null;
-  const pickName = () => (picks.find(x => x.id === pickId) || {}).name || debtName;
+  const isFull = x => (deps.isFull ? deps.isFull(x.id) : x.full);
+  const needOf = x => Math.min(x.needAED, x.leftAED);
+  const alloc = () => {
+    let avail = split().debt; const res = {};
+    for (const id of sel) { const x = picks.find(q => q.id === id); if (!x) continue; const need = needOf(x);
+      if (isFull(x)) { if (avail + 0.005 >= need) { res[id] = need; avail -= need; } else res[id] = 0; }
+      else { const y = Math.min(avail, need); res[id] = y; avail -= y; } }
+    return { res, rest: Math.max(0, avail) };
+  };
+  let sel = [];
+  { let a = split().debt; const first = picks.find(x => !isFull(x) || a + 0.005 >= needOf(x)); if (first) sel = [first.id]; }
+  const pickName = () => (picks.find(x => x.id === sel[0]) || {}).name || debtName;
+  const pickHTML = () => {
+    const { res, rest } = alloc(), m = x => `${fmt(v(x), 2)} ${sym}`;
+    return `<div class="sw-picks"><b>${L('دوس على الديون اللي عايز تدفعها (بالترتيب). مترتبين بالميعاد، الأقرب الأول', 'Tap the debts to pay (in order). Sorted by due date, soonest first')}</b>
+      <div class="sw-pcards">${picks.map((x, n) => {
+        const on = sel.includes(x.id), got = res[x.id] || 0, need = needOf(x), full = isFull(x);
+        const blocked = !on && full && rest + 0.005 < need, failed = on && full && got < 0.005;
+        const state = failed || blocked ? `<span class="sw-why">⛔ ${L(`لازم يتدفع كامل ${m(need)} ومعاك ${m(on ? rest + got : rest)}`, `Must be paid in full ${m(need)}, you have ${m(on ? rest + got : rest)}`)}</span>`
+          : on ? `<span class="sw-got">${got + 0.005 >= need ? L(`✅ هيتدفع ${m(got)} كامل`, `✅ Pays ${m(got)} in full`) : L(`🧩 هيتدفع ${m(got)} من ${m(need)}`, `🧩 Pays ${m(got)} of ${m(need)}`)}</span>`
+          : `<span class="sw-need">${full ? L(`💯 لازم كامل ${m(need)}`, `💯 In full ${m(need)}`) : L(`🧩 عليه ${m(need)}`, `🧩 Due ${m(need)}`)}</span>`;
+        return `<button type="button" class="sw-pick dc ${x.cls || ''}${on ? ' on' : ''}${blocked || failed ? ' off' : ''}" data-dpick="${x.id}" ${blocked ? 'aria-disabled="true"' : ''} title="${L('دبل كليك تعدّل الدين', 'Double-click to edit the debt')}">${n === 0 ? `<i class="sw-soon">${L('الأقرب', 'Soonest')}</i>` : ''}${on ? `<i class="sw-ord">${sel.indexOf(x.id) + 1}</i>` : ''}<span class="sw-pt">${x.ico || ''}<span>${esc(x.name)}</span></span><b dir="ltr">${x.left}</b><small>${x.when}</small>${state}</button>`;
+      }).join('')}</div>
+      ${rest > 0.5 ? `<p class="sw-rest">💡 ${L(`فاضل ${m(rest)}: دوس على دين تاني يروحله، أو هيروح للي عليه الدور بالترتيب`, `${m(rest)} left: tap another debt to send it there, or it goes to the next one in order`)}</p>` : ''}</div>`;
+  };
   steps.push({ key: 'debt', icon: '💳', get title() { return esc(pickName()); }, amt: () => split().debt, skip: () => split().debt < 0.005 && !debtOn,
     calc: () => [[L('الباقي للدين', 'Left for the debt'), n(sink()), 0, `${d0(r.net)} − ${d0(val.essentials)} − ${d0(val.reward)} − ${d0(val.stability)} = ${d0(sink())}`, ''], [L('الدين قبل الدخل ده', 'Debt before this income'), `${fmt(r.debtBefore, 2)} Đ`, 0, '', debtsL.length ? `<p>${L('بيتسدّ بالترتيب، الأول في القايمة الأول:', 'Paid in order, first in the list first:')}</p>${tbl(debtsL.map((x, j) => [`${j + 1}. ${esc(x.name)}`, `${fmt(x.left, 2)} Đ`]))}` : ''], [L('للدين', 'To the debt'), n(split().debt), 1], [L('الدين بعده', 'Debt after'), `${fmt(Math.max(0, r.debtBefore - split().debt), 2)} Đ`, 1, `${fmt(r.debtBefore, 2)} − ${fmt(split().debt, 2)}`, '']],
     why: () => L('كل اللي فاضل بيسدّ الدين.', 'Everything left pays off the debt.') });
@@ -230,7 +254,7 @@ export function splitWizard(deps) {
           : `<div class="sw-hero"><span class="sw-ic">${s.icon}</span><h3>${s.title}</h3>
             <div class="sw-amt"><b dir="ltr"><span data-cnt>0</span> ${sym}</b></div></div>
             <p class="wiz-help">${s.why()}</p>
-            ${s.key === 'debt' && picks.length > 1 ? `<div class="sw-picks"><b>${L('يروح لأنهي دين؟ (مترتبين بالميعاد، الأقرب الأول)', 'Which debt does it pay? (by due date, soonest first)')}</b><div class="sw-pcards">${picks.map((x, n) => `<button type="button" class="sw-pick dc ${x.cls || ''}${x.id === pickId ? ' on' : ''}" data-dpick="${x.id}">${n === 0 ? `<i class="sw-soon">${L('الأقرب', 'Soonest')}</i>` : ''}<span class="sw-pt">${x.ico || ''}<span>${esc(x.name)}</span></span><b dir="ltr">${x.left}</b><small>${x.when}</small>${x.id === pickId ? '<em class="sw-chk">✓</em>' : ''}</button>`).join('')}</div></div>` : ''}
+            ${s.key === 'debt' && picks.length ? pickHTML() : ''}
             ${s.calc ? calcHTML(s.calc()) : ''}${det && s.calc?.().some(x => x[4]) ? `<small class="sw-tip">👆 ${L('دوس على أي سطر فيه ‹ عشان تشوف التفاصيل', 'Tap any row with ‹ to see the details')}</small>` : ''}
             ${editing && s.edit ? `<label class="te-f"><small>${L('المبلغ الجديد', 'New amount')} (${sym})</small><input data-sw type="text" inputmode="decimal" dir="ltr" value="${(+v(a).toFixed(2))}"></label>` : ''}`}
           <p class="sw-joke">🎭 ${joke()}</p>
@@ -263,7 +287,7 @@ export function splitWizard(deps) {
       const b = e.target.closest('button'); if (!b) { if (e.target === o) close(null); return; }
       const d = b.dataset;
       if ('close' in d) return close(null);
-      if (d.dpick) { pickId = d.dpick; sfx?.select?.(); return draw(0); }
+      if (d.dpick) { if (b.getAttribute('aria-disabled') === 'true') { sfx?.err?.(); return; } sel = sel.includes(d.dpick) ? sel.filter(x => x !== d.dpick) : [...sel, d.dpick]; sfx?.select?.(); return draw(0); }
       if (d.mode) { det = d.mode === 'det'; try { localStorage.setItem('floosy.swmode', det ? 'det' : 'q'); } catch {} sfx?.select?.(); return draw(0); }
       if (d.more != null) { const li = b.closest('li'); li.classList.toggle('open'); (li.classList.contains('open') ? sfx?.step : sfx?.back)?.(); return; }
       if ('back' in d) { editing = false; i--; return draw(-1); }
@@ -271,11 +295,12 @@ export function splitWizard(deps) {
       if ('ok' in d) return saveEdit();
       if ('cancelEd' in d) { editing = false; return draw(0); }
       if ('next' in d) {
-        if (i === live().length - 1) return close({ ov: ov(), debtId: pickId });
+        if (i === live().length - 1) { const { res } = alloc(); return close({ ov: ov(), debtPlan: sel.filter(id => res[id] > 0.005).map(id => ({ id, amt: +res[id].toFixed(2) })) }); }
         flash = pick2(L(['👍 تمام!', '✅ ماشي', '🙌 حلو', '👌 كده تمام'], ['👍 OK!', '✅ Done', '🙌 Nice', '👌 Good']));
         sfx?.step?.(); i++; return draw(1);
       }
     });
+    o.addEventListener('dblclick', e => { const c = e.target.closest('[data-dpick]'); if (!c || !deps.editDebt) return; e.preventDefault(); Promise.resolve(deps.editDebt(c.dataset.dpick)).then(() => draw(0)); });
     const pick2 = a => a[Math.floor(Math.random() * a.length)];
     draw(1);
   });

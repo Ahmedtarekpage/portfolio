@@ -408,7 +408,9 @@ function replayOne(s, rate, home) {
       const debtPay = Math.min(d.growth, debt);
       let pay = debtPay;
       const paidTo = {}; // كل دين خد كام من الدخل ده (لسجل الدين)
-      for (const x of dl) if (x.on && pay > 0) { const y = Math.min(pay, x.left); x.left -= y; pay -= y; if (y > 0) paidTo[x.id] = y; }
+      // owner, 2026-11-28: the income can name which debts it pays and how much (tx.debtPlan: [{ id, amt }] in AED), the rest in list order
+      if (Array.isArray(tx.debtPlan)) for (const q of tx.debtPlan) { const x = dl.find(z => z.on && z.id === q.id); if (!x || pay <= 0) continue; const y = Math.min(pay, x.left, +q.amt > 0 ? +q.amt : Infinity); x.left -= y; pay -= y; if (y > 0) paidTo[x.id] = (paidTo[x.id] || 0) + y; }
+      for (const x of dl) if (x.on && pay > 0) { const y = Math.min(pay, x.left); x.left -= y; pay -= y; if (y > 0) paidTo[x.id] = (paidTo[x.id] || 0) + y; }
       debt = debtLeft();
       const invest = d.growth - debtPay;
       const w = wallet(curOf(tx));

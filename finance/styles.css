@@ -1541,3 +1541,14 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .sw-pcards .sw-pick.dc--loan { background: linear-gradient(135deg, #3a6fd8, #16336b); }
 .sw-pcards .sw-pick.dc--tabby small, .sw-pcards .sw-pick.dc--tamara small { color: rgba(10, 10, 10, .7); }
 .sw-pcards .sw-pick.dc small { color: rgba(255, 255, 255, .78); }
+/* paying several debts from one income: order badge, what each gets, blocked ones greyed with the reason (owner, 2026-11-28) */
+.sw-pick.dc { min-height: 132px; }
+.sw-ord { position: absolute; top: 8px; inset-inline-start: 8px; font-style: normal; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #b8382a; font-weight: 900; font-size: .75rem; }
+.sw-pick.dc .sw-pt { margin-top: 18px; }
+.sw-got, .sw-need, .sw-why { font-size: .68rem; font-weight: 800; padding: 3px 7px; border-radius: 8px; background: rgba(0, 0, 0, .25); line-height: 1.35; }
+.sw-why { background: rgba(185, 28, 28, .85); color: #fff; }
+.sw-pick.dc.off { filter: grayscale(.85); opacity: .55; cursor: not-allowed; }
+.sw-pick.dc.off:hover { transform: none; }
+.sw-rest { margin: 4px 0 0; font-size: .78rem; color: var(--mute, #b3bccd); }
+.dedit-full { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .8rem; font-weight: 700; }
+.dedit-full .on { background: var(--acc); color: #fff; border-color: var(--acc); }

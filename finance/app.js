@@ -3193,12 +3193,12 @@ async function flowIncome(kind, preset, opt = {}) {
     const dl = debts().map(d => ({ name: d.name, left: dLeft(R0, d) * rate(cOf(d)) })).filter(d => d.left > 0.5);
     // the open debts by due date (soonest first; no date last) so the income can be sent to the one that is due
     const debtsPick = debts().filter(d => dLeft(R0, d) > 0.5).map(d => ({ d, nx: dNext(R0, d) })).sort((a, b) => (a.nx ? a.nx.date : '9999') < (b.nx ? b.nx.date : '9999') ? -1 : 1)
-      .map(({ d, nx }) => ({ id: d.id, ico: dAvatar(d, 34), cls: dBrand(d) ? 'dc--' + dBrand(d) : d.kind === 'person' ? 'dc--person' : 'dc--' + (d.kind || 'other'), name: dNm(d), left: `${fmt(dLeft(R0, d), 2)} ${CUR[cOf(d)].s}`, when: nx ? `📅 ${dDate(nx.date)} · ${dWhen(nx)}` : L('من غير ميعاد', 'no date') }));
-    const res = await splitWizard({ L, fmt, esc, parseNum, sfx, sym: CUR[cur].s, k: 1 / pv.r, r: pv, debtName: dName(), tx, items, held, debts: dl, debtsPick });
+      .map(({ d, nx }) => ({ id: d.id, leftAED: dLeft(R0, d) * rate(cOf(d)), needAED: (nx ? nx.amt : dLeft(R0, d)) * rate(cOf(d)), needTxt: `${fmt(nx ? nx.amt : dLeft(R0, d), 2)} ${CUR[cOf(d)].s}`, full: dFull(d), ico: dAvatar(d, 34), cls: dBrand(d) ? 'dc--' + dBrand(d) : d.kind === 'person' ? 'dc--person' : 'dc--' + (d.kind || 'other'), name: dNm(d), left: `${fmt(dLeft(R0, d), 2)} ${CUR[cOf(d)].s}`, when: nx ? `📅 ${dDate(nx.date)} · ${dWhen(nx)}` : L('من غير ميعاد', 'no date') }));
+    const res = await splitWizard({ L, fmt, esc, parseNum, sfx, sym: CUR[cur].s, k: 1 / pv.r, r: pv, debtName: dName(), tx, items, held, debts: dl, debtsPick, editDebt: id => debtEdit(id), isFull: id => { const d = debts().find(x => x.id === id); return d ? dFull(d) : false; } });
     if (!res) return bot(L('تمام، ما سجّلتش الدخل ده 👍 لما تحب ابدأ تاني.', "Okay, I didn't save that income 👍 Start again whenever you like."));
     if (Object.keys(res.ov).length) tx.ov = res.ov;
-    // debts are paid in list order: the chosen one moves to the front so this income goes to it
-    if (res.debtId) { const ds = debts(), j = ds.findIndex(x => x.id === res.debtId); if (j > 0) ds.unshift(ds.splice(j, 1)[0]); }
+    // which debts this income pays, and how much each (the rest follows the list order)
+    if (Array.isArray(res.debtPlan) && res.debtPlan.length) tx.debtPlan = res.debtPlan;
   }
   S.tx.push(tx); save(); render();
   const c = ctx(), r = c.R.rows[tx.id], k = 1 / r.r, pct = fmt(r.E / r.incomeAfter * 100);
@@ -3722,6 +3722,8 @@ const AV = {
   f: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#E86A92"/><path d="M15 40c0-20 7-30 17-30s17 10 17 30z" fill="#5A3A2B"/><circle cx="32" cy="26" r="11" fill="#F3D2B3"/><path d="M10 64c2-14 11-21 22-21s20 7 22 21z" fill="#7A2E52"/></svg>')
 };
 // the same lender in several currencies is one person: one picture, one card (owner, 2026-11-27)
+// must this debt be paid in full each time (a Tabby instalment), or is part fine? (owner, 2026-11-28)
+const dFull = d => d.payFull != null ? !!d.payFull : d.kind === 'tabby';
 const dWho = d => `${d.kind}|${String(d.name || '').trim().toLowerCase()}|${d.item || ''}`;
 const dSame = d => debts().filter(x => dWho(x) === dWho(d));
 function dGroups(list) { const m = new Map(); list.forEach(d => { const k = dWho(d); if (!m.has(k)) m.set(k, []); m.get(k).push(d); }); return [...m.values()]; }
@@ -3943,7 +3945,8 @@ function debtPop(start = 0) {
 }
 /** ✏️ edit a debt (double-click its card): name, what it was for, a description, the due date or instalment start */
 function debtEdit(id) {
-  const d = debts().find(x => x.id === id); if (!d) return;
+  const d = debts().find(x => x.id === id); if (!d) return Promise.resolve();
+  let done; const p = new Promise(r => { done = r; });
   const o = document.createElement('div'); o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
   o.innerHTML = `<div class="wiz-card glass dpop dedit">
     <div class="wiz-top"><b>✏️ ${L('عدّل الدين', 'Edit debt')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
@@ -3952,13 +3955,18 @@ function debtEdit(id) {
     ${dBrand(d) || d.item ? `<label>${L('اشتريت إيه', 'What it was for')}<input data-e="item" value="${esc(d.item || '')}" maxlength="40" placeholder="${L('مثال: موبايل', 'e.g. phone')}"></label>` : ''}
     <label>${L('وصف (اختياري)', 'Description (optional)')}<textarea data-e="desc" rows="2" maxlength="200" placeholder="${L('أي تفاصيل: ليه، اتفقنا على إيه…', 'Any details: why, what was agreed…')}">${esc(d.desc || '')}</textarea></label>
     ${d.plan ? `<label>${L('أول قسط', 'First instalment')}<input type="date" data-e="first" value="${d.plan.first || ''}"></label>` : `<label>${L('ميعاد السداد', 'Pay-back date')}<input type="date" data-e="due" value="${d.due || ''}"></label>`}
+    <div class="dedit-full" role="group" aria-label="${L('السداد', 'Paying')}"><span>${L('السداد', 'Paying')}</span>
+      <button type="button" class="pill${dFull(d) ? ' on' : ''}" data-efull="1">${L('💯 لازم يتدفع كامل', '💯 Must be paid in full')}</button>
+      <button type="button" class="pill${dFull(d) ? '' : ' on'}" data-efull="0">${L('🧩 ينفع جزء', '🧩 Part is fine')}</button></div>
     <div class="dedit-acts"><button type="button" class="pill" data-close>${L('إلغاء', 'Cancel')}</button><button type="button" class="pill on" data-esave>✅ ${L('احفظ', 'Save')}</button></div>
   </div>`;
   document.body.appendChild(o); sfx.open?.(); setTimeout(() => o.querySelector('[data-e="desc"]')?.focus(), 50);
-  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); document.removeEventListener('keydown', key); };
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); document.removeEventListener('keydown', key); done(); };
   const key = e => { if (e.key === 'Escape') close(); }; document.addEventListener('keydown', key);
+  let full = dFull(d);
   o.addEventListener('click', e => {
     if (e.target === o || e.target.closest('[data-close]')) return close();
+    const fb = e.target.closest('[data-efull]'); if (fb) { full = fb.dataset.efull === '1'; o.querySelectorAll('[data-efull]').forEach(b => b.classList.toggle('on', b === fb)); return; }
     if (!e.target.closest('[data-esave]')) return;
     const v = k => o.querySelector(`[data-e="${k}"]`)?.value;
     const nm = String(v('name') || '').trim(); if (nm) d.name = nm.slice(0, 40);
@@ -3966,8 +3974,10 @@ function debtEdit(id) {
     const ds = String(v('desc') || '').trim(); if (ds) d.desc = ds.slice(0, 200); else delete d.desc;
     if (d.plan && /^\d{4}-\d{2}-\d{2}$/.test(v('first') || '')) d.plan.first = v('first');
     if (!d.plan) { const du = v('due'); if (/^\d{4}-\d{2}-\d{2}$/.test(du || '')) d.due = du; else if (du === '') delete d.due; }
+    d.payFull = full;
     save(); render(); try { sfx.ok(); } catch {} toast(L('✏️ اتحفظ', '✏️ Saved')); close();
   });
+  return p;
 }
 /** a picture made small (128 px square, jpeg) so it can live in the saved data */
 function photoSmall(file) {
