@@ -1605,7 +1605,9 @@ const cardsEl = $('#cards');
 const MROW = 6, MGAP = 18, masonryOn = () => matchMedia('(min-width: 1181px)').matches;
 function packCard(el) {
   if (!masonryOn()) { el.style.gridRowEnd = ''; return; }
-  el.style.gridRowEnd = `span ${Math.max(1, Math.ceil((el.getBoundingClientRect().height + MGAP) / MROW))}`;
+  // offsetHeight = الطول الحقيقي في الـlayout. getBoundingClientRect بيتأثر بالحركة (الكروت بتطلع بـrotateX وscale أول
+  // ما الصفحة تفتح، وscale وقت الضغط)، فكان الطول بيتقاس أقصر من الحقيقي ساعات، والكروت تركب على بعض. (2026-11-27)
+  el.style.gridRowEnd = `span ${Math.max(1, Math.ceil((el.offsetHeight + MGAP) / MROW))}`;
 }
 // لما كارت يتفتح أو يتقفل، الكروت التانية بتتحرك لمكانها الجديد بنعومة (FLIP) بدل ما تنط
 const reduceMo = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1622,6 +1624,9 @@ const mRO = new ResizeObserver(es => {
 const packAll = () => { cardsEl.classList.toggle('masonry', masonryOn()); for (const el of cardsEl.children) { mRO.observe(el); packCard(el); } };
 new MutationObserver(packAll).observe(cardsEl, { childList: true });
 addEventListener('resize', () => { clearTimeout(UI.mT); UI.mT = setTimeout(packAll, 120); });
+// قياس تاني بعد ما الخطوط والصور وحركة الدخول يخلصوا، عشان أي كارت اتقاس بدري يتظبط
+addEventListener('load', () => { packAll(); setTimeout(packAll, 1200); });
+try { document.fonts?.ready?.then(() => packAll()); } catch { /* متصفح قديم */ }
 /* ───────────── 🎮 الشكل الجديد (2026-11-20): HUD + غرف + شريط أوامر ─────────────
  * نفس كل الكروت والمميزات، بس متقسمة "غرف" بدل صفحة طويلة: كل مرة غرفة واحدة قدامك،
  * وفوقها 5 مربعات زي اللعبة (الصافي، مصروف النهارده، الدين، القبض، المستوى) كلها بتتداس. */
