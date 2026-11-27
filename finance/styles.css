@@ -1292,3 +1292,16 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .db-speed { font-size: .72rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); cursor: pointer; white-space: nowrap; }
 .db-speed:hover { background: rgba(255, 255, 255, .12); }
 .db-speed:focus-visible { outline: 2px solid var(--acc); }
+/* breathing room (owner, 2026-11-27: "space where things touch") */
+.debt-bar { margin: 6px 0 12px; padding: 12px 12px 10px; row-gap: 12px; }
+.db-deck { margin: 2px 4px; }
+.dc { padding: 16px 18px; gap: 10px; }
+.dc-top { gap: 12px; }
+.dc-top > span { gap: 2px; }
+.dc-amt { gap: 10px; row-gap: 2px; }
+.dc-next { gap: 10px; row-gap: 8px; }
+.fcs { gap: 6px; }
+.dc .fc { min-width: 38px; padding: 4px 6px 3px; }
+.db-foot { padding: 0 6px; gap: 12px; }
+.db-dots { gap: 6px; }
+.ch-mkt { margin-top: 4px; }
