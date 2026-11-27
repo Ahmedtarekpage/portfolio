@@ -1486,3 +1486,5 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 /* while dragging, the cards follow the pointer with no delay */
 .debt-bar.is-drag .dc { transition: none !important; }
 .debt-bar.is-drag { cursor: grabbing; }
+/* the hide/show numbers eye sits in the قرشي card title (owner, 2026-11-27) */
+.pulse-t .eye { margin-inline-start: auto; }

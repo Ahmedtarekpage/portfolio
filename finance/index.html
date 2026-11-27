@@ -55,7 +55,7 @@
     <!-- debts and live prices: their own cards, out of the chat (owner, 2026-11-27) -->
     <div class="pulse" id="pulse">
       <button type="button" class="debt-bar glass" id="debtBar" hidden></button>
-      <div class="pulse-fx glass"><b class="pulse-t"><i class="pulse-coin" aria-hidden="true"></i><span class="pulse-tt">قرشي</span></b><div class="pulse-sum" id="pulseSum"></div><small class="pulse-sub"><i class="pulse-dot" aria-hidden="true"></i><span class="pulse-st">الأسعار لايف</span></small><div class="ch-mkt" id="rateInfo"><span class="mk-load">بجيب الأسعار…</span></div></div>
+      <div class="pulse-fx glass"><b class="pulse-t"><i class="pulse-coin" aria-hidden="true"></i><span class="pulse-tt">قرشي</span><button id="eye" class="eye" type="button" aria-label="إظهار أو إخفاء الأرقام" title="إظهار أو إخفاء الأرقام">🙈</button></b><div class="pulse-sum" id="pulseSum"></div><small class="pulse-sub"><i class="pulse-dot" aria-hidden="true"></i><span class="pulse-st">الأسعار لايف</span></small><div class="ch-mkt" id="rateInfo"><span class="mk-load">بجيب الأسعار…</span></div></div>
     </div>
     <div class="today glass" id="today" hidden></div>
     <div class="stage glass" id="stage">
@@ -63,7 +63,7 @@
         <canvas id="gl"></canvas>
         <div class="stage-top">
           <div class="brand"><h1>فلوسي</h1><span class="cyc" id="cycle"></span></div>
-          <div class="total"><div class="trow"><button id="eye" class="eye" type="button" aria-label="إظهار أو إخفاء الأرقام" title="إظهار أو إخفاء الأرقام">🙈</button><small>إجمالي اللي معاك</small></div><b><span id="total">0</span> <span class="sym">Đ</span></b><em id="totalAlt"></em></div>
+          <div class="total"><div class="trow"><small>إجمالي اللي معاك</small></div><b><span id="total">0</span> <span class="sym">Đ</span></b><em id="totalAlt"></em></div>
         </div>
         <div id="labels"></div>
         <div id="fx" aria-hidden="true"></div>
