@@ -1494,3 +1494,13 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .chips-grip:hover i, .chips-grip.on i, .chips-grip:focus-visible i { background: var(--acc); width: 64px; }
 .chips-grip:focus-visible { outline: none; }
 .chat .chips { border-top: 0; }
+/* the swipeable spend row */
+.ps-swipe { cursor: grab; position: relative; touch-action: pan-y; user-select: none; padding-bottom: 14px; }
+.ps-dots { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+.ps-dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, .25); transition: width .2s, background .2s; }
+.ps-dots i.on { width: 12px; border-radius: 3px; background: var(--acc); }
+.ps-swipe.in-next { animation: psNext .35s cubic-bezier(.2, .8, .2, 1); }
+.ps-swipe.in-prev { animation: psPrev .35s cubic-bezier(.2, .8, .2, 1); }
+@keyframes psNext { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@keyframes psPrev { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ps-swipe.in-next, .ps-swipe.in-prev { animation: none; } }

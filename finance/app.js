@@ -1712,6 +1712,18 @@ function renderToday(c) {
       <button type="button" class="td-mini ${DP.realHave < -0.5 ? 'bad' : ''}" data-today="ess"><span>🍞 ${L('فاضل للأساسيات', 'Left for essentials')}</span><b dir="ltr">${fmt(DP.realHave)} Đ</b></button>
     </div>
     <button type="button" class="td-add" data-quick="spend" aria-label="${L('سجّل مصروف', 'Log an expense')}">＋ <span>${L('صرفت', 'Spent')}</span></button>`;
+  // the spend row swipes between: a day · until payday (this cycle only, not the 10-day reserve) · the 10-day reserve (owner, 2026-11-27)
+  const spendRow = DP => {
+    const endD = DP.end instanceof Date ? new Date(DP.end.getFullYear(), DP.end.getMonth(), DP.end.getDate() + 1).toLocaleDateString(L('ar-EG', 'en-GB'), { day: 'numeric', month: 'long' }) : ''; // payday itself (e.g. 5 Dec)
+    const tillPay = Math.max(0, (DP.pk1 || 0) - (DP.offRemain || 0)) + (DP.funDaily || 0) * DP.daysLeft;
+    const views = [
+      { ico: '📆', l: L('تقدر تصرف النهارده', 'You can spend today'), v: `${fmt(DP.total, 2)} Đ`, s: L(`في اليوم لحد ${endD}`, `a day until ${endD}`) },
+      { ico: '🛒', l: L('تقدر تصرف لحد القبض', 'You can spend until payday'), v: `${fmt(tillPay)} Đ`, s: L(`لحد ${endD} · ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')}${DP.offRemain > 0.5 ? ` · غير فواتير ${fmt(DP.offRemain)}` : ''}`, `until ${endD} · ${EN_N(DP.daysLeft, 'day')}${DP.offRemain > 0.5 ? ` · bills ${fmt(DP.offRemain)} apart` : ''}`) },
+      { ico: '🛟', l: L('احتياطي الـ 10 أيام', 'The 10-day reserve'), v: `${fmt(DP.pk2 || 0)} Đ`, s: L('بعد القبض، ما تلمسوش دلوقتي', 'after payday, not for now') }
+    ];
+    const i = ((UI.psI ?? 1) % 3 + 3) % 3, x = views[i];
+    return `<div class="ps-row ps-swipe ${DP.realHave < -0.5 ? 'bad' : ''}" data-psswipe role="button" tabindex="0" title="${L('اسحب أو دوس تشوف التاني', 'Swipe or tap for the next')}"><span class="ps-ico">${x.ico}</span><span class="ps-l">${x.l}<small>${x.s}</small></span><b dir="ltr">${x.v}</b><span class="ps-dots">${views.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span></div>`;
+  };
   // the live-prices card's summary (owner, 2026-11-27): what you have, what you can spend until payday, payday, the next instalment
   const ps = document.getElementById('pulseSum');
   if (ps) try {
@@ -1720,7 +1732,7 @@ function renderToday(c) {
     ps.innerHTML =
       row('💰', L('معاك دلوقتي', 'You have now'), `${fmt(have)} Đ`, L('كل المحافظ', 'all wallets')) +
       row('📅', L('القبض', 'Payday'), pi.none ? '—' : pi.due ? L('النهارده 🎉', 'Today 🎉') : L(`بعد ${plural(pi.days, 'يوم', 'يومين', 'أيام', 'يوم')}`, `in ${EN_N(pi.days, 'day')}`), L('الفلوس الجاية', 'money coming in'), '') +
-      row('🛒', L('تقدر تصرف لحد القبض', 'You can spend until payday'), `${fmt(Math.max(0, DP.realHave))} Đ`, L(`≈ ${fmt(DP.total, 2)} في اليوم · ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')}`, `≈ ${fmt(DP.total, 2)} a day · ${EN_N(DP.daysLeft, 'day')}`), DP.realHave < -0.5 ? 'bad' : '') +
+      spendRow(DP) +
       (soon ? row('💳', L('عليك قسط', 'Next instalment'), `${fmt(soon.nx.amt, 2)} ${CUR[cOf(soon.d)].s}`, `${esc(dNm(soon.d))} · ${dWhen(soon.nx)}`, soon.nx.days < 0 ? 'bad' : soon.nx.days <= 3 ? 'warn' : '') : '');
   } catch (e) { ps.innerHTML = ''; }
 }
@@ -2924,6 +2936,16 @@ document.addEventListener('keydown', e => {
   const k = e.key === 'Backspace' ? '⌫' : e.key === 'Enter' ? '✓' : e.key === 'Escape' ? 'C' : /^[0-9.]$/.test(e.key) ? e.key : /^[٠-٩]$/.test(e.key) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(e.key)) : e.key === ',' ? '.' : null;
   if (k) { e.preventDefault(); numKey(k); }
 });
+/* 🛒 the spend row in قرشي: tap, swipe or arrow keys move between a day / until payday / the 10-day reserve */
+(() => {
+  const box = document.getElementById('pulseSum'); if (!box) return;
+  const go = k => { UI.psI = ((UI.psI ?? 1) + k + 3) % 3; try { sfx.page?.(); } catch {} render(); const r = document.querySelector('[data-psswipe]'); if (r) { r.classList.add(k > 0 ? 'in-next' : 'in-prev'); } };
+  let x0 = null, moved = false;
+  box.addEventListener('pointerdown', e => { if (!e.target.closest('[data-psswipe]')) return; x0 = e.clientX; moved = false; });
+  box.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 30) { moved = true; go(dx < 0 ? 1 : -1); } });
+  box.addEventListener('click', e => { if (!e.target.closest('[data-psswipe]')) return; if (moved) { moved = false; return; } go(1); });
+  box.addEventListener('keydown', e => { if (!e.target.closest('[data-psswipe]')) return; if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); go(e.key === 'ArrowLeft' ? 1 : -1); } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(1); } });
+})();
 /* ↕ drag the bar between the chat and its buttons to make the buttons area bigger or smaller (owner, 2026-11-27); remembered */
 (() => {
   const g = document.getElementById('chipsGrip'), box = document.getElementById('chips'), chat = document.getElementById('chat'); if (!g || !box || !chat) return;
