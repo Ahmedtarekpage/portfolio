@@ -360,6 +360,9 @@ async function dailyCheck() {
 // ما ينفعش S.debts تبقى في seed(): الدمج {...seed(), ...data} كان هيمسح الدين القديم بقايمة فاضية.
 const debts = () => (Array.isArray(S.debts) ? S.debts : (S.debts = debtList(S).map(d => ({ ...d }))));
 const DKIND = { card: '💳', tabby: '🟣', loan: '🏦', person: '🤝', other: '🧾' };
+// Tabby / Tamara show their own logo (finance/brand/*.png); every other debt keeps its emoji
+const dBrand = d => d && (d.kind === 'tabby' || /tabby|tamara|تابي|تمارا/i.test(d.name || '')) ? (/tamara|تمارا/i.test(d.name || '') ? 'tamara' : 'tabby') : null;
+const dIco = d => { const b = dBrand(d); return b ? `<img class="dlogo" src="brand/${b}.png" alt="${b === 'tamara' ? 'Tamara' : 'Tabby'}" width="18" height="18">` : (DKIND[d?.kind] || '🧾'); };
 const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get tabby() { return L('تابي / تمارا (من غير فوايد)', 'Tabby / Tamara (no interest)'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
 /* 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): الاسم بيتكتب وبيستخبى افتراضيًا (أول حرف ونقط) في كل حتة،
    وبيتبعت مستخبي للذكاء الاصطناعي؛ نفس الشخص ينفع يبقى ليه دين بكذا عملة (سطر لكل عملة)؛ وأي دين ليه ميعاد
@@ -883,7 +886,7 @@ function cardDebts(R) {
   const rows = ds.map(d => {
     const r = { left: dLeft(R, d), paid: dPaid(R, d) }, fresh = r.left <= 0.5 && r.paid <= 0.5, done = r.left <= 0.5 && !fresh, cu = cOf(d), person = d.kind === 'person', nx = dNext(R, d), planOpen = UI.dplan === d.id;
     return `<li class="row ${done ? 'ok' : ''}" data-row="debts:${d.id}">${grip}
-      <button class="pill" data-dkind="${d.id}" title="${L('غيّر النوع', 'Change type')}">${DKIND[d.kind] || '🧾'} ${DKIND_N[d.kind] || DKIND_N.other}</button>
+      <button class="pill" data-dkind="${d.id}" title="${L('غيّر النوع', 'Change type')}">${dIco(d)} ${DKIND_N[d.kind] || DKIND_N.other}</button>
       <div class="grow">${person && !d.name ? `<button class="pill" data-dname="${d.id}">✏️ ${L('اكتب اسم الشخص', "Type the person's name")}</button>`
           : person && d.hide !== false ? `<b class="dmask" title="${L('الاسم مستخبي', 'The name is hidden')}">${esc(dMask(d.name))}</b>` : ed(`debts:${d.id}:name`, d.name)}
         ${person && d.name ? `<button class="pill" data-dhide="${d.id}" title="${L('اخفي / اظهر الاسم', 'Hide / show the name')}">${d.hide !== false ? '🙈' : '👁'}</button>` : ''}
@@ -2478,7 +2481,7 @@ function debtDetails(only) {
         <span class="amt"><b dir="ltr" class="pos">−${fmt(e.aed)}</b><small dir="ltr">${pc(e.aed, start)}</small></span></li>`).join('');
     const added = `<li class="row tx dd-add"><span class="badge">➕</span><div class="grow"><b>${L('الدين اتضاف', 'Debt added')}</b><small>${d.since ? dayName(new Date(d.since + 'T00:00:00')) : L('من الأول', 'From the start')} · ${DKIND_N[d.kind] || ''} · ${CUR[cu].n}</small></div><span class="amt"><b dir="ltr" class="neg">+${fmt(start)}</b><small>100%</small></span></li>`;
     const other = Math.max(0, paid - ev.reduce((a, e) => a + e.aed, 0)); // سداد اتسجّل بتعديل الرقم بإيدك
-    return `<div class="dd-card"><b>${DKIND[d.kind] || '🧾'} ${esc(dNm(d))}</b>${bar(start ? paid / start : 0, '#34d399')}
+    return `<div class="dd-card"><b>${dIco(d)} ${esc(dNm(d))}</b>${bar(start ? paid / start : 0, '#34d399')}
       <div class="dd-kv"><span>${L('البداية', 'Started at')} <b dir="ltr">${fmt(start)} Đ</b></span><span>${L('اتسدّد', 'Paid')} <b dir="ltr" class="pos">${fmt(paid)} (${pc(paid, start)})</b></span><span>${L('الباقي', 'Left')} <b dir="ltr" class="neg">${fmt(left)} (${pc(left, start)})</b></span></div></div>
       <h3>📜 ${L('سجل الدين', 'Debt log')} <small>(${ev.length} ${L('سداد', 'payments')} · ${L('مجموع', 'total')} <b dir="ltr">${fmt(ev.reduce((a, e) => a + e.aed, 0))} Đ</b>)</small></h3>
       <ul class="list dd-list">${rows}${other > 0.5 ? `<li class="row tx"><span class="badge">✏️</span><div class="grow"><b>${L('اتعدّل بإيدك', 'Edited by hand')}</b><small>${L('الرقم الباقي اتغيّر من كارت الديون', 'The remaining amount was changed from the Debts card')}</small></div><span class="amt"><b dir="ltr" class="pos">−${fmt(other)}</b><small dir="ltr">${pc(other, start)}</small></span></li>` : ''}${added}</ul>`;
@@ -2836,15 +2839,55 @@ function calOpen(kind, q, opts = []) {
   });
   draw(); document.body.append(calEl); document.addEventListener('keydown', calKey);
 }
+/* 🔢 لوحة الأرقام (طلب صاحب الحساب، 2026-11-27): لما الشات يسأل عن رقم بتفتح لوحة أرقام بس، فيها علامة عشرية،
+   والكيبورد بيكتب فيها زي الكالكيوليتر (الأرقام والنقطة و⌫ وEnter). أي حرف غير الأرقام بيتشال، والأرقام العربي بتتحول. */
+let numNext = false, numOn = false;
+const numPadEl = (() => {
+  const el = document.createElement('div'); el.className = 'numpad'; el.hidden = true; el.setAttribute('role', 'group'); el.setAttribute('aria-label', L('لوحة الأرقام', 'Number pad'));
+  el.innerHTML = ['7', '8', '9', '⌫', '4', '5', '6', 'C', '1', '2', '3', '.', '0', '00', '✓'].map(k => `<button type="button" data-np="${k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}">${k}</button>`).join('');
+  document.getElementById('say')?.after(el);
+  el.addEventListener('pointerdown', e => e.preventDefault()); // keep the input focused (no phone keyboard pops up)
+  el.addEventListener('click', e => { const b = e.target.closest('[data-np]'); if (!b) return; numKey(b.dataset.np); sfx.tap?.(); });
+  return el;
+})();
+function numClean(v) {
+  let t = String(v || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g, '.').replace(/[^\d.]/g, '');
+  const i = t.indexOf('.'); if (i >= 0) t = t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, '');
+  return t;
+}
+function numKey(k) {
+  const v = sayIn.value;
+  if (k === '⌫') sayIn.value = v.slice(0, -1);
+  else if (k === 'C') sayIn.value = '';
+  else if (k === '✓') { if (sayIn.value) $('#say').requestSubmit(); return; }
+  else if (k === '.') sayIn.value = v.includes('.') ? v : (v || '0') + '.';
+  else sayIn.value = numClean(v + k);
+  sayIn.focus({ preventScroll: true });
+}
+function numPad(on) {
+  if (on === numOn) return; numOn = on;
+  numPadEl.hidden = !on; document.body.classList.toggle('np-on', on);
+  sayIn.inputMode = on ? 'decimal' : 'text';
+  sayIn.placeholder = on ? L('اكتب الرقم… مثال: 1250.50', 'Type the number… e.g. 1250.50') : L('اكتب هنا… مثال: 2000 أو 500 جنيه', 'Type here… e.g. 2000 or 500 EGP');
+  if (on && matchMedia('(hover: hover)').matches) sayIn.focus({ preventScroll: true });
+}
+sayIn.addEventListener('input', () => { if (numOn) { const c = numClean(sayIn.value); if (c !== sayIn.value) sayIn.value = c; } });
+// the keyboard works like a keypad while the pad is open, even when the box is not focused
+document.addEventListener('keydown', e => {
+  if (!numOn || e.metaKey || e.ctrlKey || e.altKey || document.activeElement === sayIn) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+  const k = e.key === 'Backspace' ? '⌫' : e.key === 'Enter' ? '✓' : e.key === 'Escape' ? 'C' : /^[0-9.]$/.test(e.key) ? e.key : /^[٠-٩]$/.test(e.key) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(e.key)) : e.key === ',' ? '.' : null;
+  if (k) { e.preventDefault(); numKey(k); }
+});
 function setChips(opts) {
-  curOpts = opts || [];
+  curOpts = opts || []; numPad(false);
   chipsEl.innerHTML = '';
   opts.forEach(o => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = o.l; b.onclick = () => answer(o.v, o.l); chipsEl.append(b); });
 }
 async function ask(q, opts = [], free = false) {
   // سؤال بيقول "اكتب" (اسم الشركة، الهدف…) بياخد أي كلام حتى لو فيه اختيارات تحت
   if (!free && /اكتب|type the|your own words|in your words/i.test(String(q))) free = true;
-  await bot(q); setChips(opts); curFree = free; UI.lastQ = String(q).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
+  await bot(q); setChips(opts); if (numNext) { numNext = false; numPad(true); } curFree = free; UI.lastQ = String(q).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
   const pr = new Promise(res => { pending = res; });
   if (calNext) { const k = calNext; calNext = null; calChip(k, q, opts); calOpen(k, q, opts); }
   if (UI.hint && opts.length) autoFill(opts);
@@ -3209,6 +3252,7 @@ async function flowFun() {
 /** رقم من الشات، والصفر مسموح (مقدّم صفر مثلًا) */
 async function askNum(q, quick = [], zero = false, defCur = 'AED') {
   for (let prompt = q; ;) {
+    numNext = true;
     const v = await ask(prompt, [...quick.map(o => typeof o === 'object' ? o : { l: LOCK ? '•••' : Number(o).toLocaleString('en-US'), v: String(o) }), BACK]);
     if (v === null) return null;
     const m = parseMoney(v); if (m && (m.amount > 0 || (zero && m.amount === 0))) return m.amount * rate(m.cur || defCur);
@@ -3549,7 +3593,7 @@ async function flowInvested() {
 
 async function flowDebt() {
   const R = ctx().R, ds = debts(), open = ds.filter(d => dLeft(R, d) > 0.5);
-  const list = open.length ? `<ul class="alloc">${open.map(d => `<li><span>${DKIND[d.kind] || '🧾'} ${esc(dNm(d))}</span><b dir="ltr">${fmt(dLeft(R, d))} ${CUR[cOf(d)].s}</b></li>`).join('')}</ul>` : L('مفيش عليك ديون دلوقتي ✅', 'You have no debt right now ✅');
+  const list = open.length ? `<ul class="alloc">${open.map(d => `<li><span>${dIco(d)} ${esc(dNm(d))}</span><b dir="ltr">${fmt(dLeft(R, d))} ${CUR[cOf(d)].s}</b></li>`).join('')}</ul>` : L('مفيش عليك ديون دلوقتي ✅', 'You have no debt right now ✅');
   const what = await ask(`${L('💳 ديونك:', '💳 Your debts:')}${list}${L('عايز تعمل إيه؟', 'What do you want to do?')}`, [
     ...(open.length ? [{ l: L('✅ سدّدت دين', '✅ I paid a debt'), v: 'pay' }, { l: L('✏️ عدّل الباقي', '✏️ Change what\'s left'), v: 'edit' }] : []),
     { l: L('➕ دين جديد', '➕ New debt'), v: 'new' }, BACK]); if (what === null) return;
@@ -3598,8 +3642,8 @@ async function flowDebt() {
       if (nd.balance <= 0.005) return bot(L('دي متدفعة كلها خلاص ✅ مفيش دين تتسجل.', 'That is already fully paid ✅ nothing to record.'));
       debts().push(nd); save(); render();
       const nx = dNext(ctx().R, nd);
-      return bot(L(`🟣 اتسجّل <b>${esc(nd.name)}</b>: الإجمالي <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
-        `🟣 Recorded <b>${esc(nd.name)}</b>: total <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
+      return bot(L(`${dIco(nd)} اتسجّل <b>${esc(nd.name)}</b>: الإجمالي <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
+        `${dIco(nd)} Recorded <b>${esc(nd.name)}</b>: total <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
     }
     const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
     // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته

@@ -1138,3 +1138,15 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .fcal-d:hover, .fcal-d:focus-visible { background: #FF6B5B; color: #14213D; outline: none; }
 .fcal-d.is-today { border-color: #FF6B5B; }
 .fcal-note { margin: 10px 0 0; font-size: .78rem; opacity: .7; text-align: center; }
+
+/* 🔢 the number pad under the chat (opens when the chat asks for an amount) */
+.numpad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 14px 12px; direction: ltr; animation: npIn .18s ease-out; }
+.numpad[hidden] { display: none; }
+.numpad button { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); font: 700 1.1rem var(--font, inherit); cursor: pointer; transition: transform .08s, background .15s; }
+.numpad button:hover { background: rgba(255, 255, 255, .12); }
+.numpad button:active { transform: scale(.94); }
+.numpad .np-fn { color: var(--acc); }
+.numpad .np-go { background: linear-gradient(135deg, #FF8172, #FF6B5B); color: #fff; border: 0; }
+@keyframes npIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .numpad { animation: none; } }
+.dlogo { width: 18px; height: 18px; border-radius: 5px; vertical-align: -3px; object-fit: cover; display: inline-block; }
