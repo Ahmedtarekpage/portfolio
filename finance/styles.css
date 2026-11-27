@@ -1218,3 +1218,77 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .db-go:active { transform: scale(.9); }
 .db-go:focus-visible { outline: 2px solid var(--acc); }
 .debt-bar { touch-action: pan-y; }
+
+/* debt bar layout (owner, 2026-11-27): no arrows, drag with the mouse or swipe; circle | details, the flip cards on their own line,
+   the dots under everything (nothing on top of anything) */
+.debt-bar { display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-areas: "ring info" "dots dots"; align-items: center; column-gap: 12px; row-gap: 6px; padding: 12px 14px 10px; cursor: grab; user-select: none; }
+.debt-bar.is-drag { cursor: grabbing; }
+.debt-bar .db-stage { grid-area: ring; width: 76px; height: 76px; }
+.debt-bar .db-info { grid-area: info; gap: 3px; }
+.debt-bar .db-info > small, .debt-bar .db-info > b { white-space: normal; overflow: visible; }
+.debt-bar .db-info .fcs { display: flex; margin: 4px 0 0; }
+.debt-bar .db-info .fc { min-width: 34px; padding: 3px 4px 2px; }
+.debt-bar .db-info .fc b { font-size: .95rem; }
+.debt-bar .db-dots { grid-area: dots; position: static; transform: none; justify-content: center; }
+.debt-bar .db-nav { display: none; }
+.db-face { opacity: 0; }
+.db-face.is-front { opacity: 1; }
+
+/* 💳 debt cards (owner, 2026-11-27): a stack of real 3D cards, the front one flips away to show the next, the last is the total */
+.debt-bar { display: grid; grid-template-columns: 1fr; grid-template-areas: "deck" "dots"; padding: 10px 10px 8px; background: none; border: 0; row-gap: 8px; }
+.debt-bar:hover, .debt-bar.is-held { border: 0; }
+.db-deck { grid-area: deck; position: relative; height: 158px; perspective: 900px; }
+.dc { position: absolute; inset: 0 6px; display: grid; grid-template-rows: auto auto 1fr; gap: 6px; padding: 12px 14px; border-radius: 18px; color: #fff; text-align: start;
+  background: linear-gradient(135deg, #3a4a7a, #22294a); border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 10px 24px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .18);
+  transform-origin: 50% 120%; transition: transform .7s cubic-bezier(.2, .8, .2, 1), opacity .5s, filter .5s; backface-visibility: hidden; overflow: hidden; }
+.dc::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .14) 45%, transparent 60%); pointer-events: none; }
+.dc--tabby { background: linear-gradient(135deg, #2f9e6b, #133d2c); }
+.dc--tamara { background: linear-gradient(135deg, #b06ab3, #4a5bd1 60%, #233063); }
+.dc--person { background: linear-gradient(135deg, #c0587c, #4b2340); }
+.dc--card { background: linear-gradient(135deg, #e0634f, #5a1f2b); }
+.dc--loan { background: linear-gradient(135deg, #4f7fc9, #1d2f52); }
+.dc--all { background: linear-gradient(135deg, #f0b23a, #7a3f12); }
+.dc[data-pos="0"] { transform: translateZ(0); z-index: 5; }
+.dc[data-pos="1"] { transform: translateY(-9px) scale(.94) translateZ(-40px); z-index: 4; filter: brightness(.7); }
+.dc[data-pos="2"] { transform: translateY(-17px) scale(.88) translateZ(-80px); z-index: 3; filter: brightness(.5); }
+.dc[data-pos="gone"] { transform: translateX(-60%) rotateY(70deg) rotateZ(-6deg); opacity: 0; z-index: 6; pointer-events: none; }
+.debt-bar.is-back .dc[data-pos="gone"] { transform: translateX(60%) rotateY(-70deg) rotateZ(6deg); }
+.dc[data-pos="hide"] { transform: translateY(-20px) scale(.85); opacity: 0; z-index: 1; }
+.dc[data-pos="1"] *, .dc[data-pos="2"] * { visibility: hidden; }
+.dc-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dc-top > span { display: grid; min-width: 0; }
+.dc-top b { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dc small { color: rgba(255, 255, 255, .72); font-size: .72rem; }
+.dc-amt { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dc-amt b { font-size: 1.35rem; letter-spacing: .01em; }
+.dc-next { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-self: end; }
+.dc-next.bad small { color: #fecaca; } .dc-next.warn small { color: #fde68a; }
+.dc .fc { background: linear-gradient(180deg, rgba(0, 0, 0, .35) 0 50%, rgba(0, 0, 0, .25) 50%); color: #fff; }
+.dc .db-count { color: #fff; }
+.debt-bar .db-dots { grid-area: dots; position: static; transform: none; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .dc { transition: opacity .2s; } }
+
+/* 💳 one card at a time, like Apple Pay (owner, 2026-11-27): a real card shape, the next one turns in like a cube face, nothing stacked on top */
+.db-deck { height: auto; aspect-ratio: 1.75; max-height: 210px; perspective: 1100px; }
+.dc { inset: 0; border-radius: 16px; padding: 14px 16px; transform-origin: 50% 50%; transition: transform .75s cubic-bezier(.2, .8, .2, 1), opacity .45s; }
+.dc[data-pos="0"] { transform: none; opacity: 1; z-index: 5; filter: none; }
+.dc[data-pos="1"], .dc[data-pos="2"], .dc[data-pos="hide"] { transform: translateX(55%) rotateY(-80deg) scale(.9); opacity: 0; z-index: 1; filter: none; pointer-events: none; }
+.dc[data-pos="gone"] { transform: translateX(-55%) rotateY(80deg) scale(.9); opacity: 0; z-index: 2; }
+.debt-bar.is-back .dc[data-pos="gone"] { transform: translateX(55%) rotateY(-80deg) scale(.9); }
+.debt-bar.is-back .dc[data-pos="1"], .debt-bar.is-back .dc[data-pos="2"], .debt-bar.is-back .dc[data-pos="hide"] { transform: translateX(-55%) rotateY(80deg) scale(.9); }
+.dc[data-pos="1"] *, .dc[data-pos="2"] * { visibility: visible; }
+.dc { box-shadow: 0 14px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -1px 0 rgba(0, 0, 0, .25); }
+.dc::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(120% 80% at 0% 0%, rgba(255, 255, 255, .22), transparent 55%); pointer-events: none; }
+.dc-chip { margin-inline-start: auto; width: 34px; height: 25px; border-radius: 6px; background: linear-gradient(135deg, #f6e08a, #c9a23b 55%, #f2d77a); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); position: relative; flex: none; }
+.dc-chip::after { content: ''; position: absolute; inset: 6px 9px; border: 1px solid rgba(0, 0, 0, .3); border-radius: 3px; }
+.dc--tabby { background: linear-gradient(135deg, #3bfa9b 0%, #19b96e 45%, #0b5a3a 100%); color: #06180f; }
+.dc--tabby small, .dc--tabby .dc-next small { color: rgba(6, 24, 15, .75); }
+.dc--tabby .fc { background: rgba(6, 24, 15, .78); }
+.dc--tamara { background: linear-gradient(135deg, #ffb38a, #f07fc3 35%, #8a7cf5 70%, #5ad1e6); color: #160c22; }
+.dc--tamara small, .dc--tamara .dc-next small { color: rgba(22, 12, 34, .75); }
+.dc--tamara .fc { background: rgba(22, 12, 34, .78); }
+.db-foot { grid-area: dots; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.db-foot .db-dots { position: static; transform: none; }
+.db-speed { font-size: .72rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); cursor: pointer; white-space: nowrap; }
+.db-speed:hover { background: rgba(255, 255, 255, .12); }
+.db-speed:focus-visible { outline: 2px solid var(--acc); }
