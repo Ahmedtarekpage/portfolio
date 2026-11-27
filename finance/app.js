@@ -3479,13 +3479,42 @@ async function flowDebt() {
     { l: L('➕ دين جديد', '➕ New debt'), v: 'new' }, BACK]); if (what === null) return;
   if (what === 'new') {
     const kind = await ask(L('نوعه إيه؟', 'What kind?'), [...Object.keys(DKIND).map(k => ({ l: `${DKIND[k]} ${DKIND_N[k]}`, v: k })), BACK]); if (kind === null) return;
-    const name = await ask(L('سمّيه إيه؟ (مثال: كارت ADCB)', 'What should I call it? (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK]); if (name === null) return;
+    // 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): اختار بابا / ماما / … أو اللي سلّفك قبل كده، أو اكتب اسم.
+    // السؤال "حر" (free) عشان الاسم المكتوب يتاخد زي ما هو، مش يتفهم إنه اختيار من اللي تحت.
+    const person = kind === 'person', prev = [...new Set(debts().filter(x => x.kind === 'person' && x.name).map(x => x.name))];
+    const name = person
+      ? await ask(L('🤝 مين اللي سلّفك؟ اختار، أو اكتب الاسم. (الاسم هيستخبى)', '🤝 Who lent you the money? Pick one, or type the name. (It will be hidden)'),
+          [...prev.map(n => ({ l: `${dMask(n)} ${L('(عندك)', '(saved)')}`, v: n })),
+            ...[L('بابا', 'Dad'), L('ماما', 'Mum'), L('أخويا', 'My brother'), L('أختي', 'My sister'), L('صاحبي', 'A friend')].filter(n => !prev.includes(n)).map(n => ({ l: n, v: n })), BACK], true)
+      : await ask(L('سمّيه إيه؟ اكتب الاسم (مثال: كارت ADCB)', 'What should I call it? Type the name (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK], true);
+    if (name === null) return;
     const cu = places().includes(cardView()) ? cardView() : await ask(L('في أنهي بلد؟', 'In which country?'), [...places().map(c => ({ l: `${CUR[c].f} ${PLACE_N[c]}`, v: c })), BACK]); if (!cu) return;
     const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`)); if (amt == null) return;
     // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
-    debts().push({ id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu });
-    save(); render();
-    return bot(L(`اتسجّل 💳 ${esc(String(name))}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>. من دلوقتي نصيب النمو من أي دخل هيروح يسدّه الأول قبل الاستثمار.`, `Recorded 💳 ${esc(String(name))}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>. From now on the Growth share of any income goes to paying it before investing.`));
+    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true } : {}) };
+    // هترجّعها إمتى؟ تاريخ واحد، أو قسط كل شهر (مبلغ × عدد شهور)، أو من غير ميعاد
+    const pd = v => { const t = String(v || '').trim(), m1 = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t), m2 = /^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?$/.exec(t);
+      const mk = (y, m, d) => { const x = new Date(y, m - 1, d, 12); return x.getMonth() === m - 1 && x.getDate() === +d ? iso(x) : null; };
+      if (m1) return mk(+m1[1], +m1[2], +m1[3]);
+      if (m2) { const now = new Date(), y = m2[3] ? (+m2[3] < 100 ? 2000 + +m2[3] : +m2[3]) : now.getFullYear(); let r = mk(y, +m2[2], +m2[1]); if (r && !m2[3] && r < today()) r = mk(y + 1, +m2[2], +m2[1]); return r; }
+      return null; };
+    const t0 = today(), nextFirst = (() => { const x = new Date(); return iso(new Date(x.getFullYear(), x.getMonth() + 1, 1, 12)); })();
+    const dates = [{ l: L(`أول الشهر الجاي (${dDate(nextFirst)})`, `The 1st of next month (${dDate(nextFirst)})`), v: nextFirst }, { l: L('بعد شهر', 'In a month'), v: dAddMonths(t0, 1) }, { l: L('بعد 3 شهور', 'In 3 months'), v: dAddMonths(t0, 3) }];
+    const how = await ask(L('📅 هترجّعها إمتى؟', '📅 When will you pay it back?'), [{ l: L('📅 مرة واحدة في تاريخ', '📅 All at once, on a date'), v: 'date' }, { l: L('🗓 قسط كل شهر', '🗓 A monthly instalment'), v: 'plan' }, { l: L('⏭ من غير ميعاد', '⏭ No date'), v: 'skip' }, BACK]); if (how === null) return;
+    if (how === 'date') {
+      const v = await ask(L('اختار التاريخ، أو اكتبه (مثال: 15/12 أو 2026-12-15)', 'Pick the date, or type it (e.g. 15/12 or 2026-12-15)'), [...dates, BACK], true); if (v === null) return;
+      const d1 = pd(v); if (d1) nd.due = d1;
+    } else if (how === 'plan') {
+      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`)); if (pa == null) return;
+      const pn = await ask(L('لمدة كام شهر؟ اختار أو اكتب الرقم', 'For how many months? Pick or type the number'), [3, 6, 12].map(k => ({ l: L(`${k} شهور`, `${k} months`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
+      const v = await ask(L('أول قسط إمتى؟ اختار، أو اكتب التاريخ (مثال: 5/12)', 'When is the first one? Pick, or type the date (e.g. 5/12)'), [...dates.slice(0, 2), BACK], true); if (v === null) return;
+      const n = Math.max(1, Math.min(120, Math.round(parseFloat(String(pn).replace(/[^\d.]/g, '')) || 0))), f1 = pd(v);
+      if (pa > 0 && n >= 1 && f1) nd.plan = { amt: +(pa / rate(cu)).toFixed(2), n, first: f1 };
+    }
+    debts().push(nd); save(); render();
+    const nx = dNext(ctx().R, nd), shown = esc(person ? dNm(nd) : String(name));
+    return bot(L(`اتسجّل ${DKIND[kind]} ${shown}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>.${nx ? ` 📅 ${nx.n ? `قسط ${nx.k} من ${nx.n}: ` : 'السداد: '}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : how !== 'skip' ? ' ⚠️ ما فهمتش التاريخ، حطه من كارت الديون.' : ''} من دلوقتي نصيب النمو من أي دخل هيروح يسدّه الأول قبل الاستثمار.`,
+      `Recorded ${DKIND[kind]} ${shown}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>.${nx ? ` 📅 ${nx.n ? `Instalment ${nx.k} of ${nx.n}: ` : 'Pay back: '}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : how !== 'skip' ? " ⚠️ I could not read the date: set it on the Debts card." : ''} From now on the Growth share of any income goes to paying it before investing.`));
   }
   const id = open.length === 1 ? open[0].id : await ask(L('أنهي دين؟', 'Which debt?'), [...open.map(d => ({ l: `${DKIND[d.kind] || '🧾'} ${dNm(d)} ${CUR[cOf(d)].s}`, v: d.id })), BACK]); if (id === null) return;
   const d = ds.find(x => x.id === id), left = dLeft(R, d), k = 1 / rate(cOf(d)); // askNum بيرجّع درهم
