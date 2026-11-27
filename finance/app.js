@@ -359,8 +359,8 @@ async function dailyCheck() {
 // البيانات القديمة كان فيها دين واحد S.debt؛ أول ما الصفحة تشتغل بيتنقل لقايمة S.debts.
 // ما ينفعش S.debts تبقى في seed(): الدمج {...seed(), ...data} كان هيمسح الدين القديم بقايمة فاضية.
 const debts = () => (Array.isArray(S.debts) ? S.debts : (S.debts = debtList(S).map(d => ({ ...d }))));
-const DKIND = { card: '💳', loan: '🏦', person: '🤝', other: '🧾' };
-const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
+const DKIND = { card: '💳', tabby: '🟣', loan: '🏦', person: '🤝', other: '🧾' };
+const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get tabby() { return L('تابي / تمارا (من غير فوايد)', 'Tabby / Tamara (no interest)'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
 /* 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): الاسم بيتكتب وبيستخبى افتراضيًا (أول حرف ونقط) في كل حتة،
    وبيتبعت مستخبي للذكاء الاصطناعي؛ نفس الشخص ينفع يبقى ليه دين بكذا عملة (سطر لكل عملة)؛ وأي دين ليه ميعاد
    سداد، أو قسط شهري (مبلغ × عدد شهور من تاريخ أول قسط). القسط جدول وتنبيه بس: الفلوس بتتسدد زي الأول. */
@@ -374,8 +374,10 @@ function dNext(R, d) {
   const left = dLeft(R, d); if (left <= 0.5) return null;
   const pl = d.plan && +d.plan.amt > 0 && +d.plan.n > 0 && d.plan.first ? d.plan : null;
   if (pl) {
-    const paidN = Math.min(pl.n - 1, Math.floor((dPaid(R, d) + 0.5) / pl.amt)), date = dAddMonths(pl.first, paidN);
-    return { date, days: dDays(date), amt: Math.min(+pl.amt, left), k: paidN + 1, n: +pl.n, last: dAddMonths(pl.first, pl.n - 1) };
+    // plan.pre = what was already paid before it was recorded here (e.g. Tabby's first payment at checkout)
+    const got = dPaid(R, d) + (+pl.pre || 0), paidN = Math.min(pl.n - 1, Math.floor((got + 0.005) / pl.amt)), date = dAddMonths(pl.first, paidN);
+    const due = Math.max(0.01, (paidN + 1) * pl.amt - got); // a part-paid instalment asks only for the rest of it
+    return { date, days: dDays(date), amt: Math.min(due, left), k: paidN + 1, n: +pl.n, last: dAddMonths(pl.first, pl.n - 1) };
   }
   return d.due ? { date: d.due, days: dDays(d.due), amt: left } : null;
 }
@@ -888,7 +890,7 @@ function cardDebts(R) {
         <button class="pill" data-dcur="${d.id}" title="${L('عملة الدين: دوس تغيّرها', "The debt's currency: tap to change it")}">${CUR[cu].f} ${CUR[cu].s}</button>
         ${cu !== 'AED' ? `<small class="dfx" dir="ltr">1 ${CUR[cu].s} = ${fmt(rate(cu), 3)} Đ</small>` : ''}
         ${person ? `<button class="pill" data-dmore="${d.id}" title="${L('نفس الشخص بعملة تانية', 'The same person in another currency')}">＋ ${L('عملة تانية', 'Another currency')}</button>` : ''}
-        <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid)}` : ''}</small>
+        <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid + (+d.plan?.pre || 0) > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid + (+d.plan?.pre || 0))}` : ''}${d.kind === 'tabby' ? ` · ${L('من غير فوايد', 'no interest')}${d.total ? ` · ${L('الإجمالي', 'total')} ${fmt(d.total)}` : ''}` : ''}</small>
         ${done || fresh ? '' : `<div class="dextra">
           ${nx ? `<span class="chipc ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : 'good'}">📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}: `, `Instalment ${nx.k} of ${nx.n}: `) : L('السداد: ', 'Pay back: ')}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> · ${dDate(nx.date)} · ${dWhen(nx)}</span>` : ''}
           ${d.plan ? '' : `<label class="pill ddue">📅 ${L('ميعاد السداد', 'Due date')} <input type="date" data-ddue="${d.id}" value="${d.due || ''}"></label>`}
@@ -896,6 +898,7 @@ function cardDebts(R) {
           ${planOpen ? `<div class="dplan"><label>${L('كل شهر', 'Every month')} <input type="number" inputmode="decimal" min="0" step="any" data-dplan-amt value="${d.plan?.amt || ''}" placeholder="${fmt(r.left)}"> ${CUR[cu].s}</label>
             <label>${L('لمدة', 'for')} <input type="number" inputmode="numeric" min="1" max="120" step="1" data-dplan-n value="${d.plan?.n || ''}" placeholder="6"> ${L('شهر', 'months')}</label>
             <label>${L('أول قسط', 'First one')} <input type="date" data-dplan-first value="${d.plan?.first || d.due || today()}"></label>
+            <label>${L('اتدفع قبل التسجيل', 'Paid before it was recorded')} <input type="number" inputmode="decimal" min="0" step="any" data-dplan-pre value="${d.plan?.pre || ''}" placeholder="0"> ${CUR[cu].s}</label>
             <button class="pill" data-dplan-save="${d.id}">✅ ${L('احفظ', 'Save')}</button>${d.plan ? `<button class="pill" data-dplan-off="${d.id}">✕ ${L('شيل القسط', 'Remove')}</button>` : ''}</div>` : ''}
         </div>`}</div>
       <button class="pill" data-debtview="${d.id}">📜 ${L('الحركات', 'Activity')}</button>
@@ -2662,7 +2665,8 @@ cardsEl.addEventListener('click', e => {
     const x = debts().find(y => y.id === d.dplanSave), box = e.target.closest('.dplan');
     const amt = +box.querySelector('[data-dplan-amt]').value, n = Math.round(+box.querySelector('[data-dplan-n]').value), first = box.querySelector('[data-dplan-first]').value;
     if (!(amt > 0) || !(n >= 1) || !/^\d{4}-\d{2}-\d{2}$/.test(first)) { toast(L('اكتب المبلغ وعدد الشهور وتاريخ أول قسط', 'Fill in the amount, the number of months and the first date')); return; }
-    x.plan = { amt, n: Math.min(120, n), first }; delete x.due; UI.dplan = null; save(); render();
+    const preEl = box.querySelector('[data-dplan-pre]'), pre = Math.max(0, +(preEl && preEl.value) || 0);
+    x.plan = { amt, n: Math.min(120, n), first, ...(pre > 0 ? { pre } : {}) }; delete x.due; UI.dplan = null; save(); render();
     toast(L(`🗓 قسط ${fmt(amt)} كل شهر لمدة ${n} شهر، أول قسط ${dDate(first)}`, `🗓 ${fmt(amt)} every month for ${n} months, first on ${dDate(first)}`));
   } else if (d.dplanOff) {
     const x = debts().find(y => y.id === d.dplanOff); delete x.plan; UI.dplan = null; save(); render();
@@ -3558,6 +3562,8 @@ async function flowDebt() {
       ? await ask(L('🤝 مين اللي سلّفك؟ اختار، أو اكتب الاسم. (الاسم هيستخبى)', '🤝 Who lent you the money? Pick one, or type the name. (It will be hidden)'),
           [...prev.map(n => ({ l: `${dMask(n)} ${L('(عندك)', '(saved)')}`, v: n })),
             ...[L('بابا', 'Dad'), L('ماما', 'Mum'), L('أخويا', 'My brother'), L('أختي', 'My sister'), L('صاحبي', 'A friend')].filter(n => !prev.includes(n)).map(n => ({ l: n, v: n })), BACK], true)
+      : kind === 'tabby'
+      ? await ask(L('🟣 اشتريت إيه بتابي؟ اكتب اسمه (مثال: تابي - موبايل)', '🟣 What did you buy with Tabby? Type it (e.g. Tabby - phone)'), [{ l: 'Tabby', v: 'Tabby' }, { l: 'Tamara', v: 'Tamara' }, BACK], true)
       : await ask(L('سمّيه إيه؟ اكتب الاسم (مثال: كارت ADCB)', 'What should I call it? Type the name (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK], true);
     if (name === null) return;
     let cu = null;
@@ -3568,27 +3574,57 @@ async function flowDebt() {
       cu = code ? await ensureCur(code) : null;
       if (!cu) { sfx.err(); q = L('مش لاقي سعر للعملة دي 😅 اكتب الكود بتاعها بالإنجليزي (3 حروف، مثال: KWD) أو اختار من اللي تحت', "I can't find a rate for that currency 😅 Type its 3-letter code (e.g. KWD) or pick one below"); }
     }
-    const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
-    // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
-    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true } : {}) };
-    // هترجّعها إمتى؟ تاريخ واحد، أو قسط كل شهر (مبلغ × عدد شهور)، أو من غير ميعاد
     const pd = v => { const t = String(v || '').trim(), m1 = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t), m2 = /^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?$/.exec(t);
       const mk = (y, m, d) => { const x = new Date(y, m - 1, d, 12); return x.getMonth() === m - 1 && x.getDate() === +d ? iso(x) : null; };
       if (m1) return mk(+m1[1], +m1[2], +m1[3]);
       if (m2) { const now = new Date(), y = m2[3] ? (+m2[3] < 100 ? 2000 + +m2[3] : +m2[3]) : now.getFullYear(); let r = mk(y, +m2[2], +m2[1]); if (r && !m2[3] && r < today()) r = mk(y + 1, +m2[2], +m2[1]); return r; }
       return null; };
+    // 🟣 تابي / تمارا (طلب صاحب الحساب، 2026-11-27): من غير فوايد خالص. الإجمالي ÷ عدد الدفعات، كل شهر من يوم الشرا،
+    // واللي اتدفع قبل كده (أول دفعة وقت الشرا عادةً) بيتطرح، والقسط الجاي بيتحسب من بعده.
+    if (kind === 'tabby') {
+      const tot = await askNum(L(`🟣 سعر الحاجة كله كام (بال${CUR[cu].n})؟ من غير فوايد`, `🟣 What was the full price (in ${CUR[cu].n})? No interest`), [], false, cu); if (tot == null) return;
+      const T = tot / rate(cu);
+      const nv = await ask(L('مقسّمة على كام دفعة؟ (تابي العادي 4) اختار أو اكتب الرقم', 'Split into how many payments? (Tabby is usually 4) Pick or type'), [4, 3, 6, 12].map(k => ({ l: L(`${k} دفعات · ${fmt(T / k)} كل شهر`, `${k} payments · ${fmt(T / k)} a month`), v: String(k) })).concat([BACK]), true); if (nv === null) return;
+      const n = Math.max(1, Math.min(60, Math.round(parseFloat(String(nv).replace(/[^\d.]/g, '')) || 4))), per = T / n;
+      const bought = await askCal('date', L('اشتريتها إمتى؟ (أول دفعة يومها، والباقي كل شهر)', 'When did you buy it? (the first payment is that day, then monthly)'), [{ l: L('النهارده', 'Today'), v: today() }, BACK], true); if (bought === null) return;
+      const f1 = pd(bought) || today();
+      const pv = await ask(L(`دفعت كام دفعة لحد دلوقتي؟ (كل دفعة ${fmt(per)} ${CUR[cu].s})`, `How many payments have you made so far? (each ${fmt(per)} ${CUR[cu].s})`),
+        [...Array.from({ length: Math.min(n, 5) }, (_, k) => ({ l: k === 0 ? L('ولا دفعة', 'None') : k === 1 ? L('1 · وقت الشرا', '1 · at checkout') : L(`${k} دفعات`, `${k} payments`), v: 'n' + k })),
+          { l: L('💵 اكتب مبلغ', '💵 Type an amount'), v: 'amt' }, BACK]); if (pv === null) return;
+      let pre = 0;
+      if (pv === 'amt') { const x = await askNum(L(`دفعت كام لحد دلوقتي (بال${CUR[cu].n})؟`, `How much have you paid so far (in ${CUR[cu].n})?`), [], true, cu); if (x == null) return; pre = Math.min(T, x / rate(cu)); }
+      else pre = Math.min(n, +String(pv).slice(1) || 0) * per;
+      const nd = { id: uid(), name: String(name).trim().slice(0, 40) || 'Tabby', kind, balance: +(T - pre).toFixed(2), since: today(), cur: cu, total: +T.toFixed(2), plan: { amt: +per.toFixed(2), n, first: f1, ...(pre > 0 ? { pre: +pre.toFixed(2) } : {}) } };
+      if (nd.balance <= 0.005) return bot(L('دي متدفعة كلها خلاص ✅ مفيش دين تتسجل.', 'That is already fully paid ✅ nothing to record.'));
+      debts().push(nd); save(); render();
+      const nx = dNext(ctx().R, nd);
+      return bot(L(`🟣 اتسجّل <b>${esc(nd.name)}</b>: الإجمالي <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
+        `🟣 Recorded <b>${esc(nd.name)}</b>: total <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
+    }
+    const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
+    // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
+    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true } : {}) };
+    // هترجّعها إمتى؟ تاريخ واحد، أو قسط كل شهر (مبلغ × عدد شهور)، أو من غير ميعاد
     const t0 = today(), nextFirst = (() => { const x = new Date(); return iso(new Date(x.getFullYear(), x.getMonth() + 1, 1, 12)); })();
     const dates = [{ l: L(`أول الشهر الجاي (${dDate(nextFirst)})`, `The 1st of next month (${dDate(nextFirst)})`), v: nextFirst }, { l: L('بعد شهر', 'In a month'), v: dAddMonths(t0, 1) }, { l: L('بعد 3 شهور', 'In 3 months'), v: dAddMonths(t0, 3) }];
-    const how = await ask(L('📅 هترجّعها إمتى؟', '📅 When will you pay it back?'), [{ l: L('📅 مرة واحدة في تاريخ', '📅 All at once, on a date'), v: 'date' }, { l: L('🗓 قسط كل شهر', '🗓 A monthly instalment'), v: 'plan' }, { l: L('⏭ من غير ميعاد', '⏭ No date'), v: 'skip' }, BACK]); if (how === null) return;
+    const how = await ask(L('📅 هترجّعها إزاي؟', '📅 How will you pay it back?'), [{ l: L('💵 مرة واحدة في تاريخ', '💵 In one go, on a date'), v: 'date' }, { l: L('🗓 أقسّطها على شهور', '🗓 Spread over months'), v: 'plan' }, { l: L('⏭ من غير ميعاد', '⏭ No date'), v: 'skip' }, BACK]); if (how === null) return;
     if (how === 'date') {
       const v = await askCal('date', L('تاريخ السداد إمتى؟', 'What is the pay-back date?'), [...dates, BACK], true); if (v === null) return;
       const d1 = pd(v); if (d1) nd.due = d1;
     } else if (how === 'plan') {
-      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`), [], false, cu); if (pa == null) return;
-      const pn = await ask(L('لمدة كام شهر؟ اختار أو اكتب الرقم', 'For how many months? Pick or type the number'), [3, 6, 12].map(k => ({ l: L(`${k} شهور`, `${k} months`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
+      const T = nd.balance;
+      const pn = await ask(L('على كام شهر؟ اختار أو اكتب الرقم', 'Over how many months? Pick or type the number'), [3, 6, 10, 12].map(k => ({ l: L(`${k} شهور · ${fmt(T / k)} كل شهر`, `${k} months · ${fmt(T / k)} a month`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
+      const n = Math.max(1, Math.min(120, Math.round(parseFloat(String(pn).replace(/[^\d.]/g, '')) || 0)));
+      const eq = +(T / n).toFixed(2);
+      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`), [{ l: L(`بالتساوي: ${fmt(eq)}`, `Equal: ${fmt(eq)}`), v: String(eq) + ' ' + cu }], false, cu); if (pa == null) return;
       const v = await askCal('date', L('أول قسط إمتى؟', 'When is the first instalment?'), [...dates.slice(0, 2), BACK], true); if (v === null) return;
-      const n = Math.max(1, Math.min(120, Math.round(parseFloat(String(pn).replace(/[^\d.]/g, '')) || 0))), f1 = pd(v);
+      const f1 = pd(v);
       if (pa > 0 && n >= 1 && f1) nd.plan = { amt: +(pa / rate(cu)).toFixed(2), n, first: f1 };
+      // already paid part of it before recording it here?
+      if (nd.plan && f1 <= today()) {
+        const pp = await ask(L('دفعت منها حاجة قبل كده؟', 'Have you already paid any of it?'), [{ l: L('لأ', 'No'), v: 'no' }, { l: L('💵 آه، اكتب كام', '💵 Yes, type how much'), v: 'yes' }, BACK]); if (pp === null) return;
+        if (pp === 'yes') { const x = await askNum(L(`دفعت كام (بال${CUR[cu].n})؟`, `How much (in ${CUR[cu].n})?`), [], true, cu); if (x == null) return; const pre = Math.min(T, x / rate(cu)); if (pre > 0) { nd.plan.pre = +pre.toFixed(2); nd.balance = +(T - pre).toFixed(2); } }
+      }
     }
     debts().push(nd); save(); render();
     const nx = dNext(ctx().R, nd), shown = esc(person ? dNm(nd) : String(name));
