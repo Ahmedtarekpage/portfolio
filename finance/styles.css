@@ -1552,3 +1552,7 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .sw-rest { margin: 4px 0 0; font-size: .78rem; color: var(--mute, #b3bccd); }
 .dedit-full { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .8rem; font-weight: 700; }
 .dedit-full .on { background: var(--acc); color: #fff; border-color: var(--acc); }
+.sw-rec { background: #f5c542 !important; color: #3b2a00 !important; }
+.sw-recnote { margin: 2px 0 4px; font-size: .74rem; color: var(--mute, #b3bccd); }
+.sw-recbtn { margin-inline-start: 6px; font: inherit; font-weight: 800; font-size: .72rem; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); cursor: pointer; }
+.sw-norec { font-size: .64rem; font-weight: 700; padding: 3px 7px; border-radius: 8px; background: rgba(0, 0, 0, .3); line-height: 1.35; }

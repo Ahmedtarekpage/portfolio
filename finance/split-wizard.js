@@ -180,23 +180,36 @@ export function splitWizard(deps) {
   const alloc = () => {
     let avail = split().debt; const res = {};
     for (const id of sel) { const x = picks.find(q => q.id === id); if (!x) continue; const need = needOf(x);
-      if (isFull(x)) { if (avail + 0.005 >= need) { res[id] = need; avail -= need; } else res[id] = 0; }
-      else { const y = Math.min(avail, need); res[id] = y; avail -= y; } }
+      const y = Math.min(avail, need); res[id] = y; avail -= y; }
     return { res, rest: Math.max(0, avail) };
   };
-  let sel = [];
-  { let a = split().debt; const first = picks.find(x => !isFull(x) || a + 0.005 >= needOf(x)); if (first) sel = [first.id]; }
+  // ⭐ the suggestion (owner, 2026-11-28): overdue first, then debts with riba, then the soonest due date, then the smallest balance;
+  // an instalment that must be paid in full is only suggested when the whole of it fits
+  const today = new Date().toISOString().slice(0, 10), in31 = new Date(Date.now() + 31 * 864e5).toISOString().slice(0, 10);
+  const rank = x => x.due && x.due < today ? 0 : x.riba ? 1 : x.due && x.due <= in31 ? 2 : x.due ? 3 : 4;
+  const why = { 0: L('متأخر', 'Overdue'), 1: L('عليه ربا', 'Has riba'), 2: L('ميعاده قرّب (خلال شهر)', 'Due within a month'), 3: L('ميعاده الأقرب بعدهم والأصغر', 'Next date, and smaller'), 4: L('أصغر دين من غير ميعاد', 'Smallest with no date') };
+  const rec = []; const recWhy = {}, noWhy = {};
+  { let a = split().debt;
+    for (const x of picks.slice().sort((p, q) => rank(p) - rank(q) || String(p.due || '9').localeCompare(String(q.due || '9')) || p.leftAED - q.leftAED)) {
+      const need = needOf(x);
+      if (a <= 0.005) { noWhy[x.id] = L('الفلوس خلصت قبله', 'The money ran out before it'); continue; }
+      if (isFull(x) && a + 0.005 < need) { noWhy[x.id] = L(`القسط كله (${fmt(v(need), 2)}) مش هيكفّي، فالأحسن يتدفع كامل مرة تانية`, `The whole instalment (${fmt(v(need), 2)}) won't fit, better paid in full next time`); continue; }
+      rec.push(x.id); recWhy[x.id] = why[rank(x)]; a -= Math.min(a, need);
+    } }
+  let sel = rec.length ? rec.slice() : picks[0] ? [picks[0].id] : [];
   const pickName = () => (picks.find(x => x.id === sel[0]) || {}).name || debtName;
   const pickHTML = () => {
     const { res, rest } = alloc(), m = x => `${fmt(v(x), 2)} ${sym}`;
+    const same = rec.length === sel.length && rec.every((id, j) => sel[j] === id);
     return `<div class="sw-picks"><b>${L('دوس على الديون اللي عايز تدفعها (بالترتيب). مترتبين بالميعاد، الأقرب الأول', 'Tap the debts to pay (in order). Sorted by due date, soonest first')}</b>
+      <p class="sw-recnote">⭐ ${L('المقترح: المتأخر الأول، بعده اللي عليه ربا، بعده الأقرب ميعادًا، بعده الأصغر. والقسط اللي لازم يتدفع كامل بيتقترح لو يكفّي كله.', 'Suggested: overdue first, then riba, then the soonest date, then the smallest. A must-pay-in-full instalment is suggested only when all of it fits.')}${same ? '' : ` <button type="button" class="sw-recbtn" data-dprec>${L('↺ رجّع المقترح', '↺ Back to the suggestion')}</button>`}</p>
       <div class="sw-pcards">${picks.map((x, n) => {
         const on = sel.includes(x.id), got = res[x.id] || 0, need = needOf(x), full = isFull(x);
-        const blocked = !on && full && rest + 0.005 < need, failed = on && full && got < 0.005;
-        const state = failed || blocked ? `<span class="sw-why">⛔ ${L(`لازم يتدفع كامل ${m(need)} ومعاك ${m(on ? rest + got : rest)}`, `Must be paid in full ${m(need)}, you have ${m(on ? rest + got : rest)}`)}</span>`
-          : on ? `<span class="sw-got">${got + 0.005 >= need ? L(`✅ هيتدفع ${m(got)} كامل`, `✅ Pays ${m(got)} in full`) : L(`🧩 هيتدفع ${m(got)} من ${m(need)}`, `🧩 Pays ${m(got)} of ${m(need)}`)}</span>`
-          : `<span class="sw-need">${full ? L(`💯 لازم كامل ${m(need)}`, `💯 In full ${m(need)}`) : L(`🧩 عليه ${m(need)}`, `🧩 Due ${m(need)}`)}</span>`;
-        return `<button type="button" class="sw-pick dc ${x.cls || ''}${on ? ' on' : ''}${blocked || failed ? ' off' : ''}" data-dpick="${x.id}" ${blocked ? 'aria-disabled="true"' : ''} title="${L('دبل كليك تعدّل الدين', 'Double-click to edit the debt')}">${n === 0 ? `<i class="sw-soon">${L('الأقرب', 'Soonest')}</i>` : ''}${on ? `<i class="sw-ord">${sel.indexOf(x.id) + 1}</i>` : ''}<span class="sw-pt">${x.ico || ''}<span>${esc(x.name)}</span></span><b dir="ltr">${x.left}</b><small>${x.when}</small>${state}</button>`;
+        const blocked = false, failed = false, short = on && full && got + 0.005 < need;
+        const state = on ? `<span class="sw-got">${got + 0.005 >= need ? L(`✅ هيتدفع ${m(got)} كامل`, `✅ Pays ${m(got)} in full`) : L(`🧩 هيتدفع ${m(got)} من ${m(need)}`, `🧩 Pays ${m(got)} of ${m(need)}`)}</span>` +
+              (short ? `<span class="sw-why">⚠️ ${L(`القسط لازم يكمل ${m(need)} قبل ${x.dueTxt || 'ميعاده'}، فاضل ${m(need - got)}`, `The instalment must reach ${m(need)} by ${x.dueTxt || 'its date'}, ${m(need - got)} to go`)}</span>` : '')
+          : `<span class="sw-need">${full ? L(`💯 القسط ${m(need)}`, `💯 Instalment ${m(need)}`) : L(`🧩 عليه ${m(need)}`, `🧩 Due ${m(need)}`)}</span>`;
+        return `<button type="button" class="sw-pick dc ${x.cls || ''}${on ? ' on' : ''}${blocked || failed ? ' off' : ''}" data-dpick="${x.id}" ${blocked ? 'aria-disabled="true"' : ''} title="${L('دبل كليك تعدّل الدين', 'Double-click to edit the debt')}">${rec.includes(x.id) ? `<i class="sw-soon sw-rec">⭐ ${L('مقترح', 'Suggested')} · ${recWhy[x.id]}</i>` : n === 0 ? `<i class="sw-soon">${L('الأقرب', 'Soonest')}</i>` : ''}${!rec.includes(x.id) && noWhy[x.id] ? `<span class="sw-norec">💭 ${L('مش مقترح', 'Not suggested')}: ${noWhy[x.id]}</span>` : ''}${on ? `<i class="sw-ord">${sel.indexOf(x.id) + 1}</i>` : ''}<span class="sw-pt">${x.ico || ''}<span>${esc(x.name)}</span></span><b dir="ltr">${x.left}</b><small>${x.when}</small>${state}</button>`;
       }).join('')}</div>
       ${rest > 0.5 ? `<p class="sw-rest">💡 ${L(`فاضل ${m(rest)}: دوس على دين تاني يروحله، أو هيروح للي عليه الدور بالترتيب`, `${m(rest)} left: tap another debt to send it there, or it goes to the next one in order`)}</p>` : ''}</div>`;
   };
@@ -287,6 +300,7 @@ export function splitWizard(deps) {
       const b = e.target.closest('button'); if (!b) { if (e.target === o) close(null); return; }
       const d = b.dataset;
       if ('close' in d) return close(null);
+      if ('dprec' in d) { sel = rec.slice(); sfx?.select?.(); return draw(0); }
       if (d.dpick) { if (b.getAttribute('aria-disabled') === 'true') { sfx?.err?.(); return; } sel = sel.includes(d.dpick) ? sel.filter(x => x !== d.dpick) : [...sel, d.dpick]; sfx?.select?.(); return draw(0); }
       if (d.mode) { det = d.mode === 'det'; try { localStorage.setItem('floosy.swmode', det ? 'det' : 'q'); } catch {} sfx?.select?.(); return draw(0); }
       if (d.more != null) { const li = b.closest('li'); li.classList.toggle('open'); (li.classList.contains('open') ? sfx?.step : sfx?.back)?.(); return; }
