@@ -1305,3 +1305,26 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .db-foot { padding: 0 6px; gap: 12px; }
 .db-dots { gap: 6px; }
 .ch-mkt { margin-top: 4px; }
+/* Apple Wallet colours: each card in its brand (owner, 2026-11-27) */
+.dc { color: #fff; }
+.dc::after { background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .18) 48%, transparent 60%); }
+.dc--tabby { background: #6CFF93; background-image: radial-gradient(130% 90% at 0% 0%, #b9ffcb 0%, #6CFF93 45%, #3fe476 100%); color: #0a0a0a; }
+.dc--tabby small, .dc--tabby .dc-next small, .dc--tamara small, .dc--tamara .dc-next small { color: rgba(10, 10, 10, .7); }
+.dc--tamara { background: linear-gradient(125deg, #FDCDAA 0%, #FBE7A7 22%, #ECA0BA 48%, #CA93C6 70%, #B5E0F9 100%); color: #0a0a0a; }
+.dc--tabby .fc, .dc--tamara .fc { background: #0a0a0a; color: #fff; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); }
+.dc--tabby .dc-chip, .dc--tamara .dc-chip { opacity: .85; }
+.dc--enbd { background: linear-gradient(135deg, #0B2A5B, #061a3a 60%, #0B2A5B); box-shadow: inset 0 -4px 0 #F58220, 0 14px 30px rgba(0, 0, 0, .45); }
+.dc--adcb { background: linear-gradient(135deg, #d0112b, #7d0718); }
+.dc--fab { background: linear-gradient(135deg, #00366e, #001a36); box-shadow: inset 0 -4px 0 #d4a017, 0 14px 30px rgba(0, 0, 0, .45); }
+.dc--mashreq { background: linear-gradient(135deg, #f26522, #b23c0b); }
+.dc--dib { background: linear-gradient(135deg, #00704a, #003d28); }
+.dc--cib { background: linear-gradient(135deg, #0a4a9a, #06264f); }
+.dc--nbe { background: linear-gradient(135deg, #00703c, #003b20); }
+.dc--bm { background: linear-gradient(135deg, #a5192d, #5b0b17); }
+.dc--card { background: linear-gradient(135deg, #2b2b30, #0c0c0e); }
+.dc--loan { background: linear-gradient(135deg, #3a6fd8, #16336b); }
+.dc--person { background: linear-gradient(135deg, #8d6be8, #3e2a86); }
+.dc--other { background: linear-gradient(135deg, #5d6b85, #2a3245); }
+.dc--all { background: linear-gradient(135deg, #FF8172, #FF6B5B 45%, #b8382a); }
+.dc .dav { border-color: rgba(255, 255, 255, .55); }
+.dc--tabby .dav, .dc--tamara .dav { border-color: rgba(0, 0, 0, .15); }

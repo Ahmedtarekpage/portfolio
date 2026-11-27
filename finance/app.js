@@ -3704,7 +3704,9 @@ function renderDebtBar() {
     : `<span class="dc-next"><small>${L('من غير ميعاد سداد', 'No pay-back date')}</small></span>`;
   const card = (d, k) => {
     const cu = cOf(d), left = dLeft(R, d), fx = dConv(left, cu), brand = dBrand(d);
-    return `<span class="dc${brand ? ' dc--' + brand : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}">
+    // Apple Wallet style: every card in its own brand's colours (banks by their name)
+    const bank = (/enbd|emirates ?nbd|الإمارات دبي/i.test(d.name || '') && 'enbd') || (/adcb/i.test(d.name || '') && 'adcb') || (/\bfab\b|first abu dhabi/i.test(d.name || '') && 'fab') || (/mashreq|المشرق/i.test(d.name || '') && 'mashreq') || (/\bdib\b|dubai islamic/i.test(d.name || '') && 'dib') || (/\bcib\b/i.test(d.name || '') && 'cib') || (/\bnbe\b|الأهلي/i.test(d.name || '') && 'nbe') || (/banque misr|بنك مصر/i.test(d.name || '') && 'bm');
+    return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}">
       <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span><i class="dc-chip" aria-hidden="true"></i></span>
       <span class="dc-amt"><b dir="ltr">${fmt(left, 2)} ${CUR[cu].s}</b>${fx.map(x => `<small dir="ltr">≈ ${fmt(x.v)} ${CUR[x.c].s}</small>`).join('')}</span>
       ${cd(dNext(R, d))}</span>`;
