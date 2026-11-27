@@ -363,7 +363,7 @@ const DKIND = { card: '💳', tabby: '🟣', loan: '🏦', person: '🤝', other
 // Tabby / Tamara show their own logo (finance/brand/*.png); every other debt keeps its emoji
 const dBrand = d => d && (d.kind === 'tabby' || /tabby|tamara|تابي|تمارا/i.test(d.name || '')) ? (/tamara|تمارا/i.test(d.name || '') ? 'tamara' : 'tabby') : null;
 const dIco = d => { if (d?.kind === 'person') return dAvatar(d, 20); const b = dBrand(d); return b ? `<img class="dlogo" src="brand/${b}.png" alt="${b === 'tamara' ? 'Tamara' : 'Tabby'}" width="18" height="18">` : (DKIND[d?.kind] || '🧾'); };
-const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get tabby() { return L('تابي / تمارا (من غير فوايد)', 'Tabby / Tamara (no interest)'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
+const DKIND_N = { get card() { return L('كارت', 'Credit card'); }, get tabby() { return L('تابي / تمارا (من غير ربا)', 'Tabby / Tamara (no riba)'); }, get loan() { return L('قرض', 'Loan'); }, get person() { return L('سلفة من حد', 'Personal loan'); }, get other() { return L('تاني', 'Other'); } };
 /* 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): الاسم بيتكتب وبيستخبى افتراضيًا (أول حرف ونقط) في كل حتة،
    وبيتبعت مستخبي للذكاء الاصطناعي؛ نفس الشخص ينفع يبقى ليه دين بكذا عملة (سطر لكل عملة)؛ وأي دين ليه ميعاد
    سداد، أو قسط شهري (مبلغ × عدد شهور من تاريخ أول قسط). القسط جدول وتنبيه بس: الفلوس بتتسدد زي الأول. */
@@ -895,7 +895,7 @@ function cardDebts(R) {
         <button class="pill" data-dcur="${d.id}" title="${L('عملة الدين: دوس تغيّرها', "The debt's currency: tap to change it")}">${CUR[cu].f} ${CUR[cu].s}</button>
         ${cu !== 'AED' ? `<small class="dfx" dir="ltr">1 ${CUR[cu].s} = ${fmt(rate(cu), 3)} Đ</small>` : ''}
         ${person ? `<button class="pill" data-dmore="${d.id}" title="${L('نفس الشخص بعملة تانية', 'The same person in another currency')}">＋ ${L('عملة تانية', 'Another currency')}</button>` : ''}
-        <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid + (+d.plan?.pre || 0) > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid + (+d.plan?.pre || 0))}` : ''}${d.kind === 'tabby' ? ` · ${L('من غير فوايد', 'no interest')}${d.total ? ` · ${L('الإجمالي', 'total')} ${fmt(d.total)}` : ''}` : ''}</small>
+        <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid + (+d.plan?.pre || 0) > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid + (+d.plan?.pre || 0))}` : ''}${d.kind === 'tabby' ? ` · ${L('من غير ربا', 'no riba')}${d.total ? ` · ${L('الإجمالي', 'total')} ${fmt(d.total)}` : ''}` : ''}</small>
         ${done || fresh ? '' : `<div class="dextra">
           ${nx ? `<span class="chipc ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : 'good'}">📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}: `, `Instalment ${nx.k} of ${nx.n}: `) : L('السداد: ', 'Pay back: ')}<b dir="ltr">${fmt(nx.amt, 2)} ${CUR[cu].s}</b> · ${dDate(nx.date)} · ${dWhen(nx)}</span>` : ''}
           ${d.plan ? '' : `<label class="pill ddue">📅 ${L('ميعاد السداد', 'Due date')} <input type="date" data-ddue="${d.id}" value="${d.due || ''}"></label>`}
@@ -3385,7 +3385,7 @@ async function flowGoal() {
       const n = await ask(L('على كام شهر؟', 'Over how many months?'), [12, 24, 36, 48, 60].map(k => ({ l: L(`${k} شهر`, `${k} months`), v: k })).concat(BACK)); if (n === null) return;
       g.n = Math.max(1, Math.round(parseNum(n)) || 12);
       // 🕌 الخطوة صفر: التقسيط ده حلال ولا فيه ربا؟
-      const k = await ask(L('التقسيط ده نوعه إيه؟ 🕌', 'What kind of instalment plan is it? 🕌'), [{ l: L('🏦 بنك إسلامي (مرابحة / إجارة)', '🏦 Islamic bank (murabaha / ijara)'), v: 'islamic' }, { l: L('0️⃣ صفر% من غير أي ربا', '0️⃣ 0% with no interest at all'), v: 'zero' }, { l: L('💳 قرض أو كارت بربا', '💳 A loan or card with interest'), v: 'interest' }, { l: L('🤷 مش عارف', "🤷 I don't know"), v: 'unknown' }, BACK]); if (k === null) return;
+      const k = await ask(L('التقسيط ده نوعه إيه؟ 🕌', 'What kind of instalment plan is it? 🕌'), [{ l: L('🏦 بنك إسلامي (مرابحة / إجارة)', '🏦 Islamic bank (murabaha / ijara)'), v: 'islamic' }, { l: L('0️⃣ صفر% من غير أي ربا', '0️⃣ 0% with no riba at all'), v: 'zero' }, { l: L('💳 قرض أو كارت بربا', '💳 A loan or card with interest'), v: 'interest' }, { l: L('🤷 مش عارف', "🤷 I don't know"), v: 'unknown' }, BACK]); if (k === null) return;
       g.contract = k;
     }
     // حاجة ليها مصاريف كل شهر (عربية: بنزين وتأمين وصيانة) وممكن تبقى بدل بند في الأساسيات (المواصلات)
@@ -3735,7 +3735,7 @@ function renderDebtBar() {
     // Apple Wallet style: every card in its own brand's colours (banks by their name)
     const bank = (/enbd|emirates ?nbd|الإمارات دبي/i.test(d.name || '') && 'enbd') || (/adcb/i.test(d.name || '') && 'adcb') || (/\bfab\b|first abu dhabi/i.test(d.name || '') && 'fab') || (/mashreq|المشرق/i.test(d.name || '') && 'mashreq') || (/\bdib\b|dubai islamic/i.test(d.name || '') && 'dib') || (/\bcib\b/i.test(d.name || '') && 'cib') || (/\bnbe\b|الأهلي/i.test(d.name || '') && 'nbe') || (/banque misr|بنك مصر/i.test(d.name || '') && 'bm');
     return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}" data-did="${d.id}" title="${L('دبل كليك عشان تعدّل', 'Double-click to edit')}">
-      <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(d.name || dNm(d))}</b><small class="dc-sub">${d.item ? `<b class="dc-item">${esc(d.item)}</b> · ` : ''}${d.kind === 'tabby' ? L('من غير فوايد', 'no interest') : DKIND_N[d.kind] || ''}</small></span></span>
+      <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(d.name || dNm(d))}</b><small class="dc-sub">${d.item ? `<b class="dc-item">${esc(d.item)}</b> · ` : ''}${d.kind === 'tabby' ? L('من غير ربا', 'no riba') : DKIND_N[d.kind] || ''}</small></span></span>
       ${d.desc ? `<small class="dc-desc">📝 ${esc(d.desc)}</small>` : ''}
       ${multi ? `<span class="dc-amt"><small class="dc-lbl">${L(`الباقي · ${g.length} عملات`, `Left · ${g.length} currencies`)}</small>
         <span class="dc-multi">${g.map(x => `<b dir="ltr">${CUR[cOf(x)].f} ${fmt(dLeft(R, x), 2)} <em>${CUR[cOf(x)].s}</em></b>`).join('')}</span>
@@ -3803,7 +3803,7 @@ function debtPop(start = 0) {
     const d = open[i], cu = CUR[cOf(d)].s, left = dLeft(R, d), paid = dPaid(R, d) + (+d.plan?.pre || 0), nx = dNext(R, d), all = left + paid, pct = all ? Math.round(paid / all * 100) : 0;
     o.innerHTML = `<div class="wiz-card glass dpop">
       <div class="wiz-top"><b>💳 ${L('الدين', 'Debt')} ${i + 1} / ${open.length}</b><small class="dpop-all" dir="ltr">${L('الكل', 'All')} ≈ ${fmt(open.reduce((n, x) => n + dLeft(R, x) * rate(cOf(x)), 0))} Đ${rate('EGP') > 0 ? ` · ≈ ${fmt(open.reduce((n, x) => n + dLeft(R, x) * rate(cOf(x)), 0) / rate('EGP'))} ${CUR.EGP.s}` : ''}</small><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
-      <div class="dpop-head">${dAvatar(d, 72)}<div><h3>${esc(dNm(d))}</h3><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></div></div>
+      <div class="dpop-head">${dAvatar(d, 72)}<div><h3>${esc(dNm(d))}</h3><small>${d.kind === 'tabby' ? L('قسّطها من غير ربا', 'Split with no riba') : DKIND_N[d.kind] || ''}</small></div></div>
       <div class="dpop-big"><small>${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} ${cu}</b>
         ${dConv(left, cOf(d)).map(x => `<span class="dpop-fx" dir="ltr">≈ <b>${fmt(x.v, 2)} ${CUR[x.c].s}</b> <small>${x.r}${UI.fxLive ? ' · ' + L('لايف', 'live') : ''}</small></span>`).join('')}</div>
       <div class="dpop-bar"><i style="width:${pct}%"></i></div><small>${L(`اتسدّد ${fmt(paid, 2)} من ${fmt(all, 2)} (${pct}%)`, `Paid ${fmt(paid, 2)} of ${fmt(all, 2)} (${pct}%)`)}</small>
@@ -3968,11 +3968,11 @@ async function flowDebt() {
       if (m1) return mk(+m1[1], +m1[2], +m1[3]);
       if (m2) { const now = new Date(), y = m2[3] ? (+m2[3] < 100 ? 2000 + +m2[3] : +m2[3]) : now.getFullYear(); let r = mk(y, +m2[2], +m2[1]); if (r && !m2[3] && r < today()) r = mk(y + 1, +m2[2], +m2[1]); return r; }
       return null; };
-    // 🟣 تابي / تمارا (طلب صاحب الحساب، 2026-11-27): من غير فوايد خالص. الإجمالي ÷ عدد الدفعات، كل شهر من يوم الشرا،
+    // 🟣 تابي / تمارا (طلب صاحب الحساب، 2026-11-27): من غير ربا خالص. الإجمالي ÷ عدد الدفعات، كل شهر من يوم الشرا،
     // واللي اتدفع قبل كده (أول دفعة وقت الشرا عادةً) بيتطرح، والقسط الجاي بيتحسب من بعده.
     if (kind === 'tabby') {
       const item = await ask(L(`🏷 اشتريت إيه بـ${name}؟ اكتب اسمه (مثال: موبايل، تكييف)`, `🏷 What did you buy with ${name}? Type it (e.g. phone, AC)`), [{ l: L('⏭ من غير اسم', '⏭ No name'), v: '' }, BACK], true); if (item === null) return;
-      const tot = await askNum(L(`🟣 سعر الحاجة كله كام (بال${CUR[cu].n})؟ من غير فوايد`, `🟣 What was the full price (in ${CUR[cu].n})? No interest`), [], false, cu); if (tot == null) return;
+      const tot = await askNum(L(`🟣 سعر الحاجة كله كام (بال${CUR[cu].n})؟ من غير ربا`, `🟣 What was the full price (in ${CUR[cu].n})? No riba`), [], false, cu); if (tot == null) return;
       const T = tot / rate(cu);
       const nv = await ask(L('مقسّمة على كام دفعة؟ (تابي العادي 4) اختار أو اكتب الرقم', 'Split into how many payments? (Tabby is usually 4) Pick or type'), [4, 3, 6, 12].map(k => ({ l: L(`${k} دفعات · ${fmt(T / k, 2)} كل شهر`, `${k} payments · ${fmt(T / k, 2)} a month`), v: String(k) })).concat([BACK]), true); if (nv === null) return;
       const n = Math.max(1, Math.min(60, Math.round(parseFloat(String(nv).replace(/[^\d.]/g, '')) || 4))), per = T / n;
@@ -3988,8 +3988,8 @@ async function flowDebt() {
       if (nd.balance <= 0.005) return bot(L('دي متدفعة كلها خلاص ✅ مفيش دين تتسجل.', 'That is already fully paid ✅ nothing to record.'));
       debts().push(nd); save(); render(); debtAdded(nd);
       const nx = dNext(ctx().R, nd);
-      return bot(L(`${dIco(nd)} اتسجّل <b>${esc(dNm(nd))}</b>: الإجمالي <b dir="ltr">${fmt(T, 2)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per, 2)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre, 2)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance, 2)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt, 2)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
-        `${dIco(nd)} Recorded <b>${esc(dNm(nd))}</b>: total <b dir="ltr">${fmt(T, 2)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per, 2)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre, 2)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance, 2)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt, 2)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
+      return bot(L(`${dIco(nd)} اتسجّل <b>${esc(dNm(nd))}</b>: الإجمالي <b dir="ltr">${fmt(T, 2)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per, 2)} كل شهر)، من غير ربا.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre, 2)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance, 2)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt, 2)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
+        `${dIco(nd)} Recorded <b>${esc(dNm(nd))}</b>: total <b dir="ltr">${fmt(T, 2)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per, 2)} a month), no riba.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre, 2)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance, 2)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt, 2)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
     }
     const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
     // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
