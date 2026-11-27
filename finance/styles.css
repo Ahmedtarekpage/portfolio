@@ -1328,3 +1328,10 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .dc--all { background: linear-gradient(135deg, #FF8172, #FF6B5B 45%, #b8382a); }
 .dc .dav { border-color: rgba(255, 255, 255, .55); }
 .dc--tabby .dav, .dc--tamara .dav { border-color: rgba(0, 0, 0, .15); }
+/* number pad laid out like a phone (owner, 2026-11-27): 1 2 3 on top, 0 at the bottom, a tall ✓, room between keys */
+.numpad { grid-template-columns: repeat(3, 1fr) 1.15fr; grid-template-areas: "n1 n2 n3 bk" "n4 n5 n6 cl" "n7 n8 n9 go" "zz z dt go"; gap: 8px; padding: 10px 14px 14px; margin-top: 2px; border-top: 1px solid var(--line); }
+.numpad button { min-height: 46px; font-size: 1.2rem; border-radius: 14px; }
+.numpad .np-fn { font-size: 1.05rem; background: rgba(255, 107, 91, .1); }
+.numpad .np-go { display: grid; place-items: center; align-content: center; font-size: 1.4rem; line-height: 1; gap: 2px; }
+.numpad .np-go small { font-size: .7rem; font-weight: 700; }
+@media (max-width: 520px) { .numpad { gap: 6px; padding: 8px 10px 12px; } .numpad button { min-height: 44px; } }

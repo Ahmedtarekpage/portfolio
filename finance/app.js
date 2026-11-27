@@ -2866,7 +2866,7 @@ function calOpen(kind, q, opts = []) {
 let numNext = false, numOn = false;
 const numPadEl = (() => {
   const el = document.createElement('div'); el.className = 'numpad'; el.hidden = true; el.setAttribute('role', 'group'); el.setAttribute('aria-label', L('لوحة الأرقام', 'Number pad'));
-  el.innerHTML = ['7', '8', '9', '⌫', '4', '5', '6', 'C', '1', '2', '3', '.', '0', '00', '✓'].map(k => `<button type="button" data-np="${k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}">${k}</button>`).join('');
+  el.innerHTML = ['1', '2', '3', '⌫', '4', '5', '6', 'C', '7', '8', '9', '✓', '00', '0', '.'].map(k => `<button type="button" data-np="${k}" style="grid-area:${{ '⌫': 'bk', 'C': 'cl', '✓': 'go', '.': 'dt', '00': 'zz', '0': 'z' }[k] || 'n' + k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}" aria-label="${{ '⌫': L('امسح رقم', 'Delete'), 'C': L('امسح الكل', 'Clear'), '✓': L('ابعت', 'Send'), '.': L('علامة عشرية', 'Decimal point') }[k] || k}">${k === '✓' ? '✓<small>' + L('ابعت', 'Send') + '</small>' : k}</button>`).join('');
   document.getElementById('say')?.after(el);
   el.addEventListener('pointerdown', e => e.preventDefault()); // keep the input focused (no phone keyboard pops up)
   el.addEventListener('click', e => { const b = e.target.closest('[data-np]'); if (!b) return; numKey(b.dataset.np); });
