@@ -895,9 +895,9 @@ function cardDebts(R) {
         ${person ? `<button class="pill" data-dmore="${d.id}" title="${L('نفس الشخص بعملة تانية', 'The same person in another currency')}">＋ ${L('عملة تانية', 'Another currency')}</button>` : ''}
         <small>${done ? L('✅ خلص', '✅ Paid off') : `${fresh ? L('المبلغ', 'Amount') : L('الباقي', 'Left')} ${ed(`debts:${d.id}:left`, r.left, { n: true })} ${CUR[cu].n}`}${r.paid + (+d.plan?.pre || 0) > 0.5 ? ` · ${L('اتسدّد', 'paid')} ${fmt(r.paid + (+d.plan?.pre || 0))}` : ''}${d.kind === 'tabby' ? ` · ${L('من غير فوايد', 'no interest')}${d.total ? ` · ${L('الإجمالي', 'total')} ${fmt(d.total)}` : ''}` : ''}</small>
         ${done || fresh ? '' : `<div class="dextra">
-          ${nx ? `<span class="chipc ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : 'good'}">📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}: `, `Instalment ${nx.k} of ${nx.n}: `) : L('السداد: ', 'Pay back: ')}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> · ${dDate(nx.date)} · ${dWhen(nx)}</span>` : ''}
+          ${nx ? `<span class="chipc ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : 'good'}">📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}: `, `Instalment ${nx.k} of ${nx.n}: `) : L('السداد: ', 'Pay back: ')}<b dir="ltr">${fmt(nx.amt, 2)} ${CUR[cu].s}</b> · ${dDate(nx.date)} · ${dWhen(nx)}</span>` : ''}
           ${d.plan ? '' : `<label class="pill ddue">📅 ${L('ميعاد السداد', 'Due date')} <input type="date" data-ddue="${d.id}" value="${d.due || ''}"></label>`}
-          <button class="pill" data-dplan="${d.id}">🗓 ${d.plan ? L(`قسط ${fmt(d.plan.amt)} × ${d.plan.n} شهر`, `${fmt(d.plan.amt)} × ${d.plan.n} months`) : L('قسط شهري', 'Monthly instalment')}</button>
+          <button class="pill" data-dplan="${d.id}">🗓 ${d.plan ? L(`قسط ${fmt(d.plan.amt, 2)} × ${d.plan.n} شهر`, `${fmt(d.plan.amt, 2)} × ${d.plan.n} months`) : L('قسط شهري', 'Monthly instalment')}</button>
           ${planOpen ? `<div class="dplan"><label>${L('كل شهر', 'Every month')} <input type="number" inputmode="decimal" min="0" step="any" data-dplan-amt value="${d.plan?.amt || ''}" placeholder="${fmt(r.left)}"> ${CUR[cu].s}</label>
             <label>${L('لمدة', 'for')} <input type="number" inputmode="numeric" min="1" max="120" step="1" data-dplan-n value="${d.plan?.n || ''}" placeholder="6"> ${L('شهر', 'months')}</label>
             <label>${L('أول قسط', 'First one')} <input type="date" data-dplan-first value="${d.plan?.first || d.due || today()}"></label>
@@ -1724,6 +1724,7 @@ document.addEventListener('click', e => {
 { const fab = document.createElement('button'); fab.type = 'button'; fab.className = 'fab-add'; fab.dataset.quick = 'spend'; fab.textContent = '＋'; fab.setAttribute('aria-label', 'سجّل مصروف'); document.body.append(fab); }
 
 function render() {
+  try { setTimeout(renderDebtBar, 0); } catch {}
   regCur();
   const c = ctx(), { R } = c;
   try { renderToday(c); } catch (e) { console.warn(e); }
@@ -3604,6 +3605,107 @@ async function flowInvested() {
     `Recorded as an <b>investment</b>, not spending 💪 ${money(amt * rate(cur))} moved from the Growth wallet into <b>${esc(h.name)}</b>. Your total is the same, but now it works for you.${gold ? ` (${fmt(grams, 2)} g of ${karat}K)` : ''}${yld ? ` Rate ${fmt(yld, 1)}% a year.` : ''}`));
 }
 
+
+/* ───────────── 💳 شريط الديون فوق الأسعار (طلب صاحب الحساب، 2026-11-27) ─────────────
+   إجمالي الدين، وأقرب قسط بعدّاد (أيام وساعات)، ودواير لكل دين: لوجو تابي/تمارا، أو صورة اللي سلّفك (أو صورة راجل/ست
+   افتراضية)، أو إيموجي الكارت/القرض. لو أكتر من 4 بيلفّوا. دوس عليه: الديون بتتعرض واحد واحد. */
+const AV = {
+  m: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#5E86C1"/><circle cx="32" cy="25" r="12" fill="#F3D2B3"/><path d="M20 22c0-9 6-13 12-13s12 4 12 13c-3-4-7-5-12-5s-9 1-12 5z" fill="#2B2B2B"/><path d="M10 64c2-14 11-21 22-21s20 7 22 21z" fill="#1F3A5F"/></svg>'),
+  f: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#E86A92"/><path d="M15 40c0-20 7-30 17-30s17 10 17 30z" fill="#5A3A2B"/><circle cx="32" cy="26" r="11" fill="#F3D2B3"/><path d="M10 64c2-14 11-21 22-21s20 7 22 21z" fill="#7A2E52"/></svg>')
+};
+function dAvatar(d, size = 30) {
+  const b = dBrand(d), st = `width:${size}px;height:${size}px`;
+  if (b) return `<img class="dav" style="${st}" src="brand/${b}.png" alt="">`;
+  if (d.kind === 'person') return `<img class="dav" style="${st}" src="${d.photo && /^data:image\//.test(d.photo) ? d.photo : AV[d.av === 'f' ? 'f' : 'm']}" alt="">`;
+  return `<span class="dav dav--e" style="${st};font-size:${Math.round(size * .55)}px">${DKIND[d.kind] || '🧾'}</span>`;
+}
+const dOpen = R => debts().filter(d => dLeft(R, d) > 0.5);
+// an amount in one currency, roughly, in AED and EGP at the live rate (owner, 2026-11-27: "a debt in SAR: see it in what I have")
+function dConv(v, cu) {
+  const aed = v * rate(cu), out = [];
+  if (cu !== 'AED') out.push({ c: 'AED', v: aed, r: `1 ${CUR[cu].s} = ${fmt(rate(cu), 3)} Đ` });
+  if (cu !== 'EGP' && CUR.EGP && rate('EGP') > 0) out.push({ c: 'EGP', v: aed / rate('EGP'), r: `1 ${CUR[cu].s} = ${fmt(rate(cu) / rate('EGP'), 2)} ${CUR.EGP.s}` });
+  return out;
+}
+function dCount(ms) { // 3d 04:12:09
+  if (ms <= 0) return L('النهارده', 'today');
+  const s = Math.floor(ms / 1000), dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0');
+  return `${dd ? dd + L(' يوم ', 'd ') : ''}${p(h)}:${p(m)}:${p(x)}`;
+}
+function dSoonest(R) {
+  let best = null;
+  dOpen(R).forEach(d => { const nx = dNext(R, d); if (nx && (!best || nx.date < best.nx.date)) best = { d, nx }; });
+  return best;
+}
+function renderDebtBar() {
+  const el = document.getElementById('debtBar'); if (!el || !UI.R) return;
+  const R = UI.R, open = dOpen(R);
+  if (!open.length) { el.hidden = true; return; }
+  const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), soon = dSoonest(R), many = open.length > 4;
+  const circles = open.map(d => dAvatar(d, 30)).join('');
+  el.hidden = false;
+  const egp = rate('EGP') > 0 ? tot / rate('EGP') : 0;
+  el.innerHTML = `<span class="db-tot"><small>💳 ${L('الديون', 'Debts')} · ${open.length}</small><b dir="ltr">≈ ${fmt(tot)} Đ</b>${egp ? `<small dir="ltr">≈ ${fmt(egp)} ${CUR.EGP.s}</small>` : ''}</span>` +
+    (soon ? `<span class="db-next"><small>${L('القسط الجاي', 'Next payment')}: ${esc(dNm(soon.d))} · <b dir="ltr">${fmt(soon.nx.amt, 2)} ${CUR[cOf(soon.d)].s}</b></small><b class="db-count${soon.nx.days < 0 ? ' bad' : soon.nx.days <= 3 ? ' warn' : ''}" dir="ltr" data-due="${soon.nx.date}">${soon.nx.days < 0 ? L(`متأخر ${-soon.nx.days} يوم`, `${-soon.nx.days} days late`) : dCount(new Date(soon.nx.date + 'T00:00:00') - Date.now())}</b></span>` : '') +
+    `<span class="db-avs${many ? ' is-many' : ''}" aria-hidden="true"><span class="db-track">${circles}${many ? circles : ''}</span></span>`;
+  el.setAttribute('aria-label', L(`الديون: ${open.length}. دوس تشوفهم واحد واحد`, `Debts: ${open.length}. Tap to see them one by one`));
+}
+setInterval(() => { const c = document.querySelector('#debtBar .db-count[data-due]'); if (c && !c.classList.contains('bad')) c.textContent = dCount(new Date(c.dataset.due + 'T00:00:00') - Date.now()); }, 1000);
+function debtPop(start = 0) {
+  const R = ctx().R, open = dOpen(R); if (!open.length) return;
+  let i = Math.max(0, Math.min(open.length - 1, start));
+  const o = document.createElement('div'); o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+  const draw = () => {
+    const d = open[i], cu = CUR[cOf(d)].s, left = dLeft(R, d), paid = dPaid(R, d) + (+d.plan?.pre || 0), nx = dNext(R, d), all = left + paid, pct = all ? Math.round(paid / all * 100) : 0;
+    o.innerHTML = `<div class="wiz-card glass dpop">
+      <div class="wiz-top"><b>💳 ${L('الدين', 'Debt')} ${i + 1} / ${open.length}</b><small class="dpop-all" dir="ltr">${L('الكل', 'All')} ≈ ${fmt(open.reduce((n, x) => n + dLeft(R, x) * rate(cOf(x)), 0))} Đ${rate('EGP') > 0 ? ` · ≈ ${fmt(open.reduce((n, x) => n + dLeft(R, x) * rate(cOf(x)), 0) / rate('EGP'))} ${CUR.EGP.s}` : ''}</small><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+      <div class="dpop-head">${dAvatar(d, 72)}<div><h3>${esc(dNm(d))}</h3><small>${DKIND_N[d.kind] || ''}${d.kind === 'tabby' ? ' · ' + L('من غير فوايد', 'no interest') : ''}</small></div></div>
+      <div class="dpop-big"><small>${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} ${cu}</b>
+        ${dConv(left, cOf(d)).map(x => `<span class="dpop-fx" dir="ltr">≈ <b>${fmt(x.v, 2)} ${CUR[x.c].s}</b> <small>${x.r}${UI.fxLive ? ' · ' + L('لايف', 'live') : ''}</small></span>`).join('')}</div>
+      <div class="dpop-bar"><i style="width:${pct}%"></i></div><small>${L(`اتسدّد ${fmt(paid, 2)} من ${fmt(all, 2)} (${pct}%)`, `Paid ${fmt(paid, 2)} of ${fmt(all, 2)} (${pct}%)`)}</small>
+      ${nx ? `<div class="dpop-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><span>📅 ${nx.n ? L(`القسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')}: <b dir="ltr">${fmt(nx.amt, 2)} ${cu}</b> · ${dDate(nx.date)}</span><b dir="ltr" class="db-count" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCount(new Date(nx.date + 'T00:00:00') - Date.now())}</b></div>` : `<p class="note">${L('مفيش ميعاد سداد. حطه من كارت الديون.', 'No pay-back date. Set it on the Debts card.')}</p>`}
+      ${d.kind === 'person' ? `<div class="dpop-photo"><span>${L('الصورة:', 'Picture:')}</span>
+        <label class="pill">📷 ${L('ارفع صورة', 'Upload a photo')}<input type="file" accept="image/*" data-dphoto hidden></label>
+        <button type="button" class="pill${!d.photo && d.av !== 'f' ? ' on' : ''}" data-dav="m">👨 ${L('راجل', 'Man')}</button>
+        <button type="button" class="pill${!d.photo && d.av === 'f' ? ' on' : ''}" data-dav="f">👩 ${L('ست', 'Woman')}</button></div>` : ''}
+      <div class="dpop-nav"><button type="button" class="pill" data-dprev ${open.length < 2 ? 'disabled' : ''}>${L('→ اللي قبله', '← Previous')}</button>
+        <span class="dpop-dots">${open.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span>
+        <button type="button" class="pill" data-dnext ${open.length < 2 ? 'disabled' : ''}>${L('اللي بعده ←', 'Next →')}</button></div>
+    </div>`;
+  };
+  draw(); document.body.appendChild(o); sfx.open();
+  const close = () => { clearInterval(tk); document.removeEventListener('keydown', key); o.classList.add('out'); setTimeout(() => o.remove(), 220); };
+  const go = k => { i = (i + k + open.length) % open.length; sfx.page?.(); draw(); };
+  const key = e => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(L(1, -1)); else if (e.key === 'ArrowRight') go(L(-1, 1)); };
+  document.addEventListener('keydown', key);
+  const tk = setInterval(() => { const c = o.querySelector('.db-count[data-due]'); if (c) c.textContent = dCount(new Date(c.dataset.due + 'T00:00:00') - Date.now()); }, 1000);
+  o.addEventListener('click', e => {
+    const t = e.target;
+    if (t === o || t.closest('[data-close]')) return close();
+    if (t.closest('[data-dnext]')) return go(1);
+    if (t.closest('[data-dprev]')) return go(-1);
+    const av = t.closest('[data-dav]'); if (av) { const d = open[i]; d.av = av.dataset.dav; delete d.photo; save(); render(); sfx.select?.(); draw(); }
+  });
+  // swipe between debts on a phone
+  let x0 = null; o.addEventListener('pointerdown', e => { x0 = e.clientX; }); o.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 60 && !e.target.closest('input,label')) go((e.clientX < x0 ? 1 : -1) * L(-1, 1)); x0 = null; });
+  o.addEventListener('change', e => {
+    const f = e.target.closest('[data-dphoto]')?.files?.[0]; if (!f) return;
+    photoSmall(f).then(url => { const d = open[i]; d.photo = url; save(); render(); sfx.ok?.(); toast(L('📷 الصورة اتحفظت', '📷 Photo saved')); draw(); }).catch(() => toast(L('الصورة دي ما اتقريتش', "Couldn't read that picture")));
+  });
+}
+/** a picture made small (128 px square, jpeg) so it can live in the saved data */
+function photoSmall(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader(); r.onerror = rej;
+    r.onload = () => { const im = new Image(); im.onerror = rej; im.onload = () => {
+      const c = document.createElement('canvas'), z = 128, s = Math.min(im.width, im.height); c.width = c.height = z;
+      c.getContext('2d').drawImage(im, (im.width - s) / 2, (im.height - s) / 2, s, s, 0, 0, z, z);
+      res(c.toDataURL('image/jpeg', 0.82)); }; im.src = r.result; };
+    r.readAsDataURL(file);
+  });
+}
+document.getElementById('debtBar')?.addEventListener('click', () => debtPop(0));
+
 /** a debt was just added: a sound, a toast, and its row on the Debts card lights up (owner, 2026-11-27) */
 function debtAdded(d) {
   try { sfx.ok(); haptic(); } catch {}
@@ -3632,6 +3734,8 @@ async function flowDebt() {
       ? await ask(`<img class="dlogo" src="brand/tabby.png" alt="Tabby"> <img class="dlogo" src="brand/tamara.png" alt="Tamara"> ` + L('اشتريت إيه بتابي؟ اكتب اسمه (مثال: تابي - موبايل)', 'What did you buy with Tabby? Type it (e.g. Tabby - phone)'), [{ l: 'Tabby', v: 'Tabby', img: 'brand/tabby.png' }, { l: 'Tamara', v: 'Tamara', img: 'brand/tamara.png' }, BACK], true)
       : await ask(L('سمّيه إيه؟ اكتب الاسم (مثال: كارت ADCB)', 'What should I call it? Type the name (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK], true);
     if (name === null) return;
+    let av = null;
+    if (person) { av = await ask(L('🖼 صورته في التطبيق إيه؟ (تقدر ترفع صورة حقيقية بعدين من الدايرة فوق)', '🖼 Which picture for them? (you can upload a real photo later from the circle at the top)'), [{ l: L('👨 راجل', '👨 Man'), v: 'm', img: AV.m }, { l: L('👩 ست', '👩 Woman'), v: 'f', img: AV.f }, BACK]); if (av === null) return; }
     let cu = null;
     for (let q = L('💱 بأنهي عملة؟ اختار، أو اكتب كود أي عملة (مثال: KWD أو GBP)', '💱 In which currency? Pick one, or type any currency code (e.g. KWD or GBP)'); !cu;) {
       const first = places().includes(cardView()) ? cardView() : 'AED', list = [first, ...debtCurs().filter(k => k !== first)].filter(k => CUR[k]);
@@ -3650,11 +3754,11 @@ async function flowDebt() {
     if (kind === 'tabby') {
       const tot = await askNum(L(`🟣 سعر الحاجة كله كام (بال${CUR[cu].n})؟ من غير فوايد`, `🟣 What was the full price (in ${CUR[cu].n})? No interest`), [], false, cu); if (tot == null) return;
       const T = tot / rate(cu);
-      const nv = await ask(L('مقسّمة على كام دفعة؟ (تابي العادي 4) اختار أو اكتب الرقم', 'Split into how many payments? (Tabby is usually 4) Pick or type'), [4, 3, 6, 12].map(k => ({ l: L(`${k} دفعات · ${fmt(T / k)} كل شهر`, `${k} payments · ${fmt(T / k)} a month`), v: String(k) })).concat([BACK]), true); if (nv === null) return;
+      const nv = await ask(L('مقسّمة على كام دفعة؟ (تابي العادي 4) اختار أو اكتب الرقم', 'Split into how many payments? (Tabby is usually 4) Pick or type'), [4, 3, 6, 12].map(k => ({ l: L(`${k} دفعات · ${fmt(T / k, 2)} كل شهر`, `${k} payments · ${fmt(T / k, 2)} a month`), v: String(k) })).concat([BACK]), true); if (nv === null) return;
       const n = Math.max(1, Math.min(60, Math.round(parseFloat(String(nv).replace(/[^\d.]/g, '')) || 4))), per = T / n;
       const bought = await askCal('date', L('اشتريتها إمتى؟ (أول دفعة يومها، والباقي كل شهر)', 'When did you buy it? (the first payment is that day, then monthly)'), [{ l: L('النهارده', 'Today'), v: today() }, BACK], true); if (bought === null) return;
       const f1 = pd(bought) || today();
-      const pv = await ask(L(`دفعت كام دفعة لحد دلوقتي؟ (كل دفعة ${fmt(per)} ${CUR[cu].s})`, `How many payments have you made so far? (each ${fmt(per)} ${CUR[cu].s})`),
+      const pv = await ask(L(`دفعت كام دفعة لحد دلوقتي؟ (كل دفعة ${fmt(per, 2)} ${CUR[cu].s})`, `How many payments have you made so far? (each ${fmt(per, 2)} ${CUR[cu].s})`),
         [...Array.from({ length: Math.min(n, 5) }, (_, k) => ({ l: k === 0 ? L('ولا دفعة', 'None') : k === 1 ? L('1 · وقت الشرا', '1 · at checkout') : L(`${k} دفعات`, `${k} payments`), v: 'n' + k })),
           { l: L('💵 اكتب مبلغ', '💵 Type an amount'), v: 'amt' }, BACK]); if (pv === null) return;
       let pre = 0;
@@ -3664,12 +3768,12 @@ async function flowDebt() {
       if (nd.balance <= 0.005) return bot(L('دي متدفعة كلها خلاص ✅ مفيش دين تتسجل.', 'That is already fully paid ✅ nothing to record.'));
       debts().push(nd); save(); render(); debtAdded(nd);
       const nx = dNext(ctx().R, nd);
-      return bot(L(`${dIco(nd)} اتسجّل <b>${esc(nd.name)}</b>: الإجمالي <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
-        `${dIco(nd)} Recorded <b>${esc(nd.name)}</b>: total <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
+      return bot(L(`${dIco(nd)} اتسجّل <b>${esc(nd.name)}</b>: الإجمالي <b dir="ltr">${fmt(T, 2)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per, 2)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre, 2)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance, 2)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt, 2)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
+        `${dIco(nd)} Recorded <b>${esc(nd.name)}</b>: total <b dir="ltr">${fmt(T, 2)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per, 2)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre, 2)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance, 2)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt, 2)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
     }
     const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
     // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
-    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true } : {}) };
+    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true, av: av === 'f' ? 'f' : 'm' } : {}) };
     // هترجّعها إمتى؟ تاريخ واحد، أو قسط كل شهر (مبلغ × عدد شهور)، أو من غير ميعاد
     const t0 = today(), nextFirst = (() => { const x = new Date(); return iso(new Date(x.getFullYear(), x.getMonth() + 1, 1, 12)); })();
     const dates = [{ l: L(`أول الشهر الجاي (${dDate(nextFirst)})`, `The 1st of next month (${dDate(nextFirst)})`), v: nextFirst }, { l: L('بعد شهر', 'In a month'), v: dAddMonths(t0, 1) }, { l: L('بعد 3 شهور', 'In 3 months'), v: dAddMonths(t0, 3) }];
@@ -3679,10 +3783,10 @@ async function flowDebt() {
       const d1 = pd(v); if (d1) nd.due = d1;
     } else if (how === 'plan') {
       const T = nd.balance;
-      const pn = await ask(L('على كام شهر؟ اختار أو اكتب الرقم', 'Over how many months? Pick or type the number'), [3, 6, 10, 12].map(k => ({ l: L(`${k} شهور · ${fmt(T / k)} كل شهر`, `${k} months · ${fmt(T / k)} a month`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
+      const pn = await ask(L('على كام شهر؟ اختار أو اكتب الرقم', 'Over how many months? Pick or type the number'), [3, 6, 10, 12].map(k => ({ l: L(`${k} شهور · ${fmt(T / k, 2)} كل شهر`, `${k} months · ${fmt(T / k, 2)} a month`), v: String(k) })).concat([BACK]), true); if (pn === null) return;
       const n = Math.max(1, Math.min(120, Math.round(parseFloat(String(pn).replace(/[^\d.]/g, '')) || 0)));
       const eq = +(T / n).toFixed(2);
-      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`), [{ l: L(`بالتساوي: ${fmt(eq)}`, `Equal: ${fmt(eq)}`), v: String(eq) + ' ' + cu }], false, cu); if (pa == null) return;
+      const pa = await askNum(L(`القسط كام كل شهر (بال${CUR[cu].n})؟`, `How much every month (in ${CUR[cu].n})?`), [{ l: L(`بالتساوي: ${fmt(eq, 2)}`, `Equal: ${fmt(eq, 2)}`), v: String(eq) + ' ' + cu }], false, cu); if (pa == null) return;
       const v = await askCal('date', L('أول قسط إمتى؟', 'When is the first instalment?'), [...dates.slice(0, 2), BACK], true); if (v === null) return;
       const f1 = pd(v);
       if (pa > 0 && n >= 1 && f1) nd.plan = { amt: +(pa / rate(cu)).toFixed(2), n, first: f1 };

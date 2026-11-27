@@ -1157,3 +1157,37 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .row.just-added { animation: justAdded 2.4s ease-out; }
 @keyframes justAdded { 0%, 30% { box-shadow: 0 0 0 3px rgba(52, 211, 153, .8); background: rgba(52, 211, 153, .14); } 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
 @media (prefers-reduced-motion: reduce) { .row.just-added { animation: none; outline: 2px solid rgba(52, 211, 153, .8); } }
+
+/* 💳 debt bar above the rates: total, next payment countdown, circles; tap → debts one by one */
+.debt-bar { flex-basis: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; border: 1px solid rgba(255, 107, 91, .3); background: linear-gradient(135deg, rgba(255, 107, 91, .12), rgba(255, 255, 255, .04)); color: var(--ink); font: inherit; text-align: start; cursor: pointer; min-width: 0; }
+.debt-bar[hidden] { display: none; }
+.debt-bar:hover { border-color: rgba(255, 107, 91, .6); }
+.debt-bar small { display: block; color: var(--mut, #9aa3b5); font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.debt-bar b { font-size: .95rem; }
+.db-tot, .db-next { display: grid; min-width: 0; }
+.db-next { flex: 1; }
+.db-count { font-variant-numeric: tabular-nums; color: #34d399; }
+.db-count.warn { color: #fbbf24; } .db-count.bad { color: #f87171; }
+.db-avs { display: block; width: 116px; overflow: hidden; flex: none; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.db-track { display: flex; gap: 6px; width: max-content; }
+.db-avs.is-many .db-track { animation: dbRoll 12s linear infinite; }
+.debt-bar:hover .db-track { animation-play-state: paused; }
+@keyframes dbRoll { to { transform: translateX(calc(-50% - 3px)); } }
+@media (prefers-reduced-motion: reduce) { .db-avs.is-many .db-track { animation: none; } }
+.dav { border-radius: 50%; object-fit: cover; flex: none; border: 2px solid rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .08); display: inline-grid; place-items: center; }
+.dpop { max-width: 420px; display: grid; gap: 10px; }
+.dpop-all { color: var(--mut, #9aa3b5); font-size: .75rem; margin-inline-start: auto; margin-inline-end: 8px; }
+.dpop-head { display: flex; align-items: center; gap: 14px; }
+.dpop-head h3 { margin: 0; }
+.dpop-big { display: grid; gap: 2px; }
+.dpop-big > b { font-size: 1.7rem; }
+.dpop-fx { font-size: .85rem; } .dpop-fx small { color: var(--mut, #9aa3b5); }
+.dpop-bar { height: 8px; border-radius: 6px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.dpop-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff8a6b, #34d399); }
+.dpop-next { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: rgba(52, 211, 153, .1); }
+.dpop-next.warn { background: rgba(251, 191, 36, .12); } .dpop-next.bad { background: rgba(248, 113, 113, .14); }
+.dpop-photo { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.dpop-photo .pill.on { outline: 2px solid var(--acc); }
+.dpop-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dpop-dots { display: flex; gap: 5px; } .dpop-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .25); } .dpop-dots i.on { background: var(--acc); }
+@media (max-width: 520px) { .db-avs { width: 70px; } .debt-bar { gap: 8px; } }
