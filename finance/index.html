@@ -42,8 +42,6 @@
         <button id="ctl" class="pill" type="button" aria-label="التحكم" title="التحكم">🎛</button>
         <button id="mute" class="pill" type="button" aria-label="الصوت" title="الصوت">🔊</button>
       </div>
-      <button type="button" class="debt-bar" id="debtBar" hidden></button>
-      <div class="ch-mkt" id="rateInfo"><span class="mk-load">بجيب الأسعار…</span></div>
     </header>
     <div class="log" id="log" aria-live="polite"></div>
     <div class="chips" id="chips"></div>
@@ -54,6 +52,11 @@
   </aside>
 
   <section class="col">
+    <!-- debts and live prices: their own cards, out of the chat (owner, 2026-11-27) -->
+    <div class="pulse" id="pulse">
+      <button type="button" class="debt-bar glass" id="debtBar" hidden></button>
+      <div class="pulse-fx glass"><b class="pulse-t"><i class="pulse-dot" aria-hidden="true"></i><span class="pulse-tt">الأسعار لايف</span></b><div class="ch-mkt" id="rateInfo"><span class="mk-load">بجيب الأسعار…</span></div></div>
+    </div>
     <div class="today glass" id="today" hidden></div>
     <div class="stage glass" id="stage">
       <div class="view" id="view">

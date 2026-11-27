@@ -1354,3 +1354,38 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .dc--tabby { background: #98F99A; background-image: radial-gradient(130% 90% at 0% 0%, #c6ffc8 0%, #98F99A 55%, #7ef183 100%); }
 .dc[data-pos="1"], .dc[data-pos="2"], .dc[data-pos="hide"], .dc[data-pos="gone"] { position: relative; }
 .dc-next small { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; line-height: 1.4; }
+
+/* ── debts + live prices: their own cards on top of the page (owner, 2026-11-27) ── */
+.pulse { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; margin-bottom: 18px; align-items: stretch; }
+.pulse .debt-bar { margin: 0; padding: 14px; border-radius: 22px; }
+.pulse .debt-bar[hidden] + .pulse-fx { grid-column: 1 / -1; }
+.pulse-fx { padding: 16px; border-radius: 22px; display: grid; align-content: start; gap: 12px; }
+.pulse-t { font-size: .95rem; }
+.pulse .ch-mkt { margin: 0; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.pulse .ch-mkt .mk { padding: 12px; border-radius: 16px; }
+@media (max-width: 900px) { .pulse { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── the chat: more room, cleaner bubbles, livelier buttons ── */
+.chat-head { padding: 12px 16px; background: linear-gradient(180deg, rgba(255, 255, 255, .04), transparent); }
+.log { padding: 18px 16px; gap: 12px; scroll-behavior: smooth; mask-image: linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 10px), transparent 100%); }
+.msg { line-height: 1.6; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); }
+.msg.bot { background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .05)); border: 1px solid rgba(255, 255, 255, .08); padding: 12px 15px; }
+.msg.me { box-shadow: 0 6px 16px rgba(255, 107, 91, .3); font-weight: 600; }
+.msg.bot:hover { border-color: rgba(255, 255, 255, .16); }
+.chips { gap: 8px; padding: 10px 14px 12px; max-height: 170px; border-top: 1px solid var(--line); background: rgba(0, 0, 0, .12); }
+.chips:empty { display: none; }
+.chip { transition: transform .15s cubic-bezier(.2, .8, .2, 1), background .15s, border-color .15s, box-shadow .15s; }
+.chip:hover { transform: translateY(-2px); border-color: rgba(255, 107, 91, .6); box-shadow: 0 6px 14px rgba(0, 0, 0, .25); }
+.chip:active { transform: translateY(0) scale(.96); }
+.say { padding: 12px 14px 14px; background: rgba(0, 0, 0, .12); }
+.say input { padding: 12px 18px; }
+.say button { width: 48px; height: 48px; transition: transform .15s, box-shadow .15s; box-shadow: 0 6px 16px rgba(255, 107, 91, .35); }
+.say button:hover { transform: scaleX(-1) scale(1.06); }
+.say button:active { transform: scaleX(-1) scale(.94); }
+.chat .chips { overflow-y: auto !important; flex: none; }
+.pulse-t { display: flex; align-items: center; gap: 8px; }
+.pulse-dot { width: 9px; height: 9px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 0 rgba(52, 211, 153, .6); animation: pulseDot 1.8s infinite; }
+@keyframes pulseDot { 70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); } 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
+@media (prefers-reduced-motion: reduce) { .pulse-dot { animation: none; } }
+.pulse .ch-mkt { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pulse-fx { align-content: space-between; }

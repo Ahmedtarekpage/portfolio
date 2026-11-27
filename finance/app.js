@@ -1726,6 +1726,7 @@ document.addEventListener('click', e => {
 { const fab = document.createElement('button'); fab.type = 'button'; fab.className = 'fab-add'; fab.dataset.quick = 'spend'; fab.textContent = '＋'; fab.setAttribute('aria-label', 'سجّل مصروف'); document.body.append(fab); }
 
 function render() {
+  { const t = document.querySelector('.pulse-tt'); if (t) t.textContent = L('الأسعار لايف', 'Live prices'); }
   try { let ch = false; (S.debts || []).forEach(d => { const en = d.kind === 'person' && EN_NAME[String(d.name || '').trim()]; if (en) { d.name = en; ch = true; } }); if (ch) setTimeout(save, 0); } catch {}
   try { setTimeout(renderDebtBar, 0); } catch {}
   regCur();
