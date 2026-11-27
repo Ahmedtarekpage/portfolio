@@ -1556,3 +1556,18 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .sw-recnote { margin: 2px 0 4px; font-size: .74rem; color: var(--mute, #b3bccd); }
 .sw-recbtn { margin-inline-start: 6px; font: inherit; font-weight: 800; font-size: .72rem; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); cursor: pointer; }
 .sw-norec { font-size: .64rem; font-weight: 700; padding: 3px 7px; border-radius: 8px; background: rgba(0, 0, 0, .3); line-height: 1.35; }
+/* 🧮 the pads show the number like a calculator screen (owner, 2026-11-28) */
+.numpad { grid-template-areas: "dd dd dd dd" "n1 n2 n3 bk" "n4 n5 n6 cl" "n7 n8 n9 go" "zz z dt go"; }
+.np-disp, .cp-disp { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .08); box-shadow: inset 0 2px 8px rgba(0, 0, 0, .35); min-width: 0; }
+.np-disp small, .cp-disp small { color: var(--mute, #9aa3b5); font-weight: 700; font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-disp b, .cp-disp b { font: 800 1.6rem/1.1 var(--font, inherit); font-variant-numeric: tabular-nums; letter-spacing: .02em; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+.calcpad { position: fixed; z-index: 9999; width: 270px; padding: 12px; border-radius: 20px; background: rgba(22, 28, 48, .97); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 20px 50px rgba(0, 0, 0, .55); display: grid; gap: 10px; animation: npIn .18s ease-out; }
+.calcpad[hidden] { display: none; }
+.calcpad.sheet { left: 8px !important; right: 8px; bottom: 8px; top: auto !important; width: auto; }
+.cp-keys { display: grid; grid-template-columns: repeat(3, 1fr) 1.15fr; grid-template-areas: "n1 n2 n3 bk" "n4 n5 n6 cl" "n7 n8 n9 go" "zz z dt go"; gap: 7px; direction: ltr; }
+.cp-keys button { min-height: 44px; border-radius: 13px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); font: 700 1.15rem var(--font, inherit); cursor: pointer; transition: transform .08s, background .15s; }
+.cp-keys button:hover { background: rgba(255, 255, 255, .12); }
+.cp-keys button:active, .cp-keys button.is-press { transform: scale(.9); background: rgba(255, 107, 91, .35); border-color: var(--acc); }
+.cp-keys .np-fn { color: var(--acc); background: rgba(255, 107, 91, .1); }
+.cp-keys .np-go { background: linear-gradient(135deg, #FF8172, #FF6B5B); color: #fff; border: 0; display: grid; place-items: center; align-content: center; font-size: 1.35rem; line-height: 1; }
+.cp-keys .np-go small { font-size: .68rem; font-weight: 700; }

@@ -2908,7 +2908,7 @@ function calOpen(kind, q, opts = []) {
 let numNext = false, numOn = false;
 const numPadEl = (() => {
   const el = document.createElement('div'); el.className = 'numpad'; el.hidden = true; el.setAttribute('role', 'group'); el.setAttribute('aria-label', L('لوحة الأرقام', 'Number pad'));
-  el.innerHTML = ['1', '2', '3', '⌫', '4', '5', '6', 'C', '7', '8', '9', '✓', '00', '0', '.'].map(k => `<button type="button" data-np="${k}" style="grid-area:${{ '⌫': 'bk', 'C': 'cl', '✓': 'go', '.': 'dt', '00': 'zz', '0': 'z' }[k] || 'n' + k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}" aria-label="${{ '⌫': L('امسح رقم', 'Delete'), 'C': L('امسح الكل', 'Clear'), '✓': L('ابعت', 'Send'), '.': L('علامة عشرية', 'Decimal point') }[k] || k}">${k === '✓' ? '✓<small>' + L('ابعت', 'Send') + '</small>' : k}</button>`).join('');
+  el.innerHTML = `<div class="np-disp" style="grid-area:dd"><small>${L('الرقم', 'Amount')}</small><b dir="ltr" data-npd>0</b></div>` + ['1', '2', '3', '⌫', '4', '5', '6', 'C', '7', '8', '9', '✓', '00', '0', '.'].map(k => `<button type="button" data-np="${k}" style="grid-area:${{ '⌫': 'bk', 'C': 'cl', '✓': 'go', '.': 'dt', '00': 'zz', '0': 'z' }[k] || 'n' + k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}" aria-label="${{ '⌫': L('امسح رقم', 'Delete'), 'C': L('امسح الكل', 'Clear'), '✓': L('ابعت', 'Send'), '.': L('علامة عشرية', 'Decimal point') }[k] || k}">${k === '✓' ? '✓<small>' + L('ابعت', 'Send') + '</small>' : k}</button>`).join('');
   document.getElementById('say')?.after(el);
   el.addEventListener('pointerdown', e => e.preventDefault()); // keep the input focused (no phone keyboard pops up)
   el.addEventListener('click', e => { const b = e.target.closest('[data-np]'); if (!b) return; numKey(b.dataset.np); });
@@ -2919,7 +2919,9 @@ function numClean(v) {
   const i = t.indexOf('.'); if (i >= 0) t = t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, '');
   return t;
 }
+const npShow = () => { const d = numPadEl.querySelector('[data-npd]'); if (!d) return; const raw = numClean(sayIn.value), [a, b] = raw.split('.'); d.textContent = (a ? Number(a).toLocaleString('en-US') : '0') + (raw.includes('.') ? '.' + (b || '') : ''); };
 function numKey(k) {
+  setTimeout(npShow, 0);
   const btn = numPadEl.querySelector(`[data-np="${k}"]`);
   if (btn) { btn.classList.remove('is-press'); void btn.offsetWidth; btn.classList.add('is-press'); setTimeout(() => btn.classList.remove('is-press'), 140); }
   try { (k === '✓' ? sfx.send : k === '⌫' || k === 'C' ? sfx.back : sfx.key)(); haptic && haptic(8); } catch {}
@@ -2933,12 +2935,12 @@ function numKey(k) {
 }
 function numPad(on) {
   if (on === numOn) return; numOn = on;
-  numPadEl.hidden = !on; document.body.classList.toggle('np-on', on);
+  numPadEl.hidden = !on; document.body.classList.toggle('np-on', on); if (on) npShow();
   sayIn.inputMode = on ? 'decimal' : 'text';
   sayIn.placeholder = on ? L('اكتب الرقم… مثال: 1250.50', 'Type the number… e.g. 1250.50') : L('اكتب هنا… مثال: 2000 أو 500 جنيه', 'Type here… e.g. 2000 or 500 EGP');
   if (on && matchMedia('(hover: hover)').matches) sayIn.focus({ preventScroll: true });
 }
-sayIn.addEventListener('input', () => { if (numOn) { const c = numClean(sayIn.value); if (c !== sayIn.value) sayIn.value = c; } });
+sayIn.addEventListener('input', () => { if (numOn) { const c = numClean(sayIn.value); if (c !== sayIn.value) sayIn.value = c; npShow(); } });
 // the keyboard works like a keypad while the pad is open, even when the box is not focused
 sayIn.addEventListener('keydown', e => {
   if (!numOn || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -2963,6 +2965,52 @@ document.addEventListener('keydown', e => {
   box.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 30) { moved = true; go(dx < 0 ? 1 : -1); } });
   box.addEventListener('click', e => { if (!e.target.closest('[data-psswipe]')) return; if (moved) { moved = false; return; } go(1); });
   box.addEventListener('keydown', e => { if (!e.target.closest('[data-psswipe]')) return; if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); go(e.key === 'ArrowLeft' ? 1 : -1); } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(1); } });
+})();
+/* 🧮 every number box in Floosy opens a calculator-style pad with a display (owner, 2026-11-28):
+   inputs with a number keyboard and the editable amounts on the cards; the keyboard still types into the box */
+(() => {
+  const isNum = el => el && el !== sayIn && ((el.tagName === 'INPUT' && (el.type === 'number' || /^(decimal|numeric)$/.test(el.getAttribute('inputmode') || '') || el.dataset.cp0 != null)) || (el.classList?.contains('ed') && el.dataset.t === 'n' && el.isContentEditable));
+  const pad = document.createElement('div'); pad.className = 'calcpad'; pad.hidden = true; pad.setAttribute('role', 'group'); pad.setAttribute('aria-label', L('لوحة الأرقام', 'Number pad'));
+  pad.innerHTML = `<div class="cp-disp"><small class="cp-lbl"></small><b dir="ltr" class="cp-val">0</b></div><div class="cp-keys">` +
+    ['1', '2', '3', '⌫', '4', '5', '6', 'C', '7', '8', '9', '✓', '00', '0', '.'].map(k => `<button type="button" data-cp="${k}" style="grid-area:${{ '⌫': 'bk', 'C': 'cl', '✓': 'go', '.': 'dt', '00': 'zz', '0': 'z' }[k] || 'n' + k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}">${k === '✓' ? '✓<small>' + L('تمام', 'Done') + '</small>' : k}</button>`).join('') + `</div>`;
+  document.body.appendChild(pad);
+  let tgt = null, mode0 = null;
+  const get = () => tgt ? (tgt.tagName === 'INPUT' ? tgt.value : tgt.textContent) : '';
+  const show = () => { const raw = numClean(get()), [a, b] = raw.split('.'); pad.querySelector('.cp-val').textContent = (a ? Number(a).toLocaleString('en-US') : '0') + (raw.includes('.') ? '.' + (b || '') : ''); };
+  const put = v => { if (tgt.tagName === 'INPUT') { tgt.value = v; tgt.dispatchEvent(new Event('input', { bubbles: true })); } else tgt.textContent = v; show(); };
+  const place = () => {
+    if (!tgt || pad.hidden) return;
+    if (innerWidth < 600) { pad.classList.add('sheet'); pad.style.left = pad.style.top = ''; return; }
+    pad.classList.remove('sheet'); const r = tgt.getBoundingClientRect(), w = pad.offsetWidth || 270, h = pad.offsetHeight || 320;
+    let x = Math.min(innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)), y = r.bottom + 8; if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 8);
+    pad.style.left = x + 'px'; pad.style.top = y + 'px';
+  };
+  const open = el => {
+    tgt = el; mode0 = el.getAttribute('inputmode'); el.setAttribute('inputmode', 'none');
+    const row = el.closest('.row'), nm = row?.querySelector('.grow b, .grow .ed:not(.num), .dmask')?.innerText?.trim(), fld = (el.previousSibling?.textContent || '').trim();
+    const lbl = (el.closest('label')?.innerText || el.getAttribute('aria-label') || [nm, fld].filter(Boolean).join(' · ') || el.placeholder || '').trim().split('\n')[0];
+    pad.querySelector('.cp-lbl').textContent = lbl.slice(0, 40); pad.hidden = false; show(); requestAnimationFrame(place);
+  };
+  const close = ok => {
+    if (!tgt) return; const t = tgt; tgt = null; pad.hidden = true;
+    if (mode0 == null) t.removeAttribute('inputmode'); else t.setAttribute('inputmode', mode0);
+    if (ok) { if (t.tagName === 'INPUT') { t.dispatchEvent(new Event('change', { bubbles: true })); t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); } t.blur(); }
+  };
+  const key = k => {
+    if (!tgt) return;
+    const btn = pad.querySelector(`[data-cp="${k}"]`); if (btn) { btn.classList.remove('is-press'); void btn.offsetWidth; btn.classList.add('is-press'); setTimeout(() => btn.classList.remove('is-press'), 140); }
+    try { (k === '✓' ? sfx.send : k === '⌫' || k === 'C' ? sfx.back : sfx.key)(); } catch {}
+    const v = numClean(get());
+    if (k === '✓') return close(true);
+    if (k === '⌫') put(v.slice(0, -1)); else if (k === 'C') put(''); else if (k === '.') put(v.includes('.') ? v : (v || '0') + '.'); else put(numClean(v + k));
+  };
+  document.addEventListener('focusin', e => { if (isNum(e.target)) open(e.target); });
+  document.addEventListener('focusout', e => { if (e.target === tgt) setTimeout(() => { if (tgt && document.activeElement !== tgt) close(false); }, 0); });
+  document.addEventListener('input', e => { if (e.target === tgt) show(); });
+  document.addEventListener('keydown', e => { if (!tgt || e.target !== tgt) return; const k = e.key === 'Backspace' ? '⌫' : /^[0-9.]$/.test(e.key) ? e.key : null; if (k) { const b = pad.querySelector(`[data-cp="${k}"]`); if (b) { b.classList.remove('is-press'); void b.offsetWidth; b.classList.add('is-press'); setTimeout(() => b.classList.remove('is-press'), 140); } setTimeout(show, 0); } if (e.key === 'Escape') close(false); });
+  pad.addEventListener('pointerdown', e => e.preventDefault());
+  pad.addEventListener('click', e => { const b = e.target.closest('[data-cp]'); if (b) key(b.dataset.cp); });
+  window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
 })();
 /* ↕ drag the bar between the chat and its buttons to make the buttons area bigger or smaller (owner, 2026-11-27); remembered */
 (() => {
