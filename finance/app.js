@@ -2847,7 +2847,7 @@ const numPadEl = (() => {
   el.innerHTML = ['7', '8', '9', '⌫', '4', '5', '6', 'C', '1', '2', '3', '.', '0', '00', '✓'].map(k => `<button type="button" data-np="${k}" class="${k === '✓' ? 'np-go' : /[⌫C]/.test(k) ? 'np-fn' : ''}">${k}</button>`).join('');
   document.getElementById('say')?.after(el);
   el.addEventListener('pointerdown', e => e.preventDefault()); // keep the input focused (no phone keyboard pops up)
-  el.addEventListener('click', e => { const b = e.target.closest('[data-np]'); if (!b) return; numKey(b.dataset.np); sfx.tap?.(); });
+  el.addEventListener('click', e => { const b = e.target.closest('[data-np]'); if (!b) return; numKey(b.dataset.np); });
   return el;
 })();
 function numClean(v) {
@@ -2856,6 +2856,9 @@ function numClean(v) {
   return t;
 }
 function numKey(k) {
+  const btn = numPadEl.querySelector(`[data-np="${k}"]`);
+  if (btn) { btn.classList.remove('is-press'); void btn.offsetWidth; btn.classList.add('is-press'); setTimeout(() => btn.classList.remove('is-press'), 140); }
+  try { (k === '✓' ? sfx.send : k === '⌫' || k === 'C' ? sfx.back : sfx.key)(); haptic && haptic(8); } catch {}
   const v = sayIn.value;
   if (k === '⌫') sayIn.value = v.slice(0, -1);
   else if (k === 'C') sayIn.value = '';
@@ -2873,6 +2876,14 @@ function numPad(on) {
 }
 sayIn.addEventListener('input', () => { if (numOn) { const c = numClean(sayIn.value); if (c !== sayIn.value) sayIn.value = c; } });
 // the keyboard works like a keypad while the pad is open, even when the box is not focused
+sayIn.addEventListener('keydown', e => {
+  if (!numOn || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key === 'Backspace' ? '⌫' : e.key === 'Enter' ? '✓' : /^[0-9.]$/.test(e.key) ? e.key : /^[٠-٩]$/.test(e.key) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(e.key)) : null;
+  if (!k) return;
+  const btn = numPadEl.querySelector(`[data-np="${k}"]`);
+  if (btn) { btn.classList.remove('is-press'); void btn.offsetWidth; btn.classList.add('is-press'); setTimeout(() => btn.classList.remove('is-press'), 140); }
+  try { (k === '✓' ? sfx.send : k === '⌫' ? sfx.back : sfx.key)(); } catch {}
+});
 document.addEventListener('keydown', e => {
   if (!numOn || e.metaKey || e.ctrlKey || e.altKey || document.activeElement === sayIn) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
@@ -2882,7 +2893,9 @@ document.addEventListener('keydown', e => {
 function setChips(opts) {
   curOpts = opts || []; numPad(false);
   chipsEl.innerHTML = '';
-  opts.forEach(o => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = o.l; b.onclick = () => answer(o.v, o.l); chipsEl.append(b); });
+  opts.forEach(o => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = o.l;
+    if (o.img) { const im = document.createElement('img'); im.className = 'dlogo'; im.src = o.img; im.alt = ''; im.width = 18; im.height = 18; b.prepend(im, ' '); }
+    b.onclick = () => answer(o.v, o.l); chipsEl.append(b); });
 }
 async function ask(q, opts = [], free = false) {
   // سؤال بيقول "اكتب" (اسم الشركة، الهدف…) بياخد أي كلام حتى لو فيه اختيارات تحت
@@ -3591,6 +3604,15 @@ async function flowInvested() {
     `Recorded as an <b>investment</b>, not spending 💪 ${money(amt * rate(cur))} moved from the Growth wallet into <b>${esc(h.name)}</b>. Your total is the same, but now it works for you.${gold ? ` (${fmt(grams, 2)} g of ${karat}K)` : ''}${yld ? ` Rate ${fmt(yld, 1)}% a year.` : ''}`));
 }
 
+/** a debt was just added: a sound, a toast, and its row on the Debts card lights up (owner, 2026-11-27) */
+function debtAdded(d) {
+  try { sfx.ok(); haptic(); } catch {}
+  toast(`${dIco(d)} ${L('اتضاف', 'Added')}: <b>${esc(dNm(d))}</b> · <b dir="ltr">${fmt(+d.balance || 0)} ${CUR[cOf(d)].s}</b>`);
+  setTimeout(() => { const row = document.querySelector(`[data-row="debts:${d.id}"]`); if (!row) return;
+    const card = row.closest('details'); if (card && !card.open) card.open = true;
+    row.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    row.classList.add('just-added'); setTimeout(() => row.classList.remove('just-added'), 2600); }, 250);
+}
 async function flowDebt() {
   const R = ctx().R, ds = debts(), open = ds.filter(d => dLeft(R, d) > 0.5);
   const list = open.length ? `<ul class="alloc">${open.map(d => `<li><span>${dIco(d)} ${esc(dNm(d))}</span><b dir="ltr">${fmt(dLeft(R, d))} ${CUR[cOf(d)].s}</b></li>`).join('')}</ul>` : L('مفيش عليك ديون دلوقتي ✅', 'You have no debt right now ✅');
@@ -3598,7 +3620,7 @@ async function flowDebt() {
     ...(open.length ? [{ l: L('✅ سدّدت دين', '✅ I paid a debt'), v: 'pay' }, { l: L('✏️ عدّل الباقي', '✏️ Change what\'s left'), v: 'edit' }] : []),
     { l: L('➕ دين جديد', '➕ New debt'), v: 'new' }, BACK]); if (what === null) return;
   if (what === 'new') {
-    const kind = await ask(L('نوعه إيه؟', 'What kind?'), [...Object.keys(DKIND).map(k => ({ l: `${DKIND[k]} ${DKIND_N[k]}`, v: k })), BACK]); if (kind === null) return;
+    const kind = await ask(L('نوعه إيه؟', 'What kind?'), [...Object.keys(DKIND).map(k => k === 'tabby' ? { l: DKIND_N[k], v: k, img: 'brand/tabby.png' } : { l: `${DKIND[k]} ${DKIND_N[k]}`, v: k }), BACK]); if (kind === null) return;
     // 🤝 سلفة من حد (طلب صاحب الحساب، 2026-11-27): اختار بابا / ماما / … أو اللي سلّفك قبل كده، أو اكتب اسم.
     // السؤال "حر" (free) عشان الاسم المكتوب يتاخد زي ما هو، مش يتفهم إنه اختيار من اللي تحت.
     const person = kind === 'person', prev = [...new Set(debts().filter(x => x.kind === 'person' && x.name).map(x => x.name))];
@@ -3607,7 +3629,7 @@ async function flowDebt() {
           [...prev.map(n => ({ l: `${dMask(n)} ${L('(عندك)', '(saved)')}`, v: n })),
             ...[L('بابا', 'Dad'), L('ماما', 'Mum'), L('أخويا', 'My brother'), L('أختي', 'My sister'), L('صاحبي', 'A friend')].filter(n => !prev.includes(n)).map(n => ({ l: n, v: n })), BACK], true)
       : kind === 'tabby'
-      ? await ask(L('🟣 اشتريت إيه بتابي؟ اكتب اسمه (مثال: تابي - موبايل)', '🟣 What did you buy with Tabby? Type it (e.g. Tabby - phone)'), [{ l: 'Tabby', v: 'Tabby' }, { l: 'Tamara', v: 'Tamara' }, BACK], true)
+      ? await ask(`<img class="dlogo" src="brand/tabby.png" alt="Tabby"> <img class="dlogo" src="brand/tamara.png" alt="Tamara"> ` + L('اشتريت إيه بتابي؟ اكتب اسمه (مثال: تابي - موبايل)', 'What did you buy with Tabby? Type it (e.g. Tabby - phone)'), [{ l: 'Tabby', v: 'Tabby', img: 'brand/tabby.png' }, { l: 'Tamara', v: 'Tamara', img: 'brand/tamara.png' }, BACK], true)
       : await ask(L('سمّيه إيه؟ اكتب الاسم (مثال: كارت ADCB)', 'What should I call it? Type the name (e.g. ADCB card)'), [{ l: DKIND_N[kind], v: DKIND_N[kind] }, BACK], true);
     if (name === null) return;
     let cu = null;
@@ -3640,7 +3662,7 @@ async function flowDebt() {
       else pre = Math.min(n, +String(pv).slice(1) || 0) * per;
       const nd = { id: uid(), name: String(name).trim().slice(0, 40) || 'Tabby', kind, balance: +(T - pre).toFixed(2), since: today(), cur: cu, total: +T.toFixed(2), plan: { amt: +per.toFixed(2), n, first: f1, ...(pre > 0 ? { pre: +pre.toFixed(2) } : {}) } };
       if (nd.balance <= 0.005) return bot(L('دي متدفعة كلها خلاص ✅ مفيش دين تتسجل.', 'That is already fully paid ✅ nothing to record.'));
-      debts().push(nd); save(); render();
+      debts().push(nd); save(); render(); debtAdded(nd);
       const nx = dNext(ctx().R, nd);
       return bot(L(`${dIco(nd)} اتسجّل <b>${esc(nd.name)}</b>: الإجمالي <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> على ${n} دفعات (${fmt(per)} كل شهر)، من غير فوايد.${pre > 0 ? ` اتدفع منه <b dir="ltr">${fmt(pre)}</b>.` : ''} الباقي <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 الدفعة ${nx.k} من ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`,
         `${dIco(nd)} Recorded <b>${esc(nd.name)}</b>: total <b dir="ltr">${fmt(T)} ${CUR[cu].s}</b> in ${n} payments (${fmt(per)} a month), no interest.${pre > 0 ? ` Already paid <b dir="ltr">${fmt(pre)}</b>.` : ''} Left <b dir="ltr">${fmt(nd.balance)} ${CUR[cu].s}</b>.${nx ? ` 📅 Payment ${nx.k} of ${nx.n}: <b dir="ltr">${fmt(nx.amt)}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : ''}`));
@@ -3670,7 +3692,7 @@ async function flowDebt() {
         if (pp === 'yes') { const x = await askNum(L(`دفعت كام (بال${CUR[cu].n})؟`, `How much (in ${CUR[cu].n})?`), [], true, cu); if (x == null) return; const pre = Math.min(T, x / rate(cu)); if (pre > 0) { nd.plan.pre = +pre.toFixed(2); nd.balance = +(T - pre).toFixed(2); } }
       }
     }
-    debts().push(nd); save(); render();
+    debts().push(nd); save(); render(); debtAdded(nd);
     const nx = dNext(ctx().R, nd), shown = esc(person ? dNm(nd) : String(name));
     return bot(L(`اتسجّل ${DKIND[kind]} ${shown}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>.${nx ? ` 📅 ${nx.n ? `قسط ${nx.k} من ${nx.n}: ` : 'السداد: '}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> يوم ${dDate(nx.date)} (${dWhen(nx)}).` : how !== 'skip' ? ' ⚠️ ما فهمتش التاريخ، حطه من كارت الديون.' : ''} من دلوقتي نصيب النمو من أي دخل هيروح يسدّه الأول قبل الاستثمار.`,
       `Recorded ${DKIND[kind]} ${shown}: <b dir="ltr">${fmt(amt / rate(cu))} ${CUR[cu].s}</b>.${nx ? ` 📅 ${nx.n ? `Instalment ${nx.k} of ${nx.n}: ` : 'Pay back: '}<b dir="ltr">${fmt(nx.amt)} ${CUR[cu].s}</b> on ${dDate(nx.date)} (${dWhen(nx)}).` : how !== 'skip' ? " ⚠️ I could not read the date: set it on the Debts card." : ''} From now on the Growth share of any income goes to paying it before investing.`));
