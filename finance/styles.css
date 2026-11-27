@@ -1438,3 +1438,30 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .dc-multi { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .dc-multi b { font-size: 1.25rem; }
 .dc-multi b em { font-style: normal; font-size: .8rem; opacity: .8; }
+/* currency picker above the debt cards, round currency badges, and the ring of faces round the total (owner, 2026-11-27) */
+.debt-bar { grid-template-areas: "curs" "deck" "dots"; }
+.db-curs { grid-area: curs; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.db-curs small { font-weight: 700; color: var(--mute, #9aa3b5); margin-inline-end: 2px; }
+.db-cur { font-size: .74rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); cursor: pointer; transition: background .15s, border-color .15s, transform .15s; white-space: nowrap; }
+.db-cur:hover { transform: translateY(-1px); background: rgba(255, 255, 255, .1); }
+.db-cur.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+.db-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.db-badge { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; align-content: center; gap: 0; background: rgba(0, 0, 0, .2); border: 1px solid rgba(255, 255, 255, .25); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); text-align: center; animation: badgeIn .5s cubic-bezier(.2, .8, .2, 1) both; }
+.db-badge:nth-child(2) { animation-delay: .08s; } .db-badge:nth-child(3) { animation-delay: .16s; }
+.db-badge i { font-style: normal; font-size: .8rem; line-height: 1; }
+.db-badge b { font-size: .78rem; line-height: 1.15; }
+.db-badge small { font-size: .6rem !important; color: rgba(255, 255, 255, .8); line-height: 1; }
+@keyframes badgeIn { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.db-orbit { position: relative; width: 74px; height: 74px; flex: none; perspective: 300px; }
+.db-ring2 { position: absolute; inset: 0; transform-style: preserve-3d; animation: orbitSpin 14s linear infinite; transform: rotateX(55deg); }
+.db-sat { position: absolute; left: 50%; top: 50%; width: var(--fs); height: var(--fs); margin: calc(var(--fs) / -2); transform: rotateZ(var(--a)) translateX(calc(37px - var(--fs) / 2)) rotateZ(calc(-1 * var(--a))); transform-style: preserve-3d; }
+.db-sat-in { display: block; width: 100%; height: 100%; animation: orbitKeep 14s linear infinite; transform-style: preserve-3d; }
+.db-sat .dav { width: 100% !important; height: 100% !important; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+@keyframes orbitSpin { from { transform: rotateX(55deg) rotateZ(0); } to { transform: rotateX(55deg) rotateZ(360deg); } }
+@keyframes orbitKeep { from { transform: rotateZ(0) rotateX(-55deg); } to { transform: rotateZ(-360deg) rotateX(-55deg); } }
+.db-core { position: absolute; inset: 0; margin: auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: .8rem; background: rgba(255, 255, 255, .9); color: #b8382a; box-shadow: 0 3px 10px rgba(0, 0, 0, .3); z-index: 2; }
+.debt-bar:hover .db-ring2, .debt-bar:hover .db-sat-in { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .db-ring2, .db-sat-in { animation: none; } }
+.db-orbit { width: 88px; height: 88px; }
+.db-sat { transform: rotateZ(var(--a)) translateX(calc(44px - var(--fs) / 2)) rotateZ(calc(-1 * var(--a))); }
+.db-core { width: 24px; height: 24px; font-size: .72rem; }

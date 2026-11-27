@@ -3675,6 +3675,14 @@ function dAvatar(d, size = 30) {
 }
 const dOpen = R => debts().filter(d => dLeft(R, d) > 0.5);
 // an amount in one currency, roughly, in AED and EGP at the live rate (owner, 2026-11-27: "a debt in SAR: see it in what I have")
+// the debt cards' main currency (owner, 2026-11-27): picked above the cards, remembered in this browser
+let dbCur = (() => { try { return localStorage.getItem('floosy.dbCur') || 'AED'; } catch { return 'AED'; } })();
+const dbCurs = () => [...new Set(['AED', 'EGP', 'SAR', 'USD', ...debts().map(cOf)])].filter(k => CUR[k] && rate(k) > 0);
+// an amount in the other currencies that matter: the main one first, then AED, EGP, SAR (never its own)
+function dConvAll(v, cu) {
+  const aed = cu === '__' ? v : v * rate(cu);
+  return [...new Set([dbCur, 'AED', 'EGP', 'SAR'])].filter(k => k !== cu && CUR[k] && rate(k) > 0).slice(0, 3).map(k => ({ c: k, v: aed / rate(k) }));
+}
 function dConv(v, cu) {
   const aed = v * rate(cu), out = [];
   if (cu !== 'AED') out.push({ c: 'AED', v: aed, r: `1 ${CUR[cu].s} = ${fmt(rate(cu), 3)} Đ` });
@@ -3721,7 +3729,7 @@ function renderDebtBar() {
       `<b class="db-count" dir="ltr" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></span>`
     : `<span class="dc-next"><small>${L('من غير ميعاد سداد', 'No pay-back date')}</small></span>`;
   const card = (g, k) => {
-    const d = g[0], cu = cOf(d), left = dLeft(R, d), fx = dConv(left, cu), brand = dBrand(d);
+    const d = g[0], cu = cOf(d), left = dLeft(R, d), fx = dConvAll(left, cu), brand = dBrand(d);
     const multi = g.length > 1, gAed = g.reduce((n, x) => n + dLeft(R, x) * rate(cOf(x)), 0);
     const gNx = g.map(x => dNext(R, x)).filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1)[0] || null;
     // Apple Wallet style: every card in its own brand's colours (banks by their name)
@@ -3730,19 +3738,27 @@ function renderDebtBar() {
       <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span></span>
       ${multi ? `<span class="dc-amt"><small class="dc-lbl">${L(`الباقي · ${g.length} عملات`, `Left · ${g.length} currencies`)}</small>
         <span class="dc-multi">${g.map(x => `<b dir="ltr">${CUR[cOf(x)].f} ${fmt(dLeft(R, x), 2)} <em>${CUR[cOf(x)].s}</em></b>`).join('')}</span>
-        <span class="dc-fx"><span dir="ltr">${L('الكل', 'All')} ≈ ${fmt(gAed)} Đ</span>${rate('EGP') > 0 ? `<span dir="ltr">${CUR.EGP.f} ≈ ${fmt(gAed / rate('EGP'))} ${CUR.EGP.s}</span>` : ''}</span></span>`
+        <span class="dc-fx">${dConvAll(gAed, '__').map(x => `<span dir="ltr">${CUR[x.c].f} ≈ ${fmt(x.v)} ${CUR[x.c].s}</span>`).join('')}</span></span>`
       : `<span class="dc-amt"><small class="dc-lbl">${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} <em>${CUR[cu].s}</em></b>
         ${fx.length ? `<span class="dc-fx">${fx.map(x => `<span dir="ltr">${CUR[x.c].f} ≈ ${fmt(x.v)} ${CUR[x.c].s}</span>`).join('')}</span>` : ''}</span>`}
       ${cd(gNx)}</span>`;
   };
-  const combo = `<span class="db-combo">${groups.slice(0, 4).map(g => dAvatar(g[0], 20)).join('')}${groups.length > 4 ? `<i>+${groups.length - 4}</i>` : ''}</span>`;
+  // one face per lender/brand (two Tabby debts = one Tabby logo), turning round the total; any number fits
+  const faces = [], seen = new Set();
+  groups.forEach(g => { const d = g[0], k = dBrand(d) ? 'b:' + dBrand(d) : d.kind === 'person' ? dWho(d) : 'k:' + d.kind + ':' + (d.name || ''); if (!seen.has(k)) { seen.add(k); faces.push(d); } });
+  const show = faces.slice(0, 24), fsz = Math.max(14, Math.min(26, Math.round(110 / Math.sqrt(show.length + 2))));
+  const orbit = `<span class="db-orbit" style="--fs:${fsz}px" aria-hidden="true"><span class="db-ring2">${show.map((d, i) => `<span class="db-sat" style="--a:${(360 / show.length * i).toFixed(1)}deg"><span class="db-sat-in">${dAvatar(d, fsz)}</span></span>`).join('')}</span>` +
+    `<b class="db-core">${faces.length > 24 ? '+' + (faces.length - 24) : faces.length}</b></span>`;
+  const main = CUR[dbCur] ? dbCur : 'AED', totMain = tot / rate(main);
+  const badges = [...new Set(['AED', 'EGP', 'SAR', main])].filter(k => k !== main && CUR[k] && rate(k) > 0).map(k => `<span class="db-badge" dir="ltr"><i>${CUR[k].f}</i><b>${fmt(tot / rate(k))}</b><small>${CUR[k].s}</small></span>`).join('');
   const total = `<span class="dc dc--all" data-k="${n - 1}">
-      <span class="dc-top">${combo}<span><b>${L('كل الديون', 'All debts')} · ${groups.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
-      <span class="dc-amt"><small class="dc-lbl">${L('الإجمالي', 'Total')}</small><b dir="ltr">≈ ${fmt(tot)} <em>Đ</em></b>
-        ${egp ? `<span class="dc-fx"><span dir="ltr">${CUR.EGP.f} ≈ ${fmt(egp)} ${CUR.EGP.s}</span></span>` : ''}</span>
+      <span class="dc-top">${orbit}<span><b>${L('كل الديون', 'All debts')} · ${groups.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
+      <span class="dc-amt"><small class="dc-lbl">${L('الإجمالي', 'Total')} · ${CUR[main].f} ${CUR[main].n}</small><b dir="ltr">≈ ${fmt(totMain)} <em>${CUR[main].s}</em></b>
+        <span class="db-badges">${badges}</span></span>
       ${soon ? cd(soon.nx).replace('<small>', `<small>${esc(dNm(soon.d))} · `) : ''}</span>`;
+  const curBar = `<span class="db-curs" role="group" aria-label="${L('العملة الأساسية', 'Main currency')}"><small>${L('العملة', 'Currency')}</small>${dbCurs().map(k => `<span role="button" tabindex="0" class="db-cur${k === main ? ' on' : ''}" data-dbcur="${k}">${CUR[k].f} ${CUR[k].s}</span>`).join('')}</span>`;
   el.hidden = false;
-  el.innerHTML = `<span class="db-deck">${groups.map(card).join('')}${total}</span>` +
+  el.innerHTML = curBar + `<span class="db-deck">${groups.map(card).join('')}${total}</span>` +
     `<span class="db-foot"><span class="db-dots" aria-hidden="true">${Array.from({ length: n }, (_, k) => `<i class="${k === dbI ? 'on' : ''}${k === n - 1 ? ' all' : ''}"></i>`).join('')}</span>` +
     `<span role="button" tabindex="0" class="db-speed" data-dbspeed title="${L('سرعة اللف', 'Turning speed')}">${dbSpeedLbl()}</span></span>`;
   dbPlace(el);
@@ -3837,6 +3853,7 @@ function photoSmall(file) {
   const hand = k => { UI.dbManual = Date.now(); dbTurn(k); try { sfx.page?.(); } catch {} };
   el.addEventListener('click', e => {
     const g = e.target.closest('[data-dbgo]'); if (g) { e.stopPropagation(); return hand(+g.dataset.dbgo); }
+    const cb = e.target.closest('[data-dbcur]'); if (cb) { e.stopPropagation(); dbCur = cb.dataset.dbcur; try { localStorage.setItem('floosy.dbCur', dbCur); } catch {} try { sfx.select?.(); } catch {} return renderDebtBar(); }
     const sp = e.target.closest('[data-dbspeed]'); if (sp) { e.stopPropagation(); dbSpeed = DB_SPEEDS[(DB_SPEEDS.indexOf(dbSpeed) + 1) % DB_SPEEDS.length]; try { localStorage.setItem('floosy.dbSpeed', dbSpeed); } catch {} sp.textContent = dbSpeedLbl(); dbLast = Date.now(); try { sfx.select?.(); } catch {} return; }
     if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; // that was a drag, not a tap
     const R = ctx().R, op = dOpen(R), grp = (UI.dbGroups || [])[dbI]; debtPop(grp ? Math.max(0, op.indexOf(grp[0])) : 0);
