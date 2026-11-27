@@ -1714,11 +1714,11 @@ function renderToday(c) {
     <button type="button" class="td-add" data-quick="spend" aria-label="${L('سجّل مصروف', 'Log an expense')}">＋ <span>${L('صرفت', 'Spent')}</span></button>`;
   // the spend row swipes between: a day · until payday (this cycle only, not the 10-day reserve) · the 10-day reserve (owner, 2026-11-27)
   const spendRow = DP => {
-    const endD = DP.end instanceof Date ? new Date(DP.end.getFullYear(), DP.end.getMonth(), DP.end.getDate() + 1).toLocaleDateString(L('ar-EG', 'en-GB'), { day: 'numeric', month: 'long' }) : ''; // payday itself (e.g. 5 Dec)
-    const tillPay = Math.max(0, (DP.pk1 || 0) - (DP.offRemain || 0)) + (DP.funDaily || 0) * DP.daysLeft;
+    const endD = DP.end instanceof Date ? `${DP.end.getDate()}/${DP.end.getMonth() + 1}` : ''; // the cycle's last day, the same date as the Essentials card (e.g. 4/12)
+    const tillPay = Math.max(0, DP.pk1 || 0); // the same number as the Essentials card's 'until 4/12' pocket (owner, 2026-11-27: both must match)
     const views = [
       { ico: '📆', l: L('تقدر تصرف النهارده', 'You can spend today'), v: `${fmt(DP.total, 2)} Đ`, s: L(`في اليوم لحد ${endD}`, `a day until ${endD}`) },
-      { ico: '🛒', l: L('تقدر تصرف لحد القبض', 'You can spend until payday'), v: `${fmt(tillPay)} Đ`, s: L(`لحد ${endD} · ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')}${DP.offRemain > 0.5 ? ` · غير فواتير ${fmt(DP.offRemain)}` : ''}`, `until ${endD} · ${EN_N(DP.daysLeft, 'day')}${DP.offRemain > 0.5 ? ` · bills ${fmt(DP.offRemain)} apart` : ''}`) },
+      { ico: '🛒', l: L('تقدر تصرف لحد القبض', 'You can spend until payday'), v: `${fmt(tillPay)} Đ`, s: L(`لحد ${endD} · ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')}${DP.offRemain > 0.5 ? ` · منها فواتير ${fmt(DP.offRemain)}` : ''}`, `until ${endD} · ${EN_N(DP.daysLeft, 'day')}${DP.offRemain > 0.5 ? ` · bills ${fmt(DP.offRemain)} of it` : ''}`) },
       { ico: '🛟', l: L('احتياطي الـ 10 أيام', 'The 10-day reserve'), v: `${fmt(DP.pk2 || 0)} Đ`, s: L('بعد القبض، ما تلمسوش دلوقتي', 'after payday, not for now') }
     ];
     const i = ((UI.psI ?? 1) % 3 + 3) % 3, x = views[i];
