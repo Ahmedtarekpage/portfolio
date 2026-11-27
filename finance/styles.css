@@ -1435,3 +1435,6 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .row[data-row^="debts:"] > :not(.grow):not([data-drag]):not(.grip) { flex: none; }
 #cards .card, #cards details { min-width: 0; max-width: 100%; }
 #cards ul, #cards ol { min-width: 0; }
+.dc-multi { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.dc-multi b { font-size: 1.25rem; }
+.dc-multi b em { font-style: normal; font-size: .8rem; opacity: .8; }

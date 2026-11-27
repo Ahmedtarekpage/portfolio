@@ -3662,7 +3662,12 @@ const AV = {
   m: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#5E86C1"/><circle cx="32" cy="25" r="12" fill="#F3D2B3"/><path d="M20 22c0-9 6-13 12-13s12 4 12 13c-3-4-7-5-12-5s-9 1-12 5z" fill="#2B2B2B"/><path d="M10 64c2-14 11-21 22-21s20 7 22 21z" fill="#1F3A5F"/></svg>'),
   f: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#E86A92"/><path d="M15 40c0-20 7-30 17-30s17 10 17 30z" fill="#5A3A2B"/><circle cx="32" cy="26" r="11" fill="#F3D2B3"/><path d="M10 64c2-14 11-21 22-21s20 7 22 21z" fill="#7A2E52"/></svg>')
 };
+// the same lender in several currencies is one person: one picture, one card (owner, 2026-11-27)
+const dWho = d => `${d.kind}|${String(d.name || '').trim().toLowerCase()}|${d.item || ''}`;
+const dSame = d => debts().filter(x => dWho(x) === dWho(d));
+function dGroups(list) { const m = new Map(); list.forEach(d => { const k = dWho(d); if (!m.has(k)) m.set(k, []); m.get(k).push(d); }); return [...m.values()]; }
 function dAvatar(d, size = 30) {
+  if (d && d.kind === 'person' && !d.photo) { const s = dSame(d).find(x => x.photo) || dSame(d).find(x => x.av); if (s && s !== d) d = { ...d, photo: s.photo, av: s.av }; }
   const b = dBrand(d), st = `width:${size}px;height:${size}px`;
   if (b) return `<img class="dav" style="${st}" src="brand/${b}.png" alt="">`;
   if (d.kind === 'person') return `<img class="dav" style="${st}" src="${d.photo && /^data:image\//.test(d.photo) ? d.photo : AV[d.av === 'f' ? 'f' : 'm']}" alt="">`;
@@ -3710,28 +3715,34 @@ function renderDebtBar() {
   const R = UI.R, open = dOpen(R);
   if (!open.length) { el.hidden = true; dbN = 0; return; }
   const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), egp = rate('EGP') > 0 ? tot / rate('EGP') : 0, soon = dSoonest(R);
-  const n = open.length + 1; if (n !== dbN) dbI = Math.min(dbI, n - 1); dbN = n;
+  const groups = dGroups(open); UI.dbGroups = groups;
+  const n = groups.length + 1; if (n !== dbN) dbI = Math.min(dbI, n - 1); dbN = n;
   const cd = nx => nx ? `<span class="dc-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><small>📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')} · <b dir="ltr">${fmt(nx.amt, 2)}</b> · ${dDate(nx.date)}</small>` +
       `<b class="db-count" dir="ltr" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></span>`
     : `<span class="dc-next"><small>${L('من غير ميعاد سداد', 'No pay-back date')}</small></span>`;
-  const card = (d, k) => {
-    const cu = cOf(d), left = dLeft(R, d), fx = dConv(left, cu), brand = dBrand(d);
+  const card = (g, k) => {
+    const d = g[0], cu = cOf(d), left = dLeft(R, d), fx = dConv(left, cu), brand = dBrand(d);
+    const multi = g.length > 1, gAed = g.reduce((n, x) => n + dLeft(R, x) * rate(cOf(x)), 0);
+    const gNx = g.map(x => dNext(R, x)).filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1)[0] || null;
     // Apple Wallet style: every card in its own brand's colours (banks by their name)
     const bank = (/enbd|emirates ?nbd|الإمارات دبي/i.test(d.name || '') && 'enbd') || (/adcb/i.test(d.name || '') && 'adcb') || (/\bfab\b|first abu dhabi/i.test(d.name || '') && 'fab') || (/mashreq|المشرق/i.test(d.name || '') && 'mashreq') || (/\bdib\b|dubai islamic/i.test(d.name || '') && 'dib') || (/\bcib\b/i.test(d.name || '') && 'cib') || (/\bnbe\b|الأهلي/i.test(d.name || '') && 'nbe') || (/banque misr|بنك مصر/i.test(d.name || '') && 'bm');
     return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}">
       <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span></span>
-      <span class="dc-amt"><small class="dc-lbl">${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} <em>${CUR[cu].s}</em></b>
-        ${fx.length ? `<span class="dc-fx">${fx.map(x => `<span dir="ltr">${CUR[x.c].f} ≈ ${fmt(x.v)} ${CUR[x.c].s}</span>`).join('')}</span>` : ''}</span>
-      ${cd(dNext(R, d))}</span>`;
+      ${multi ? `<span class="dc-amt"><small class="dc-lbl">${L(`الباقي · ${g.length} عملات`, `Left · ${g.length} currencies`)}</small>
+        <span class="dc-multi">${g.map(x => `<b dir="ltr">${CUR[cOf(x)].f} ${fmt(dLeft(R, x), 2)} <em>${CUR[cOf(x)].s}</em></b>`).join('')}</span>
+        <span class="dc-fx"><span dir="ltr">${L('الكل', 'All')} ≈ ${fmt(gAed)} Đ</span>${rate('EGP') > 0 ? `<span dir="ltr">${CUR.EGP.f} ≈ ${fmt(gAed / rate('EGP'))} ${CUR.EGP.s}</span>` : ''}</span></span>`
+      : `<span class="dc-amt"><small class="dc-lbl">${L('الباقي', 'Left')}</small><b dir="ltr">${fmt(left, 2)} <em>${CUR[cu].s}</em></b>
+        ${fx.length ? `<span class="dc-fx">${fx.map(x => `<span dir="ltr">${CUR[x.c].f} ≈ ${fmt(x.v)} ${CUR[x.c].s}</span>`).join('')}</span>` : ''}</span>`}
+      ${cd(gNx)}</span>`;
   };
-  const combo = `<span class="db-combo">${open.slice(0, 4).map(d => dAvatar(d, 20)).join('')}${open.length > 4 ? `<i>+${open.length - 4}</i>` : ''}</span>`;
+  const combo = `<span class="db-combo">${groups.slice(0, 4).map(g => dAvatar(g[0], 20)).join('')}${groups.length > 4 ? `<i>+${groups.length - 4}</i>` : ''}</span>`;
   const total = `<span class="dc dc--all" data-k="${n - 1}">
-      <span class="dc-top">${combo}<span><b>${L('كل الديون', 'All debts')} · ${open.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
+      <span class="dc-top">${combo}<span><b>${L('كل الديون', 'All debts')} · ${groups.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
       <span class="dc-amt"><small class="dc-lbl">${L('الإجمالي', 'Total')}</small><b dir="ltr">≈ ${fmt(tot)} <em>Đ</em></b>
         ${egp ? `<span class="dc-fx"><span dir="ltr">${CUR.EGP.f} ≈ ${fmt(egp)} ${CUR.EGP.s}</span></span>` : ''}</span>
       ${soon ? cd(soon.nx).replace('<small>', `<small>${esc(dNm(soon.d))} · `) : ''}</span>`;
   el.hidden = false;
-  el.innerHTML = `<span class="db-deck">${open.map(card).join('')}${total}</span>` +
+  el.innerHTML = `<span class="db-deck">${groups.map(card).join('')}${total}</span>` +
     `<span class="db-foot"><span class="db-dots" aria-hidden="true">${Array.from({ length: n }, (_, k) => `<i class="${k === dbI ? 'on' : ''}${k === n - 1 ? ' all' : ''}"></i>`).join('')}</span>` +
     `<span role="button" tabindex="0" class="db-speed" data-dbspeed title="${L('سرعة اللف', 'Turning speed')}">${dbSpeedLbl()}</span></span>`;
   dbPlace(el);
@@ -3759,7 +3770,7 @@ const dbSpeedLbl = () => ({ 0: L('⏸ واقف', '⏸ Paused'), 4000: L('🐢 ب
 function dbTurn(k = 1) {
   dbI = ((dbI + k) % dbN + dbN) % dbN;
   const el = document.getElementById('debtBar');
-  if (!el?.querySelector('.dc') || !UI.R || dOpen(UI.R).length + 1 !== dbN) return renderDebtBar();
+  if (!el?.querySelector('.dc') || !UI.R || dGroups(dOpen(UI.R)).length + 1 !== dbN) return renderDebtBar();
   el.classList.toggle('is-back', k < 0); dbPlace(el);
 }
 (() => { const el = document.getElementById('debtBar'); if (!el) return;
@@ -3802,13 +3813,13 @@ function debtPop(start = 0) {
     if (t.closest('[data-dnext]')) return go(1);
     if (t.closest('[data-dprev]')) return go(-1);
     if (t.closest('[data-ditem]')) { const d = open[i], v = prompt(L('اشتريت إيه بيه؟ (مثال: موبايل)', 'What did you buy with it? (e.g. phone)'), d.item || ''); if (v === null) return; if (v.trim()) d.item = v.trim().slice(0, 40); else delete d.item; save(); render(); draw(); return; }
-    const av = t.closest('[data-dav]'); if (av) { const d = open[i]; d.av = av.dataset.dav; delete d.photo; save(); render(); sfx.select?.(); draw(); }
+    const av = t.closest('[data-dav]'); if (av) { const d = open[i]; dSame(d).forEach(x => { x.av = av.dataset.dav; delete x.photo; }); save(); render(); sfx.select?.(); draw(); }
   });
   // swipe between debts on a phone
   let x0 = null; o.addEventListener('pointerdown', e => { x0 = e.clientX; }); o.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 60 && !e.target.closest('input,label')) go((e.clientX < x0 ? 1 : -1) * L(-1, 1)); x0 = null; });
   o.addEventListener('change', e => {
     const f = e.target.closest('[data-dphoto]')?.files?.[0]; if (!f) return;
-    photoSmall(f).then(url => { const d = open[i]; d.photo = url; save(); render(); sfx.ok?.(); toast(L('📷 الصورة اتحفظت', '📷 Photo saved')); draw(); }).catch(() => toast(L('الصورة دي ما اتقريتش', "Couldn't read that picture")));
+    photoSmall(f).then(url => { const d = open[i]; dSame(d).forEach(x => { x.photo = url; }); save(); render(); sfx.ok?.(); toast(L('📷 الصورة اتحفظت', '📷 Photo saved')); draw(); }).catch(() => toast(L('الصورة دي ما اتقريتش', "Couldn't read that picture")));
   });
 }
 /** a picture made small (128 px square, jpeg) so it can live in the saved data */
@@ -3828,7 +3839,7 @@ function photoSmall(file) {
     const g = e.target.closest('[data-dbgo]'); if (g) { e.stopPropagation(); return hand(+g.dataset.dbgo); }
     const sp = e.target.closest('[data-dbspeed]'); if (sp) { e.stopPropagation(); dbSpeed = DB_SPEEDS[(DB_SPEEDS.indexOf(dbSpeed) + 1) % DB_SPEEDS.length]; try { localStorage.setItem('floosy.dbSpeed', dbSpeed); } catch {} sp.textContent = dbSpeedLbl(); dbLast = Date.now(); try { sfx.select?.(); } catch {} return; }
     if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; // that was a drag, not a tap
-    const R = ctx().R; debtPop(dbI < dOpen(R).length ? dbI : 0);
+    const R = ctx().R, op = dOpen(R), grp = (UI.dbGroups || [])[dbI]; debtPop(grp ? Math.max(0, op.indexOf(grp[0])) : 0);
   });
   el.addEventListener('keydown', e => { const g = e.target.closest('[data-dbgo]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hand(+g.dataset.dbgo); } });
   // swipe the bar to turn it
@@ -3870,7 +3881,9 @@ async function flowDebt() {
     if (name === null) return;
     if (person && EN_NAME[String(name).trim()]) name = EN_NAME[String(name).trim()];
     let av = null;
-    if (person) { av = await ask(L('🖼 صورته في التطبيق إيه؟ (تقدر ترفع صورة حقيقية بعدين من الدايرة فوق)', '🖼 Which picture for them? (you can upload a real photo later from the circle at the top)'), [{ l: L('👨 راجل', '👨 Man'), v: 'm', img: AV.m }, { l: L('👩 ست', '👩 Woman'), v: 'f', img: AV.f }, BACK]); if (av === null) return; }
+    const known = person && debts().find(x => x.kind === 'person' && String(x.name || '').trim().toLowerCase() === String(name).trim().toLowerCase() && (x.photo || x.av));
+    if (known) av = known.av || 'm';
+    else if (person) { av = await ask(L('🖼 صورته في التطبيق إيه؟ (تقدر ترفع صورة حقيقية بعدين من الدايرة فوق)', '🖼 Which picture for them? (you can upload a real photo later from the circle at the top)'), [{ l: L('👨 راجل', '👨 Man'), v: 'm', img: AV.m }, { l: L('👩 ست', '👩 Woman'), v: 'f', img: AV.f }, BACK]); if (av === null) return; }
     let cu = null;
     for (let q = L('💱 بأنهي عملة؟ اختار، أو اكتب كود أي عملة (مثال: KWD أو GBP)', '💱 In which currency? Pick one, or type any currency code (e.g. KWD or GBP)'); !cu;) {
       const first = places().includes(cardView()) ? cardView() : 'AED', list = [first, ...debtCurs().filter(k => k !== first)].filter(k => CUR[k]);
@@ -3909,7 +3922,7 @@ async function flowDebt() {
     }
     const amt = await askNum(L(`عليك فيه كام (بال${CUR[cu].n})؟`, `How much do you owe on it (in ${CUR[cu].n})?`), [], false, cu); if (amt == null) return;
     // askNum بيحوّل لدرهم؛ الدين متخزّن بعملته
-    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true, av: av === 'f' ? 'f' : 'm' } : {}) };
+    const nd = { id: uid(), name: String(name).trim().slice(0, 40) || DKIND_N[kind], kind, balance: amt / rate(cu), since: today(), cur: cu, ...(person ? { hide: true, av: av === 'f' ? 'f' : 'm', ...(known?.photo ? { photo: known.photo } : {}) } : {}) };
     // هترجّعها إمتى؟ تاريخ واحد، أو قسط كل شهر (مبلغ × عدد شهور)، أو من غير ميعاد
     const t0 = today(), nextFirst = (() => { const x = new Date(); return iso(new Date(x.getFullYear(), x.getMonth() + 1, 1, 12)); })();
     const dates = [{ l: L(`أول الشهر الجاي (${dDate(nextFirst)})`, `The 1st of next month (${dDate(nextFirst)})`), v: nextFirst }, { l: L('بعد شهر', 'In a month'), v: dAddMonths(t0, 1) }, { l: L('بعد 3 شهور', 'In 3 months'), v: dAddMonths(t0, 3) }];
