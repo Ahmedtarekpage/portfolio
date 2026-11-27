@@ -1465,3 +1465,16 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .db-orbit { width: 88px; height: 88px; }
 .db-sat { transform: rotateZ(var(--a)) translateX(calc(44px - var(--fs) / 2)) rotateZ(calc(-1 * var(--a))); }
 .db-core { width: 24px; height: 24px; font-size: .72rem; }
+/* description under the card's name, the edit window, and red flashing when a payment is late or within a week (owner, 2026-11-27) */
+.dc-desc { display: block; font-size: .74rem !important; opacity: .9; margin-top: -4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dc-next.urgent b, .dc-next.urgent .fc { animation: urgentFlash 1s ease-in-out infinite; }
+.dc-next.urgent .fc { background: #b91c1c !important; color: #fff !important; }
+.dc-next.urgent small b { color: #fff; background: #dc2626; padding: 0 6px; border-radius: 6px; }
+.dc--tabby .dc-next.urgent small b, .dc--tamara .dc-next.urgent small b { color: #fff; }
+@keyframes urgentFlash { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 50% { opacity: .55; box-shadow: 0 0 12px 2px rgba(239, 68, 68, .7); } }
+@media (prefers-reduced-motion: reduce) { .dc-next.urgent b, .dc-next.urgent .fc { animation: none; } }
+.dedit label { display: grid; gap: 4px; font-size: .8rem; font-weight: 700; }
+.dedit input, .dedit textarea { font: inherit; font-weight: 500; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); resize: vertical; color-scheme: dark; }
+.dedit input:focus, .dedit textarea:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px rgba(255, 107, 91, .25); }
+.dedit-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.dedit-acts .on { background: var(--acc); color: #fff; border-color: var(--acc); }

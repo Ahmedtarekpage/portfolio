@@ -3725,7 +3725,7 @@ function renderDebtBar() {
   const tot = open.reduce((n, d) => n + dLeft(R, d) * rate(cOf(d)), 0), egp = rate('EGP') > 0 ? tot / rate('EGP') : 0, soon = dSoonest(R);
   const groups = dGroups(open); UI.dbGroups = groups;
   const n = groups.length + 1; if (n !== dbN) dbI = Math.min(dbI, n - 1); dbN = n;
-  const cd = nx => nx ? `<span class="dc-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}"><small>📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')} · <b dir="ltr">${fmt(nx.amt, 2)}</b> · ${dDate(nx.date)}</small>` +
+  const cd = nx => nx ? `<span class="dc-next ${nx.days < 0 ? 'bad' : nx.days <= 3 ? 'warn' : ''}${nx.days <= 7 ? ' urgent' : ''}"><small>📅 ${nx.n ? L(`قسط ${nx.k} من ${nx.n}`, `Payment ${nx.k} of ${nx.n}`) : L('السداد', 'Pay back')} · <b dir="ltr">${fmt(nx.amt, 2)}</b> · ${dDate(nx.date)}</small>` +
       `<b class="db-count" dir="ltr" ${nx.days < 0 ? '' : `data-due="${nx.date}"`}>${nx.days < 0 ? L(`متأخر ${-nx.days} يوم`, `${-nx.days} days late`) : dCards(new Date(nx.date + 'T00:00:00') - Date.now())}</b></span>`
     : `<span class="dc-next"><small>${L('من غير ميعاد سداد', 'No pay-back date')}</small></span>`;
   const card = (g, k) => {
@@ -3734,8 +3734,9 @@ function renderDebtBar() {
     const gNx = g.map(x => dNext(R, x)).filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1)[0] || null;
     // Apple Wallet style: every card in its own brand's colours (banks by their name)
     const bank = (/enbd|emirates ?nbd|الإمارات دبي/i.test(d.name || '') && 'enbd') || (/adcb/i.test(d.name || '') && 'adcb') || (/\bfab\b|first abu dhabi/i.test(d.name || '') && 'fab') || (/mashreq|المشرق/i.test(d.name || '') && 'mashreq') || (/\bdib\b|dubai islamic/i.test(d.name || '') && 'dib') || (/\bcib\b/i.test(d.name || '') && 'cib') || (/\bnbe\b|الأهلي/i.test(d.name || '') && 'nbe') || (/banque misr|بنك مصر/i.test(d.name || '') && 'bm');
-    return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}">
+    return `<span class="dc${brand ? ' dc--' + brand : bank ? ' dc--bank dc--' + bank : d.kind === 'person' ? ' dc--person' : ' dc--' + (d.kind || 'other')}" data-k="${k}" data-did="${d.id}" title="${L('دبل كليك عشان تعدّل', 'Double-click to edit')}">
       <span class="dc-top">${dAvatar(d, 38)}<span><b>${esc(dNm(d))}</b><small>${d.kind === 'tabby' ? L('قسّطها من غير فوايد', 'Split with no interest') : DKIND_N[d.kind] || ''}</small></span></span>
+      ${d.desc ? `<small class="dc-desc">📝 ${esc(d.desc)}</small>` : ''}
       ${multi ? `<span class="dc-amt"><small class="dc-lbl">${L(`الباقي · ${g.length} عملات`, `Left · ${g.length} currencies`)}</small>
         <span class="dc-multi">${g.map(x => `<b dir="ltr">${CUR[cOf(x)].f} ${fmt(dLeft(R, x), 2)} <em>${CUR[cOf(x)].s}</em></b>`).join('')}</span>
         <span class="dc-fx">${dConvAll(gAed, '__').map(x => `<span dir="ltr">${CUR[x.c].f} ≈ ${fmt(x.v)} ${CUR[x.c].s}</span>`).join('')}</span></span>`
@@ -3838,6 +3839,34 @@ function debtPop(start = 0) {
     photoSmall(f).then(url => { const d = open[i]; dSame(d).forEach(x => { x.photo = url; }); save(); render(); sfx.ok?.(); toast(L('📷 الصورة اتحفظت', '📷 Photo saved')); draw(); }).catch(() => toast(L('الصورة دي ما اتقريتش', "Couldn't read that picture")));
   });
 }
+/** ✏️ edit a debt (double-click its card): name, what it was for, a description, the due date or instalment start */
+function debtEdit(id) {
+  const d = debts().find(x => x.id === id); if (!d) return;
+  const o = document.createElement('div'); o.className = 'wiz'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+  o.innerHTML = `<div class="wiz-card glass dpop dedit">
+    <div class="wiz-top"><b>✏️ ${L('عدّل الدين', 'Edit debt')}</b><button type="button" class="wiz-x" data-close aria-label="${L('اقفل', 'Close')}">✕</button></div>
+    <div class="dpop-head">${dAvatar(d, 56)}<div><h3>${esc(dNm(d))}</h3><small>${DKIND_N[d.kind] || ''} · ${CUR[cOf(d)].f} ${CUR[cOf(d)].n}</small></div></div>
+    <label>${L('الاسم', 'Name')}<input data-e="name" value="${esc(d.name || '')}" maxlength="40"></label>
+    ${dBrand(d) || d.item ? `<label>${L('اشتريت إيه', 'What it was for')}<input data-e="item" value="${esc(d.item || '')}" maxlength="40" placeholder="${L('مثال: موبايل', 'e.g. phone')}"></label>` : ''}
+    <label>${L('وصف (اختياري)', 'Description (optional)')}<textarea data-e="desc" rows="2" maxlength="200" placeholder="${L('أي تفاصيل: ليه، اتفقنا على إيه…', 'Any details: why, what was agreed…')}">${esc(d.desc || '')}</textarea></label>
+    ${d.plan ? `<label>${L('أول قسط', 'First instalment')}<input type="date" data-e="first" value="${d.plan.first || ''}"></label>` : `<label>${L('ميعاد السداد', 'Pay-back date')}<input type="date" data-e="due" value="${d.due || ''}"></label>`}
+    <div class="dedit-acts"><button type="button" class="pill" data-close>${L('إلغاء', 'Cancel')}</button><button type="button" class="pill on" data-esave>✅ ${L('احفظ', 'Save')}</button></div>
+  </div>`;
+  document.body.appendChild(o); sfx.open?.(); setTimeout(() => o.querySelector('[data-e="desc"]')?.focus(), 50);
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 220); document.removeEventListener('keydown', key); };
+  const key = e => { if (e.key === 'Escape') close(); }; document.addEventListener('keydown', key);
+  o.addEventListener('click', e => {
+    if (e.target === o || e.target.closest('[data-close]')) return close();
+    if (!e.target.closest('[data-esave]')) return;
+    const v = k => o.querySelector(`[data-e="${k}"]`)?.value;
+    const nm = String(v('name') || '').trim(); if (nm) d.name = nm.slice(0, 40);
+    if (v('item') != null) { const it = String(v('item')).trim(); if (it) d.item = it.slice(0, 40); else delete d.item; }
+    const ds = String(v('desc') || '').trim(); if (ds) d.desc = ds.slice(0, 200); else delete d.desc;
+    if (d.plan && /^\d{4}-\d{2}-\d{2}$/.test(v('first') || '')) d.plan.first = v('first');
+    if (!d.plan) { const du = v('due'); if (/^\d{4}-\d{2}-\d{2}$/.test(du || '')) d.due = du; else if (du === '') delete d.due; }
+    save(); render(); try { sfx.ok(); } catch {} toast(L('✏️ اتحفظ', '✏️ Saved')); close();
+  });
+}
 /** a picture made small (128 px square, jpeg) so it can live in the saved data */
 function photoSmall(file) {
   return new Promise((res, rej) => {
@@ -3856,8 +3885,11 @@ function photoSmall(file) {
     const cb = e.target.closest('[data-dbcur]'); if (cb) { e.stopPropagation(); dbCur = cb.dataset.dbcur; try { localStorage.setItem('floosy.dbCur', dbCur); } catch {} try { sfx.select?.(); } catch {} return renderDebtBar(); }
     const sp = e.target.closest('[data-dbspeed]'); if (sp) { e.stopPropagation(); dbSpeed = DB_SPEEDS[(DB_SPEEDS.indexOf(dbSpeed) + 1) % DB_SPEEDS.length]; try { localStorage.setItem('floosy.dbSpeed', dbSpeed); } catch {} sp.textContent = dbSpeedLbl(); dbLast = Date.now(); try { sfx.select?.(); } catch {} return; }
     if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; // that was a drag, not a tap
-    const R = ctx().R, op = dOpen(R), grp = (UI.dbGroups || [])[dbI]; debtPop(grp ? Math.max(0, op.indexOf(grp[0])) : 0);
+    if (e.target.closest('.db-curs, .db-foot')) return;
+    clearTimeout(UI.dbClickT); if (e.detail > 1) return; // a double-click edits instead
+    UI.dbClickT = setTimeout(() => { if (Date.now() - (UI.dbSwipeAt || 0) < 600) return; const R = ctx().R, op = dOpen(R), grp = (UI.dbGroups || [])[dbI]; debtPop(grp ? Math.max(0, op.indexOf(grp[0])) : 0); }, 260);
   });
+  el.addEventListener('dblclick', e => { const c = e.target.closest('.dc[data-did]'); if (!c) return; e.preventDefault(); UI.dbSwipeAt = Date.now(); debtEdit(c.dataset.did); });
   el.addEventListener('keydown', e => { const g = e.target.closest('[data-dbgo]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hand(+g.dataset.dbgo); } });
   // swipe the bar to turn it
   let x0 = null;
