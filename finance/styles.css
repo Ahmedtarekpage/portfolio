@@ -1482,3 +1482,4 @@ body:not(.no3d) #gl, body:not(.no3d) #labels { top: 128px; height: calc(100% - 1
 .dc-sub .dc-item { font-size: .8rem; font-weight: 800; color: inherit; opacity: 1; }
 .dc--tabby .dc-sub .dc-item, .dc--tamara .dc-sub .dc-item { color: #0a0a0a; }
 .dc--tabby .dc-sub, .dc--tamara .dc-sub { color: rgba(10, 10, 10, .75); }
+.db-badges { gap: 6px; } .db-badge { width: 60px; height: 60px; }

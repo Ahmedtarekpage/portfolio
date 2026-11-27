@@ -3751,7 +3751,7 @@ function renderDebtBar() {
   const orbit = `<span class="db-orbit" style="--fs:${fsz}px" aria-hidden="true"><span class="db-ring2">${show.map((d, i) => `<span class="db-sat" style="--a:${(360 / show.length * i).toFixed(1)}deg"><span class="db-sat-in">${dAvatar(d, fsz)}</span></span>`).join('')}</span>` +
     `<b class="db-core">${faces.length > 24 ? '+' + (faces.length - 24) : faces.length}</b></span>`;
   const main = CUR[dbCur] ? dbCur : 'AED', totMain = tot / rate(main);
-  const badges = [...new Set(['AED', 'EGP', 'SAR', main])].filter(k => k !== main && CUR[k] && rate(k) > 0).map(k => `<span class="db-badge" dir="ltr"><i>${CUR[k].f}</i><b>${fmt(tot / rate(k))}</b><small>${CUR[k].s}</small></span>`).join('');
+  const badges = [...new Set(['AED', 'EGP', 'SAR', 'USD', main])].filter(k => k !== main && CUR[k] && rate(k) > 0).map(k => `<span class="db-badge" dir="ltr"><i>${CUR[k].f}</i><b>${fmt(tot / rate(k))}</b><small>${CUR[k].s}</small></span>`).join('');
   const total = `<span class="dc dc--all" data-k="${n - 1}">
       <span class="dc-top">${orbit}<span><b>${L('كل الديون', 'All debts')} · ${groups.length}</b><small>${L('بسعر الصرف دلوقتي', 'at today\'s rates')}</small></span></span>
       <span class="dc-amt"><small class="dc-lbl">${L('الإجمالي', 'Total')} · ${CUR[main].f} ${CUR[main].n}</small><b dir="ltr">≈ ${fmt(totMain)} <em>${CUR[main].s}</em></b>
