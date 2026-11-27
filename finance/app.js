@@ -1712,6 +1712,17 @@ function renderToday(c) {
       <button type="button" class="td-mini ${DP.realHave < -0.5 ? 'bad' : ''}" data-today="ess"><span>🍞 ${L('فاضل للأساسيات', 'Left for essentials')}</span><b dir="ltr">${fmt(DP.realHave)} Đ</b></button>
     </div>
     <button type="button" class="td-add" data-quick="spend" aria-label="${L('سجّل مصروف', 'Log an expense')}">＋ <span>${L('صرفت', 'Spent')}</span></button>`;
+  // the live-prices card's summary (owner, 2026-11-27): what you have, what you can spend until payday, payday, the next instalment
+  const ps = document.getElementById('pulseSum');
+  if (ps) try {
+    const R = c.R, have = Object.keys(R.bal || {}).reduce((n, cu) => n + Object.values(R.bal[cu] || {}).reduce((m, v) => m + Math.max(0, +v || 0), 0) * rate(cu), 0) + Math.max(0, DP.realHave);
+    const soon = dSoonest(R), row = (ico, lbl, val, sub, cls = '') => `<div class="ps-row ${cls}"><span class="ps-ico">${ico}</span><span class="ps-l">${lbl}${sub ? `<small>${sub}</small>` : ''}</span><b dir="ltr">${val}</b></div>`;
+    ps.innerHTML =
+      row('💰', L('معاك دلوقتي', 'You have now'), `${fmt(have)} Đ`, L('كل المحافظ', 'all wallets')) +
+      row('🛒', L('تقدر تصرف لحد القبض', 'You can spend until payday'), `${fmt(Math.max(0, DP.realHave))} Đ`, L(`≈ ${fmt(DP.total, 2)} في اليوم · ${plural(DP.daysLeft, 'يوم', 'يومين', 'أيام', 'يوم')}`, `≈ ${fmt(DP.total, 2)} a day · ${EN_N(DP.daysLeft, 'day')}`), DP.realHave < -0.5 ? 'bad' : '') +
+      row('📅', L('القبض', 'Payday'), pi.none ? '—' : pi.due ? L('النهارده 🎉', 'Today 🎉') : L(`بعد ${plural(pi.days, 'يوم', 'يومين', 'أيام', 'يوم')}`, `in ${EN_N(pi.days, 'day')}`), '') +
+      (soon ? row('💳', L('القسط الجاي', 'Next instalment'), `${fmt(soon.nx.amt, 2)} ${CUR[cOf(soon.d)].s}`, `${esc(dNm(soon.d))} · ${dWhen(soon.nx)}`, soon.nx.days < 0 ? 'bad' : soon.nx.days <= 3 ? 'warn' : '') : '');
+  } catch (e) { ps.innerHTML = ''; }
 }
 function quickSpend() {
   if (UI.page !== 'home') $('#nav [data-page="home"]')?.click();
